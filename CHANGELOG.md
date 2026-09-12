@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Footer under the minimap showing the active view — "island view" or
+  "centered · N×" with the current zoom.
+
 ## [1.2.0] - 2026-09-12
 
 ### Added

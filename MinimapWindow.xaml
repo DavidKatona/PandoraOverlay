@@ -66,6 +66,11 @@
                            Foreground="#9AA7B0" FontSize="11"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
+
+            <!-- Mode footer: which view is active (and the zoom, in centered mode) -->
+            <TextBlock x:Name="ModeFooter"
+                       Foreground="#7B8790" FontSize="10" Margin="0,5,0,0"
+                       HorizontalAlignment="Center"/>
         </StackPanel>
     </Border>
 </local:OverlayWindowBase>

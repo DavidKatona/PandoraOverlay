@@ -127,6 +127,8 @@ public partial class MinimapWindow : OverlayWindowBase
             _mapTranslate.Y = 0;
         }
 
+        ModeFooter.Text = _centered ? $"centered · {_zoom:0.##}×" : "island view";
+
         _hasFix = false; // next render snaps into place
         RenderLastFix();
     }

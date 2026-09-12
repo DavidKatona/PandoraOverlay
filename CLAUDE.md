@@ -108,7 +108,8 @@ references — keep it that way. Every overlay window derives from
   (`MinimapMode`): "island" (arrow translates over the fitted map) and
   "centered" (arrow pinned at centre, the map — rendered at size×`MinimapZoom`,
   clamped 1.25–4 — translates instead; no pan clamping, coasts show the map's
-  own ocean border). VIEW button toggles, wheel zooms (edit mode only).
+  own ocean border). VIEW button toggles, wheel zooms (edit mode only); a
+  footer under the map always shows the active view (+ zoom when centered).
   `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified
   in-game, Sep 2026). ✕ on its banner hides it (`MinimapEnabled=false`); the
   MAP button on the stats panel brings it back.
@@ -132,9 +133,10 @@ v1.1.0 (minimap) and v1.2.0 (player-centered north-up view) shipped Sep 2026 —
 both verified in-game (arrow position matches the website's live map; heading
 correct with the default yaw offset of 90; centered panning accurate).
 
-Later/maybe: rotating (facing-up) minimap mode, friends markers (needs
-permission first), zone overlays (needs permission), official token auth (if
-the dev builds it), Segoe Fluent Icons for stat glyphs, app icon in csproj.
+Later/maybe: friends markers (needs permission first), zone overlays (needs
+permission), official token auth (if the dev builds it), Segoe Fluent Icons
+for stat glyphs, app icon in csproj. Rejected: rotating (facing-up) minimap
+mode — owner decided it isn't useful enough (Sep 2026); don't re-propose.
 
 ## Conventions
 
