@@ -97,13 +97,17 @@ public sealed class PandoraClient : IDisposable
     /// <summary>
     /// Fetches the map calibration constants. Called once per launch (per
     /// credential swap at most) — static site config, and the only endpoint
-    /// besides mylocation the overlay is allowed to touch. Parsing is tolerant
-    /// of wrapping: the first JSON object carrying offsetX/…/mapSize anywhere
-    /// in the response wins; null means the shape was unrecognisable.
+    /// besides mylocation the overlay is allowed to touch. POST with an empty
+    /// body, mirroring the frontend's own fetch (the route is POST-only; GET
+    /// returns 404). Parsing is tolerant of wrapping: the first JSON object
+    /// carrying offsetX/…/mapSize anywhere in the response wins.
     /// </summary>
     public async Task<MapCalibration?> FetchCalibrationAsync(CancellationToken ct = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, CalibrationEndpoint);
+        using var request = new HttpRequestMessage(HttpMethod.Post, CalibrationEndpoint)
+        {
+            Content = new ByteArrayContent(Array.Empty<byte>())
+        };
         request.Headers.TryAddWithoutValidation("Cookie", _cookie);
 
         using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);

@@ -11,7 +11,7 @@ approved by the server's web dev.**
    source is the islapandora.eu web API. If a feature seems to need game-side data,
    the answer is no.
 2. **Two endpoints only.** `POST /api/map/mylocation` (the poll) and
-   `GET /api/map/calibration` (once per launch — static map-transform constants
+   `POST /api/map/calibration` (once per launch — static map-transform constants
    for the approved minimap; the live-map page itself loads it on every visit;
    added at the owner's direction, Sep 2026). The `friends` and heatmap/zone
    endpoints are NOT cleared for use (see Permissions).
@@ -49,15 +49,19 @@ Responses (JSON):
 - Behind Cloudflare, but plain HttpClient passes (verified with curl) — no TLS
   impersonation or WebView2 needed. Backend is Express; auth is session cookie only.
 
-`GET /api/map/calibration` — same headers; called once per launch. Returns the
-world→map constants the frontend feeds its pin transform (field names from the
-JS bundle: `offsetX`, `offsetY`, `scaleX`, `scaleY`, `mapSize`, opt. `pinOffset`):
+`POST /api/map/calibration` — empty body, same headers; called once per launch.
+POST-only (GET 404s); works even unauthenticated. Verified response (Sep 2026):
+`{"success":true,"scaleX":0.002001...,"scaleY":-0.002000...,"offsetX":1160.92...,
+"offsetY":1223.28...,"mapSize":2500,"pinOffset":{"x":-15,"y":25}}`
+Transform (mirrors the frontend; note negative scaleY + the flip):
 `left% = (offsetX + x·scaleX)/mapSize·100`,
-`top%  = (1 − (offsetY + y·scaleY)/mapSize)·100` (note the Y flip).
-Unauthenticated requests get 404. Exact response wrapping is unverified —
+`top%  = (1 − (offsetY + y·scaleY)/mapSize)·100`.
+`pinOffset` is deliberately skipped — it compensates the website's pin-icon
+anchor, not the player position; our arrow geometry is origin-centred.
 `PandoraClient.FindCalibration` scans the JSON for the first object carrying
-those fields. Map image: site asset `/assets/map-<hash>.png` (1000×1000); the
-hash changes per deploy, so a copy is bundled as `Assets/map.png` (WPF Resource).
+the five fields, so wrapping changes won't break it. Map image: site asset
+`/assets/map-<hash>.png` (1000×1000); the hash changes per deploy, so a copy
+is bundled as `Assets/map.png` (WPF Resource).
 
 ## Stack & build
 
@@ -121,11 +125,10 @@ references — keep it that way. Every overlay window derives from
 ## Roadmap — v1.1 minimap (approved; implemented, needs in-game verification)
 
 Code is in (PollService refactor, MinimapWindow, calibration fetch, bundled
-map). Before releasing v1.1.0, verify live in-game:
-1. `/api/map/calibration` response shape — `FindCalibration` is tolerant but
-   was written blind (endpoint 404s unauthenticated).
-2. Arrow position accuracy across the island (calibration constants correct?).
-3. Arrow orientation — tune `MinimapYawOffsetDegrees` (default 90).
+map). Calibration endpoint + response shape verified against the live API.
+Before releasing v1.1.0, verify live in-game:
+1. Arrow position accuracy across the island.
+2. Arrow orientation — tune `MinimapYawOffsetDegrees` (default 90).
 
 Later/maybe: player-centered/rotating minimap mode, friends markers (needs
 permission first), zone overlays (needs permission), official token auth (if
