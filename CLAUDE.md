@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap and a tray
-icon. **v1.3.0 is built, working, and approved by the server's web dev.**
+icon. **v1.3.1 is built, working, and approved by the server's web dev.**
 
 ## Hard constraints (never violate)
 
@@ -138,7 +138,8 @@ references — keep it that way. Every overlay window derives from
 Shipped Sep 2026, all verified in-game: v1.1.0 (minimap — arrow position
 matches the website's live map, yaw offset 90 correct), v1.2.0
 (player-centered north-up view — panning accurate), v1.3.0 (view-mode
-footer, 5× default zoom, tray icon + app icon).
+footer, 5× default zoom, tray icon + app icon), v1.3.1 (setup-dialog
+disabled-Save fix).
 
 Later/maybe: friends markers (needs permission first), zone overlays (needs
 permission), official token auth (if the dev builds it), Segoe Fluent Icons
@@ -152,7 +153,7 @@ it isn't useful enough (Sep 2026); don't re-propose.
 - Keep files well under ~500 lines; current style is regions + XML doc comments.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.3.0.
+  minor, fixes bump patch. Current: 1.3.1.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
