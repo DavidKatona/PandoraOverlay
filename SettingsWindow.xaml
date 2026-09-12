@@ -12,6 +12,41 @@
         FontFamily="Segoe UI"
         ShowInTaskbar="True">
 
+    <Window.Resources>
+        <!-- The default button chrome paints the disabled state near-white
+             regardless of Background, which glows on this dark dialog — so
+             the Save button (disabled until a valid cookie is pasted) gets a
+             template with an explicit dark disabled look. -->
+        <Style x:Key="SaveButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#2E5E38"/>
+            <Setter Property="Foreground" Value="#DFF3E2"/>
+            <Setter Property="Padding" Value="18,5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="2"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#3A7347"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Background" Value="#1E2A22"/>
+                                <Setter Property="Foreground" Value="#5E7263"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Border CornerRadius="10" Background="#F210151B" BorderBrush="#33FFFFFF"
             BorderThickness="1" Padding="16,12">
         <StackPanel>
@@ -65,8 +100,7 @@
                         Background="#2A3038" Foreground="#C7D1DA" BorderThickness="0"/>
                 <Button x:Name="SaveButton" Content="Save" Click="Save_Click"
                         IsEnabled="False"
-                        Padding="18,5" FontSize="12"
-                        Background="#2E5E38" Foreground="#DFF3E2" BorderThickness="0"/>
+                        Style="{StaticResource SaveButtonStyle}"/>
             </StackPanel>
         </StackPanel>
     </Border>

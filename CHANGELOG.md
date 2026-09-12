@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The setup dialog's disabled Save button no longer renders as a near-white
+  block with unreadable text (WPF's default disabled chrome ignored the dark
+  theme); it now dims to a dark muted green until a valid cookie is pasted.
+
 ## [1.3.0] - 2026-09-12
 
 ### Added
