@@ -61,6 +61,20 @@ public sealed class OverlayConfig
     public double MinimapSize { get; set; } = 230;
 
     /// <summary>
+    /// Minimap view: "island" (whole map, the arrow moves) or "centered"
+    /// (north-up, the map pans under an arrow fixed at the centre).
+    /// The VIEW button on the minimap's edit banner toggles this.
+    /// </summary>
+    public string MinimapMode { get; set; } = "island";
+
+    /// <summary>
+    /// Centered-mode magnification: the map is rendered at MinimapSize × zoom.
+    /// Clamped to 1.25–4 at runtime (the source image is 1000 px). Mouse wheel
+    /// over the minimap adjusts it while in edit mode.
+    /// </summary>
+    public double MinimapZoom { get; set; } = 3;
+
+    /// <summary>
     /// Degrees added to the raw yaw before rotating the player arrow — corrects
     /// for map-image orientation. Tune here if the arrow points sideways.
     /// </summary>

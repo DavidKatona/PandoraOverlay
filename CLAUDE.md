@@ -103,11 +103,15 @@ references — keep it that way. Every overlay window derives from
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
   fracture badges toggle).
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow. World→pixel
-  per `MapCalibration` (with the Y flip); position and yaw animate between
-  polls (shortest-arc yaw; first fix snaps). `MinimapYawOffsetDegrees` in
-  config corrects arrow orientation (default 90 — verified in-game, Sep 2026).
-  ✕ on its banner hides it (`MinimapEnabled=false`); the MAP button on the
-  stats panel brings it back.
+  per `MapCalibration` (with the Y flip); movement animates between polls
+  (shortest-arc yaw; first fix / mode switch snaps). Two north-up views
+  (`MinimapMode`): "island" (arrow translates over the fitted map) and
+  "centered" (arrow pinned at centre, the map — rendered at size×`MinimapZoom`,
+  clamped 1.25–4 — translates instead; no pan clamping, coasts show the map's
+  own ocean border). VIEW button toggles, wheel zooms (edit mode only).
+  `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified
+  in-game, Sep 2026). ✕ on its banner hides it (`MinimapEnabled=false`); the
+  MAP button on the stats panel brings it back.
 - **SettingsWindow.xaml(.cs)** — cookie paste dialog. `Clean()` strips `cookie:`
   prefix, quotes, newlines, trailing `;`. Live validation (needs `connect.sid`;
   warns if `cf_clearance` missing). Auto-opens on first run; save hot-swaps the
@@ -127,7 +131,10 @@ references — keep it that way. Every overlay window derives from
 v1.1.0 (minimap) shipped Sep 2026 — verified in-game: arrow position matches
 the website's live map, heading correct with the default yaw offset of 90.
 
-Later/maybe: player-centered/rotating minimap mode, friends markers (needs
+v1.2 in progress: player-centered north-up minimap view (implemented; verify
+in-game before release: centered panning accuracy, mode toggle, wheel zoom).
+
+Later/maybe: rotating (facing-up) minimap mode, friends markers (needs
 permission first), zone overlays (needs permission), official token auth (if
 the dev builds it), Segoe Fluent Icons for stat glyphs, app icon in csproj.
 

@@ -12,7 +12,8 @@
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
         FontFamily="Segoe UI"
-        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"
+        MouseWheel="Window_MouseWheel">
 
     <Border x:Name="RootPanel"
             CornerRadius="10"
@@ -31,13 +32,23 @@
                         Background="#552B2B" Foreground="#FFDDDD"
                         BorderThickness="0" FontSize="10"
                         ToolTip="Hide minimap (MAP on the stats panel brings it back)"/>
+                <Button DockPanel.Dock="Right"
+                        Content="VIEW"
+                        Click="View_Click"
+                        Width="38" Height="22" Padding="0" Margin="0,0,6,0"
+                        Background="#2A3038" Foreground="#C7D1DA"
+                        BorderThickness="0" FontSize="9" FontWeight="Bold"
+                        ToolTip="Toggle whole-island / player-centered view (mouse wheel zooms the centered view)"/>
                 <TextBlock Text="MINIMAP — drag to move"
                            Foreground="#FFC864" FontSize="11"
                            VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
 
             <Grid x:Name="MapHost" Width="230" Height="230" ClipToBounds="True">
-                <Image x:Name="MapImage" Stretch="Uniform"/>
+                <Image x:Name="MapImage"
+                       Stretch="Fill"
+                       HorizontalAlignment="Left" VerticalAlignment="Top"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
                 <Canvas>
                     <Path x:Name="PlayerArrow"
                           Data="M 0,-8 L 6,7 L 0,3.5 L -6,7 Z"

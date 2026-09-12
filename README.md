@@ -44,6 +44,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
 - **Ctrl+F8** toggles edit mode — an orange border appears, you can drag the panel anywhere, open account settings with ⚙, and close it with ✕. Ctrl+F8 again locks it back. Position is remembered.
 - The **minimap** is a separate window sharing the same edit mode: drag it independently, hide it with its ✕, bring it back with the **MAP** button on the stats panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
+- The minimap has two views, toggled with the **VIEW** button in edit mode: the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–4×) while in edit mode. Both the view and zoom are remembered.
 - States you'll see:
   - `Not in-game` — you're logged in but not spawned on the server (or the server is restarting).
   - `Disconnected · retrying` — network/auth problem; it keeps retrying every poll. If it never recovers, reopen ⚙ and paste a fresh cookie.
@@ -60,6 +61,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `WindowX` / `WindowY` | Saved panel position. |
 | `MinimapEnabled` | Show the minimap window (the ✕ on its banner turns this off, the MAP button back on). |
 | `MinimapX` / `MinimapY` / `MinimapSize` | Minimap position and edge length. |
+| `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). The VIEW button toggles it. |
+| `MinimapZoom` | Centered-view magnification, clamped to 1.25–4. Mouse wheel in edit mode adjusts it. |
 | `MinimapYawOffsetDegrees` | Rotation added to the raw yaw for the arrow. Default 90 matches the current map. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
 
@@ -76,9 +79,9 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - It polls at the same rate as the website itself and respects their rate limit.
 - This consumes Isla Pandora's private, login-gated API. Be a good citizen: ask their admins whether they're okay with a personal overlay client, and stop using it if they say no.
 
-## Roadmap (v1.2+)
+## Roadmap (v1.3+)
 
-- Player-centered / rotating minimap mode.
+- Rotating (facing-up) minimap mode.
 - Friends markers from the `friends` endpoint *(needs a green light from the site dev first)*.
 - Zone overlays (sanctuaries, patrol zones, migrations) *(same — ask first)*.
 

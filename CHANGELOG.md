@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Player-centered minimap view (north-up): the map pans under an arrow fixed
+  at the centre. Toggle with the VIEW button on the minimap's edit banner;
+  the mouse wheel adjusts zoom (1.25–4×) while in edit mode. The whole-island
+  view remains the default; both modes and the zoom persist.
+
 ## [1.1.0] - 2026-09-12
 
 ### Added
