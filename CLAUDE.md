@@ -121,3 +121,13 @@ stat glyphs, app icon in csproj.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
   minor, fixes bump patch. Current: 1.0.0.
+- Release model: main moves freely between releases; tags mark the stable
+  points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
+  a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
+  never a random commit. No standing release/version branches.
+- Never move or re-tag an existing tag. If a release ships broken, fix forward
+  and tag the next patch version.
+- Hotfixing an old release while main holds unreleased work:
+  `git switch -c fix vX.Y.Z` → fix → bump patch in csproj + CHANGELOG →
+  tag `vX.Y.(Z+1)` → push the tag (release builds automatically) →
+  merge/cherry-pick the fix back to main → delete the branch.
