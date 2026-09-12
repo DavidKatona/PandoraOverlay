@@ -1,0 +1,140 @@
+<Window x:Class="PandoraOverlay.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Pandora Overlay"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        FontFamily="Segoe UI"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Border x:Name="RootPanel"
+            CornerRadius="10"
+            Background="#CC10151B"
+            BorderBrush="#33FFFFFF"
+            BorderThickness="1"
+            Padding="12,10">
+        <StackPanel>
+
+            <!-- Edit-mode banner (hidden while locked / click-through) -->
+            <DockPanel x:Name="EditBanner" Visibility="Collapsed" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right"
+                        Content="&#x2715;"
+                        Click="Close_Click"
+                        Width="22" Height="22" Padding="0"
+                        Background="#552B2B" Foreground="#FFDDDD"
+                        BorderThickness="0" FontSize="10"
+                        ToolTip="Close overlay"/>
+                <Button DockPanel.Dock="Right"
+                        Content="&#x2699;"
+                        Click="Settings_Click"
+                        Width="22" Height="22" Padding="0" Margin="0,0,6,0"
+                        Background="#2A3038" Foreground="#C7D1DA"
+                        BorderThickness="0" FontSize="11"
+                        ToolTip="Account settings"/>
+                <TextBlock Text="EDIT MODE — drag to move · Ctrl+F8 to lock"
+                           Foreground="#FFC864" FontSize="11"
+                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+            </DockPanel>
+
+            <!-- Header: dino + growth -->
+            <DockPanel Margin="0,0,0,8">
+                <TextBlock x:Name="GrowthText" DockPanel.Dock="Right"
+                           Foreground="#9AA7B0" FontSize="12"
+                           VerticalAlignment="Center"/>
+                <TextBlock x:Name="DinoText" Text="Connecting…"
+                           Foreground="#ECF2F8" FontSize="14" FontWeight="Bold"/>
+            </DockPanel>
+
+            <!-- Health -->
+            <Grid Margin="0,3,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="44"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Health" Foreground="#C7D1DA" FontSize="11" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="12" CornerRadius="6" Background="#3D202830" VerticalAlignment="Center">
+                    <Border x:Name="HealthFill" Height="12" CornerRadius="6" Background="#4CAF50"
+                            HorizontalAlignment="Left" Width="0"/>
+                </Border>
+                <TextBlock x:Name="HealthPct" Grid.Column="2" Foreground="#C7D1DA" FontSize="11"
+                           TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Stamina -->
+            <Grid Margin="0,3,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="44"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Stamina" Foreground="#C7D1DA" FontSize="11" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="12" CornerRadius="6" Background="#3D202830" VerticalAlignment="Center">
+                    <Border x:Name="StaminaFill" Height="12" CornerRadius="6" Background="#FFD54F"
+                            HorizontalAlignment="Left" Width="0"/>
+                </Border>
+                <TextBlock x:Name="StaminaPct" Grid.Column="2" Foreground="#C7D1DA" FontSize="11"
+                           TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Hunger -->
+            <Grid Margin="0,3,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="44"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Hunger" Foreground="#C7D1DA" FontSize="11" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="12" CornerRadius="6" Background="#3D202830" VerticalAlignment="Center">
+                    <Border x:Name="HungerFill" Height="12" CornerRadius="6" Background="#FF9800"
+                            HorizontalAlignment="Left" Width="0"/>
+                </Border>
+                <TextBlock x:Name="HungerPct" Grid.Column="2" Foreground="#C7D1DA" FontSize="11"
+                           TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Thirst -->
+            <Grid Margin="0,3,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="44"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Thirst" Foreground="#C7D1DA" FontSize="11" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="12" CornerRadius="6" Background="#3D202830" VerticalAlignment="Center">
+                    <Border x:Name="ThirstFill" Height="12" CornerRadius="6" Background="#4FC3F7"
+                            HorizontalAlignment="Left" Width="0"/>
+                </Border>
+                <TextBlock x:Name="ThirstPct" Grid.Column="2" Foreground="#C7D1DA" FontSize="11"
+                           TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Fracture badges (only visible when fractured) -->
+            <StackPanel x:Name="FractureRow" Orientation="Horizontal" Margin="0,7,0,0"
+                        Visibility="Collapsed">
+                <Border x:Name="FracHead" Background="#B3402020" CornerRadius="4"
+                        Padding="6,2" Margin="0,0,6,0" Visibility="Collapsed">
+                    <TextBlock Text="HEAD" Foreground="#FF8A80" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <Border x:Name="FracBody" Background="#B3402020" CornerRadius="4"
+                        Padding="6,2" Margin="0,0,6,0" Visibility="Collapsed">
+                    <TextBlock Text="BODY" Foreground="#FF8A80" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <Border x:Name="FracLegs" Background="#B3402020" CornerRadius="4"
+                        Padding="6,2" Visibility="Collapsed">
+                    <TextBlock Text="LEGS" Foreground="#FF8A80" FontSize="10" FontWeight="Bold"/>
+                </Border>
+            </StackPanel>
+
+            <!-- Status line -->
+            <TextBlock x:Name="StatusText"
+                       Foreground="#7B8790" FontSize="10" Margin="0,8,0,0"/>
+        </StackPanel>
+    </Border>
+</Window>
