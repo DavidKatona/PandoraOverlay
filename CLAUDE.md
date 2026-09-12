@@ -1,7 +1,7 @@
 # PandoraOverlay — CLAUDE.md
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
-player's own dino stats in an always-on-top panel. **v1.2 is built, working, and
+player's own dino stats in an always-on-top panel. **v1.0.0 is built, working, and
 approved by the server's web dev.**
 
 ## Hard constraints (never violate)
@@ -21,11 +21,12 @@ approved by the server's web dev.**
 
 ## Permissions status (from Discord ticket, Sep 2026)
 
-- Approved by **instantnameofficial** (site dev, via admin Emilyana): personal use
-  of the overlay, explicitly including a future **minimap** from the same endpoint.
-- **NOT approved:** distributing the app to other players; using the `friends`
-  endpoint. Both require asking him first. A read-only API token feature was
-  pitched to him; if it ships, auth migration happens inside
+- Approved by **instantnameofficial** (site dev, via admin Emilyana): use of the
+  overlay, explicitly including a future **minimap** from the same endpoint.
+  Distributing the app / public source is fine — it's a simple tracker and the
+  server team has no problem with such tools.
+- **NOT approved:** using the `friends` endpoint — ask him first. A read-only API
+  token feature was pitched to him; if it ships, auth migration happens inside
   `OverlayConfig.GetCookie/SetCookie` + `PandoraClient` header — nothing else changes.
 
 ## API contract
@@ -88,7 +89,7 @@ tray app / minimap window).
 - Status line shows last-update timestamp; "Disconnected · retrying (TypeName)"
   on errors. Persistent 401/403 → user pastes a fresh cookie via ⚙.
 
-## Roadmap — next: v1.5 minimap (approved)
+## Roadmap — next: v1.1 minimap (approved)
 
 Same endpoint already provides x/y/z/yaw. Plan:
 1. Map asset: grab the island image URL from DevTools (Img filter) on the live
@@ -117,3 +118,6 @@ stat glyphs, app icon in csproj.
 - Code-behind over MVVM — deliberate at this size; don't introduce frameworks.
 - Fail soft: config/crypto/HTTP errors degrade to a UI state, never crash.
 - Keep files well under ~500 lines; current style is regions + XML doc comments.
+- Versioning: SemVer. The csproj `<Version>` is the single source of truth;
+  bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
+  minor, fixes bump patch. Current: 1.0.0.

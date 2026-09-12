@@ -1,13 +1,23 @@
-# Pandora Overlay (v1)
+# Pandora Overlay
 
 A tiny always-on-top overlay for The Isle: Evrima showing your dino's health, stamina, hunger, thirst, growth, and fracture status while playing on Isla Pandora.
 
 It is **fully external**: the only thing it ever does is replay the same authenticated HTTPS request the islapandora.eu live-map page makes in your browser (`POST /api/map/mylocation`). It never reads game memory, never touches game files, and never interacts with the game process in any way.
 
+<!-- After publishing to GitHub: replace OWNER below and uncomment the badge,
+     and add an in-game screenshot as docs/screenshot.png:
+[![Build](https://github.com/OWNER/PandoraOverlay/actions/workflows/release.yml/badge.svg)](https://github.com/OWNER/PandoraOverlay/actions)
+![Overlay in-game](docs/screenshot.png)
+-->
+
+## Get it
+
+Download the latest zip from the [Releases page](../../releases) and unzip it anywhere — it needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) installed. Or build from source as described below.
+
 ## Requirements
 
 - Windows 10/11, x64
-- .NET 8 SDK (`winget install Microsoft.DotNet.SDK.8`)
+- .NET 8 SDK (`winget install Microsoft.DotNet.SDK.8`) — only needed when building from source
 - An Isla Pandora account, logged in via Discord on islapandora.eu
 - The Isle running in **borderless windowed** mode (overlays cannot draw over exclusive fullscreen)
 
@@ -59,12 +69,16 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ## Fair-play notes
 
-- The overlay only shows **your own** dino — the same data Isla Pandora already displays to you in a browser tab. It cannot see other players (except the site's own friends feature, not used in v1).
+- The overlay only shows **your own** dino — the same data Isla Pandora already displays to you in a browser tab. It cannot see other players (except the site's own friends feature, not used yet).
 - It polls at the same rate as the website itself and respects their rate limit.
 - This consumes Isla Pandora's private, login-gated API. Be a good citizen: ask their admins whether they're okay with a personal overlay client, and stop using it if they say no.
 
-## Roadmap (v1.5+)
+## Roadmap (v1.1+)
 
 - Minimap: map image + world→pixel transform + rotating player arrow (`x`, `y`, `yaw` are already in the payload).
-- Friends markers from the `friends` endpoint.
-- Zone overlays (sanctuaries, patrol zones, migrations).
+- Friends markers from the `friends` endpoint *(needs a green light from the site dev first)*.
+- Zone overlays (sanctuaries, patrol zones, migrations) *(same — ask first)*.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
