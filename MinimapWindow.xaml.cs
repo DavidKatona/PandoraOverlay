@@ -20,7 +20,7 @@ namespace PandoraOverlay;
 public partial class MinimapWindow : OverlayWindowBase
 {
     private const double MinZoom = 1.25;
-    private const double MaxZoom = 4; // source map is 1000 px — beyond this it's just blur
+    private const double MaxZoom = 6; // source map is 1000 px — the top of the range upscales slightly
 
     private readonly OverlayConfig _config;
     private readonly PollService _poll;

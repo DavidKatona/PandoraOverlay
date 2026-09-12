@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Footer under the minimap showing the active view — "island view" or
   "centered · N×" with the current zoom.
 
+### Changed
+
+- Centered-view default zoom raised from 3× to 5×; the zoom range is now
+  1.25–6× (was 1.25–4×).
+
 ## [1.2.0] - 2026-09-12
 
 ### Added

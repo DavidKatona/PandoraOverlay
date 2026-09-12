@@ -107,7 +107,7 @@ references — keep it that way. Every overlay window derives from
   (shortest-arc yaw; first fix / mode switch snaps). Two north-up views
   (`MinimapMode`): "island" (arrow translates over the fitted map) and
   "centered" (arrow pinned at centre, the map — rendered at size×`MinimapZoom`,
-  clamped 1.25–4 — translates instead; no pan clamping, coasts show the map's
+  clamped 1.25–6, default 5 — translates instead; no pan clamping, coasts show the map's
   own ocean border). VIEW button toggles, wheel zooms (edit mode only); a
   footer under the map always shows the active view (+ zoom when centered).
   `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified

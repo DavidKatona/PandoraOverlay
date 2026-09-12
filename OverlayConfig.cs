@@ -69,10 +69,11 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Centered-mode magnification: the map is rendered at MinimapSize × zoom.
-    /// Clamped to 1.25–4 at runtime (the source image is 1000 px). Mouse wheel
-    /// over the minimap adjusts it while in edit mode.
+    /// Clamped to 1.25–6 at runtime (the source image is 1000 px, so the top
+    /// of the range upscales slightly). Mouse wheel over the minimap adjusts
+    /// it while in edit mode.
     /// </summary>
-    public double MinimapZoom { get; set; } = 3;
+    public double MinimapZoom { get; set; } = 5;
 
     /// <summary>
     /// Degrees added to the raw yaw before rotating the player arrow — corrects
