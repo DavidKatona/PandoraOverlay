@@ -49,6 +49,26 @@ public sealed class OverlayConfig
     public double WindowX { get; set; } = 40;
     public double WindowY { get; set; } = 40;
 
+    // ---- Minimap (v1.1) ---------------------------------------------------
+
+    /// <summary>Show the minimap window (✕ on its edit banner hides it; MAP on the stats panel brings it back).</summary>
+    public bool MinimapEnabled { get; set; } = true;
+
+    public double MinimapX { get; set; } = 300;
+    public double MinimapY { get; set; } = 40;
+
+    /// <summary>Edge length of the square minimap, in DIPs.</summary>
+    public double MinimapSize { get; set; } = 230;
+
+    /// <summary>
+    /// Degrees added to the raw yaw before rotating the player arrow — corrects
+    /// for map-image orientation. Tune here if the arrow points sideways.
+    /// </summary>
+    public double MinimapYawOffsetDegrees { get; set; } = 90;
+
+    /// <summary>Cached /api/map/calibration values; refreshed once per launch.</summary>
+    public MapCalibration? Calibration { get; set; }
+
     public static OverlayConfig Load()
     {
         OverlayConfig cfg;

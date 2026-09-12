@@ -3,31 +3,24 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Threading;
 
 namespace PandoraOverlay;
 
-public partial class MainWindow : Window
+/// <summary>
+/// The stats panel and the app's orchestrator: owns the config and the shared
+/// PollService, registers the global Ctrl+F8 hotkey, and manages the minimap
+/// window's lifetime. Window-style interop lives in OverlayWindowBase.
+/// </summary>
+public partial class MainWindow : OverlayWindowBase
 {
     // ---- Layout constants -------------------------------------------------
     private const double TrackWidth = 170; // must match bar track width in XAML
 
-    // ---- Win32 interop ----------------------------------------------------
-    private const int GWL_EXSTYLE = -20;
-    private const long WS_EX_TRANSPARENT = 0x00000020; // clicks fall through to the game
-    private const long WS_EX_TOOLWINDOW = 0x00000080;  // no Alt-Tab entry
-    private const long WS_EX_NOACTIVATE = 0x08000000;  // never steals focus
-
+    // ---- Global hotkey (registered once, toggles every overlay window) ----
     private const int WM_HOTKEY = 0x0312;
     private const int HotkeyId = 0xA11C;
     private const uint MOD_CONTROL = 0x0002;
     private const uint VK_F8 = 0x77;
-
-    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
-    private static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
-
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
-    private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
     [DllImport("user32.dll")]
     private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -39,15 +32,11 @@ public partial class MainWindow : Window
     private static readonly Brush HealthGood = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
     private static readonly Brush HealthWarn = new SolidColorBrush(Color.FromRgb(0xFF, 0xB3, 0x00));
     private static readonly Brush HealthCrit = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
-    private static readonly Brush BorderLocked = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
-    private static readonly Brush BorderEdit = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));
 
     // ---- State ------------------------------------------------------------
     private readonly OverlayConfig _config;
-    private PandoraClient _client;
-    private readonly DispatcherTimer _timer;
-    private bool _editMode;
-    private bool _busy;
+    private readonly PollService _poll;
+    private MinimapWindow? _minimap;
 
     public MainWindow()
     {
@@ -57,31 +46,29 @@ public partial class MainWindow : Window
         Left = _config.WindowX;
         Top = _config.WindowY;
 
-        _client = new PandoraClient(_config.GetCookie(), _config.UserAgent);
+        _poll = new PollService(_config);
+        _poll.SnapshotReceived += OnSnapshot;
+        _poll.PollFailed += OnPollFailed;
 
-        _timer = new DispatcherTimer
+        Loaded += (_, _) =>
         {
-            Interval = TimeSpan.FromSeconds(Math.Max(2, _config.PollIntervalSeconds))
-        };
-        _timer.Tick += async (_, _) => await PollAsync();
+            if (_config.MinimapEnabled) ShowMinimap();
 
-        Loaded += async (_, _) =>
-        {
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
             {
                 ShowNoCookieState();
                 OpenSettings(); // first run: walk the user through setup
                 return;
             }
-            _timer.Start();
-            await PollAsync();
+            _poll.Start();
         };
 
         Closed += (_, _) =>
         {
-            _timer.Stop();
+            _poll.Stop();
             PersistState();
-            _client.Dispose();
+            _poll.Dispose();
+            _minimap?.Close();
         };
     }
 
@@ -98,32 +85,48 @@ public partial class MainWindow : Window
             if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState();
             return;
         }
-        RebuildClient();
-    }
-
-    private void RebuildClient()
-    {
-        _client.Dispose();
-        _client = new PandoraClient(_config.GetCookie(), _config.UserAgent);
         DinoText.Text = "Connecting…";
         StatusText.Text = "";
-        if (!_timer.IsEnabled) _timer.Start();
-        _ = PollAsync();
+        _poll.RebuildClient();
     }
 
     private void ShowNoCookieState()
     {
         DinoText.Text = "Not set up yet";
-        StatusText.Text = "Press Ctrl+F8, then click \u2699 to connect your account";
+        StatusText.Text = "Press Ctrl+F8, then click ⚙ to connect your account";
     }
 
-    // ---- Window setup -----------------------------------------------------
+    // ---- Minimap ----------------------------------------------------------
+    private void Minimap_Click(object sender, RoutedEventArgs e)
+    {
+        if (_minimap is null)
+        {
+            ShowMinimap();
+        }
+        else
+        {
+            _config.MinimapEnabled = false;
+            _minimap.Close();
+        }
+    }
+
+    private void ShowMinimap()
+    {
+        if (_minimap is null)
+        {
+            _minimap = new MinimapWindow(_config, _poll);
+            _minimap.Closed += (_, _) => _minimap = null;
+            _minimap.Show();
+        }
+        _config.MinimapEnabled = true;
+        if (EditMode) _minimap.SetEditMode(true);
+    }
+
+    // ---- Window setup ------------------------------------------------------
     protected override void OnSourceInitialized(EventArgs e)
     {
-        base.OnSourceInitialized(e);
+        base.OnSourceInitialized(e); // applies the click-through styles
         var hwnd = new WindowInteropHelper(this).Handle;
-
-        ApplyClickThrough(hwnd, clickThrough: true);
         RegisterHotKey(hwnd, HotkeyId, MOD_CONTROL, VK_F8);
         HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
     }
@@ -138,44 +141,26 @@ public partial class MainWindow : Window
         return IntPtr.Zero;
     }
 
-    private void ApplyClickThrough(IntPtr hwnd, bool clickThrough)
-    {
-        var style = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
-        style |= WS_EX_TOOLWINDOW;
-        if (clickThrough)
-        {
-            style |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
-        }
-        else
-        {
-            style &= ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
-        }
-        SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(style));
-    }
-
     // ---- Edit mode ----------------------------------------------------------
     private void ToggleEditMode()
     {
-        _editMode = !_editMode;
-        var hwnd = new WindowInteropHelper(this).Handle;
+        var on = !EditMode;
+        SetEditMode(on);
+        _minimap?.SetEditMode(on);
 
-        ApplyClickThrough(hwnd, clickThrough: !_editMode);
-        EditBanner.Visibility = _editMode ? Visibility.Visible : Visibility.Collapsed;
-        RootPanel.BorderBrush = _editMode ? BorderEdit : BorderLocked;
-
-        if (!_editMode)
+        if (!on)
         {
             PersistState();
         }
     }
 
-    private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    protected override void OnEditModeChanged(bool editMode)
     {
-        if (_editMode && e.ButtonState == MouseButtonState.Pressed)
-        {
-            DragMove();
-        }
+        EditBanner.Visibility = editMode ? Visibility.Visible : Visibility.Collapsed;
+        RootPanel.BorderBrush = editMode ? BorderEdit : BorderLocked;
     }
+
+    private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);
 
     private void Close_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
 
@@ -183,36 +168,32 @@ public partial class MainWindow : Window
     {
         _config.WindowX = Left;
         _config.WindowY = Top;
-        if (!string.IsNullOrWhiteSpace(_client.CurrentCookie))
+        if (_minimap is not null)
         {
-            _config.SetCookie(_client.CurrentCookie); // re-encrypt the rolled connect.sid
+            _config.MinimapX = _minimap.Left;
+            _config.MinimapY = _minimap.Top;
+        }
+        if (!string.IsNullOrWhiteSpace(_poll.CurrentCookie))
+        {
+            _config.SetCookie(_poll.CurrentCookie); // re-encrypt the rolled connect.sid
         }
         _config.Save();
     }
 
-    // ---- Polling ------------------------------------------------------------
-    private async Task PollAsync()
+    // ---- Poll stream --------------------------------------------------------
+    private void OnPollFailed(Exception ex)
     {
-        if (_busy) return;
-        _busy = true;
-        try
-        {
-            var result = await _client.FetchAsync();
-            UpdateUi(result);
+        StatusText.Text = $"Disconnected · retrying ({ex.GetType().Name})";
+    }
 
-            // Cheap re-assert in case the game reshuffles the z-order.
-            if (!_editMode && !Topmost)
-            {
-                Topmost = true;
-            }
-        }
-        catch (Exception ex)
+    private void OnSnapshot(MyLocationResponse result)
+    {
+        UpdateUi(result);
+
+        // Cheap re-assert in case the game reshuffles the z-order.
+        if (!EditMode && !Topmost)
         {
-            StatusText.Text = $"Disconnected · retrying ({ex.GetType().Name})";
-        }
-        finally
-        {
-            _busy = false;
+            Topmost = true;
         }
     }
 
@@ -235,8 +216,8 @@ public partial class MainWindow : Window
         var p = result.Player;
 
         var gender = p.Gender ?? "";
-        var symbol = gender.StartsWith("M", StringComparison.OrdinalIgnoreCase) ? "\u2642"
-                   : gender.StartsWith("F", StringComparison.OrdinalIgnoreCase) ? "\u2640"
+        var symbol = gender.StartsWith("M", StringComparison.OrdinalIgnoreCase) ? "♂"
+                   : gender.StartsWith("F", StringComparison.OrdinalIgnoreCase) ? "♀"
                    : "";
         DinoText.Text = $"{p.Dino} {symbol}".Trim();
         GrowthText.Text = $"Growth {p.Growth * 100:0.#}%";

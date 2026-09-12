@@ -1,0 +1,56 @@
+<local:OverlayWindowBase x:Class="PandoraOverlay.MinimapWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PandoraOverlay"
+        Title="Pandora Minimap"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        FontFamily="Segoe UI"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Border x:Name="RootPanel"
+            CornerRadius="10"
+            Background="#CC10151B"
+            BorderBrush="#33FFFFFF"
+            BorderThickness="1"
+            Padding="6">
+        <StackPanel>
+
+            <!-- Edit-mode banner (hidden while locked / click-through) -->
+            <DockPanel x:Name="EditBanner" Visibility="Collapsed" Margin="0,0,0,6">
+                <Button DockPanel.Dock="Right"
+                        Content="&#x2715;"
+                        Click="Hide_Click"
+                        Width="22" Height="22" Padding="0"
+                        Background="#552B2B" Foreground="#FFDDDD"
+                        BorderThickness="0" FontSize="10"
+                        ToolTip="Hide minimap (MAP on the stats panel brings it back)"/>
+                <TextBlock Text="MINIMAP — drag to move"
+                           Foreground="#FFC864" FontSize="11"
+                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+            </DockPanel>
+
+            <Grid x:Name="MapHost" Width="230" Height="230" ClipToBounds="True">
+                <Image x:Name="MapImage" Stretch="Uniform"/>
+                <Canvas>
+                    <Path x:Name="PlayerArrow"
+                          Data="M 0,-8 L 6,7 L 0,3.5 L -6,7 Z"
+                          Fill="#FFC864"
+                          Stroke="#991A130A"
+                          StrokeThickness="1"
+                          Visibility="Collapsed"/>
+                </Canvas>
+                <TextBlock x:Name="MapStatus"
+                           Text="connecting…"
+                           Foreground="#9AA7B0" FontSize="11"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+        </StackPanel>
+    </Border>
+</local:OverlayWindowBase>

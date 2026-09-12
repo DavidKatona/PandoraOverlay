@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Minimap window: bundled island map with a player arrow that glides between
+  polls (shortest-arc yaw smoothing); draggable in edit mode, hidden with its
+  ✕ button, brought back with the new MAP button on the stats panel; position
+  persists. Same Ctrl+F8 edit mode as the stats panel.
+- Map calibration constants are fetched from `/api/map/calibration` once per
+  launch and cached in `config.json` (`MinimapYawOffsetDegrees` there tunes
+  the arrow orientation).
+
+### Changed
+
+- Polling extracted into a shared `PollService`: the stats panel and the
+  minimap consume one request stream — the request rate is unchanged from
+  v1.0.0 regardless of how many overlay windows are open.
+- Debug symbols are now embedded in the executable (no separate `.pdb` file
+  in release zips).
+
 ## [1.0.0] - 2026-09-12
 
 Initial public release.

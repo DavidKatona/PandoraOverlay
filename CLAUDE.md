@@ -10,8 +10,11 @@ approved by the server's web dev.**
    touch the game process in any way. The Isle runs Easy Anti-Cheat. The ONLY data
    source is the islapandora.eu web API. If a feature seems to need game-side data,
    the answer is no.
-2. **One endpoint.** Only `POST /api/map/mylocation` is called. The `friends` and
-   heatmap/zone endpoints are NOT cleared for use (see Permissions).
+2. **Two endpoints only.** `POST /api/map/mylocation` (the poll) and
+   `GET /api/map/calibration` (once per launch — static map-transform constants
+   for the approved minimap; the live-map page itself loads it on every visit;
+   added at the owner's direction, Sep 2026). The `friends` and heatmap/zone
+   endpoints are NOT cleared for use (see Permissions).
 3. **Poll interval >= 2 s** (default 3 s, matching the website's own cadence).
    Server-side rate limit is 300/window. Never add endpoints or frequency without
    the owner's explicit okay — the dev specifically praised the polling restraint.
@@ -46,6 +49,16 @@ Responses (JSON):
 - Behind Cloudflare, but plain HttpClient passes (verified with curl) — no TLS
   impersonation or WebView2 needed. Backend is Express; auth is session cookie only.
 
+`GET /api/map/calibration` — same headers; called once per launch. Returns the
+world→map constants the frontend feeds its pin transform (field names from the
+JS bundle: `offsetX`, `offsetY`, `scaleX`, `scaleY`, `mapSize`, opt. `pinOffset`):
+`left% = (offsetX + x·scaleX)/mapSize·100`,
+`top%  = (1 − (offsetY + y·scaleY)/mapSize)·100` (note the Y flip).
+Unauthenticated requests get 404. Exact response wrapping is unverified —
+`PandoraClient.FindCalibration` scans the JSON for the first object carrying
+those fields. Map image: site asset `/assets/map-<hash>.png` (1000×1000); the
+hash changes per deploy, so a copy is bundled as `Assets/map.png` (WPF Resource).
+
 ## Stack & build
 
 - .NET 8, WPF, x64. One NuGet dep: `System.Security.Cryptography.ProtectedData`.
@@ -54,9 +67,20 @@ Responses (JSON):
 
 ## Architecture
 
-Dependency rule: `MainWindow` → { `PandoraClient`, `OverlayConfig` }. The two
-non-UI classes have zero WPF references — keep it that way (reusable for future
-tray app / minimap window).
+Dependency rule: `MainWindow` → { `PollService`, `OverlayConfig` } and
+`PollService` → `PandoraClient`. `PandoraClient`/`OverlayConfig` have zero WPF
+references — keep it that way. Every overlay window derives from
+`OverlayWindowBase`.
+
+- **PollService.cs** — owns the shared client + `DispatcherTimer` + `_busy`
+  reentrancy guard; raises `SnapshotReceived`/`PollFailed`/`CalibrationChanged`
+  on the UI thread. Windows are pure consumers: N windows, still ONE request
+  stream (this is what preserves constraint #3). Fetches calibration once per
+  launch (retried after a credential swap) and caches it into config.
+- **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
+  toolwindow styles via SetWindowLongPtr, x64), `EditMode` state,
+  `DragIfEditing`, shared edit-border brushes. Ctrl+F8 is registered once, in
+  MainWindow, which toggles edit mode on every open window.
 
 - **PandoraClient.cs** — HTTP layer + `PlayerState`/`MyLocationResponse` records
   (case-insensitive JSON). One long-lived HttpClient, `UseCookies=false` (manual
@@ -67,14 +91,19 @@ tray app / minimap window).
   field is a paste-inbox only: `Load()` encrypts it into `CookieProtected`
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
   any failure; nothing in this class ever throws.
-- **MainWindow.xaml(.cs)** — orchestrator. Win32 interop: `WS_EX_TRANSPARENT |
-  WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW` via SetWindowLongPtr (x64 assumption);
-  global hotkey **Ctrl+F8** (RegisterHotKey + WM_HOTKEY in WndProc hook) toggles
-  edit mode (drag via DragMove, ⚙ settings, ✕ close; leaving edit mode persists
-  position + re-encrypted cookie). `DispatcherTimer` poll loop with `_busy`
-  reentrancy guard; everything runs on the UI thread — no locks/Invoke needed.
-  `UpdateUi` is a 3-state machine: not-set-up / not-in-game / live (health bar
-  recolors at <50% amber, <25% red; fracture badges toggle).
+- **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
+  and the minimap window's lifetime. Global hotkey **Ctrl+F8** (RegisterHotKey
+  + WM_HOTKEY in WndProc hook) toggles edit mode on every window (drag, ⚙
+  settings, MAP minimap toggle, ✕ close; leaving edit mode persists all window
+  positions + the re-encrypted rolled cookie). `UpdateUi` is a 3-state machine:
+  not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
+  fracture badges toggle).
+- **MinimapWindow.xaml(.cs)** — bundled island map + player arrow. World→pixel
+  per `MapCalibration` (with the Y flip); position and yaw animate between
+  polls (shortest-arc yaw; first fix snaps). `MinimapYawOffsetDegrees` in
+  config corrects arrow orientation (default 90 — UNVERIFIED, tune in-game).
+  ✕ on its banner hides it (`MinimapEnabled=false`); the MAP button on the
+  stats panel brings it back.
 - **SettingsWindow.xaml(.cs)** — cookie paste dialog. `Clean()` strips `cookie:`
   prefix, quotes, newlines, trailing `;`. Live validation (needs `connect.sid`;
   warns if `cf_clearance` missing). Auto-opens on first run; save hot-swaps the
@@ -89,29 +118,18 @@ tray app / minimap window).
 - Status line shows last-update timestamp; "Disconnected · retrying (TypeName)"
   on errors. Persistent 401/403 → user pastes a fresh cookie via ⚙.
 
-## Roadmap — next: v1.1 minimap (approved)
+## Roadmap — v1.1 minimap (approved; implemented, needs in-game verification)
 
-Same endpoint already provides x/y/z/yaw. Plan:
-1. Map asset: grab the island image URL from DevTools (Img filter) on the live
-   map; cache locally. **Not yet captured.**
-2. World→pixel transform: affine, no rotation expected —
-   `px = (x - minX)/(maxX - minX) * imgW` (watch for Y sign flip). Get min/max by
-   reading their frontend JS (search bundle for bounds/scale consts), from
-   community Evrima map tools, or 2-point empirical calibration (3rd point
-   verifies no rotation). **Constants not yet known.**
-3. Render: Canvas + clipped Image + arrow Path; TransformGroup
-   (Translate/Scale/Rotate) for north-up or player-centered modes. Freeze bitmap,
-   DecodePixelWidth to display size.
-4. Smoothing: animate position between polls (~poll interval duration);
-   shortest-arc interpolation for yaw.
-5. Refactor first: extract polling into a `PollService` (owns client + timer,
-   raises SnapshotReceived) so bars + minimap share ONE request stream (this
-   preserves constraint #3). Minimap = separate draggable window; consider a
-   shared base class for the click-through/hotkey/edit-mode interop.
+Code is in (PollService refactor, MinimapWindow, calibration fetch, bundled
+map). Before releasing v1.1.0, verify live in-game:
+1. `/api/map/calibration` response shape — `FindCalibration` is tolerant but
+   was written blind (endpoint 404s unauthenticated).
+2. Arrow position accuracy across the island (calibration constants correct?).
+3. Arrow orientation — tune `MinimapYawOffsetDegrees` (default 90).
 
-Later/maybe: friends markers (needs permission first), zone overlays (needs
-permission), official token auth (if the dev builds it), Segoe Fluent Icons for
-stat glyphs, app icon in csproj.
+Later/maybe: player-centered/rotating minimap mode, friends markers (needs
+permission first), zone overlays (needs permission), official token auth (if
+the dev builds it), Segoe Fluent Icons for stat glyphs, app icon in csproj.
 
 ## Conventions
 

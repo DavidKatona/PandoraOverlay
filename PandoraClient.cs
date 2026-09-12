@@ -26,6 +26,14 @@ public sealed record PlayerState(
 public sealed record MyLocationResponse(bool InGame, PlayerState? Player);
 
 /// <summary>
+/// World→map transform constants served by /api/map/calibration — the same
+/// values the live-map frontend feeds its pin-placement function:
+///   left fraction = (OffsetX + x·ScaleX) / MapSize
+///   top fraction  = 1 − (OffsetY + y·ScaleY) / MapSize   (note the Y flip)
+/// </summary>
+public sealed record MapCalibration(double OffsetX, double OffsetY, double ScaleX, double ScaleY, double MapSize);
+
+/// <summary>
 /// Minimal client for the Isla Pandora live-map API. This is the entire data
 /// path of the overlay: an authenticated, empty-bodied POST — identical to the
 /// one the website's own frontend makes. Nothing here touches the game.
@@ -33,6 +41,7 @@ public sealed record MyLocationResponse(bool InGame, PlayerState? Player);
 public sealed class PandoraClient : IDisposable
 {
     private const string Endpoint = "https://islapandora.eu/api/map/mylocation";
+    private const string CalibrationEndpoint = "https://islapandora.eu/api/map/calibration";
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -83,6 +92,73 @@ public sealed class PandoraClient : IDisposable
             .ConfigureAwait(false);
 
         return parsed ?? new MyLocationResponse(false, null);
+    }
+
+    /// <summary>
+    /// Fetches the map calibration constants. Called once per launch (per
+    /// credential swap at most) — static site config, and the only endpoint
+    /// besides mylocation the overlay is allowed to touch. Parsing is tolerant
+    /// of wrapping: the first JSON object carrying offsetX/…/mapSize anywhere
+    /// in the response wins; null means the shape was unrecognisable.
+    /// </summary>
+    public async Task<MapCalibration?> FetchCalibrationAsync(CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, CalibrationEndpoint);
+        request.Headers.TryAddWithoutValidation("Cookie", _cookie);
+
+        using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+        UpdateRollingCookie(response);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+        return FindCalibration(doc.RootElement);
+    }
+
+    private static MapCalibration? FindCalibration(JsonElement el)
+    {
+        switch (el.ValueKind)
+        {
+            case JsonValueKind.Object:
+                if (TryReadNumber(el, "offsetX", out var ox) &&
+                    TryReadNumber(el, "offsetY", out var oy) &&
+                    TryReadNumber(el, "scaleX", out var sx) &&
+                    TryReadNumber(el, "scaleY", out var sy) &&
+                    TryReadNumber(el, "mapSize", out var size) && size > 0)
+                {
+                    return new MapCalibration(ox, oy, sx, sy, size);
+                }
+                foreach (var prop in el.EnumerateObject())
+                {
+                    if (FindCalibration(prop.Value) is { } nested) return nested;
+                }
+                return null;
+
+            case JsonValueKind.Array:
+                foreach (var item in el.EnumerateArray())
+                {
+                    if (FindCalibration(item) is { } fromArray) return fromArray;
+                }
+                return null;
+
+            default:
+                return null;
+        }
+    }
+
+    private static bool TryReadNumber(JsonElement obj, string name, out double value)
+    {
+        foreach (var prop in obj.EnumerateObject())
+        {
+            if (string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase) &&
+                prop.Value.ValueKind == JsonValueKind.Number)
+            {
+                value = prop.Value.GetDouble();
+                return true;
+            }
+        }
+        value = 0;
+        return false;
     }
 
     private void UpdateRollingCookie(HttpResponseMessage response)
