@@ -66,6 +66,8 @@ is bundled as `Assets/map.png` (WPF Resource).
 ## Stack & build
 
 - .NET 8, WPF, x64. One NuGet dep: `System.Security.Cryptography.ProtectedData`.
+  WinForms interop (`UseWindowsForms`) enabled solely for the tray NotifyIcon.
+  App icon `Assets/app.ico` (generated: dark rounded square + orange arrow).
 - `dotnet build -c Release` → `bin/Release/net8.0-windows/PandoraOverlay.exe`.
 - No tests yet. `config.json` is created next to the exe on first run.
 
@@ -102,6 +104,10 @@ references — keep it that way. Every overlay window derives from
   positions + the re-encrypted rolled cookie). `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
   fracture badges toggle).
+- **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
+  always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
+  Right-click menu = edit mode / minimap toggle / settings / exit;
+  double-click = edit mode. Disposed on shutdown.
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow. World→pixel
   per `MapCalibration` (with the Y flip); movement animates between polls
   (shortest-arc yaw; first fix / mode switch snaps). Two north-up views
@@ -135,8 +141,8 @@ correct with the default yaw offset of 90; centered panning accurate).
 
 Later/maybe: friends markers (needs permission first), zone overlays (needs
 permission), official token auth (if the dev builds it), Segoe Fluent Icons
-for stat glyphs, app icon in csproj. Rejected: rotating (facing-up) minimap
-mode — owner decided it isn't useful enough (Sep 2026); don't re-propose.
+for stat glyphs. Rejected: rotating (facing-up) minimap mode — owner decided
+it isn't useful enough (Sep 2026); don't re-propose.
 
 ## Conventions
 

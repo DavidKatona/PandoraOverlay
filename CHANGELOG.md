@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Footer under the minimap showing the active view — "island view" or
   "centered · N×" with the current zoom.
+- System tray icon: right-click for Edit mode, Show/hide minimap, Settings,
+  and Exit — the overlay finally has an always-visible way to quit
+  (double-click toggles edit mode). The app also gains a proper icon.
 
 ### Changed
 

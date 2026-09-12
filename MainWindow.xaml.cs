@@ -36,6 +36,7 @@ public partial class MainWindow : OverlayWindowBase
     // ---- State ------------------------------------------------------------
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
+    private readonly TrayIcon _tray;
     private MinimapWindow? _minimap;
 
     public MainWindow()
@@ -49,6 +50,12 @@ public partial class MainWindow : OverlayWindowBase
         _poll = new PollService(_config);
         _poll.SnapshotReceived += OnSnapshot;
         _poll.PollFailed += OnPollFailed;
+
+        _tray = new TrayIcon(
+            toggleEditMode: ToggleEditMode,
+            toggleMinimap: ToggleMinimap,
+            openSettings: OpenSettings,
+            exit: () => Application.Current.Shutdown());
 
         Loaded += (_, _) =>
         {
@@ -65,6 +72,7 @@ public partial class MainWindow : OverlayWindowBase
 
         Closed += (_, _) =>
         {
+            _tray.Dispose();
             _poll.Stop();
             PersistState();
             _poll.Dispose();
@@ -97,7 +105,9 @@ public partial class MainWindow : OverlayWindowBase
     }
 
     // ---- Minimap ----------------------------------------------------------
-    private void Minimap_Click(object sender, RoutedEventArgs e)
+    private void Minimap_Click(object sender, RoutedEventArgs e) => ToggleMinimap();
+
+    private void ToggleMinimap()
     {
         if (_minimap is null)
         {

@@ -42,6 +42,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ## Usage
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
+- A **tray icon** in the notification area is always available: right-click for Edit mode, Show/hide minimap, Settings, and **Exit** (double-click toggles edit mode). Since the overlay has no taskbar presence, the tray menu is the easiest way to quit.
 - **Ctrl+F8** toggles edit mode — an orange border appears, you can drag the panel anywhere, open account settings with ⚙, and close it with ✕. Ctrl+F8 again locks it back. Position is remembered.
 - The **minimap** is a separate window sharing the same edit mode: drag it independently, hide it with its ✕, bring it back with the **MAP** button on the stats panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
 - The minimap has two views, toggled with the **VIEW** button in edit mode: the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered, and the footer under the map always shows the active view (and zoom).
