@@ -1,8 +1,8 @@
 # PandoraOverlay — CLAUDE.md
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
-player's own dino stats in an always-on-top panel. **v1.0.0 is built, working, and
-approved by the server's web dev.**
+player's own dino stats in an always-on-top panel, plus a minimap. **v1.1.0 is
+built, working, and approved by the server's web dev.**
 
 ## Hard constraints (never violate)
 
@@ -105,7 +105,7 @@ references — keep it that way. Every overlay window derives from
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow. World→pixel
   per `MapCalibration` (with the Y flip); position and yaw animate between
   polls (shortest-arc yaw; first fix snaps). `MinimapYawOffsetDegrees` in
-  config corrects arrow orientation (default 90 — UNVERIFIED, tune in-game).
+  config corrects arrow orientation (default 90 — verified in-game, Sep 2026).
   ✕ on its banner hides it (`MinimapEnabled=false`); the MAP button on the
   stats panel brings it back.
 - **SettingsWindow.xaml(.cs)** — cookie paste dialog. `Clean()` strips `cookie:`
@@ -122,13 +122,10 @@ references — keep it that way. Every overlay window derives from
 - Status line shows last-update timestamp; "Disconnected · retrying (TypeName)"
   on errors. Persistent 401/403 → user pastes a fresh cookie via ⚙.
 
-## Roadmap — v1.1 minimap (approved; implemented, needs in-game verification)
+## Roadmap
 
-Code is in (PollService refactor, MinimapWindow, calibration fetch, bundled
-map). Calibration endpoint + response shape verified against the live API.
-Before releasing v1.1.0, verify live in-game:
-1. Arrow position accuracy across the island.
-2. Arrow orientation — tune `MinimapYawOffsetDegrees` (default 90).
+v1.1.0 (minimap) shipped Sep 2026 — verified in-game: arrow position matches
+the website's live map, heading correct with the default yaw offset of 90.
 
 Later/maybe: player-centered/rotating minimap mode, friends markers (needs
 permission first), zone overlays (needs permission), official token auth (if
@@ -141,7 +138,7 @@ the dev builds it), Segoe Fluent Icons for stat glyphs, app icon in csproj.
 - Keep files well under ~500 lines; current style is regions + XML doc comments.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.0.0.
+  minor, fixes bump patch. Current: 1.1.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
