@@ -1,0 +1,12 @@
+# Build outputs
+bin/
+obj/
+
+# IDE
+.idea/
+.vs/
+*.user
+*.suo
+
+# Runtime state — holds the DPAPI cookie blob (CLAUDE.md hard constraint #5)
+config.json
