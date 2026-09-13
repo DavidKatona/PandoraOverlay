@@ -85,6 +85,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - Two views, toggled with the **VIEW** button in edit mode: the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
 - Right-click the minimap in edit mode to drop a **waypoint** — the footer shows your distance to it, and in the centered view an off-screen marker sticks to the panel edge pointing the way. Right-click the marker to clear it; it survives restarts.
 
+  ![The centered minimap view with the player arrow, a waypoint diamond, and the footer showing "centered · 4× · 733m"](docs/waypoint.png)
+
 ## Configuration (`config.json`)
 
 | Field | Meaning |
