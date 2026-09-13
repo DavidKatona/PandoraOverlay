@@ -2,12 +2,19 @@ using System.Windows;
 
 namespace PandoraOverlay;
 
+/// <summary>A snap target that engaged: where its guide line sits, and whether it came from the peer window (vs the screen).</summary>
+public readonly record struct SnapGuide(double Position, bool FromPeer);
+
+/// <summary>The adjusted position plus the guide that engaged per axis (null = that axis moved freely).</summary>
+public readonly record struct SnapResult(Point Position, SnapGuide? GuideX, SnapGuide? GuideY);
+
 /// <summary>
 /// Pure snapping math for edit-mode dragging: given a proposed position,
-/// magnetically prefers the work-area edges, a comfort inset from them, and
+/// magnetically prefers the screen edges, a comfort inset from them, and
 /// the other overlay window's edges (align or abut — both fall out of the
 /// same two candidates per target). Axes snap independently; the caller
-/// decides when to bypass entirely (Alt held).
+/// decides when to bypass entirely (Alt held). The result reports which
+/// targets engaged so the caller can draw guide lines.
 /// </summary>
 public static class SnapResolver
 {
@@ -18,27 +25,29 @@ public static class SnapResolver
     /// <summary>The "comfortably away from the edge" secondary target.</summary>
     public const double Inset = 16;
 
-    public static Point Snap(Point pos, Size size, Rect workArea, IEnumerable<Rect> peers)
+    public static SnapResult Snap(Point pos, Size size, Rect bounds, IEnumerable<Rect> peers)
     {
-        var xTargets = new List<double>
+        var xTargets = new List<(double Value, bool FromPeer)>
         {
-            workArea.Left, workArea.Left + Inset, workArea.Right, workArea.Right - Inset
+            (bounds.Left, false), (bounds.Left + Inset, false),
+            (bounds.Right, false), (bounds.Right - Inset, false)
         };
-        var yTargets = new List<double>
+        var yTargets = new List<(double Value, bool FromPeer)>
         {
-            workArea.Top, workArea.Top + Inset, workArea.Bottom, workArea.Bottom - Inset
+            (bounds.Top, false), (bounds.Top + Inset, false),
+            (bounds.Bottom, false), (bounds.Bottom - Inset, false)
         };
         foreach (var peer in peers)
         {
-            xTargets.Add(peer.Left);
-            xTargets.Add(peer.Right);
-            yTargets.Add(peer.Top);
-            yTargets.Add(peer.Bottom);
+            xTargets.Add((peer.Left, true));
+            xTargets.Add((peer.Right, true));
+            yTargets.Add((peer.Top, true));
+            yTargets.Add((peer.Bottom, true));
         }
 
-        return new Point(
-            SnapAxis(pos.X, size.Width, xTargets),
-            SnapAxis(pos.Y, size.Height, yTargets));
+        var (x, guideX) = SnapAxis(pos.X, size.Width, xTargets);
+        var (y, guideY) = SnapAxis(pos.Y, size.Height, yTargets);
+        return new SnapResult(new Point(x, y), guideX, guideY);
     }
 
     /// <summary>
@@ -54,24 +63,27 @@ public static class SnapResolver
         return new Point(x, y);
     }
 
-    private static double SnapAxis(double pos, double extent, List<double> targets)
+    private static (double Pos, SnapGuide? Guide) SnapAxis(
+        double pos, double extent, List<(double Value, bool FromPeer)> targets)
     {
         var best = pos;
+        SnapGuide? guide = null;
         var bestDistance = Threshold;
-        foreach (var target in targets)
+        foreach (var (value, fromPeer) in targets)
         {
-            Consider(target);          // leading edge lands on the target
-            Consider(target - extent); // trailing edge lands on the target
+            Consider(value, value, fromPeer);          // leading edge lands on the target
+            Consider(value - extent, value, fromPeer); // trailing edge lands on the target
         }
-        return best;
+        return (best, guide);
 
-        void Consider(double candidate)
+        void Consider(double candidate, double target, bool fromPeer)
         {
             var distance = Math.Abs(pos - candidate);
             if (distance < bestDistance)
             {
                 bestDistance = distance;
                 best = candidate;
+                guide = new SnapGuide(target, fromPeer);
             }
         }
     }

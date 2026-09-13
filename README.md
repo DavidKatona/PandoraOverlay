@@ -62,7 +62,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
 - The edit-mode hotkey (**Ctrl+F8** by default) toggles **edit mode** — an orange border appears, you can drag the panels anywhere, open Settings with ⚙, and close the overlay with ✕. The hotkey again locks everything back. Positions are remembered, and the panels stay exactly where you put them — the edit banner grows upward instead of pushing content around.
-- While dragging, panels **snap** to the screen edges, a small inset from them, and to each other. Hold **Alt** while dragging for pixel-perfect free placement.
+- While dragging, panels **snap** to the screen edges, a small inset from them, and to each other — **guide lines** light up along whatever you snapped to (orange = screen, blue = the other panel). Hold **Alt** while dragging for pixel-perfect free placement.
 - You can't lose a panel off-screen: locking edit mode (or restarting the app) pulls every panel fully back into view — dragging itself stays free, so moving panels to another monitor still works.
 - **Ctrl+F9** hides/shows the whole overlay without quitting — for screenshots and cutscenes; polling continues, and the app always starts visible. **Ctrl+F7** flips the minimap view without entering edit mode. All three hotkeys are rebindable in Settings.
 - Only one copy runs at a time — launching a second shows a notice and exits.

@@ -10,44 +10,56 @@ public class SnapResolverTests
     private static readonly Rect[] NoPeers = [];
 
     [Fact]
-    public void FarFromEverythingStaysPut()
+    public void FarFromEverythingStaysPutWithNoGuides()
     {
-        var snapped = SnapResolver.Snap(new Point(500, 500), Window, WorkArea, NoPeers);
-        Assert.Equal(new Point(500, 500), snapped);
+        var result = SnapResolver.Snap(new Point(500, 500), Window, WorkArea, NoPeers);
+        Assert.Equal(new Point(500, 500), result.Position);
+        Assert.Null(result.GuideX);
+        Assert.Null(result.GuideY);
     }
 
     [Fact]
     public void SnapsToTheNearestOfEdgeAndInset()
     {
-        // 4 is closer to the edge (0) than to the inset (12).
-        Assert.Equal(0, SnapResolver.Snap(new Point(4, 500), Window, WorkArea, NoPeers).X);
+        // 4 is closer to the edge (0) than to the inset.
+        var atEdge = SnapResolver.Snap(new Point(4, 500), Window, WorkArea, NoPeers);
+        Assert.Equal(0, atEdge.Position.X);
+        Assert.Equal(new SnapGuide(0, FromPeer: false), atEdge.GuideX);
+
         // 9 is closer to the inset.
-        Assert.Equal(SnapResolver.Inset, SnapResolver.Snap(new Point(9, 500), Window, WorkArea, NoPeers).X);
+        var atInset = SnapResolver.Snap(new Point(9, 500), Window, WorkArea, NoPeers);
+        Assert.Equal(SnapResolver.Inset, atInset.Position.X);
+        Assert.Equal(new SnapGuide(SnapResolver.Inset, FromPeer: false), atInset.GuideX);
     }
 
     [Fact]
-    public void SnapsTrailingEdgeToTheRightInset()
+    public void SnapsTrailingEdgeToTheRightInsetAndReportsTheTargetAsGuide()
     {
         // Right edge at 1900 → the inset target (1920 − Inset) beats the edge itself.
-        var snapped = SnapResolver.Snap(new Point(1700, 500), Window, WorkArea, NoPeers);
-        Assert.Equal(WorkArea.Right - SnapResolver.Inset - Window.Width, snapped.X);
+        var result = SnapResolver.Snap(new Point(1700, 500), Window, WorkArea, NoPeers);
+        Assert.Equal(WorkArea.Right - SnapResolver.Inset - Window.Width, result.Position.X);
+        // The guide line sits at the TARGET, not at the window position.
+        Assert.Equal(new SnapGuide(WorkArea.Right - SnapResolver.Inset, FromPeer: false), result.GuideX);
     }
 
     [Fact]
-    public void SnapsBottomEdgeToTheWorkAreaBottom()
+    public void SnapsBottomEdgeToTheScreenBottom()
     {
-        // Bottom edge at 1045 → work-area bottom 1040 (distance 5) wins.
-        var snapped = SnapResolver.Snap(new Point(500, 945), Window, WorkArea, NoPeers);
-        Assert.Equal(1040 - Window.Height, snapped.Y);
+        // Bottom edge at 1045 → screen bottom 1040 (distance 5) wins.
+        var result = SnapResolver.Snap(new Point(500, 945), Window, WorkArea, NoPeers);
+        Assert.Equal(WorkArea.Bottom - Window.Height, result.Position.Y);
+        Assert.Equal(new SnapGuide(WorkArea.Bottom, FromPeer: false), result.GuideY);
     }
 
     [Fact]
-    public void SnapsAgainstPeerEdges()
+    public void SnapsAgainstPeerEdgesAndMarksGuidesAsPeer()
     {
         var peer = new Rect(300, 300, 200, 150);
         // Left edge near the peer's right edge (abut), top edge near the peer's top (align).
-        var snapped = SnapResolver.Snap(new Point(505, 297), new Size(100, 50), WorkArea, [peer]);
-        Assert.Equal(new Point(500, 300), snapped);
+        var result = SnapResolver.Snap(new Point(505, 297), new Size(100, 50), WorkArea, [peer]);
+        Assert.Equal(new Point(500, 300), result.Position);
+        Assert.Equal(new SnapGuide(500, FromPeer: true), result.GuideX);
+        Assert.Equal(new SnapGuide(300, FromPeer: true), result.GuideY);
     }
 
     [Theory]
@@ -72,9 +84,10 @@ public class SnapResolverTests
     [Fact]
     public void OutsideTheThresholdNothingHappens()
     {
-        // Past both the edge (0) and the inset (12) by more than the threshold.
+        // Past both the edge (0) and the inset by more than the threshold.
         var x = SnapResolver.Inset + SnapResolver.Threshold + 1;
-        var snapped = SnapResolver.Snap(new Point(x, 500), Window, WorkArea, NoPeers);
-        Assert.Equal(x, snapped.X);
+        var result = SnapResolver.Snap(new Point(x, 500), Window, WorkArea, NoPeers);
+        Assert.Equal(x, result.Position.X);
+        Assert.Null(result.GuideX);
     }
 }

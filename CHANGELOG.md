@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Snap guide lines: while dragging a panel in edit mode, a guide line lights
+  up along whatever the panel snapped to — orange for screen edges and the
+  inset stops, blue for the other panel's edges. Guides vanish the moment
+  you release (or hold Alt).
+
 ## [1.7.0] - 2026-09-13
 
 ### Added

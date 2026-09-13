@@ -37,6 +37,9 @@ public abstract class OverlayWindowBase : Window
     // Live overlay windows, so dragging one can snap against the others.
     private static readonly List<OverlayWindowBase> Instances = new();
 
+    // One guide window for the whole app, created on the first snapping drag.
+    private static SnapGuideWindow? _guides;
+
     private double _bannerShift;
     private double _topBeforeEdit;
     private bool _movedDuringEdit;
@@ -145,9 +148,12 @@ public abstract class OverlayWindowBase : Window
         panel.Background = new SolidColorBrush(Color.FromArgb(alpha, 0x10, 0x15, 0x1B));
     }
 
-    private void ApplyClickThrough(bool clickThrough)
+    private void ApplyClickThrough(bool clickThrough) =>
+        ApplyClickThroughStyles(new WindowInteropHelper(this).Handle, clickThrough);
+
+    /// <summary>Shared with SnapGuideWindow, which is always click-through.</summary>
+    internal static void ApplyClickThroughStyles(IntPtr hwnd, bool clickThrough)
     {
-        var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero) return;
 
         var style = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
@@ -193,8 +199,15 @@ public abstract class OverlayWindowBase : Window
                 new Size(ActualWidth, Math.Max(0, ActualHeight - _bannerShift)),
                 GetScreenBoundsDips(),
                 Instances.Where(w => w != this && w.IsVisible).Select(w => w.ContentBounds));
-            x = snapped.X;
-            y = snapped.Y - _bannerShift;
+            x = snapped.Position.X;
+            y = snapped.Position.Y - _bannerShift;
+
+            _guides ??= new SnapGuideWindow();
+            _guides.ShowGuides(snapped.GuideX, snapped.GuideY);
+        }
+        else
+        {
+            _guides?.HideGuides();
         }
 
         Left = x;
@@ -208,6 +221,7 @@ public abstract class OverlayWindowBase : Window
         if (!_dragging) return;
         _dragging = false;
         ReleaseMouseCapture();
+        _guides?.HideGuides();
     }
 
     /// <summary>The window's bounds minus the edit banner — what the panel occupies when locked.</summary>

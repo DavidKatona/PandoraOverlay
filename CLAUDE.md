@@ -106,12 +106,19 @@ references — keep it that way. Every overlay window derives from
   always fully on-screen — dragging stays free for cross-monitor moves;
   stale-monitor/resolution positions self-heal at startup. The global
   hotkeys are registered once, in MainWindow.
-- **SnapResolver.cs** — pure, tested snapping math: work-area edges + 16px
+- **SnapResolver.cs** — pure, tested snapping math: screen edges + 16px
   inset + peer edges, 12px threshold (threshold < inset on purpose, so the
   two magnets read as distinct stops), axes independent; leading- and
-  trailing-edge candidates per target give align-and-abut for free. Banners
-  are width-bound to their content in XAML so edit-mode size == locked size
-  on both axes.
+  trailing-edge candidates per target give align-and-abut for free. Returns
+  a `SnapResult` (position + per-axis `SnapGuide` naming the engaged target
+  and whether it was a peer) so the caller can draw guides. Banners are
+  width-bound to their content in XAML so edit-mode size == locked size on
+  both axes.
+- **SnapGuideWindow.cs** — full-virtual-screen, click-through, no-activate
+  window drawing the guide lines mid-drag (orange = screen targets, blue =
+  peer targets, matching arrow/waypoint colours). One lazily created
+  instance shared app-wide (static in OverlayWindowBase); shown only while
+  a snap is engaged, hidden on release/Alt.
 
 - **PandoraClient.cs** — HTTP layer + `PlayerState`/`MyLocationResponse` records
   (case-insensitive JSON). One long-lived HttpClient, `UseCookies=false` (manual
@@ -216,11 +223,9 @@ scale + background-opacity sliders, xUnit test suite in CI), v1.7.0
 (hide-all + minimap-view hotkeys, drag snapping, edit-mode position
 fidelity, on-screen clamping).
 
-Later/maybe: snap-guide visualization while dragging (designed Sep 2026:
-full-virtual-screen click-through guide window + SnapResolver returning
-which targets engaged; planned as the v1.8 headline), friends markers (needs
-permission first), zone overlays (needs permission), official token auth
-(if the dev builds it), Segoe Fluent Icons for stat glyphs. Rejected: rotating (facing-up) minimap mode — owner decided
+Later/maybe: friends markers (needs permission first), zone overlays (needs
+permission), official token auth (if the dev builds it), Segoe Fluent Icons
+for stat glyphs. Rejected: rotating (facing-up) minimap mode — owner decided
 it isn't useful enough (Sep 2026); don't re-propose.
 
 ## Conventions
