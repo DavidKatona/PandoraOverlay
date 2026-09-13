@@ -15,6 +15,9 @@
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
     <Window.Resources>
+        <!-- Custom template: the default chrome paints its own bright hover
+             highlight over our light text. A faint white glow overlay keeps
+             every button's own colour (incl. Lock/Exit) and readable text. -->
         <Style x:Key="PanelButton" TargetType="Button">
             <Setter Property="Padding" Value="12,5"/>
             <Setter Property="Margin" Value="0,0,6,0"/>
@@ -22,6 +25,29 @@
             <Setter Property="Background" Value="#2A3038"/>
             <Setter Property="Foreground" Value="#C7D1DA"/>
             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="2"/>
+                            <Border x:Name="HoverGlow" Background="#2EFFFFFF" CornerRadius="2"
+                                    Visibility="Collapsed"/>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="HoverGlow" Property="Background" Value="#4DFFFFFF"/>
+                                <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
