@@ -94,6 +94,11 @@ references — keep it that way. Every overlay window derives from
   Cookie header so cf_clearance is sent verbatim), 8 s timeout, rolling-cookie
   capture *before* status check. `ConfigureAwait(false)` inside; UI hops back only
   at the outermost await.
+- **GrowthTracker.cs** — pure class fed from the snapshot stream: 15-min
+  sliding window of (time, growth) samples → slope → in-game ETA to full
+  growth. Needs a ≥5-min baseline before showing anything; a full baseline
+  with no measurable delta → Paused (amber header). Resets on death/dino
+  swap/not-in-game (a wall-clock gap would flatten the slope). Session-only.
 - **OverlayConfig.cs** — config.json persistence + DPAPI vault. Plaintext `Cookie`
   field is a paste-inbox only: `Load()` encrypts it into `CookieProtected`
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
@@ -149,6 +154,10 @@ references — keep it that way. Every overlay window derives from
 - Game must run **borderless windowed** (overlay can't beat exclusive fullscreen).
 - `inGame:false` during server restarts/menus is normal — UI shows "Not in-game"
   and self-recovers. `getplayerdata` upstream only includes spawned players.
+- Growth (owner's server knowledge, Sep 2026): Isla Pandora runs a **1.3×**
+  growth multiplier vs official; total grow time differs per species; growth
+  does NOT appear to pause when starving/dehydrated. GrowthTracker measures
+  the effective rate, so none of this needs configuring.
 - Status line shows last-update timestamp; "Disconnected · retrying (TypeName)"
   on errors. Persistent 401/403 → user pastes a fresh cookie via ⚙.
 

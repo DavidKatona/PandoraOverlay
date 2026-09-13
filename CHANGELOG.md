@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Growth ETA: after about five minutes of baseline, the stats header shows
+  the estimated in-game time to full growth ("Growth 41.6% · ~3h 10m"),
+  measured from a 15-minute sliding window so it adapts to growth events and
+  buffs. If growth stalls while spawned, the readout turns amber and shows
+  "paused". Session-only; resets on death, dino swap, or leaving the game.
+
 ## [1.4.0] - 2026-09-13
 
 ### Added

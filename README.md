@@ -48,6 +48,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - Only one copy runs at a time — launching a second shows a notice and exits.
 - The **minimap** is a separate window sharing the same edit mode: drag it independently, hide it with its ✕, bring it back with the **MAP** button on the stats panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
 - The minimap has two views, toggled with the **VIEW** button in edit mode: the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
+- After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
 - States you'll see:
   - `Not in-game` — you're logged in but not spawned on the server (or the server is restarting).
   - `Disconnected · retrying` — network/auth problem; it keeps retrying every poll. If it never recovers, reopen ⚙ and paste a fresh cookie.

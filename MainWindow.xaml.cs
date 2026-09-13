@@ -23,11 +23,13 @@ public partial class MainWindow : OverlayWindowBase
     private static readonly Brush HealthGood = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
     private static readonly Brush HealthWarn = new SolidColorBrush(Color.FromRgb(0xFF, 0xB3, 0x00));
     private static readonly Brush HealthCrit = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
+    private static readonly Brush GrowthNormal = new SolidColorBrush(Color.FromRgb(0x9A, 0xA7, 0xB0));
 
     // ---- State ------------------------------------------------------------
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
     private readonly TrayIcon _tray;
+    private readonly GrowthTracker _growth = new();
     private MinimapWindow? _minimap;
     private HotkeySpec _hotkey;
 
@@ -245,8 +247,10 @@ public partial class MainWindow : OverlayWindowBase
     {
         if (!result.InGame || result.Player is null)
         {
+            _growth.Reset(); // a wall-clock gap would flatten the measured slope
             DinoText.Text = "Not in-game";
             GrowthText.Text = "";
+            GrowthText.Foreground = GrowthNormal;
             SetBar(HealthFill, HealthPct, 0);
             SetBar(StaminaFill, StaminaPct, 0);
             SetBar(HungerFill, HungerPct, 0);
@@ -263,7 +267,19 @@ public partial class MainWindow : OverlayWindowBase
                    : gender.StartsWith("F", StringComparison.OrdinalIgnoreCase) ? "♀"
                    : "";
         DinoText.Text = $"{p.Dino} {symbol}".Trim();
-        GrowthText.Text = $"Growth {p.Growth * 100:0.#}%";
+
+        _growth.Add(p);
+        GrowthText.Text = _growth.Status switch
+        {
+            GrowthTracker.GrowthStatus.Growing when _growth.Eta is { } eta =>
+                $"Growth {p.Growth * 100:0.#}% · ~{FormatEta(eta)}",
+            GrowthTracker.GrowthStatus.Paused => $"Growth {p.Growth * 100:0.#}% · paused",
+            GrowthTracker.GrowthStatus.Full => "Fully grown",
+            _ => $"Growth {p.Growth * 100:0.#}%"
+        };
+        GrowthText.Foreground = _growth.Status == GrowthTracker.GrowthStatus.Paused
+            ? HealthWarn
+            : GrowthNormal;
 
         SetBar(HealthFill, HealthPct, p.Health);
         HealthFill.Background = p.Health switch
@@ -284,6 +300,15 @@ public partial class MainWindow : OverlayWindowBase
             : Visibility.Collapsed;
 
         StatusText.Text = $"Live · updated {DateTime.Now:HH:mm:ss}";
+    }
+
+    /// <summary>"~"-worthy in-game time: "45m", "3h 10m", "1d 4h".</summary>
+    private static string FormatEta(TimeSpan eta)
+    {
+        if (eta.TotalMinutes < 1) return "1m";
+        if (eta.TotalHours < 1) return $"{eta.TotalMinutes:0}m";
+        if (eta.TotalDays < 1) return $"{(int)eta.TotalHours}h {eta.Minutes:00}m";
+        return $"{(int)eta.TotalDays}d {eta.Hours}h";
     }
 
     private static void SetBar(System.Windows.Controls.Border fill,
