@@ -245,9 +245,13 @@ toggle, per-widget sizing: native Map size slider + stats-only scale),
 v1.11.0 (hotkey defaults rebased to Ctrl+F3/F4/F5 with auto-migration —
 verified: migration fired, new combos work in-game).
 
-Later/maybe: friends markers (needs permission first), zone overlays (needs
-permission), official token auth (if the dev builds it), Segoe Fluent Icons
-for stat glyphs. Rejected: rotating (facing-up) minimap mode — owner decided
+Later/maybe: heatmap layer on the minimap (permission ask sent to the site
+dev ~Sep 14 2026, together with a token-auth nudge; design ready: overlay
+their pre-rendered `/map/heatmap-live.png` as a second image in the map
+layer group, refetched every few minutes, same-or-no cookie — build only on
+his explicit yes), friends markers (needs permission first), zone overlays
+(needs permission), official token auth (if the dev builds it), Segoe
+Fluent Icons for stat glyphs. Rejected: rotating (facing-up) minimap mode — owner decided
 it isn't useful enough (Sep 2026); don't re-propose.
 
 ## Conventions
