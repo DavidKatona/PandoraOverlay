@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-13
+
 ### Added
 
 - Growth ETA: after about five minutes of baseline, the stats header shows
