@@ -93,7 +93,7 @@ Most of these are editable from the Settings window; `UserAgent`, `PollIntervalS
 - It polls at the same rate as the website itself and respects their rate limit.
 - This consumes Isla Pandora's private, login-gated API. Be a good citizen: ask their admins whether they're okay with a personal overlay client, and stop using it if they say no.
 
-## Roadmap (v1.6+)
+## Roadmap (v1.7+)
 
 - Friends markers from the `friends` endpoint *(needs a green light from the site dev first)*.
 - Zone overlays (sanctuaries, patrol zones, migrations) *(same — ask first)*.
