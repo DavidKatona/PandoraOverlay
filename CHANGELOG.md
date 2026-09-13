@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Update notifier: one quiet GitHub releases check at launch. On a newer
+  version the status line mentions it once, the tray tooltip carries a note
+  for the session, and the tray menu gains an "open download page" entry.
+  Fails silently when offline; never re-checks or pops anything up.
+- Minimap waypoint: right-click the minimap in edit mode to place or move a
+  marker (right-click the marker to clear it). The footer shows the distance,
+  and in the centered view an off-screen waypoint clamps to the panel edge as
+  a direction indicator. Survives restarts.
+- Critical-stat pulse: the health, hunger and thirst bars pulse when below
+  25%. Stamina is deliberately excluded — it drains by design every sprint.
+- Overlay scale (75–150%) and background opacity (30–100%) sliders in the
+  settings General section, applied to both windows without a restart.
+- Unit test suite (`PandoraOverlay.Tests`, xUnit) covering GrowthTracker,
+  hotkey parsing, cookie cleaning, calibration parsing and release-tag
+  comparison — run by CI on every push.
+
 ## [1.5.0] - 2026-09-13
 
 ### Added

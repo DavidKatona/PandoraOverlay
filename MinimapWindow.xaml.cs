@@ -12,25 +12,32 @@ namespace PandoraOverlay;
 ///  - "centered": the map is rendered at MinimapSize × zoom and pans under an
 ///    arrow fixed at the panel centre. No pan clamping — near coasts the view
 ///    simply runs into the map image's own ocean border.
-/// A pure consumer of the shared PollService stream — it never makes requests
-/// of its own, so opening it adds zero traffic. The world→pixel transform
-/// mirrors the live-map frontend (see MapCalibration); movement glides between
-/// polls and yaw rotates along the shortest arc.
+/// A personal waypoint (right-click in edit mode: place/move; right-click the
+/// marker: clear) is stored in world coordinates, drawn as a blue diamond
+/// (edge-clamped in the centered view when off-screen), with the distance in
+/// the footer. A pure consumer of the shared PollService stream — it never
+/// makes requests of its own. The world→pixel transform mirrors the live-map
+/// frontend (see MapCalibration); movement glides between polls and yaw
+/// rotates along the shortest arc.
 /// </summary>
 public partial class MinimapWindow : OverlayWindowBase
 {
     private const double MinZoom = 1.25;
-    private const double MaxZoom = 6; // source map is 1000 px — the top of the range upscales slightly
+    private const double MaxZoom = 6;        // source map is 1000 px — the top of the range upscales slightly
+    private const double WaypointMargin = 8; // edge-clamp inset for the off-screen indicator
+    private const double ClearRadius = 12;   // right-click this close to the marker removes it
 
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
     private readonly RotateTransform _arrowRotate = new();
     private readonly TranslateTransform _arrowTranslate = new();
     private readonly TranslateTransform _mapTranslate = new();
+    private readonly TranslateTransform _waypointTranslate = new();
     private bool _centered;
     private double _zoom;
     private bool _hasFix;                                 // false → next render snaps instead of gliding
     private (double Fx, double Fy, double Yaw)? _lastFix; // map fractions (0–1) + screen yaw
+    private (double X, double Y)? _lastWorld;             // player world position (cm), for waypoint distance
 
     public MinimapWindow(OverlayConfig config, PollService poll)
     {
@@ -44,6 +51,7 @@ public partial class MinimapWindow : OverlayWindowBase
         Left = config.MinimapX;
         Top = config.MinimapY;
         MapHost.Width = MapHost.Height = config.MinimapSize;
+        ApplyAppearance(config);
 
         // Bundled copy of the site's island map (Assets/map.png) — decoded at
         // native resolution so the centered view's zoom stays sharp.
@@ -59,6 +67,7 @@ public partial class MinimapWindow : OverlayWindowBase
         {
             Children = { _arrowRotate, _arrowTranslate }
         };
+        WaypointMark.RenderTransform = _waypointTranslate;
 
         ApplyViewMode();
 
@@ -108,11 +117,12 @@ public partial class MinimapWindow : OverlayWindowBase
         }
     }
 
-    /// <summary>Re-reads view mode + zoom from config after the settings dialog saves.</summary>
+    /// <summary>Re-reads view mode, zoom and appearance from config after the settings dialog saves.</summary>
     public void ApplySettings()
     {
         _centered = string.Equals(_config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
         _zoom = Math.Clamp(_config.MinimapZoom, MinZoom, MaxZoom);
+        ApplyAppearance(_config);
         ApplyViewMode();
     }
 
@@ -135,10 +145,13 @@ public partial class MinimapWindow : OverlayWindowBase
             _mapTranslate.Y = 0;
         }
 
-        ModeFooter.Text = _centered ? $"centered · {_zoom:0.##}×" : "island view";
-
         _hasFix = false; // next render snaps into place
         RenderLastFix();
+        if (_lastFix is null)
+        {
+            UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
+            UpdateFooter();
+        }
     }
 
     private void ClearAnimations()
@@ -147,6 +160,8 @@ public partial class MinimapWindow : OverlayWindowBase
         _arrowTranslate.BeginAnimation(TranslateTransform.YProperty, null);
         _mapTranslate.BeginAnimation(TranslateTransform.XProperty, null);
         _mapTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+        _waypointTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+        _waypointTranslate.BeginAnimation(TranslateTransform.YProperty, null);
         _arrowRotate.BeginAnimation(RotateTransform.AngleProperty, null);
     }
 
@@ -159,13 +174,16 @@ public partial class MinimapWindow : OverlayWindowBase
         {
             _hasFix = false;
             _lastFix = null;
+            _lastWorld = null;
             PlayerArrow.Visibility = Visibility.Collapsed;
             MapStatus.Text = cal is null ? "waiting for map calibration…" : "not in-game";
             MapStatus.Visibility = Visibility.Visible;
+            UpdateFooter();
             return;
         }
 
         var p = result.Player;
+        _lastWorld = (p.X, p.Y);
         _lastFix = (
             Math.Clamp((cal.OffsetX + p.X * cal.ScaleX) / cal.MapSize, 0, 1),
             Math.Clamp(1 - (cal.OffsetY + p.Y * cal.ScaleY) / cal.MapSize, 0, 1),
@@ -205,6 +223,9 @@ public partial class MinimapWindow : OverlayWindowBase
                 Animate(_mapTranslate, TranslateTransform.YProperty, ty, duration);
                 AnimateYaw(fix.Yaw, duration);
             }
+            // The waypoint glides with the same targets/duration so it stays
+            // glued to the terrain while the map pans.
+            UpdateWaypointVisual(tx, ty, snap ? null : duration);
         }
         else
         {
@@ -222,7 +243,118 @@ public partial class MinimapWindow : OverlayWindowBase
                 Animate(_arrowTranslate, TranslateTransform.YProperty, py, duration);
                 AnimateYaw(fix.Yaw, duration);
             }
+            UpdateWaypointVisual(0, 0, glide: null); // static map, static marker
         }
+
+        UpdateFooter();
+    }
+
+    // ---- Waypoint -----------------------------------------------------------
+    private void Window_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!EditMode || _poll.Calibration is not { } cal) return;
+        var pos = e.GetPosition(MapHost);
+        var size = MapHost.Width;
+        if (pos.X < 0 || pos.Y < 0 || pos.X > size || pos.Y > size) return; // banner/footer, not the map
+
+        // Right-click on (or near) the existing marker clears it.
+        if (WaypointMark.Visibility == Visibility.Visible &&
+            Math.Abs(pos.X - _waypointTranslate.X) < ClearRadius &&
+            Math.Abs(pos.Y - _waypointTranslate.Y) < ClearRadius)
+        {
+            _config.WaypointX = _config.WaypointY = null;
+        }
+        else
+        {
+            double fx, fy;
+            if (_centered)
+            {
+                var mapSize = size * _zoom;
+                fx = (pos.X - _mapTranslate.X) / mapSize;
+                fy = (pos.Y - _mapTranslate.Y) / mapSize;
+            }
+            else
+            {
+                fx = pos.X / size;
+                fy = pos.Y / size;
+            }
+            fx = Math.Clamp(fx, 0, 1);
+            fy = Math.Clamp(fy, 0, 1);
+
+            // Inverse of the calibration transform: map fraction → world cm.
+            _config.WaypointX = (fx * cal.MapSize - cal.OffsetX) / cal.ScaleX;
+            _config.WaypointY = ((1 - fy) * cal.MapSize - cal.OffsetY) / cal.ScaleY;
+        }
+
+        UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
+        UpdateFooter();
+        e.Handled = true;
+    }
+
+    /// <summary>The waypoint's map fractions (0–1), or null when unset/no calibration.</summary>
+    private (double Fx, double Fy)? WaypointFraction()
+    {
+        if (_config.WaypointX is not { } wx || _config.WaypointY is not { } wy ||
+            _poll.Calibration is not { } cal)
+        {
+            return null;
+        }
+        return (Math.Clamp((cal.OffsetX + wx * cal.ScaleX) / cal.MapSize, 0, 1),
+                Math.Clamp(1 - (cal.OffsetY + wy * cal.ScaleY) / cal.MapSize, 0, 1));
+    }
+
+    /// <summary>
+    /// Positions the marker for the given map translation (targets during a
+    /// glide, current values otherwise). In the centered view an off-screen
+    /// waypoint clamps to the panel edge as a direction indicator.
+    /// </summary>
+    private void UpdateWaypointVisual(double mapTx, double mapTy, TimeSpan? glide)
+    {
+        if (WaypointFraction() is not { } f)
+        {
+            WaypointMark.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var size = MapHost.Width;
+        double x, y;
+        if (_centered)
+        {
+            var mapSize = size * _zoom;
+            x = Math.Clamp(f.Fx * mapSize + mapTx, WaypointMargin, size - WaypointMargin);
+            y = Math.Clamp(f.Fy * mapSize + mapTy, WaypointMargin, size - WaypointMargin);
+        }
+        else
+        {
+            x = f.Fx * size;
+            y = f.Fy * size;
+        }
+
+        WaypointMark.Visibility = Visibility.Visible;
+        if (glide is { } d)
+        {
+            Animate(_waypointTranslate, TranslateTransform.XProperty, x, d);
+            Animate(_waypointTranslate, TranslateTransform.YProperty, y, d);
+        }
+        else
+        {
+            _waypointTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+            _waypointTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+            _waypointTranslate.X = x;
+            _waypointTranslate.Y = y;
+        }
+    }
+
+    /// <summary>View mode (+ zoom when centered), plus waypoint distance when both ends are known.</summary>
+    private void UpdateFooter()
+    {
+        var text = _centered ? $"centered · {_zoom:0.##}×" : "island view";
+        if (_config.WaypointX is { } wx && _config.WaypointY is { } wy && _lastWorld is { } p)
+        {
+            var meters = Math.Sqrt(Math.Pow(wx - p.X, 2) + Math.Pow(wy - p.Y, 2)) / 100;
+            text += meters >= 1000 ? $" · ◆ {meters / 1000:0.0}km" : $" · ◆ {meters:0}m";
+        }
+        ModeFooter.Text = text;
     }
 
     private void AnimateYaw(double yaw, TimeSpan duration)

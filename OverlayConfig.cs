@@ -93,6 +93,23 @@ public sealed class OverlayConfig
     /// <summary>Cached /api/map/calibration values; refreshed once per launch.</summary>
     public MapCalibration? Calibration { get; set; }
 
+    /// <summary>
+    /// Minimap waypoint in world coordinates (cm); null = none. Right-click
+    /// the minimap in edit mode to place/move it, right-click the marker to
+    /// clear it. Persists across restarts.
+    /// </summary>
+    public double? WaypointX { get; set; }
+
+    public double? WaypointY { get; set; }
+
+    // ---- Appearance -------------------------------------------------------
+
+    /// <summary>UI scale for both overlay windows (layout transform). Clamped 0.75–1.5.</summary>
+    public double UiScale { get; set; } = 1.0;
+
+    /// <summary>Opacity of the dark glass behind the panels (text stays crisp). Clamped 0.3–1.</summary>
+    public double BackgroundOpacity { get; set; } = 0.8;
+
     public static OverlayConfig Load()
     {
         OverlayConfig cfg;

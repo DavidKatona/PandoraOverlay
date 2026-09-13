@@ -41,6 +41,9 @@ public partial class SettingsWindow : Window
     /// <summary>True after Save when minimap view/zoom differ (ApplySettings needed).</summary>
     public bool MinimapChanged { get; private set; }
 
+    /// <summary>True after Save when UI scale / background opacity differ (ApplyAppearance needed).</summary>
+    public bool AppearanceChanged { get; private set; }
+
     public SettingsWindow(OverlayConfig config)
     {
         InitializeComponent();
@@ -62,6 +65,8 @@ public partial class SettingsWindow : Window
         // General
         _initialStartup = StartupRegistration.IsEnabled();
         StartupCheck.IsChecked = _initialStartup;
+        ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
+        OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
 
         // Minimap
         var centered = string.Equals(config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
@@ -109,7 +114,7 @@ public partial class SettingsWindow : Window
     private void CookieBox_TextChanged(object sender, TextChangedEventArgs e) => Validate();
 
     /// <summary>Fixes the usual paste accidents without changing valid input.</summary>
-    private static string Clean(string raw)
+    internal static string Clean(string raw)
     {
         var s = (raw ?? "").Trim();
         s = Regex.Replace(s, @"^\s*cookie\s*:\s*", "", RegexOptions.IgnoreCase);
@@ -221,6 +226,17 @@ public partial class SettingsWindow : Window
         return true;
     }
 
+    // ---- General (appearance) -----------------------------------------------
+    private void ScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (ScaleLabel != null) ScaleLabel.Text = $"{e.NewValue:0%}";
+    }
+
+    private void OpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (OpacityLabel != null) OpacityLabel.Text = $"{e.NewValue:0%}";
+    }
+
     // ---- Minimap ------------------------------------------------------------
     private void ZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
@@ -245,6 +261,15 @@ public partial class SettingsWindow : Window
 
         var startup = StartupCheck.IsChecked == true;
         if (startup != _initialStartup) StartupRegistration.SetEnabled(startup);
+
+        var scale = Math.Round(ScaleSlider.Value, 2);
+        var bgOpacity = Math.Round(OpacitySlider.Value, 2);
+        if (Math.Abs(scale - _config.UiScale) > 0.001 || Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001)
+        {
+            _config.UiScale = scale;
+            _config.BackgroundOpacity = bgOpacity;
+            AppearanceChanged = true;
+        }
 
         var mode = ModeCentered.IsChecked == true ? "centered" : "island";
         var zoom = Math.Round(ZoomSlider.Value, 2);

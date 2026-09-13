@@ -15,7 +15,9 @@ web dev.**
    `POST /api/map/calibration` (once per launch — static map-transform constants
    for the approved minimap; the live-map page itself loads it on every visit;
    added at the owner's direction, Sep 2026). The `friends` and heatmap/zone
-   endpoints are NOT cleared for use (see Permissions).
+   endpoints are NOT cleared for use (see Permissions). The launch-time update
+   check calls the GitHub releases API — not an islapandora endpoint, so it
+   sits outside this constraint.
 3. **Poll interval >= 2 s** (default 3 s, matching the website's own cadence).
    Server-side rate limit is 300/window. Never add endpoints or frequency without
    the owner's explicit okay — the dev specifically praised the polling restraint.
@@ -70,7 +72,10 @@ is bundled as `Assets/map.png` (WPF Resource).
   WinForms interop (`UseWindowsForms`) enabled solely for the tray NotifyIcon.
   App icon `Assets/app.ico` (generated: dark rounded square + orange arrow).
 - `dotnet build -c Release` → `bin/Release/net8.0-windows/PandoraOverlay.exe`.
-- No tests yet. `config.json` is created next to the exe on first run.
+  `PandoraOverlay.sln` at the root also carries **PandoraOverlay.Tests**
+  (xUnit; `dotnet test`; CI runs it on every push). The app csproj globs the
+  repo root, so the test subtree is `Compile Remove`d from it.
+- `config.json` is created next to the exe on first run.
 
 ## Architecture
 
@@ -86,8 +91,10 @@ references — keep it that way. Every overlay window derives from
   launch (retried after a credential swap) and caches it into config.
 - **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
   toolwindow styles via SetWindowLongPtr, x64), `EditMode` state,
-  `DragIfEditing`, shared edit-border brushes. Ctrl+F8 is registered once, in
-  MainWindow, which toggles edit mode on every open window.
+  `DragIfEditing`, shared edit-border brushes, and `ApplyAppearance` (UI scale
+  as a LayoutTransform on the content root + panel-glass alpha, from config).
+  Ctrl+F8 is registered once, in MainWindow, which toggles edit mode on every
+  open window.
 
 - **PandoraClient.cs** — HTTP layer + `PlayerState`/`MyLocationResponse` records
   (case-insensitive JSON). One long-lived HttpClient, `UseCookies=false` (manual
@@ -110,13 +117,20 @@ references — keep it that way. Every overlay window derives from
   settings, MAP minimap toggle, ✕ close; leaving edit mode persists all window
   positions + the re-encrypted rolled cookie). `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
-  fracture badges toggle).
+  fracture badges toggle; health/hunger/thirst fills pulse below 25% — stamina
+  deliberately excluded, it drains by design). Fires one `UpdateChecker` call
+  on Loaded, feeding the status line + tray.
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
   always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
   Right-click menu = edit mode / minimap toggle / settings / exit;
   double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
   127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
-  Disposed on shutdown.
+  `ShowUpdateAvailable` reveals a hidden menu entry (opens the Releases page)
+  and appends the tag to the tooltip. Disposed on shutdown.
+- **UpdateChecker.cs** — one fail-soft GET to the GitHub releases API at
+  launch (the only non-islapandora network call); a newer tag surfaces via
+  the status line (once) and the tray (for the session). Never re-checks,
+  never pops anything up; offline/errors read as "no update".
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow. World→pixel
   per `MapCalibration` (with the Y flip); movement animates between polls
   (shortest-arc yaw; first fix / mode switch snaps). Two north-up views
@@ -127,7 +141,10 @@ references — keep it that way. Every overlay window derives from
   footer under the map always shows the active view (+ zoom when centered).
   `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified
   in-game, Sep 2026). ✕ on its banner hides it (`MinimapEnabled=false`); the
-  MAP button on the stats panel brings it back.
+  MAP button on the stats panel brings it back. Waypoint: right-click in edit
+  mode places/moves it (stored as world cm in config — persists), right-click
+  on the marker clears it; blue diamond, edge-clamped in the centered view,
+  distance appended to the footer (◆ 830m / ◆ 1.2km).
 - **SettingsWindow.xaml(.cs)** — sectioned settings dialog (Account / Controls
   / General / Minimap; single column, no tabs — deliberate, avoids theming
   stock TabControl chrome). Cookie box is a replace-inbox: empty = keep the
@@ -135,9 +152,11 @@ references — keep it that way. Every overlay window derives from
   `cookie:` prefix, quotes, newlines, trailing `;`; live validation needs
   `connect.sid`, warns if `cf_clearance` missing). Hotkey capture box
   availability-tests combos via a throwaway RegisterHotKey on its own hwnd.
-  Save writes config + Run key and sets Cookie/Hotkey/MinimapChanged flags;
-  MainWindow hot-applies each (RebuildClient / re-register with fallback /
-  minimap ApplySettings) — no restart, ever.
+  Save writes config + Run key and sets Cookie/Hotkey/Minimap/Appearance
+  Changed flags; MainWindow hot-applies each (RebuildClient / re-register
+  with fallback / minimap ApplySettings / ApplyAppearance) — no restart,
+  ever. General also holds the UI scale (75–150%) and background opacity
+  (30–100%) sliders.
 - **HotkeySpec.cs** — record converting the config string ("Ctrl+F8") ⇄ the
   RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
   shared Register/Unregister p/invokes. Modifier-less hotkeys are rejected

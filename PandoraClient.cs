@@ -119,7 +119,7 @@ public sealed class PandoraClient : IDisposable
         return FindCalibration(doc.RootElement);
     }
 
-    private static MapCalibration? FindCalibration(JsonElement el)
+    internal static MapCalibration? FindCalibration(JsonElement el)
     {
         switch (el.ValueKind)
         {

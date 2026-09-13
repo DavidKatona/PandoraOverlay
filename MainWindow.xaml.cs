@@ -1,7 +1,9 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace PandoraOverlay;
 
@@ -41,6 +43,7 @@ public partial class MainWindow : OverlayWindowBase
         Left = _config.WindowX;
         Top = _config.WindowY;
         _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
+        ApplyAppearance(_config);
 
         _poll = new PollService(_config);
         _poll.SnapshotReceived += OnSnapshot;
@@ -55,6 +58,7 @@ public partial class MainWindow : OverlayWindowBase
 
         Loaded += (_, _) =>
         {
+            _ = CheckForUpdateAsync();
             if (_config.MinimapEnabled) ShowMinimap();
 
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
@@ -96,7 +100,20 @@ public partial class MainWindow : OverlayWindowBase
             _poll.RebuildClient();
         }
         if (dialog.HotkeyChanged) ApplyHotkeyFromConfig();
-        if (dialog.MinimapChanged) _minimap?.ApplySettings();
+        if (dialog.MinimapChanged || dialog.AppearanceChanged) _minimap?.ApplySettings();
+        if (dialog.AppearanceChanged) ApplyAppearance(_config);
+    }
+
+    /// <summary>
+    /// One quiet launch-time check: on a newer release, mention it once in the
+    /// status line (the next poll overwrites it) and hand it to the tray,
+    /// which keeps a tooltip note + menu entry for the session.
+    /// </summary>
+    private async Task CheckForUpdateAsync()
+    {
+        if (await UpdateChecker.CheckAsync() is not { } tag) return;
+        StatusText.Text = $"Update available: {tag}";
+        _tray.ShowUpdateAvailable(tag);
     }
 
     /// <summary>
@@ -255,6 +272,9 @@ public partial class MainWindow : OverlayWindowBase
             SetBar(StaminaFill, StaminaPct, 0);
             SetBar(HungerFill, HungerPct, 0);
             SetBar(ThirstFill, ThirstPct, 0);
+            SetPulse(HealthFill, false);
+            SetPulse(HungerFill, false);
+            SetPulse(ThirstFill, false);
             FractureRow.Visibility = Visibility.Collapsed;
             StatusText.Text = $"Connected · waiting for spawn · {DateTime.Now:HH:mm:ss}";
             return;
@@ -292,6 +312,12 @@ public partial class MainWindow : OverlayWindowBase
         SetBar(HungerFill, HungerPct, p.Hunger);
         SetBar(ThirstFill, ThirstPct, p.Thirst);
 
+        // Critical-stat pulse. Stamina is deliberately excluded — it drains to
+        // zero every sprint by design and would train the eye to ignore it.
+        SetPulse(HealthFill, p.Health < 0.25);
+        SetPulse(HungerFill, p.Hunger < 0.25);
+        SetPulse(ThirstFill, p.Thirst < 0.25);
+
         FracHead.Visibility = p.HeadFractured ? Visibility.Visible : Visibility.Collapsed;
         FracBody.Visibility = p.BodyFractured ? Visibility.Visible : Visibility.Collapsed;
         FracLegs.Visibility = p.LegsFractured ? Visibility.Visible : Visibility.Collapsed;
@@ -300,6 +326,29 @@ public partial class MainWindow : OverlayWindowBase
             : Visibility.Collapsed;
 
         StatusText.Text = $"Live · updated {DateTime.Now:HH:mm:ss}";
+    }
+
+    // ---- Critical-stat pulse ------------------------------------------------
+    private readonly HashSet<Border> _pulsing = new();
+
+    private void SetPulse(Border fill, bool on)
+    {
+        if (on == _pulsing.Contains(fill)) return;
+        if (on)
+        {
+            _pulsing.Add(fill);
+            fill.BeginAnimation(OpacityProperty, new DoubleAnimation(1.0, 0.35, TimeSpan.FromMilliseconds(600))
+            {
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever
+            });
+        }
+        else
+        {
+            _pulsing.Remove(fill);
+            fill.BeginAnimation(OpacityProperty, null);
+            fill.Opacity = 1;
+        }
     }
 
     /// <summary>"~"-worthy in-game time: "45m", "3h 10m", "1d 4h".</summary>

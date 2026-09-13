@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -64,6 +65,23 @@ public abstract class OverlayWindowBase : Window
             style &= ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
         }
         SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(style));
+    }
+
+    /// <summary>
+    /// Applies the shared appearance settings: UI scale as a LayoutTransform
+    /// on the content root (the window resizes with it — a RenderTransform
+    /// would clip), and the panel-glass opacity as the root Border's
+    /// background alpha, leaving text and content fully crisp.
+    /// </summary>
+    protected void ApplyAppearance(OverlayConfig config)
+    {
+        if (Content is not Border panel) return;
+
+        var scale = Math.Clamp(config.UiScale, 0.75, 1.5);
+        panel.LayoutTransform = scale == 1.0 ? null : new ScaleTransform(scale, scale);
+
+        var alpha = (byte)Math.Round(Math.Clamp(config.BackgroundOpacity, 0.3, 1.0) * 255);
+        panel.Background = new SolidColorBrush(Color.FromArgb(alpha, 0x10, 0x15, 0x1B));
     }
 
     /// <summary>Wire to MouseLeftButtonDown: dragging is an edit-mode-only affair.</summary>

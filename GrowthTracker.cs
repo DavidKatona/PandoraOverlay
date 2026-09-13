@@ -49,7 +49,10 @@ public sealed class GrowthTracker
         Eta = null;
     }
 
-    public void Add(PlayerState p)
+    public void Add(PlayerState p) => Add(p, DateTime.UtcNow);
+
+    /// <summary>Timestamped overload so tests can simulate 15 minutes in microseconds.</summary>
+    internal void Add(PlayerState p, DateTime now)
     {
         if (p.Growth >= FullThreshold)
         {
@@ -66,7 +69,6 @@ public sealed class GrowthTracker
         }
         _identity = identity;
 
-        var now = DateTime.UtcNow;
         _samples.Add((now, p.Growth));
         while (now - _samples[0].At > Window)
         {

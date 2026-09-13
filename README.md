@@ -24,6 +24,7 @@ Download the latest zip from the [Releases page](../../releases) and unzip it an
 ```
 cd PandoraOverlay
 dotnet build -c Release
+dotnet test   # optional — runs the unit tests
 ```
 
 The exe lands in `bin\Release\net8.0-windows\PandoraOverlay.exe`.
@@ -44,10 +45,13 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Show/hide minimap, Settings, and **Exit** (double-click toggles edit mode). Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
 - The edit-mode hotkey (**Ctrl+F8** by default, rebindable in Settings) toggles edit mode — an orange border appears, you can drag the panels anywhere, open Settings with ⚙, and close the overlay with ✕. The hotkey again locks everything back. Positions are remembered.
-- **Settings** (tray → Settings…, or ⚙ in edit mode) gathers everything configurable: replace your cookie, rebind the hotkey, start with Windows, and set the minimap view and zoom.
+- **Settings** (tray → Settings…, or ⚙ in edit mode) gathers everything configurable: replace your cookie, rebind the hotkey, start with Windows, set the minimap view and zoom, and adjust the overlay scale and background opacity.
 - Only one copy runs at a time — launching a second shows a notice and exits.
 - The **minimap** is a separate window sharing the same edit mode: drag it independently, hide it with its ✕, bring it back with the **MAP** button on the stats panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
 - The minimap has two views, toggled with the **VIEW** button in edit mode: the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
+- Right-click the minimap in edit mode to drop a **waypoint** — the footer shows your distance to it, and in the centered view an off-screen marker sticks to the panel edge pointing the way. Right-click the marker to clear it; it survives restarts.
+- The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint).
+- On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 - After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
 - States you'll see:
   - `Not in-game` — you're logged in but not spawned on the server (or the server is restarting).
@@ -70,6 +74,9 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `MinimapZoom` | Centered-view magnification, clamped to 1.25–6 (default 5). Mouse wheel in edit mode adjusts it. |
 | `MinimapYawOffsetDegrees` | Rotation added to the raw yaw for the arrow. Default 90 matches the current map. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
+| `WaypointX` / `WaypointY` | The minimap waypoint in world coordinates; `null` when none is set. Right-click the minimap in edit mode. |
+| `UiScale` | Overlay size for both windows, 0.75–1.5 (default 1). Slider in Settings. |
+| `BackgroundOpacity` | Panel-glass opacity, 0.3–1 (default 0.8) — text stays crisp. Slider in Settings. |
 
 Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file.
 

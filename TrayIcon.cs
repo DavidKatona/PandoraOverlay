@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows.Forms;
 using Icon = System.Drawing.Icon;
 
@@ -7,22 +8,33 @@ namespace PandoraOverlay;
 /// Notification-area icon — the overlay's only always-visible affordance (the
 /// windows themselves are click-through, absent from the taskbar and Alt-Tab).
 /// The right-click menu drives the same actions as the edit banners; a
-/// double-click toggles edit mode. WinForms interop, since NotifyIcon has no
-/// WPF counterpart. Must be disposed on shutdown or the icon lingers in the
-/// tray until hovered.
+/// double-click toggles edit mode. The hover tooltip carries live stats and,
+/// when a newer release exists, an update note plus a menu entry opening the
+/// download page. WinForms interop, since NotifyIcon has no WPF counterpart.
+/// Must be disposed on shutdown or the icon lingers in the tray until hovered.
 /// </summary>
 public sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _icon;
     private readonly ToolStripMenuItem _editItem;
+    private readonly ToolStripMenuItem _updateItem;
+    private readonly ToolStripSeparator _updateSeparator;
+    private string _status = "Pandora Overlay";
+    private string _updateSuffix = "";
 
     public TrayIcon(Action toggleEditMode, Action toggleMinimap, Action openSettings, Action exit)
     {
-        var menu = new ContextMenuStrip();
+        _updateItem = new ToolStripMenuItem { Visible = false };
+        _updateItem.Click += (_, _) => OpenReleasesPage();
+        _updateSeparator = new ToolStripSeparator { Visible = false };
         _editItem = new ToolStripMenuItem("Edit mode", null, (_, _) => toggleEditMode())
         {
             ShortcutKeyDisplayString = "Ctrl+F8"
         };
+
+        var menu = new ContextMenuStrip();
+        menu.Items.Add(_updateItem);
+        menu.Items.Add(_updateSeparator);
         menu.Items.Add(_editItem);
         menu.Items.Add(new ToolStripMenuItem("Show/hide minimap", null, (_, _) => toggleMinimap()));
         menu.Items.Add(new ToolStripMenuItem("Settings…", null, (_, _) => openSettings()));
@@ -32,11 +44,49 @@ public sealed class TrayIcon : IDisposable
         _icon = new NotifyIcon
         {
             Icon = LoadAppIcon(),
-            Text = "Pandora Overlay",
+            Text = _status,
             ContextMenuStrip = menu,
             Visible = true
         };
         _icon.DoubleClick += (_, _) => toggleEditMode();
+    }
+
+    /// <summary>Shows the current hotkey next to the Edit mode menu entry.</summary>
+    public void UpdateHotkeyLabel(string label) => _editItem.ShortcutKeyDisplayString = label;
+
+    /// <summary>Hover tooltip base text (live stats); NotifyIcon caps the total at 127 chars.</summary>
+    public void SetStatus(string text)
+    {
+        _status = text;
+        RefreshTooltip();
+    }
+
+    /// <summary>Reveals the update menu entry and appends the tag to the tooltip for the session.</summary>
+    public void ShowUpdateAvailable(string tag)
+    {
+        _updateItem.Text = $"Update available ({tag}) — open download page";
+        _updateItem.Visible = true;
+        _updateSeparator.Visible = true;
+        _updateSuffix = $" · {tag} available";
+        RefreshTooltip();
+    }
+
+    private void RefreshTooltip()
+    {
+        var text = _status + _updateSuffix;
+        _icon.Text = text.Length <= 127 ? text : text[..127];
+    }
+
+    private static void OpenReleasesPage()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(UpdateChecker.ReleasesPage) { UseShellExecute = true });
+        }
+        catch
+        {
+            // Fail soft — worst case the user browses to the repo manually.
+        }
     }
 
     private static Icon LoadAppIcon()
@@ -46,12 +96,6 @@ public sealed class TrayIcon : IDisposable
         using var stream = res.Stream;
         return new Icon(stream);
     }
-
-    /// <summary>Shows the current hotkey next to the Edit mode menu entry.</summary>
-    public void UpdateHotkeyLabel(string label) => _editItem.ShortcutKeyDisplayString = label;
-
-    /// <summary>Hover tooltip; NotifyIcon caps the text at 127 characters.</summary>
-    public void SetStatus(string text) => _icon.Text = text.Length <= 127 ? text : text[..127];
 
     public void Dispose() => _icon.Dispose();
 }
