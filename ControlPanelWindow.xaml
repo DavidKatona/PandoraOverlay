@@ -33,19 +33,24 @@
             Padding="10,8">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
+                <!-- Feature controls -->
                 <Button Content="Settings…" Click="Settings_Click"
                         Style="{StaticResource PanelButton}"/>
                 <Button Content="Show/hide minimap" Click="Minimap_Click"
                         Style="{StaticResource PanelButton}"/>
                 <Button Content="Map view" Click="MapView_Click"
                         Style="{StaticResource PanelButton}"/>
+
+                <Border Width="1" Background="#33FFFFFF" Margin="6,3,12,3"/>
+
+                <!-- Overlay-session controls -->
                 <Button Content="Lock" Click="Lock_Click"
                         Style="{StaticResource PanelButton}"
                         Background="#2E5E38" Foreground="#DFF3E2"/>
                 <Button Content="Exit" Click="Exit_Click"
                         Style="{StaticResource PanelButton}"
                         Background="#552B2B" Foreground="#FFDDDD"
-                        Margin="14,0,0,0"/>
+                        Margin="0"/>
             </StackPanel>
             <TextBlock x:Name="HintText"
                        Text="drag panels to move · right-click map = waypoint · Ctrl+F8 locks"
