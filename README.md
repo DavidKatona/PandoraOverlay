@@ -72,6 +72,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Stats panel
 
+![The stats panel: dino name and gender, growth, the four stat bars — hunger critical at 13% — and the live status line](docs/stats-panel.png)
+
 - The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint).
 - After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
 - Status-line states you'll see:
