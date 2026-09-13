@@ -291,6 +291,12 @@ public partial class MainWindow : OverlayWindowBase
         _controlPanel.Show();
         _controlPanel.SetEditMode(true); // permanently interactive while visible
         _controlPanel.SetHotkeyLabel(_hotkey.ToString());
+
+        // Take focus away from the game so it releases its mouse capture and
+        // the cursor becomes visible. Windows grants us foreground rights
+        // here because our registered hotkey (or a tray click) triggered
+        // this; only OUR window is activated — the game is never touched.
+        _controlPanel.Activate();
     }
 
     protected override void OnEditModeChanged(bool editMode)
