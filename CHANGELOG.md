@@ -7,15 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-09-13
+
 ### Changed
 
 - Edit mode redesigned around a new **control panel**: the per-widget button
   banners are gone — panels now only recolor their border and stay
   pixel-identical in size and position in both modes — and a draggable
   control panel appears with edit mode (bottom-center by default, position
-  remembered) carrying labeled buttons: Settings, Show/hide minimap, Map
-  view, Lock, and Exit, plus the hint line. This also retires the whole
-  banner-compensation machinery behind the recent sizing/position bugs.
+  remembered) carrying labeled buttons grouped as features (Settings,
+  Show/hide minimap, Map view) and session controls (Lock, Exit), plus the
+  hint line. This also retires the whole banner-compensation machinery
+  behind the recent sizing/position bugs.
+
+### Fixed
+
+- Entering edit mode now takes focus (our own window only), so the game
+  releases its mouse capture and the cursor appears immediately —
+  previously the cursor stayed invisible until it wandered over a panel.
+- Control panel buttons stay readable on hover: a faint glow overlay
+  replaces the default chrome's bright highlight.
 
 ## [1.8.0] - 2026-09-13
 
