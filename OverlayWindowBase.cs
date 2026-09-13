@@ -9,9 +9,13 @@ namespace PandoraOverlay;
 
 /// <summary>
 /// Shared behaviour for the overlay's always-on-top windows: the click-through
-/// / no-activate / no-Alt-Tab window styles (x64 SetWindowLongPtr) and the
-/// drag-to-move rule while edit mode is on. The global Ctrl+F8 hotkey itself is
-/// registered once, by MainWindow, which toggles every open overlay window.
+/// / no-activate / no-Alt-Tab window styles (x64 SetWindowLongPtr), edit-mode
+/// state with banner-height position compensation (the content you position
+/// stays put between modes — the banner grows upward instead of pushing the
+/// panel down), a manual edit-mode drag with magnetic snapping (work-area
+/// edges, comfort inset, the other overlay window; hold Alt to bypass), and
+/// shared appearance settings. The global hotkeys are registered once, by
+/// MainWindow.
 /// </summary>
 public abstract class OverlayWindowBase : Window
 {
@@ -30,41 +34,70 @@ public abstract class OverlayWindowBase : Window
     protected static readonly Brush BorderLocked = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
     protected static readonly Brush BorderEdit = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));
 
+    // Live overlay windows, so dragging one can snap against the others.
+    private static readonly List<OverlayWindowBase> Instances = new();
+
+    private double _bannerShift;
+    private bool _dragging;
+    private Point _dragStartCursor;
+    private Point _dragStartWindow;
+
     /// <summary>True while the window is interactive (draggable, buttons usable).</summary>
     public bool EditMode { get; private set; }
+
+    /// <summary>The edit banner, measured for position compensation when it appears.</summary>
+    protected abstract FrameworkElement? BannerElement { get; }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
         ApplyClickThrough(clickThrough: true);
+        Instances.Add(this);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        Instances.Remove(this);
+        base.OnClosed(e);
     }
 
     /// <summary>Enters/leaves edit mode; subclasses restyle in OnEditModeChanged.</summary>
     public void SetEditMode(bool on)
     {
+        if (on == EditMode) return;
         EditMode = on;
         ApplyClickThrough(clickThrough: !on);
         OnEditModeChanged(on);
+        CompensateForBanner(on);
     }
 
     protected abstract void OnEditModeChanged(bool editMode);
 
-    private void ApplyClickThrough(bool clickThrough)
+    /// <summary>
+    /// Keeps the CONTENT stationary across the mode switch: the banner grows
+    /// upward into empty space instead of pushing the panel down, so what you
+    /// position in edit mode is exactly where the panel sits once locked.
+    /// Clamped at the top of the work area so the banner stays on-screen.
+    /// </summary>
+    private void CompensateForBanner(bool entering)
     {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        if (hwnd == IntPtr.Zero) return;
-
-        var style = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
-        style |= WS_EX_TOOLWINDOW;
-        if (clickThrough)
+        if (entering)
         {
-            style |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
+            UpdateLayout(); // the banner just became visible — measure it
+            var banner = BannerElement;
+            var scale = (Content as FrameworkElement)?.LayoutTransform is ScaleTransform s ? s.ScaleY : 1.0;
+            var height = banner is null
+                ? 0
+                : (banner.ActualHeight + banner.Margin.Top + banner.Margin.Bottom) * scale;
+            var workTop = GetWorkAreaDips().Top;
+            _bannerShift = Math.Clamp(height, 0, Math.Max(0, Top - workTop));
+            Top -= _bannerShift;
         }
         else
         {
-            style &= ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
+            Top += _bannerShift;
+            _bannerShift = 0;
         }
-        SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(style));
     }
 
     /// <summary>
@@ -84,12 +117,92 @@ public abstract class OverlayWindowBase : Window
         panel.Background = new SolidColorBrush(Color.FromArgb(alpha, 0x10, 0x15, 0x1B));
     }
 
+    private void ApplyClickThrough(bool clickThrough)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        var style = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
+        style |= WS_EX_TOOLWINDOW;
+        if (clickThrough)
+        {
+            style |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
+        }
+        else
+        {
+            style &= ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
+        }
+        SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(style));
+    }
+
+    // ---- Edit-mode drag with snapping --------------------------------------
+
     /// <summary>Wire to MouseLeftButtonDown: dragging is an edit-mode-only affair.</summary>
     protected void DragIfEditing(MouseButtonEventArgs e)
     {
-        if (EditMode && e.ButtonState == MouseButtonState.Pressed)
+        if (!EditMode || e.ButtonState != MouseButtonState.Pressed) return;
+        _dragging = true;
+        _dragStartCursor = CursorInDips(e);
+        _dragStartWindow = new Point(Left, Top);
+        CaptureMouse();
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (!_dragging) return;
+
+        var cursor = CursorInDips(e);
+        var x = _dragStartWindow.X + (cursor.X - _dragStartCursor.X);
+        var y = _dragStartWindow.Y + (cursor.Y - _dragStartCursor.Y);
+
+        if ((Keyboard.Modifiers & ModifierKeys.Alt) == 0)
         {
-            DragMove();
+            // Snap in CONTENT space, banner excluded — "flush to the edge"
+            // means the panel as it will sit once locked.
+            var snapped = SnapResolver.Snap(
+                new Point(x, y + _bannerShift),
+                new Size(ActualWidth, Math.Max(0, ActualHeight - _bannerShift)),
+                GetWorkAreaDips(),
+                Instances.Where(w => w != this && w.IsVisible).Select(w => w.ContentBounds));
+            x = snapped.X;
+            y = snapped.Y - _bannerShift;
         }
+
+        Left = x;
+        Top = y;
+    }
+
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonUp(e);
+        if (!_dragging) return;
+        _dragging = false;
+        ReleaseMouseCapture();
+    }
+
+    /// <summary>The window's bounds minus the edit banner — what the panel occupies when locked.</summary>
+    private Rect ContentBounds =>
+        new(Left, Top + _bannerShift, ActualWidth, Math.Max(0, ActualHeight - _bannerShift));
+
+    private Point CursorInDips(MouseEventArgs e)
+    {
+        var device = PointToScreen(e.GetPosition(this));
+        return PresentationSource.FromVisual(this)?.CompositionTarget?.TransformFromDevice.Transform(device) ?? device;
+    }
+
+    /// <summary>The current monitor's work area (taskbar excluded), in DIPs.</summary>
+    private Rect GetWorkAreaDips()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        var wa = System.Windows.Forms.Screen.FromHandle(hwnd).WorkingArea;
+        if (PresentationSource.FromVisual(this)?.CompositionTarget is not { } target)
+        {
+            return new Rect(wa.X, wa.Y, wa.Width, wa.Height);
+        }
+        var fromDevice = target.TransformFromDevice;
+        var topLeft = fromDevice.Transform(new Point(wa.Left, wa.Top));
+        var bottomRight = fromDevice.Transform(new Point(wa.Right, wa.Bottom));
+        return new Rect(topLeft, bottomRight);
     }
 }

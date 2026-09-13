@@ -17,9 +17,11 @@ public partial class MainWindow : OverlayWindowBase
     // ---- Layout constants -------------------------------------------------
     private const double TrackWidth = 170; // must match bar track width in XAML
 
-    // ---- Global hotkey (registered once, toggles every overlay window) ----
+    // ---- Global hotkeys (registered once, on this window's hwnd) ----------
     private const int WM_HOTKEY = 0x0312;
-    private const int HotkeyId = 0xA11C;
+    private const int HotkeyId = 0xA11C;        // edit mode (0xA11D is the settings dialog's test id)
+    private const int HideAllHotkeyId = 0xA11E;
+    private const int ViewHotkeyId = 0xA11F;
 
     // ---- Brushes ----------------------------------------------------------
     private static readonly Brush HealthGood = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
@@ -34,6 +36,9 @@ public partial class MainWindow : OverlayWindowBase
     private readonly GrowthTracker _growth = new();
     private MinimapWindow? _minimap;
     private HotkeySpec _hotkey;
+    private HotkeySpec _hotkeyHide;
+    private HotkeySpec _hotkeyView;
+    private bool _overlayHidden;
 
     public MainWindow()
     {
@@ -43,6 +48,8 @@ public partial class MainWindow : OverlayWindowBase
         Left = _config.WindowX;
         Top = _config.WindowY;
         _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
+        _hotkeyHide = HotkeySpec.TryParse(_config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F9);
+        _hotkeyView = HotkeySpec.TryParse(_config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F7);
         ApplyAppearance(_config);
 
         _poll = new PollService(_config);
@@ -51,6 +58,7 @@ public partial class MainWindow : OverlayWindowBase
 
         _tray = new TrayIcon(
             toggleEditMode: ToggleEditMode,
+            toggleOverlay: ToggleOverlayVisibility,
             toggleMinimap: ToggleMinimap,
             openSettings: OpenSettings,
             exit: () => Application.Current.Shutdown());
@@ -99,7 +107,7 @@ public partial class MainWindow : OverlayWindowBase
             StatusText.Text = "";
             _poll.RebuildClient();
         }
-        if (dialog.HotkeyChanged) ApplyHotkeyFromConfig();
+        if (dialog.HotkeyChanged) ApplyHotkeysFromConfig();
         if (dialog.MinimapChanged || dialog.AppearanceChanged) _minimap?.ApplySettings();
         if (dialog.AppearanceChanged) ApplyAppearance(_config);
     }
@@ -117,33 +125,41 @@ public partial class MainWindow : OverlayWindowBase
     }
 
     /// <summary>
-    /// Re-registers the hotkey after a settings change. The dialog already
-    /// availability-checked the combo, but another app can grab it in the
-    /// meantime — then we fall back to the old, still-working one.
+    /// Re-registers all hotkeys after a settings change. Everything is
+    /// unregistered first so swapped combos can't collide with themselves;
+    /// the dialog availability-checked each combo, but another app can still
+    /// grab one in the meantime — then that hotkey falls back to its old,
+    /// still-working combo.
     /// </summary>
-    private void ApplyHotkeyFromConfig()
+    private void ApplyHotkeysFromConfig()
     {
-        var spec = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
-        if (spec == _hotkey) return;
-
         var hwnd = new WindowInteropHelper(this).Handle;
         HotkeySpec.Unregister(hwnd, HotkeyId);
-        if (!HotkeySpec.Register(hwnd, HotkeyId, spec))
-        {
-            HotkeySpec.Register(hwnd, HotkeyId, _hotkey);
-            _config.Hotkey = _hotkey.ToString();
-            _config.Save();
-            StatusText.Text = $"Hotkey {spec} unavailable — keeping {_hotkey}";
-            return;
-        }
-        _hotkey = spec;
+        HotkeySpec.Unregister(hwnd, HideAllHotkeyId);
+        HotkeySpec.Unregister(hwnd, ViewHotkeyId);
+
+        _hotkey = RegisterWithFallback(hwnd, HotkeyId, _config.Hotkey, _hotkey, v => _config.Hotkey = v);
+        _hotkeyHide = RegisterWithFallback(hwnd, HideAllHotkeyId, _config.HotkeyHideAll, _hotkeyHide, v => _config.HotkeyHideAll = v);
+        _hotkeyView = RegisterWithFallback(hwnd, ViewHotkeyId, _config.HotkeyMinimapView, _hotkeyView, v => _config.HotkeyMinimapView = v);
+        _config.Save();
         UpdateHotkeyTexts();
+    }
+
+    private HotkeySpec RegisterWithFallback(IntPtr hwnd, int id, string configured, HotkeySpec fallback, Action<string> writeBack)
+    {
+        var wanted = HotkeySpec.TryParse(configured) ?? fallback;
+        if (HotkeySpec.Register(hwnd, id, wanted)) return wanted;
+
+        HotkeySpec.Register(hwnd, id, fallback);
+        writeBack(fallback.ToString());
+        StatusText.Text = $"Hotkey {wanted} unavailable — keeping {fallback}";
+        return fallback;
     }
 
     private void UpdateHotkeyTexts()
     {
         EditBannerText.Text = $"EDIT MODE — drag to move · {_hotkey} to lock";
-        _tray.UpdateHotkeyLabel(_hotkey.ToString());
+        _tray.UpdateHotkeyLabels(_hotkey.ToString(), _hotkeyHide.ToString());
     }
 
     private void ShowNoCookieState()
@@ -186,22 +202,61 @@ public partial class MainWindow : OverlayWindowBase
         base.OnSourceInitialized(e); // applies the click-through styles
         var hwnd = new WindowInteropHelper(this).Handle;
         HotkeySpec.Register(hwnd, HotkeyId, _hotkey);
+        HotkeySpec.Register(hwnd, HideAllHotkeyId, _hotkeyHide);
+        HotkeySpec.Register(hwnd, ViewHotkeyId, _hotkeyView);
         HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_HOTKEY && wParam.ToInt32() == HotkeyId)
+        if (msg == WM_HOTKEY)
         {
-            ToggleEditMode();
-            handled = true;
+            switch (wParam.ToInt32())
+            {
+                case HotkeyId:
+                    ToggleEditMode();
+                    handled = true;
+                    break;
+                case HideAllHotkeyId:
+                    ToggleOverlayVisibility();
+                    handled = true;
+                    break;
+                case ViewHotkeyId:
+                    _minimap?.ToggleView();
+                    handled = true;
+                    break;
+            }
         }
         return IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Ctrl+F9 / tray: hides both windows for screenshots or cutscenes.
+    /// Polling continues (the state stays warm); hidden is never persisted —
+    /// the app always starts visible.
+    /// </summary>
+    private void ToggleOverlayVisibility()
+    {
+        if (!_overlayHidden)
+        {
+            if (EditMode) ToggleEditMode(); // lock + persist before vanishing
+            _overlayHidden = true;
+            Hide();
+            _minimap?.Hide();
+        }
+        else
+        {
+            _overlayHidden = false;
+            Show();
+            _minimap?.Show();
+        }
     }
 
     // ---- Edit mode ----------------------------------------------------------
     private void ToggleEditMode()
     {
+        if (_overlayHidden) ToggleOverlayVisibility(); // un-hide first, then edit as usual
+
         var on = !EditMode;
         SetEditMode(on);
         _minimap?.SetEditMode(on);
@@ -211,6 +266,8 @@ public partial class MainWindow : OverlayWindowBase
             PersistState();
         }
     }
+
+    protected override FrameworkElement? BannerElement => EditBanner;
 
     protected override void OnEditModeChanged(bool editMode)
     {

@@ -17,12 +17,13 @@ public sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _icon;
     private readonly ToolStripMenuItem _editItem;
+    private readonly ToolStripMenuItem _overlayItem;
     private readonly ToolStripMenuItem _updateItem;
     private readonly ToolStripSeparator _updateSeparator;
     private string _status = "Pandora Overlay";
     private string _updateSuffix = "";
 
-    public TrayIcon(Action toggleEditMode, Action toggleMinimap, Action openSettings, Action exit)
+    public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action toggleMinimap, Action openSettings, Action exit)
     {
         _updateItem = new ToolStripMenuItem { Visible = false };
         _updateItem.Click += (_, _) => OpenReleasesPage();
@@ -31,11 +32,16 @@ public sealed class TrayIcon : IDisposable
         {
             ShortcutKeyDisplayString = "Ctrl+F8"
         };
+        _overlayItem = new ToolStripMenuItem("Hide/show overlay", null, (_, _) => toggleOverlay())
+        {
+            ShortcutKeyDisplayString = "Ctrl+F9"
+        };
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(_updateItem);
         menu.Items.Add(_updateSeparator);
         menu.Items.Add(_editItem);
+        menu.Items.Add(_overlayItem);
         menu.Items.Add(new ToolStripMenuItem("Show/hide minimap", null, (_, _) => toggleMinimap()));
         menu.Items.Add(new ToolStripMenuItem("Settings…", null, (_, _) => openSettings()));
         menu.Items.Add(new ToolStripSeparator());
@@ -51,8 +57,12 @@ public sealed class TrayIcon : IDisposable
         _icon.DoubleClick += (_, _) => toggleEditMode();
     }
 
-    /// <summary>Shows the current hotkey next to the Edit mode menu entry.</summary>
-    public void UpdateHotkeyLabel(string label) => _editItem.ShortcutKeyDisplayString = label;
+    /// <summary>Shows the current hotkeys next to their menu entries.</summary>
+    public void UpdateHotkeyLabels(string editLabel, string overlayLabel)
+    {
+        _editItem.ShortcutKeyDisplayString = editLabel;
+        _overlayItem.ShortcutKeyDisplayString = overlayLabel;
+    }
 
     /// <summary>Hover tooltip base text (live stats); NotifyIcon caps the total at 127 chars.</summary>
     public void SetStatus(string text)

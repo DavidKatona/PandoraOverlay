@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Two new global hotkeys, both rebindable in Settings → Controls: hide/show
+  the whole overlay (default Ctrl+F9 — for screenshots and cutscenes; polling
+  continues, and the app always starts visible) and toggling the minimap
+  island/centered view from gameplay (default Ctrl+F7). The tray menu gains
+  a matching "Hide/show overlay" entry.
+- Magnetic snapping while dragging in edit mode: panels snap to the
+  monitor's work-area edges, a small inset from them, and to each other's
+  edges (align or abut). Hold Alt while dragging for pixel-perfect freedom.
+
+### Fixed
+
+- Entering edit mode no longer shifts the panels around: the edit banner now
+  grows upward into empty space, so the position you set in edit mode is
+  exactly where the panel sits once locked (previously the banner pushed the
+  content down by its own height).
+
 ## [1.6.0] - 2026-09-13
 
 ### Added

@@ -58,6 +58,15 @@ public sealed class OverlayConfig
     /// </summary>
     public string Hotkey { get; set; } = "Ctrl+F8";
 
+    /// <summary>
+    /// Hide/show the whole overlay (screenshots, cutscenes) — same format as
+    /// Hotkey. Hidden state never persists: the app always starts visible.
+    /// </summary>
+    public string HotkeyHideAll { get; set; } = "Ctrl+F9";
+
+    /// <summary>Toggle the minimap island/centered view from gameplay — same format as Hotkey.</summary>
+    public string HotkeyMinimapView { get; set; } = "Ctrl+F7";
+
     // ---- Minimap (v1.1) ---------------------------------------------------
 
     /// <summary>Show the minimap window (✕ on its edit banner hides it; MAP on the stats panel brings it back).</summary>

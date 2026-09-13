@@ -90,11 +90,19 @@ references — keep it that way. Every overlay window derives from
   stream (this is what preserves constraint #3). Fetches calibration once per
   launch (retried after a credential swap) and caches it into config.
 - **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
-  toolwindow styles via SetWindowLongPtr, x64), `EditMode` state,
-  `DragIfEditing`, shared edit-border brushes, and `ApplyAppearance` (UI scale
-  as a LayoutTransform on the content root + panel-glass alpha, from config).
-  Ctrl+F8 is registered once, in MainWindow, which toggles edit mode on every
-  open window.
+  toolwindow styles via SetWindowLongPtr, x64), `EditMode` state, shared
+  edit-border brushes, `ApplyAppearance` (UI scale as a LayoutTransform +
+  panel-glass alpha), and the edit-mode drag: manual (no DragMove) so it snaps
+  live via SnapResolver against the current monitor's work area (per-monitor
+  through WinForms `Screen`, DIP-converted) and the other overlay window
+  (static instance registry); holding Alt bypasses. Banner compensation:
+  entering edit mode shifts `Top` up by the (scale-aware) banner height so
+  the CONTENT stays put between modes; snapping runs in content space, and
+  the shift clamps at the work-area top. The global hotkeys are registered
+  once, in MainWindow.
+- **SnapResolver.cs** — pure, tested snapping math: work-area edges + 12px
+  inset + peer edges, 14px threshold, axes independent; leading- and
+  trailing-edge candidates per target give align-and-abut for free.
 
 - **PandoraClient.cs** — HTTP layer + `PlayerState`/`MyLocationResponse` records
   (case-insensitive JSON). One long-lived HttpClient, `UseCookies=false` (manual
@@ -111,19 +119,22 @@ references — keep it that way. Every overlay window derives from
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
   any failure; nothing in this class ever throws.
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
-  and the minimap window's lifetime. Global hotkey (config `Hotkey`, default
-  **Ctrl+F8**; RegisterHotKey + WM_HOTKEY in WndProc hook; banner/tray labels
-  follow it) toggles edit mode on every window (drag, ⚙
-  settings, MAP minimap toggle, ✕ close; leaving edit mode persists all window
-  positions + the re-encrypted rolled cookie). `UpdateUi` is a 3-state machine:
+  and the minimap window's lifetime. Three global hotkeys (RegisterHotKey +
+  WM_HOTKEY in WndProc; banner/tray labels follow config): edit mode
+  (`Hotkey`, Ctrl+F8) toggling every window, hide/show overlay
+  (`HotkeyHideAll`, Ctrl+F9 — exits edit mode first; hidden never persists;
+  the edit hotkey un-hides first), and minimap view toggle
+  (`HotkeyMinimapView`, Ctrl+F7 → `MinimapWindow.ToggleView`). Edit mode:
+  drag-with-snapping, ⚙ settings, MAP minimap toggle, ✕ close; leaving it
+  persists all window positions + the re-encrypted rolled cookie. `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
   fracture badges toggle; health/hunger/thirst fills pulse below 25% — stamina
   deliberately excluded, it drains by design). Fires one `UpdateChecker` call
   on Loaded, feeding the status line + tray.
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
   always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
-  Right-click menu = edit mode / minimap toggle / settings / exit;
-  double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
+  Right-click menu = edit mode / hide-show overlay / minimap toggle /
+  settings / exit (hotkey labels follow config); double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
   127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
   `ShowUpdateAvailable` reveals a hidden menu entry (opens the Releases page)
   and appends the tag to the tooltip. Disposed on shutdown.
@@ -150,8 +161,10 @@ references — keep it that way. Every overlay window derives from
   stock TabControl chrome). Cookie box is a replace-inbox: empty = keep the
   current cookie; first run gates Save on a valid paste (`Clean()` strips
   `cookie:` prefix, quotes, newlines, trailing `;`; live validation needs
-  `connect.sid`, warns if `cf_clearance` missing). Hotkey capture box
-  availability-tests combos via a throwaway RegisterHotKey on its own hwnd.
+  `connect.sid`, warns if `cf_clearance` missing). Three hotkey capture boxes
+  (edit / hide-overlay / minimap-view) share the capture UX: combos are
+  availability-tested via a throwaway RegisterHotKey on the dialog's hwnd
+  (skipped for combos our app already holds) and cross-duplicates rejected.
   Save writes config + Run key and sets Cookie/Hotkey/Minimap/Appearance
   Changed flags; MainWindow hot-applies each (RebuildClient / re-register
   with fallback / minimap ApplySettings / ApplyAppearance) — no restart,

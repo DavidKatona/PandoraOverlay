@@ -26,11 +26,26 @@ public partial class SettingsWindow : Window
     private static readonly Brush HintWarn = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));
     private static readonly Brush HintBad = new SolidColorBrush(Color.FromRgb(0xFF, 0x8A, 0x80));
 
+    private sealed class HotkeyEntry
+    {
+        public HotkeyEntry(HotkeySpec initial, string label)
+        {
+            Initial = initial;
+            Chosen = initial;
+            Label = label;
+        }
+
+        public HotkeySpec Initial { get; }
+        public HotkeySpec Chosen { get; set; }
+        public string Label { get; }
+    }
+
+    private const string HotkeyIdleHint = "Click a box, then press the combination you want.";
+
     private readonly OverlayConfig _config;
     private readonly bool _firstRun;
-    private readonly HotkeySpec _initialHotkey;
     private readonly bool _initialStartup;
-    private HotkeySpec _chosenHotkey;
+    private readonly Dictionary<TextBox, HotkeyEntry> _hotkeyEntries = new();
 
     /// <summary>True after Save when a new cookie was pasted (client rebuild needed).</summary>
     public bool CookieChanged { get; private set; }
@@ -58,9 +73,16 @@ public partial class SettingsWindow : Window
         if (_firstRun) SetHowToVisible(true); // first run: show the walkthrough up front
 
         // Controls
-        _initialHotkey = HotkeySpec.TryParse(config.Hotkey) ?? HotkeySpec.Default;
-        _chosenHotkey = _initialHotkey;
-        HotkeyBox.Text = _initialHotkey.ToString();
+        _hotkeyEntries[EditHotkeyBox] = new HotkeyEntry(
+            HotkeySpec.TryParse(config.Hotkey) ?? HotkeySpec.Default, "edit mode");
+        _hotkeyEntries[HideHotkeyBox] = new HotkeyEntry(
+            HotkeySpec.TryParse(config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F9), "hide/show overlay");
+        _hotkeyEntries[ViewHotkeyBox] = new HotkeyEntry(
+            HotkeySpec.TryParse(config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F7), "the minimap view toggle");
+        foreach (var (box, entry) in _hotkeyEntries)
+        {
+            box.Text = entry.Chosen.ToString();
+        }
 
         // General
         _initialStartup = StartupRegistration.IsEnabled();
@@ -170,18 +192,21 @@ public partial class SettingsWindow : Window
 
     private void HotkeyBox_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
-        HotkeyBox.Text = _chosenHotkey.ToString();
+        var box = (TextBox)sender;
+        box.Text = _hotkeyEntries[box].Chosen.ToString();
     }
 
     private void HotkeyBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        var box = (TextBox)sender;
+        var entry = _hotkeyEntries[box];
         e.Handled = true;
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
 
         if (key == Key.Escape)
         {
-            HotkeyBox.Text = _chosenHotkey.ToString();
-            HotkeyHint.Text = "Click the box, then press the combination you want.";
+            box.Text = entry.Chosen.ToString();
+            HotkeyHint.Text = HotkeyIdleHint;
             HotkeyHint.Foreground = HintNeutral;
             Keyboard.ClearFocus();
             return;
@@ -201,19 +226,31 @@ public partial class SettingsWindow : Window
         }
 
         var spec = new HotkeySpec(mods, key);
-        if (spec != _initialHotkey && !IsHotkeyAvailable(spec))
+
+        var clash = _hotkeyEntries.FirstOrDefault(kv => kv.Key != box && kv.Value.Chosen == spec);
+        if (clash.Key is not null)
         {
-            HotkeyHint.Text = $"{spec} is taken by another app — keeping {_chosenHotkey}.";
+            HotkeyHint.Text = $"{spec} is already assigned to {clash.Value.Label}.";
             HotkeyHint.Foreground = HintBad;
             return;
         }
 
-        _chosenHotkey = spec;
-        HotkeyBox.Text = spec.ToString();
-        HotkeyHint.Text = spec == _initialHotkey
+        // Skip the availability probe for combos we hold ourselves — the
+        // registration would fail against our own MainWindow.
+        var registeredByUs = _hotkeyEntries.Values.Any(v => v.Initial == spec);
+        if (!registeredByUs && !IsHotkeyAvailable(spec))
+        {
+            HotkeyHint.Text = $"{spec} is taken by another app — keeping {entry.Chosen}.";
+            HotkeyHint.Foreground = HintBad;
+            return;
+        }
+
+        entry.Chosen = spec;
+        box.Text = spec.ToString();
+        HotkeyHint.Text = spec == entry.Initial
             ? "Unchanged."
             : $"{spec} is available — applies on Save.";
-        HotkeyHint.Foreground = spec == _initialHotkey ? HintNeutral : HintGood;
+        HotkeyHint.Foreground = spec == entry.Initial ? HintNeutral : HintGood;
     }
 
     /// <summary>Briefly registers the combo on this window to see whether the OS allows it.</summary>
@@ -253,9 +290,11 @@ public partial class SettingsWindow : Window
             CookieChanged = true;
         }
 
-        if (_chosenHotkey != _initialHotkey)
+        if (_hotkeyEntries.Any(kv => kv.Value.Chosen != kv.Value.Initial))
         {
-            _config.Hotkey = _chosenHotkey.ToString();
+            _config.Hotkey = _hotkeyEntries[EditHotkeyBox].Chosen.ToString();
+            _config.HotkeyHideAll = _hotkeyEntries[HideHotkeyBox].Chosen.ToString();
+            _config.HotkeyMinimapView = _hotkeyEntries[ViewHotkeyBox].Chosen.ToString();
             HotkeyChanged = true;
         }
 

@@ -61,7 +61,9 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Basics
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
-- The edit-mode hotkey (**Ctrl+F8** by default, rebindable in Settings) toggles **edit mode** — an orange border appears, you can drag the panels anywhere, open Settings with ⚙, and close the overlay with ✕. The hotkey again locks everything back. Positions are remembered.
+- The edit-mode hotkey (**Ctrl+F8** by default) toggles **edit mode** — an orange border appears, you can drag the panels anywhere, open Settings with ⚙, and close the overlay with ✕. The hotkey again locks everything back. Positions are remembered, and the panels stay exactly where you put them — the edit banner grows upward instead of pushing content around.
+- While dragging, panels **snap** to the screen edges, a small inset from them, and to each other. Hold **Alt** while dragging for pixel-perfect free placement.
+- **Ctrl+F9** hides/shows the whole overlay without quitting — for screenshots and cutscenes; polling continues, and the app always starts visible. **Ctrl+F7** flips the minimap view without entering edit mode. All three hotkeys are rebindable in Settings.
 - Only one copy runs at a time — launching a second shows a notice and exits.
 
 ### Tray icon & settings
@@ -84,7 +86,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Minimap
 
 - The **minimap** is a separate window sharing the same edit mode: drag it independently, hide it with its ✕, bring it back with the **MAP** button on the stats panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
-- Two views, toggled with the **VIEW** button in edit mode: the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
+- Two views, toggled with the **VIEW** button in edit mode (or **Ctrl+F7** any time): the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
 - Right-click the minimap in edit mode to drop a **waypoint** — the footer shows your distance to it, and in the centered view an off-screen marker sticks to the panel edge pointing the way. Right-click the marker to clear it; it survives restarts.
 
   ![The centered minimap view with the player arrow, a waypoint diamond, and the footer showing "centered · 4× · 733m"](docs/waypoint.png)
@@ -98,7 +100,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `UserAgent` | Sent with every request; keep it matching your real browser. |
 | `PollIntervalSeconds` | Default 3. Don't go below 2 — the site's own page polls at this pace and the API is rate-limited (300/window). |
 | `WindowX` / `WindowY` | Saved panel position. |
-| `Hotkey` | Edit-mode hotkey, e.g. `Ctrl+F8` or `Ctrl+Shift+M` (modifiers + one key). Rebindable in Settings. |
+| `Hotkey` / `HotkeyHideAll` / `HotkeyMinimapView` | The three global hotkeys (edit mode `Ctrl+F8`, hide/show overlay `Ctrl+F9`, minimap view toggle `Ctrl+F7`); modifiers + one key. All rebindable in Settings. |
 | `MinimapEnabled` | Show the minimap window (the ✕ on its banner turns this off, the MAP button back on). |
 | `MinimapX` / `MinimapY` / `MinimapSize` | Minimap position and edge length. |
 | `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). The VIEW button toggles it. |
