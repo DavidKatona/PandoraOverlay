@@ -5,6 +5,9 @@ A tiny always-on-top overlay for The Isle: Evrima showing your dino's health, st
 It is **fully external**: the only thing it ever does is replay the same authenticated HTTPS request the islapandora.eu live-map page makes in your browser (`POST /api/map/mylocation`). It never reads game memory, never touches game files, and never interacts with the game process in any way.
 
 [![Build](https://github.com/DavidKatona/PandoraOverlay/actions/workflows/release.yml/badge.svg)](https://github.com/DavidKatona/PandoraOverlay/actions)
+[![Latest release](https://img.shields.io/github/v/release/DavidKatona/PandoraOverlay)](https://github.com/DavidKatona/PandoraOverlay/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
+[![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
 ![The overlay in-game: stats panel and player-centered minimap while flying a Pteranodon](docs/screenshot.png)
 
