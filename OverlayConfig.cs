@@ -53,19 +53,22 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Global edit-mode hotkey: modifiers (Ctrl/Alt/Shift/Win) plus one key,
-    /// separated by "+", e.g. "Ctrl+F8" or "Ctrl+Shift+M". Editable in the
-    /// settings window; unparseable values fall back to Ctrl+F8.
+    /// separated by "+", e.g. "Ctrl+F3" or "Ctrl+Shift+M". Editable in the
+    /// settings window; unparseable values fall back to Ctrl+F3. Defaults
+    /// deliberately live in F3–F5, clear of the game's F2 (recording) and
+    /// F10 (hide HUD) — raw-input games can react to the bare F-key even
+    /// with Ctrl held.
     /// </summary>
-    public string Hotkey { get; set; } = "Ctrl+F8";
+    public string Hotkey { get; set; } = "Ctrl+F3";
 
     /// <summary>
     /// Hide/show the whole overlay (screenshots, cutscenes) — same format as
     /// Hotkey. Hidden state never persists: the app always starts visible.
     /// </summary>
-    public string HotkeyHideAll { get; set; } = "Ctrl+F9";
+    public string HotkeyHideAll { get; set; } = "Ctrl+F4";
 
     /// <summary>Toggle the minimap island/centered view from gameplay — same format as Hotkey.</summary>
-    public string HotkeyMinimapView { get; set; } = "Ctrl+F7";
+    public string HotkeyMinimapView { get; set; } = "Ctrl+F5";
 
     // ---- Minimap (v1.1) ---------------------------------------------------
 
@@ -149,6 +152,17 @@ public sealed class OverlayConfig
         {
             cfg.SetCookie(cfg.Cookie.Trim());
             cfg.Cookie = "";
+        }
+
+        // v1.11 hotkey rebase: configs still holding the exact pre-1.11
+        // default trio were never customized — move them off the game's
+        // F-key border along with the new defaults. Any customized set
+        // (even one changed combo) is left untouched.
+        if (cfg.Hotkey == "Ctrl+F8" && cfg.HotkeyHideAll == "Ctrl+F9" && cfg.HotkeyMinimapView == "Ctrl+F7")
+        {
+            cfg.Hotkey = "Ctrl+F3";
+            cfg.HotkeyHideAll = "Ctrl+F4";
+            cfg.HotkeyMinimapView = "Ctrl+F5";
         }
 
         cfg.Save();

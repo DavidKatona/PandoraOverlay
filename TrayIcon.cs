@@ -30,11 +30,11 @@ public sealed class TrayIcon : IDisposable
         _updateSeparator = new ToolStripSeparator { Visible = false };
         _editItem = new ToolStripMenuItem("Edit mode", null, (_, _) => toggleEditMode())
         {
-            ShortcutKeyDisplayString = "Ctrl+F8"
+            ShortcutKeyDisplayString = "Ctrl+F3"
         };
         _overlayItem = new ToolStripMenuItem("Hide/show overlay", null, (_, _) => toggleOverlay())
         {
-            ShortcutKeyDisplayString = "Ctrl+F9"
+            ShortcutKeyDisplayString = "Ctrl+F4"
         };
 
         var menu = new ContextMenuStrip();

@@ -9,7 +9,7 @@ namespace PandoraOverlay;
 
 /// <summary>
 /// The stats panel and the app's orchestrator: owns the config and the shared
-/// PollService, registers the global Ctrl+F8 hotkey, and manages the minimap
+/// PollService, registers the global hotkeys, and manages the minimap
 /// window's lifetime. Window-style interop lives in OverlayWindowBase.
 /// </summary>
 public partial class MainWindow : OverlayWindowBase
@@ -49,8 +49,8 @@ public partial class MainWindow : OverlayWindowBase
         Left = _config.WindowX;
         Top = _config.WindowY;
         _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
-        _hotkeyHide = HotkeySpec.TryParse(_config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F9);
-        _hotkeyView = HotkeySpec.TryParse(_config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F7);
+        _hotkeyHide = HotkeySpec.TryParse(_config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F4);
+        _hotkeyView = HotkeySpec.TryParse(_config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F5);
         ApplyAppearance(_config);
 
         _poll = new PollService(_config);
@@ -246,7 +246,7 @@ public partial class MainWindow : OverlayWindowBase
     }
 
     /// <summary>
-    /// Ctrl+F9 / tray: hides both windows for screenshots or cutscenes.
+    /// Hide-all hotkey / tray: hides both windows for screenshots or cutscenes.
     /// Polling continues (the state stays warm); hidden is never persisted —
     /// the app always starts visible.
     /// </summary>

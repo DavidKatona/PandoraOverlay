@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Default hotkeys rebased to **Ctrl+F3** (edit mode), **Ctrl+F4** (hide/show
+  overlay) and **Ctrl+F5** (minimap view), staying clear of the game's F2
+  (recording) and F10 (hide HUD) keys — raw-input games can react to the
+  bare F-key even with Ctrl held. Configs still holding the exact old
+  F7/F8/F9 defaults are migrated automatically; any customized set is left
+  untouched, and everything remains rebindable in Settings.
+
 ## [1.10.0] - 2026-09-13
 
 ### Added

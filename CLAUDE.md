@@ -143,10 +143,14 @@ references — keep it that way. Every overlay window derives from
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
   and the minimap window's lifetime. Three global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
-  (`Hotkey`, Ctrl+F8) toggling every window, hide/show overlay
-  (`HotkeyHideAll`, Ctrl+F9 — exits edit mode first; hidden never persists;
+  (`Hotkey`, Ctrl+F3) toggling every window, hide/show overlay
+  (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
   the edit hotkey un-hides first), and minimap view toggle
-  (`HotkeyMinimapView`, Ctrl+F7 → `MinimapWindow.ToggleView`). Edit mode:
+  (`HotkeyMinimapView`, Ctrl+F5 → `MinimapWindow.ToggleView`). Defaults sit
+  in F3–F5 (v1.11 rebase), clear of the game's F2 recording and F10 hide-HUD
+  keys — raw-input games can react to the bare F-key despite Ctrl;
+  `OverlayConfig.Load` migrates configs still holding the exact old
+  F7/F8/F9 trio and leaves customized sets alone. Edit mode:
   borders recolor, drag-with-snapping, and MainWindow shows the
   ControlPanelWindow (hidden again on lock); leaving edit mode
   persists all window positions + the re-encrypted rolled cookie.
@@ -176,7 +180,7 @@ references — keep it that way. Every overlay window derives from
   (`MinimapMode`): "island" (arrow translates over the fitted map) and
   "centered" (arrow pinned at centre, the map — rendered at size×`MinimapZoom`,
   clamped 1.25–6, default 5 — translates instead; no pan clamping, coasts show the map's
-  own ocean border). The control panel's Map view button or Ctrl+F7 toggles
+  own ocean border). The control panel's Map view button or Ctrl+F5 toggles
   views (`ToggleView`), wheel zooms in edit mode; a footer under the map
   always shows the active view (+ zoom when centered).
   `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified
@@ -199,7 +203,7 @@ references — keep it that way. Every overlay window derives from
   with fallback / minimap ApplySettings / ApplyAppearance) — no restart,
   ever. General also holds the UI scale (75–150%) and background opacity
   (30–100%) sliders.
-- **HotkeySpec.cs** — record converting the config string ("Ctrl+F8") ⇄ the
+- **HotkeySpec.cs** — record converting the config string ("Ctrl+F3") ⇄ the
   RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
   shared Register/Unregister p/invokes. Modifier-less hotkeys are rejected
   (a bare global key would be swallowed from the game).

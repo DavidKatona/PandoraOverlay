@@ -52,7 +52,7 @@ The exe lands in `bin\Release\net8.0-windows\PandoraOverlay.exe`.
 3. On the live-map page press F12 → Network tab → type `mylocation` into the filter → click any row.
 4. Under **Request Headers**, copy the whole value of `cookie` and paste it into the Account section's paste box. It validates as you type (it also cleans up stray quotes, a `cookie:` prefix, and line breaks automatically). Hit Save — the overlay connects immediately, no restart needed.
 
-You can reopen settings any time: right-click the tray icon → **Settings…**, or press the edit-mode hotkey (**Ctrl+F8** by default) and use the control panel's Settings button.
+You can reopen settings any time: right-click the tray icon → **Settings…**, or press the edit-mode hotkey (**Ctrl+F3** by default) and use the control panel's Settings button.
 
 The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows user account) and stored in `config.json` as an opaque blob — it never sits readable on disk, and copying the file to another machine yields nothing usable. The session also rolls forward automatically: every response renews it, and the overlay re-encrypts and saves the refreshed value on exit, so this should be a one-time setup unless you log out or Cloudflare re-challenges the browser.
 
@@ -61,10 +61,10 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Basics
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
-- The edit-mode hotkey (**Ctrl+F8** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with labeled buttons: **Settings**, **Show/hide minimap**, **Map view**, **Lock**, and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
+- The edit-mode hotkey (**Ctrl+F3** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with labeled buttons: **Settings**, **Show/hide minimap**, **Map view**, **Lock**, and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
 - While dragging, panels **snap** to the screen edges, a small inset from them, and to each other — **guide lines** light up along whatever you snapped to (orange = screen, blue = the other panel). Hold **Alt** while dragging for pixel-perfect free placement.
 - You can't lose a panel off-screen: locking edit mode (or restarting the app) pulls every panel fully back into view — dragging itself stays free, so moving panels to another monitor still works.
-- **Ctrl+F9** hides/shows the whole overlay without quitting — for screenshots and cutscenes; polling continues, and the app always starts visible. **Ctrl+F7** flips the minimap view without entering edit mode. All three hotkeys are rebindable in Settings.
+- **Ctrl+F4** hides/shows the whole overlay without quitting — for screenshots and cutscenes; polling continues, and the app always starts visible. **Ctrl+F5** flips the minimap view without entering edit mode. All three hotkeys are rebindable in Settings; the defaults deliberately avoid the game's F2 (recording) and F10 (hide HUD).
 - Only one copy runs at a time — launching a second shows a notice and exits.
 
 ### Tray icon & settings
@@ -89,7 +89,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Minimap
 
 - The **minimap** is a separate window sharing the same edit mode: drag it independently, show or hide it from the control panel (or the tray menu). Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
-- Two views, toggled with the control panel's **Map view** button (or **Ctrl+F7** any time): the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
+- Two views, toggled with the control panel's **Map view** button (or **Ctrl+F5** any time): the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
 - Right-click the minimap in edit mode to drop a **waypoint** — the footer shows your distance to it, and in the centered view an off-screen marker sticks to the panel edge pointing the way. Right-click the marker to clear it; it survives restarts.
 
   ![The centered minimap view with the player arrow, a waypoint diamond, and the footer showing "centered · 4× · 733m"](docs/waypoint.png)
@@ -103,11 +103,11 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `UserAgent` | Sent with every request; keep it matching your real browser. |
 | `PollIntervalSeconds` | Default 3. Don't go below 2 — the site's own page polls at this pace and the API is rate-limited (300/window). |
 | `WindowX` / `WindowY` | Saved panel position. |
-| `Hotkey` / `HotkeyHideAll` / `HotkeyMinimapView` | The three global hotkeys (edit mode `Ctrl+F8`, hide/show overlay `Ctrl+F9`, minimap view toggle `Ctrl+F7`); modifiers + one key. All rebindable in Settings. |
+| `Hotkey` / `HotkeyHideAll` / `HotkeyMinimapView` | The three global hotkeys (edit mode `Ctrl+F3`, hide/show overlay `Ctrl+F4`, minimap view toggle `Ctrl+F5`); modifiers + one key. All rebindable in Settings. |
 | `StatsEnabled` | Show the stats panel (toggled from the control panel or the tray menu). |
 | `MinimapEnabled` | Show the minimap window (toggled from the control panel or the tray menu). |
 | `MinimapX` / `MinimapY` / `MinimapSize` | Minimap position and edge length (size slider in Settings, 160–400). |
-| `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). Map view button / Ctrl+F7 toggles it. |
+| `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). Map view button / Ctrl+F5 toggles it. |
 | `MinimapZoom` | Centered-view magnification, clamped to 1.25–6 (default 5). Mouse wheel in edit mode adjusts it. |
 | `MinimapYawOffsetDegrees` | Rotation added to the raw yaw for the arrow. Default 90 matches the current map. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |

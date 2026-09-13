@@ -76,9 +76,9 @@ public partial class SettingsWindow : Window
         _hotkeyEntries[EditHotkeyBox] = new HotkeyEntry(
             HotkeySpec.TryParse(config.Hotkey) ?? HotkeySpec.Default, "edit mode");
         _hotkeyEntries[HideHotkeyBox] = new HotkeyEntry(
-            HotkeySpec.TryParse(config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F9), "hide/show overlay");
+            HotkeySpec.TryParse(config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F4), "hide/show overlay");
         _hotkeyEntries[ViewHotkeyBox] = new HotkeyEntry(
-            HotkeySpec.TryParse(config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F7), "the minimap view toggle");
+            HotkeySpec.TryParse(config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F5), "the minimap view toggle");
         foreach (var (box, entry) in _hotkeyEntries)
         {
             box.Text = entry.Chosen.ToString();
