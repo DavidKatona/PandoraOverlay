@@ -6,7 +6,7 @@ It is **fully external**: the only thing it ever does is replay the same authent
 
 [![Build](https://github.com/DavidKatona/PandoraOverlay/actions/workflows/release.yml/badge.svg)](https://github.com/DavidKatona/PandoraOverlay/actions)
 
-![The overlay in-game: stats panel and minimap while flying a Pteranodon](docs/screenshot.png)
+![The overlay in-game: stats panel and player-centered minimap while flying a Pteranodon](docs/screenshot.png)
 
 ## Get it
 
