@@ -49,7 +49,7 @@ public abstract class OverlayWindowBase : Window
     {
         // Startup safety: saved positions can reference a monitor that no
         // longer exists (or a changed resolution) — pull the window into view.
-        Loaded += (_, _) => ClampIntoWorkArea();
+        Loaded += (_, _) => ClampIntoScreen();
     }
 
     /// <summary>The edit banner, measured for position compensation when it appears.</summary>
@@ -76,14 +76,14 @@ public abstract class OverlayWindowBase : Window
         ApplyClickThrough(clickThrough: !on);
         OnEditModeChanged(on);
         CompensateForBanner(on);
-        if (!on) ClampIntoWorkArea(); // a locked panel is always fully on-screen
+        if (!on) ClampIntoScreen(); // a locked panel is always fully on-screen
     }
 
-    /// <summary>Moves the window fully into its monitor's work area.</summary>
-    private void ClampIntoWorkArea()
+    /// <summary>Moves the window fully into its monitor's bounds.</summary>
+    private void ClampIntoScreen()
     {
         var clamped = SnapResolver.ClampIntoRect(
-            new Rect(Left, Top, ActualWidth, ActualHeight), GetWorkAreaDips());
+            new Rect(Left, Top, ActualWidth, ActualHeight), GetScreenBoundsDips());
         Left = clamped.X;
         Top = clamped.Y;
     }
@@ -106,8 +106,8 @@ public abstract class OverlayWindowBase : Window
             var height = banner is null
                 ? 0
                 : (banner.ActualHeight + banner.Margin.Top + banner.Margin.Bottom) * scale;
-            var workTop = GetWorkAreaDips().Top;
-            _bannerShift = Math.Clamp(height, 0, Math.Max(0, Top - workTop));
+            var screenTop = GetScreenBoundsDips().Top;
+            _bannerShift = Math.Clamp(height, 0, Math.Max(0, Top - screenTop));
             Top -= _bannerShift;
         }
         else
@@ -180,7 +180,7 @@ public abstract class OverlayWindowBase : Window
             var snapped = SnapResolver.Snap(
                 new Point(x, y + _bannerShift),
                 new Size(ActualWidth, Math.Max(0, ActualHeight - _bannerShift)),
-                GetWorkAreaDips(),
+                GetScreenBoundsDips(),
                 Instances.Where(w => w != this && w.IsVisible).Select(w => w.ContentBounds));
             x = snapped.X;
             y = snapped.Y - _bannerShift;
@@ -208,11 +208,15 @@ public abstract class OverlayWindowBase : Window
         return PresentationSource.FromVisual(this)?.CompositionTarget?.TransformFromDevice.Transform(device) ?? device;
     }
 
-    /// <summary>The current monitor's work area (taskbar excluded), in DIPs.</summary>
-    private Rect GetWorkAreaDips()
+    /// <summary>
+    /// The current monitor's FULL bounds in DIPs — deliberately not the work
+    /// area: the game runs borderless-fullscreen over the taskbar, so "screen
+    /// bottom" must mean the true bottom (the overlay is topmost anyway).
+    /// </summary>
+    private Rect GetScreenBoundsDips()
     {
         var hwnd = new WindowInteropHelper(this).Handle;
-        var wa = System.Windows.Forms.Screen.FromHandle(hwnd).WorkingArea;
+        var wa = System.Windows.Forms.Screen.FromHandle(hwnd).Bounds;
         if (PresentationSource.FromVisual(this)?.CompositionTarget is not { } target)
         {
             return new Rect(wa.X, wa.Y, wa.Width, wa.Height);

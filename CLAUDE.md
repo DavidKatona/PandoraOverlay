@@ -93,16 +93,19 @@ references — keep it that way. Every overlay window derives from
   toolwindow styles via SetWindowLongPtr, x64), `EditMode` state, shared
   edit-border brushes, `ApplyAppearance` (UI scale as a LayoutTransform +
   panel-glass alpha), and the edit-mode drag: manual (no DragMove) so it snaps
-  live via SnapResolver against the current monitor's work area (per-monitor
-  through WinForms `Screen`, DIP-converted) and the other overlay window
+  live via SnapResolver against the current monitor's FULL bounds (not the
+  work area — the game covers the taskbar; per-monitor through WinForms
+  `Screen`, DIP-converted) and the other overlay window
   (static instance registry); holding Alt bypasses. Banner compensation:
   entering edit mode shifts `Top` up by the (scale-aware) banner height so
   the CONTENT stays put between modes; snapping runs in content space, and
-  the shift clamps at the work-area top. Locking edit mode and the Loaded
-  event both run `ClampIntoWorkArea` (via `SnapResolver.ClampIntoRect`), so a
-  locked panel is always fully on-screen — dragging stays free for
-  cross-monitor moves; stale-monitor/resolution positions self-heal at
-  startup. The global hotkeys are registered once, in MainWindow.
+  the shift clamps at the screen top (during a top-snapped drag the banner
+  deliberately overhangs off-screen — that's the flush-locked-position
+  guarantee). Locking edit mode and the Loaded event both run
+  `ClampIntoScreen` (via `SnapResolver.ClampIntoRect`), so a locked panel is
+  always fully on-screen — dragging stays free for cross-monitor moves;
+  stale-monitor/resolution positions self-heal at startup. The global
+  hotkeys are registered once, in MainWindow.
 - **SnapResolver.cs** — pure, tested snapping math: work-area edges + 16px
   inset + peer edges, 12px threshold (threshold < inset on purpose, so the
   two magnets read as distinct stops), axes independent; leading- and

@@ -15,10 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   island/centered view from gameplay (default Ctrl+F7). The tray menu gains
   a matching "Hide/show overlay" entry.
 - Magnetic snapping while dragging in edit mode: panels snap to the
-  monitor's work-area edges, a small inset from them, and to each other's
-  edges (align or abut). Hold Alt while dragging for pixel-perfect freedom.
+  monitor's true edges (taskbar deliberately included — the game covers it),
+  a small inset from them, and to each other's edges (align or abut). Hold
+  Alt while dragging for pixel-perfect freedom.
 - Panels can no longer be lost off-screen: locking edit mode (and every
-  launch) pulls each panel fully back into its monitor's work area —
+  launch) pulls each panel fully back into its monitor's bounds —
   dragging itself stays free, so cross-monitor moves still work. This also
   covers stale positions from a disconnected monitor or changed resolution.
 
