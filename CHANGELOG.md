@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The stats panel can now be hidden, mirroring the minimap: toggle it from
+  the control panel's new "Show/hide stats" button or the tray menu. The
+  app keeps running from the tray; hotkeys and the minimap stay live, and
+  a deliberately hidden panel stays hidden across hide-all round trips.
+- Per-widget sizing: a "Map size" slider in Settings → Minimap resizes the
+  map natively (160–400 px — bigger map, same crisp text), and the old
+  "Overlay scale" slider is now "Stats panel scale", scaling only the stats
+  panel (and the control panel). The two widgets size independently.
+
 ## [1.9.0] - 2026-09-13
 
 ### Changed

@@ -163,7 +163,7 @@
             <CheckBox x:Name="StartupCheck" Content="Start with Windows"
                       Foreground="#C7D1DA" FontSize="12"/>
             <DockPanel Margin="0,10,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Overlay scale:"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Stats panel scale:"/>
                 <TextBlock x:Name="ScaleLabel" DockPanel.Dock="Right" Width="42"
                            Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
                            VerticalAlignment="Center"/>
@@ -201,6 +201,16 @@
                         SmallChange="0.25" LargeChange="1" IsMoveToPointEnabled="True"
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="ZoomSlider_ValueChanged"/>
+            </DockPanel>
+            <DockPanel Margin="0,8,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Map size:"/>
+                <TextBlock x:Name="MapSizeLabel" DockPanel.Dock="Right" Width="46"
+                           Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
+                           VerticalAlignment="Center"/>
+                <Slider x:Name="MapSizeSlider" Minimum="160" Maximum="400"
+                        SmallChange="10" LargeChange="40" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="MapSizeSlider_ValueChanged"/>
             </DockPanel>
 
             <!-- ============================ Buttons ======================== -->

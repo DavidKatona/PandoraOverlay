@@ -23,7 +23,7 @@ public sealed class TrayIcon : IDisposable
     private string _status = "Pandora Overlay";
     private string _updateSuffix = "";
 
-    public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action toggleMinimap, Action openSettings, Action exit)
+    public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action toggleStats, Action toggleMinimap, Action openSettings, Action exit)
     {
         _updateItem = new ToolStripMenuItem { Visible = false };
         _updateItem.Click += (_, _) => OpenReleasesPage();
@@ -42,6 +42,7 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(_updateSeparator);
         menu.Items.Add(_editItem);
         menu.Items.Add(_overlayItem);
+        menu.Items.Add(new ToolStripMenuItem("Show/hide stats panel", null, (_, _) => toggleStats()));
         menu.Items.Add(new ToolStripMenuItem("Show/hide minimap", null, (_, _) => toggleMinimap()));
         menu.Items.Add(new ToolStripMenuItem("Settings…", null, (_, _) => openSettings()));
         menu.Items.Add(new ToolStripSeparator());

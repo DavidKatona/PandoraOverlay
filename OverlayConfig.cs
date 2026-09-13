@@ -69,13 +69,16 @@ public sealed class OverlayConfig
 
     // ---- Minimap (v1.1) ---------------------------------------------------
 
-    /// <summary>Show the minimap window (✕ on its edit banner hides it; MAP on the stats panel brings it back).</summary>
+    /// <summary>Show the stats panel (toggled from the control panel or the tray menu).</summary>
+    public bool StatsEnabled { get; set; } = true;
+
+    /// <summary>Show the minimap window (toggled from the control panel or the tray menu).</summary>
     public bool MinimapEnabled { get; set; } = true;
 
     public double MinimapX { get; set; } = 300;
     public double MinimapY { get; set; } = 40;
 
-    /// <summary>Edge length of the square minimap, in DIPs.</summary>
+    /// <summary>Edge length of the square minimap, in DIPs. Slider in Settings (160–400).</summary>
     public double MinimapSize { get; set; } = 230;
 
     /// <summary>
@@ -118,7 +121,10 @@ public sealed class OverlayConfig
 
     // ---- Appearance -------------------------------------------------------
 
-    /// <summary>UI scale for both overlay windows (layout transform). Clamped 0.75–1.5.</summary>
+    /// <summary>
+    /// Stats panel (and control panel) scale, as a layout transform. Clamped
+    /// 0.75–1.5. The minimap is sized natively via MinimapSize instead.
+    /// </summary>
     public double UiScale { get; set; } = 1.0;
 
     /// <summary>Opacity of the dark glass behind the panels (text stays crisp). Clamped 0.3–1.</summary>

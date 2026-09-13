@@ -16,6 +16,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
 {
     private readonly OverlayConfig _config;
     private readonly Action _openSettings;
+    private readonly Action _toggleStats;
     private readonly Action _toggleMinimap;
     private readonly Action _toggleMinimapView;
     private readonly Action _lockOverlay;
@@ -23,13 +24,14 @@ public partial class ControlPanelWindow : OverlayWindowBase
 
     protected override bool IsSnapTarget => false;
 
-    public ControlPanelWindow(OverlayConfig config, Action openSettings, Action toggleMinimap,
-                              Action toggleMinimapView, Action lockOverlay, Action exit)
+    public ControlPanelWindow(OverlayConfig config, Action openSettings, Action toggleStats,
+                              Action toggleMinimap, Action toggleMinimapView, Action lockOverlay, Action exit)
     {
         InitializeComponent();
 
         _config = config;
         _openSettings = openSettings;
+        _toggleStats = toggleStats;
         _toggleMinimap = toggleMinimap;
         _toggleMinimapView = toggleMinimapView;
         _lockOverlay = lockOverlay;
@@ -70,6 +72,8 @@ public partial class ControlPanelWindow : OverlayWindowBase
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);
 
     private void Settings_Click(object sender, RoutedEventArgs e) => _openSettings();
+
+    private void Stats_Click(object sender, RoutedEventArgs e) => _toggleStats();
 
     private void Minimap_Click(object sender, RoutedEventArgs e) => _toggleMinimap();
 

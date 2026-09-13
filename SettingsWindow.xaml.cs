@@ -95,6 +95,7 @@ public partial class SettingsWindow : Window
         ModeCentered.IsChecked = centered;
         ModeIsland.IsChecked = !centered;
         ZoomSlider.Value = Math.Clamp(config.MinimapZoom, ZoomSlider.Minimum, ZoomSlider.Maximum);
+        MapSizeSlider.Value = Math.Clamp(config.MinimapSize, MapSizeSlider.Minimum, MapSizeSlider.Maximum);
 
         Validate();
     }
@@ -280,6 +281,11 @@ public partial class SettingsWindow : Window
         if (ZoomLabel != null) ZoomLabel.Text = $"{e.NewValue:0.##}×";
     }
 
+    private void MapSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (MapSizeLabel != null) MapSizeLabel.Text = $"{e.NewValue:0} px";
+    }
+
     // ---- Save ---------------------------------------------------------------
     private void Save_Click(object sender, RoutedEventArgs e)
     {
@@ -312,10 +318,14 @@ public partial class SettingsWindow : Window
 
         var mode = ModeCentered.IsChecked == true ? "centered" : "island";
         var zoom = Math.Round(ZoomSlider.Value, 2);
-        if (mode != _config.MinimapMode || Math.Abs(zoom - _config.MinimapZoom) > 0.005)
+        var mapSize = Math.Round(MapSizeSlider.Value);
+        if (mode != _config.MinimapMode ||
+            Math.Abs(zoom - _config.MinimapZoom) > 0.005 ||
+            Math.Abs(mapSize - _config.MinimapSize) > 0.5)
         {
             _config.MinimapMode = mode;
             _config.MinimapZoom = zoom;
+            _config.MinimapSize = mapSize;
             MinimapChanged = true;
         }
 

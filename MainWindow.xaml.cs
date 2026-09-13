@@ -60,6 +60,7 @@ public partial class MainWindow : OverlayWindowBase
         _tray = new TrayIcon(
             toggleEditMode: ToggleEditMode,
             toggleOverlay: ToggleOverlayVisibility,
+            toggleStats: ToggleStats,
             toggleMinimap: ToggleMinimap,
             openSettings: OpenSettings,
             exit: () => Application.Current.Shutdown());
@@ -68,6 +69,7 @@ public partial class MainWindow : OverlayWindowBase
         Loaded += (_, _) =>
         {
             _ = CheckForUpdateAsync();
+            if (!_config.StatsEnabled) Hide();
             if (_config.MinimapEnabled) ShowMinimap();
 
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
@@ -172,7 +174,16 @@ public partial class MainWindow : OverlayWindowBase
         StatusText.Text = "Open Settings from the tray icon to connect your account";
     }
 
-    // ---- Minimap ----------------------------------------------------------
+    // ---- Widget visibility -------------------------------------------------
+
+    /// <summary>Control panel / tray: hides or shows the stats panel itself — the app keeps running via tray + hotkeys.</summary>
+    private void ToggleStats()
+    {
+        _config.StatsEnabled = !_config.StatsEnabled;
+        if (_overlayHidden) return; // takes effect when the overlay is shown again
+        if (_config.StatsEnabled) Show(); else Hide();
+    }
+
     private void Minimap_Click(object sender, RoutedEventArgs e) => ToggleMinimap();
 
     private void ToggleMinimap()
@@ -251,7 +262,7 @@ public partial class MainWindow : OverlayWindowBase
         else
         {
             _overlayHidden = false;
-            Show();
+            if (_config.StatsEnabled) Show(); // a deliberately hidden stats panel stays hidden
             _minimap?.Show();
         }
     }
@@ -283,6 +294,7 @@ public partial class MainWindow : OverlayWindowBase
             _controlPanel = new ControlPanelWindow(
                 _config,
                 openSettings: OpenSettings,
+                toggleStats: ToggleStats,
                 toggleMinimap: ToggleMinimap,
                 toggleMinimapView: () => _minimap?.ToggleView(),
                 lockOverlay: ToggleEditMode,

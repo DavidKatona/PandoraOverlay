@@ -62,6 +62,8 @@
                 <!-- Feature controls -->
                 <Button Content="Settings…" Click="Settings_Click"
                         Style="{StaticResource PanelButton}"/>
+                <Button Content="Show/hide stats" Click="Stats_Click"
+                        Style="{StaticResource PanelButton}"/>
                 <Button Content="Show/hide minimap" Click="Minimap_Click"
                         Style="{StaticResource PanelButton}"/>
                 <Button Content="Map view" Click="MapView_Click"

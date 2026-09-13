@@ -70,12 +70,14 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Show/hide minimap, Settings, and **Exit** (double-click toggles edit mode). Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable: replace your cookie, rebind the hotkey, start with Windows, set the minimap view and zoom, and adjust the overlay scale and background opacity.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable: replace your cookie, rebind the hotkeys, start with Windows, set the minimap view, zoom and size, and adjust the stats panel scale and background opacity.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
 
 ![The stats panel: dino name and gender, growth, the four stat bars — hunger critical at 13% — and the live status line](docs/stats-panel.png)
+
+- The stats panel can be **hidden** entirely (control panel → Show/hide stats, or the tray menu) — the app keeps running from the tray, and hotkeys and the minimap stay live. Its size is adjustable with the "Stats panel scale" slider in Settings.
 
 - The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint).
 - After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
@@ -102,14 +104,15 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `PollIntervalSeconds` | Default 3. Don't go below 2 — the site's own page polls at this pace and the API is rate-limited (300/window). |
 | `WindowX` / `WindowY` | Saved panel position. |
 | `Hotkey` / `HotkeyHideAll` / `HotkeyMinimapView` | The three global hotkeys (edit mode `Ctrl+F8`, hide/show overlay `Ctrl+F9`, minimap view toggle `Ctrl+F7`); modifiers + one key. All rebindable in Settings. |
+| `StatsEnabled` | Show the stats panel (toggled from the control panel or the tray menu). |
 | `MinimapEnabled` | Show the minimap window (toggled from the control panel or the tray menu). |
-| `MinimapX` / `MinimapY` / `MinimapSize` | Minimap position and edge length. |
+| `MinimapX` / `MinimapY` / `MinimapSize` | Minimap position and edge length (size slider in Settings, 160–400). |
 | `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). Map view button / Ctrl+F7 toggles it. |
 | `MinimapZoom` | Centered-view magnification, clamped to 1.25–6 (default 5). Mouse wheel in edit mode adjusts it. |
 | `MinimapYawOffsetDegrees` | Rotation added to the raw yaw for the arrow. Default 90 matches the current map. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
 | `WaypointX` / `WaypointY` | The minimap waypoint in world coordinates; `null` when none is set. Right-click the minimap in edit mode. |
-| `UiScale` | Overlay size for both windows, 0.75–1.5 (default 1). Slider in Settings. |
+| `UiScale` | Stats panel (and control panel) scale, 0.75–1.5 (default 1). Slider in Settings; the minimap sizes natively via `MinimapSize`. |
 | `BackgroundOpacity` | Panel-glass opacity, 0.3–1 (default 0.8) — text stays crisp. Slider in Settings. |
 
 Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file.

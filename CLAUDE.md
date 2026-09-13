@@ -112,8 +112,8 @@ references — keep it that way. Every overlay window derives from
   and whether it was a peer) so the caller can draw guides.
 - **ControlPanelWindow.xaml(.cs)** — the edit-mode control panel (v1.9):
   appears with edit mode, hides on lock; labeled buttons Settings /
-  Show-hide minimap / Map view / Lock / Exit + the hint line (hotkey label
-  follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
+  Show-hide stats / Show-hide minimap / Map view | Lock / Exit + the hint
+  line (hotkey label follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
   permanently interactive while visible, `IsSnapTarget` false, first show
   bottom-center, position persisted (`ControlPanelX/Y`, nullable). Activated
   on show (hotkey press grants foreground rights) so the game loses focus
@@ -149,7 +149,12 @@ references — keep it that way. Every overlay window derives from
   (`HotkeyMinimapView`, Ctrl+F7 → `MinimapWindow.ToggleView`). Edit mode:
   borders recolor, drag-with-snapping, and MainWindow shows the
   ControlPanelWindow (hidden again on lock); leaving edit mode
-  persists all window positions + the re-encrypted rolled cookie. `UpdateUi` is a 3-state machine:
+  persists all window positions + the re-encrypted rolled cookie.
+  `ToggleStats` (v1.10) hides/shows the stats panel itself (`StatsEnabled`;
+  hwnd stays alive so hotkeys/tray/polling continue; hide-all unhide
+  respects the flag). Minimap is sized natively (`MinimapSize`, Settings
+  slider 160–400, `AppearanceScale` override 1.0) while `UiScale` scales
+  only the stats + control panels. `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
   fracture badges toggle; health/hunger/thirst fills pulse below 25% — stamina
   deliberately excluded, it drains by design). Fires one `UpdateChecker` call

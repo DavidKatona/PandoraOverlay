@@ -88,11 +88,14 @@ public abstract class OverlayWindowBase : Window
     /// would clip), and the panel-glass opacity as the root Border's
     /// background alpha, leaving text and content fully crisp.
     /// </summary>
+    /// <summary>Scale used by ApplyAppearance; the minimap overrides to 1 (it has a native size setting instead).</summary>
+    protected virtual double AppearanceScale(OverlayConfig config) => config.UiScale;
+
     protected void ApplyAppearance(OverlayConfig config)
     {
         if (Content is not Border panel) return;
 
-        var scale = Math.Clamp(config.UiScale, 0.75, 1.5);
+        var scale = Math.Clamp(AppearanceScale(config), 0.75, 1.5);
         panel.LayoutTransform = scale == 1.0 ? null : new ScaleTransform(scale, scale);
 
         var alpha = (byte)Math.Round(Math.Clamp(config.BackgroundOpacity, 0.3, 1.0) * 255);

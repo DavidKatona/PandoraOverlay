@@ -24,6 +24,8 @@ public partial class MinimapWindow : OverlayWindowBase
 {
     private const double MinZoom = 1.25;
     private const double MaxZoom = 6;        // source map is 1000 px — the top of the range upscales slightly
+    private const double MinMapSize = 160;
+    private const double MaxMapSize = 400;
     private const double WaypointMargin = 8; // edge-clamp inset for the off-screen indicator
     private const double ClearRadius = 12;   // right-click this close to the marker removes it
 
@@ -50,7 +52,7 @@ public partial class MinimapWindow : OverlayWindowBase
 
         Left = config.MinimapX;
         Top = config.MinimapY;
-        MapHost.Width = MapHost.Height = config.MinimapSize;
+        MapHost.Width = MapHost.Height = Math.Clamp(config.MinimapSize, MinMapSize, MaxMapSize);
         ApplyAppearance(config);
 
         // Bundled copy of the site's island map (Assets/map.png) — decoded at
@@ -111,11 +113,15 @@ public partial class MinimapWindow : OverlayWindowBase
         }
     }
 
-    /// <summary>Re-reads view mode, zoom and appearance from config after the settings dialog saves.</summary>
+    /// <summary>The minimap is sized natively (MinimapSize) — never scale-transformed.</summary>
+    protected override double AppearanceScale(OverlayConfig config) => 1.0;
+
+    /// <summary>Re-reads view mode, zoom, size and appearance from config after the settings dialog saves.</summary>
     public void ApplySettings()
     {
         _centered = string.Equals(_config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
         _zoom = Math.Clamp(_config.MinimapZoom, MinZoom, MaxZoom);
+        MapHost.Width = MapHost.Height = Math.Clamp(_config.MinimapSize, MinMapSize, MaxMapSize);
         ApplyAppearance(_config);
         ApplyViewMode();
     }
