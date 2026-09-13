@@ -158,7 +158,7 @@ public partial class MainWindow : OverlayWindowBase
 
     private void UpdateHotkeyTexts()
     {
-        EditBannerText.Text = $"EDIT MODE — drag to move · {_hotkey} to lock";
+        EditBannerText.Text = $"EDIT MODE · {_hotkey} locks";
         _tray.UpdateHotkeyLabels(_hotkey.ToString(), _hotkeyHide.ToString());
     }
 

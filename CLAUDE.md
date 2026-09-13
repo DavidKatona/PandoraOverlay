@@ -100,9 +100,12 @@ references — keep it that way. Every overlay window derives from
   the CONTENT stays put between modes; snapping runs in content space, and
   the shift clamps at the work-area top. The global hotkeys are registered
   once, in MainWindow.
-- **SnapResolver.cs** — pure, tested snapping math: work-area edges + 12px
-  inset + peer edges, 14px threshold, axes independent; leading- and
-  trailing-edge candidates per target give align-and-abut for free.
+- **SnapResolver.cs** — pure, tested snapping math: work-area edges + 16px
+  inset + peer edges, 12px threshold (threshold < inset on purpose, so the
+  two magnets read as distinct stops), axes independent; leading- and
+  trailing-edge candidates per target give align-and-abut for free. Banners
+  are width-bound to their content in XAML so edit-mode size == locked size
+  on both axes.
 
 - **PandoraClient.cs** — HTTP layer + `PlayerState`/`MyLocationResponse` records
   (case-insensitive JSON). One long-lived HttpClient, `UseCookies=false` (manual

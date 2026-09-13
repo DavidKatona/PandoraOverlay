@@ -11,11 +11,12 @@ namespace PandoraOverlay;
 /// </summary>
 public static class SnapResolver
 {
-    /// <summary>Magnet range in DIPs.</summary>
-    public const double Threshold = 14;
+    /// <summary>Magnet range in DIPs. Kept smaller than Inset so the edge and
+    /// inset magnets read as two distinct stops instead of a jitter.</summary>
+    public const double Threshold = 12;
 
     /// <summary>The "comfortably away from the edge" secondary target.</summary>
-    public const double Inset = 12;
+    public const double Inset = 16;
 
     public static Point Snap(Point pos, Size size, Rect workArea, IEnumerable<Rect> peers)
     {

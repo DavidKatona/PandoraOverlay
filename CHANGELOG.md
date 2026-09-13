@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   grows upward into empty space, so the position you set in edit mode is
   exactly where the panel sits once locked (previously the banner pushed the
   content down by its own height).
+- The panels no longer widen in edit mode either: the banner is constrained
+  to the content width (its text trims when space is tight), so snapping
+  measures the true locked size and a right-edge snap stays flush after
+  locking.
 
 ## [1.6.0] - 2026-09-13
 

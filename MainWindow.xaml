@@ -22,8 +22,10 @@
             Padding="12,10">
         <StackPanel>
 
-            <!-- Edit-mode banner (hidden while locked / click-through) -->
-            <DockPanel x:Name="EditBanner" Visibility="Collapsed" Margin="0,0,0,8">
+            <!-- Edit-mode banner (hidden while locked / click-through).
+                 Width-bound to the stat row so it can never widen the window. -->
+            <DockPanel x:Name="EditBanner" Visibility="Collapsed" Margin="0,0,0,8"
+                       Width="{Binding ActualWidth, ElementName=HealthRow}">
                 <Button DockPanel.Dock="Right"
                         Content="&#x2715;"
                         Click="Close_Click"
@@ -46,8 +48,9 @@
                         BorderThickness="0" FontSize="9" FontWeight="Bold"
                         ToolTip="Show/hide minimap"/>
                 <TextBlock x:Name="EditBannerText"
-                           Text="EDIT MODE — drag to move · Ctrl+F8 to lock"
+                           Text="EDIT MODE · Ctrl+F8 locks"
                            Foreground="#FFC864" FontSize="11"
+                           TextTrimming="CharacterEllipsis"
                            VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
 
@@ -61,7 +64,7 @@
             </DockPanel>
 
             <!-- Health -->
-            <Grid Margin="0,3,0,0">
+            <Grid x:Name="HealthRow" Margin="0,3,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="58"/>
                     <ColumnDefinition Width="170"/>

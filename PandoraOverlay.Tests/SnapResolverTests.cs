@@ -28,9 +28,9 @@ public class SnapResolverTests
     [Fact]
     public void SnapsTrailingEdgeToTheRightInset()
     {
-        // Right edge at 1900 → inset target 1908 (distance 8) beats the edge 1920 (distance 20).
+        // Right edge at 1900 → the inset target (1920 − Inset) beats the edge itself.
         var snapped = SnapResolver.Snap(new Point(1700, 500), Window, WorkArea, NoPeers);
-        Assert.Equal(1908 - Window.Width, snapped.X);
+        Assert.Equal(WorkArea.Right - SnapResolver.Inset - Window.Width, snapped.X);
     }
 
     [Fact]
