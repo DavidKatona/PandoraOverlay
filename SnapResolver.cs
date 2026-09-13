@@ -41,6 +41,19 @@ public static class SnapResolver
             SnapAxis(pos.Y, size.Height, yTargets));
     }
 
+    /// <summary>
+    /// The nearest position that puts the window fully inside bounds —
+    /// top-left priority if the window is somehow larger than bounds. Used
+    /// when locking edit mode and at startup, so a panel can never be lost
+    /// off-screen (dragging itself stays free for cross-monitor moves).
+    /// </summary>
+    public static Point ClampIntoRect(Rect window, Rect bounds)
+    {
+        var x = Math.Max(bounds.Left, Math.Min(window.X, bounds.Right - window.Width));
+        var y = Math.Max(bounds.Top, Math.Min(window.Y, bounds.Bottom - window.Height));
+        return new Point(x, y);
+    }
+
     private static double SnapAxis(double pos, double extent, List<double> targets)
     {
         var best = pos;

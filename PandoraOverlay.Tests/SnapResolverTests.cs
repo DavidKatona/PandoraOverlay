@@ -50,6 +50,25 @@ public class SnapResolverTests
         Assert.Equal(new Point(500, 300), snapped);
     }
 
+    [Theory]
+    [InlineData(500, 500, 500, 500)]    // already inside — untouched
+    [InlineData(-50, 500, 0, 500)]      // off the left
+    [InlineData(1800, 500, 1720, 500)]  // off the right (right edge would be 2000)
+    [InlineData(500, -30, 500, 0)]      // off the top
+    [InlineData(500, 1000, 500, 940)]   // off the bottom (bottom edge would be 1100)
+    public void ClampPullsTheWindowFullyIntoBounds(double x, double y, double expectedX, double expectedY)
+    {
+        var clamped = SnapResolver.ClampIntoRect(new Rect(x, y, Window.Width, Window.Height), WorkArea);
+        Assert.Equal(new Point(expectedX, expectedY), clamped);
+    }
+
+    [Fact]
+    public void OversizedWindowClampsToTopLeft()
+    {
+        var clamped = SnapResolver.ClampIntoRect(new Rect(100, 100, 2500, 1200), WorkArea);
+        Assert.Equal(new Point(0, 0), clamped);
+    }
+
     [Fact]
     public void OutsideTheThresholdNothingHappens()
     {

@@ -45,6 +45,13 @@ public abstract class OverlayWindowBase : Window
     /// <summary>True while the window is interactive (draggable, buttons usable).</summary>
     public bool EditMode { get; private set; }
 
+    protected OverlayWindowBase()
+    {
+        // Startup safety: saved positions can reference a monitor that no
+        // longer exists (or a changed resolution) — pull the window into view.
+        Loaded += (_, _) => ClampIntoWorkArea();
+    }
+
     /// <summary>The edit banner, measured for position compensation when it appears.</summary>
     protected abstract FrameworkElement? BannerElement { get; }
 
@@ -69,6 +76,16 @@ public abstract class OverlayWindowBase : Window
         ApplyClickThrough(clickThrough: !on);
         OnEditModeChanged(on);
         CompensateForBanner(on);
+        if (!on) ClampIntoWorkArea(); // a locked panel is always fully on-screen
+    }
+
+    /// <summary>Moves the window fully into its monitor's work area.</summary>
+    private void ClampIntoWorkArea()
+    {
+        var clamped = SnapResolver.ClampIntoRect(
+            new Rect(Left, Top, ActualWidth, ActualHeight), GetWorkAreaDips());
+        Left = clamped.X;
+        Top = clamped.Y;
     }
 
     protected abstract void OnEditModeChanged(bool editMode);
