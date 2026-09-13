@@ -24,30 +24,6 @@
             Padding="6">
         <StackPanel>
 
-            <!-- Edit-mode banner (hidden while locked / click-through).
-                 Width-bound to the map so it can never widen the window. -->
-            <DockPanel x:Name="EditBanner" Visibility="Collapsed" Margin="0,0,0,6"
-                       Width="{Binding ActualWidth, ElementName=MapHost}">
-                <Button DockPanel.Dock="Right"
-                        Content="&#x2715;"
-                        Click="Hide_Click"
-                        Width="22" Height="22" Padding="0"
-                        Background="#552B2B" Foreground="#FFDDDD"
-                        BorderThickness="0" FontSize="10"
-                        ToolTip="Hide minimap (MAP on the stats panel brings it back)"/>
-                <Button DockPanel.Dock="Right"
-                        Content="VIEW"
-                        Click="View_Click"
-                        Width="38" Height="22" Padding="0" Margin="0,0,6,0"
-                        Background="#2A3038" Foreground="#C7D1DA"
-                        BorderThickness="0" FontSize="9" FontWeight="Bold"
-                        ToolTip="Toggle whole-island / player-centered view (mouse wheel zooms the centered view)"/>
-                <TextBlock Text="right-click sets a waypoint"
-                           Foreground="#FFC864" FontSize="11"
-                           TextTrimming="CharacterEllipsis"
-                           VerticalAlignment="Center" Margin="0,0,10,0"/>
-            </DockPanel>
-
             <Grid x:Name="MapHost" Width="230" Height="230" ClipToBounds="True">
                 <!-- Canvas host: measures the image with infinite space, so the
                      oversized centered-mode map never gets layout-clipped

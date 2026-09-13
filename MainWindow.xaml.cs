@@ -35,6 +35,7 @@ public partial class MainWindow : OverlayWindowBase
     private readonly TrayIcon _tray;
     private readonly GrowthTracker _growth = new();
     private MinimapWindow? _minimap;
+    private ControlPanelWindow? _controlPanel;
     private HotkeySpec _hotkey;
     private HotkeySpec _hotkeyHide;
     private HotkeySpec _hotkeyView;
@@ -85,12 +86,11 @@ public partial class MainWindow : OverlayWindowBase
             PersistState();
             _poll.Dispose();
             _minimap?.Close();
+            _controlPanel?.Close();
         };
     }
 
     // ---- Settings flow ----------------------------------------------------
-    private void Settings_Click(object sender, RoutedEventArgs e) => OpenSettings();
-
     private void OpenSettings()
     {
         var dialog = new SettingsWindow(_config) { Topmost = true };
@@ -109,7 +109,11 @@ public partial class MainWindow : OverlayWindowBase
         }
         if (dialog.HotkeyChanged) ApplyHotkeysFromConfig();
         if (dialog.MinimapChanged || dialog.AppearanceChanged) _minimap?.ApplySettings();
-        if (dialog.AppearanceChanged) ApplyAppearance(_config);
+        if (dialog.AppearanceChanged)
+        {
+            ApplyAppearance(_config);
+            _controlPanel?.ApplySettingsFromConfig();
+        }
     }
 
     /// <summary>
@@ -158,14 +162,14 @@ public partial class MainWindow : OverlayWindowBase
 
     private void UpdateHotkeyTexts()
     {
-        EditBannerText.Text = $"EDIT MODE · {_hotkey} locks";
+        _controlPanel?.SetHotkeyLabel(_hotkey.ToString());
         _tray.UpdateHotkeyLabels(_hotkey.ToString(), _hotkeyHide.ToString());
     }
 
     private void ShowNoCookieState()
     {
         DinoText.Text = "Not set up yet";
-        StatusText.Text = $"Press {_hotkey}, then click ⚙ to connect your account";
+        StatusText.Text = "Open Settings from the tray icon to connect your account";
     }
 
     // ---- Minimap ----------------------------------------------------------
@@ -261,23 +265,40 @@ public partial class MainWindow : OverlayWindowBase
         SetEditMode(on);
         _minimap?.SetEditMode(on);
 
-        if (!on)
+        if (on)
         {
+            ShowControlPanel();
+        }
+        else
+        {
+            _controlPanel?.Hide();
             PersistState();
         }
     }
 
-    protected override FrameworkElement? BannerElement => EditBanner;
+    private void ShowControlPanel()
+    {
+        if (_controlPanel is null)
+        {
+            _controlPanel = new ControlPanelWindow(
+                _config,
+                openSettings: OpenSettings,
+                toggleMinimap: ToggleMinimap,
+                toggleMinimapView: () => _minimap?.ToggleView(),
+                lockOverlay: ToggleEditMode,
+                exit: () => Application.Current.Shutdown());
+        }
+        _controlPanel.Show();
+        _controlPanel.SetEditMode(true); // permanently interactive while visible
+        _controlPanel.SetHotkeyLabel(_hotkey.ToString());
+    }
 
     protected override void OnEditModeChanged(bool editMode)
     {
-        EditBanner.Visibility = editMode ? Visibility.Visible : Visibility.Collapsed;
         RootPanel.BorderBrush = editMode ? BorderEdit : BorderLocked;
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);
-
-    private void Close_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
 
     private void PersistState()
     {
@@ -287,6 +308,11 @@ public partial class MainWindow : OverlayWindowBase
         {
             _config.MinimapX = _minimap.Left;
             _config.MinimapY = _minimap.Top;
+        }
+        if (_controlPanel is not null)
+        {
+            _config.ControlPanelX = _controlPanel.Left;
+            _config.ControlPanelY = _controlPanel.Top;
         }
         if (!string.IsNullOrWhiteSpace(_poll.CurrentCookie))
         {

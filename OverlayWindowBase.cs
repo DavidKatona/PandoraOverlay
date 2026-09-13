@@ -10,11 +10,11 @@ namespace PandoraOverlay;
 /// <summary>
 /// Shared behaviour for the overlay's always-on-top windows: the click-through
 /// / no-activate / no-Alt-Tab window styles (x64 SetWindowLongPtr), edit-mode
-/// state with banner-height position compensation (the content you position
-/// stays put between modes — the banner grows upward instead of pushing the
-/// panel down), a manual edit-mode drag with magnetic snapping (work-area
-/// edges, comfort inset, the other overlay window; hold Alt to bypass), and
-/// shared appearance settings. The global hotkeys are registered once, by
+/// state (border-only indication — windows are static-size in both modes, so
+/// position fidelity is inherent), shared appearance settings, a manual
+/// edit-mode drag with magnetic snapping (screen edges, comfort inset, the
+/// other panels; hold Alt to bypass) plus guide lines, and on-screen clamping
+/// on lock and at startup. The global hotkeys are registered once, by
 /// MainWindow.
 /// </summary>
 public abstract class OverlayWindowBase : Window
@@ -40,9 +40,6 @@ public abstract class OverlayWindowBase : Window
     // One guide window for the whole app, created on the first snapping drag.
     private static SnapGuideWindow? _guides;
 
-    private double _bannerShift;
-    private double _topBeforeEdit;
-    private bool _movedDuringEdit;
     private bool _dragging;
     private Point _dragStartCursor;
     private Point _dragStartWindow;
@@ -50,15 +47,15 @@ public abstract class OverlayWindowBase : Window
     /// <summary>True while the window is interactive (draggable, buttons usable).</summary>
     public bool EditMode { get; private set; }
 
+    /// <summary>False for transient chrome (the control panel): it snaps when dragged, but is never a target.</summary>
+    protected virtual bool IsSnapTarget => true;
+
     protected OverlayWindowBase()
     {
         // Startup safety: saved positions can reference a monitor that no
         // longer exists (or a changed resolution) — pull the window into view.
         Loaded += (_, _) => ClampIntoScreen();
     }
-
-    /// <summary>The edit banner, measured for position compensation when it appears.</summary>
-    protected abstract FrameworkElement? BannerElement { get; }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -80,56 +77,10 @@ public abstract class OverlayWindowBase : Window
         EditMode = on;
         ApplyClickThrough(clickThrough: !on);
         OnEditModeChanged(on);
-        CompensateForBanner(on);
         if (!on) ClampIntoScreen(); // a locked panel is always fully on-screen
     }
 
-    /// <summary>Moves the window fully into its monitor's bounds.</summary>
-    private void ClampIntoScreen()
-    {
-        // The banner may have just collapsed — settle layout first, or the
-        // clamp measures the stale (taller) height and leaves a gap below.
-        UpdateLayout();
-        var clamped = SnapResolver.ClampIntoRect(
-            new Rect(Left, Top, ActualWidth, ActualHeight), GetScreenBoundsDips());
-        Left = clamped.X;
-        Top = clamped.Y;
-    }
-
     protected abstract void OnEditModeChanged(bool editMode);
-
-    /// <summary>
-    /// Keeps the CONTENT stationary across the mode switch: the banner grows
-    /// upward into empty space instead of pushing the panel down, so what you
-    /// position in edit mode is exactly where the panel sits once locked.
-    /// Clamped at the top of the work area so the banner stays on-screen.
-    /// </summary>
-    private void CompensateForBanner(bool entering)
-    {
-        if (entering)
-        {
-            _topBeforeEdit = Top;
-            _movedDuringEdit = false;
-            UpdateLayout(); // the banner just became visible — measure it
-            var banner = BannerElement;
-            var scale = (Content as FrameworkElement)?.LayoutTransform is ScaleTransform s ? s.ScaleY : 1.0;
-            var height = banner is null
-                ? 0
-                : (banner.ActualHeight + banner.Margin.Top + banner.Margin.Bottom) * scale;
-            var screenTop = GetScreenBoundsDips().Top;
-            _bannerShift = Math.Clamp(height, 0, Math.Max(0, Top - screenTop));
-            Top -= _bannerShift;
-        }
-        else
-        {
-            // Restore the remembered position ABSOLUTELY when the window
-            // wasn't dragged: window positions round-trip through device
-            // pixels, so a relative -=/+= pair re-accumulates rounding error
-            // on every toggle (a visible downward crawl at some DPI scales).
-            Top = _movedDuringEdit ? Top + _bannerShift : _topBeforeEdit;
-            _bannerShift = 0;
-        }
-    }
 
     /// <summary>
     /// Applies the shared appearance settings: UI scale as a LayoutTransform
@@ -192,15 +143,14 @@ public abstract class OverlayWindowBase : Window
 
         if ((Keyboard.Modifiers & ModifierKeys.Alt) == 0)
         {
-            // Snap in CONTENT space, banner excluded — "flush to the edge"
-            // means the panel as it will sit once locked.
             var snapped = SnapResolver.Snap(
-                new Point(x, y + _bannerShift),
-                new Size(ActualWidth, Math.Max(0, ActualHeight - _bannerShift)),
+                new Point(x, y),
+                new Size(ActualWidth, ActualHeight),
                 GetScreenBoundsDips(),
-                Instances.Where(w => w != this && w.IsVisible).Select(w => w.ContentBounds));
+                Instances.Where(w => w != this && w.IsVisible && w.IsSnapTarget)
+                         .Select(w => new Rect(w.Left, w.Top, w.ActualWidth, w.ActualHeight)));
             x = snapped.Position.X;
-            y = snapped.Position.Y - _bannerShift;
+            y = snapped.Position.Y;
 
             _guides ??= new SnapGuideWindow();
             _guides.ShowGuides(snapped.GuideX, snapped.GuideY);
@@ -212,7 +162,6 @@ public abstract class OverlayWindowBase : Window
 
         Left = x;
         Top = y;
-        _movedDuringEdit = true;
     }
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
@@ -224,9 +173,15 @@ public abstract class OverlayWindowBase : Window
         _guides?.HideGuides();
     }
 
-    /// <summary>The window's bounds minus the edit banner — what the panel occupies when locked.</summary>
-    private Rect ContentBounds =>
-        new(Left, Top + _bannerShift, ActualWidth, Math.Max(0, ActualHeight - _bannerShift));
+    /// <summary>Moves the window fully into its monitor's bounds.</summary>
+    private void ClampIntoScreen()
+    {
+        UpdateLayout(); // settle any pending size change before measuring
+        var clamped = SnapResolver.ClampIntoRect(
+            new Rect(Left, Top, ActualWidth, ActualHeight), GetScreenBoundsDips());
+        Left = clamped.X;
+        Top = clamped.Y;
+    }
 
     private Point CursorInDips(MouseEventArgs e)
     {
@@ -239,7 +194,7 @@ public abstract class OverlayWindowBase : Window
     /// area: the game runs borderless-fullscreen over the taskbar, so "screen
     /// bottom" must mean the true bottom (the overlay is topmost anyway).
     /// </summary>
-    private Rect GetScreenBoundsDips()
+    protected Rect GetScreenBoundsDips()
     {
         var hwnd = new WindowInteropHelper(this).Handle;
         var wa = System.Windows.Forms.Screen.FromHandle(hwnd).Bounds;

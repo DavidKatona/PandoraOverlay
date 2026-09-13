@@ -96,12 +96,10 @@ references — keep it that way. Every overlay window derives from
   live via SnapResolver against the current monitor's FULL bounds (not the
   work area — the game covers the taskbar; per-monitor through WinForms
   `Screen`, DIP-converted) and the other overlay window
-  (static instance registry); holding Alt bypasses. Banner compensation:
-  entering edit mode shifts `Top` up by the (scale-aware) banner height so
-  the CONTENT stays put between modes; snapping runs in content space, and
-  the shift clamps at the screen top (during a top-snapped drag the banner
-  deliberately overhangs off-screen — that's the flush-locked-position
-  guarantee). Locking edit mode and the Loaded event both run
+  (static instance registry; `IsSnapTarget` false excludes transient chrome
+  like the control panel from being snapped AGAINST); holding Alt bypasses.
+  Windows are static-size in both modes (no banners since v1.9), so position
+  fidelity is inherent. Locking edit mode and the Loaded event both run
   `ClampIntoScreen` (via `SnapResolver.ClampIntoRect`), so a locked panel is
   always fully on-screen — dragging stays free for cross-monitor moves;
   stale-monitor/resolution positions self-heal at startup. The global
@@ -111,9 +109,13 @@ references — keep it that way. Every overlay window derives from
   two magnets read as distinct stops), axes independent; leading- and
   trailing-edge candidates per target give align-and-abut for free. Returns
   a `SnapResult` (position + per-axis `SnapGuide` naming the engaged target
-  and whether it was a peer) so the caller can draw guides. Banners are
-  width-bound to their content in XAML so edit-mode size == locked size on
-  both axes.
+  and whether it was a peer) so the caller can draw guides.
+- **ControlPanelWindow.xaml(.cs)** — the edit-mode control panel (v1.9):
+  appears with edit mode, hides on lock; labeled buttons Settings /
+  Show-hide minimap / Map view / Lock / Exit + the hint line (hotkey label
+  follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
+  permanently interactive while visible, `IsSnapTarget` false, first show
+  bottom-center, position persisted (`ControlPanelX/Y`, nullable).
 - **SnapGuideWindow.cs** — full-virtual-screen, click-through, no-activate
   window drawing the guide lines mid-drag (orange = screen targets, blue =
   peer targets, matching arrow/waypoint colours). One lazily created
@@ -136,12 +138,13 @@ references — keep it that way. Every overlay window derives from
   any failure; nothing in this class ever throws.
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
   and the minimap window's lifetime. Three global hotkeys (RegisterHotKey +
-  WM_HOTKEY in WndProc; banner/tray labels follow config): edit mode
+  WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
   (`Hotkey`, Ctrl+F8) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F9 — exits edit mode first; hidden never persists;
   the edit hotkey un-hides first), and minimap view toggle
   (`HotkeyMinimapView`, Ctrl+F7 → `MinimapWindow.ToggleView`). Edit mode:
-  drag-with-snapping, ⚙ settings, MAP minimap toggle, ✕ close; leaving it
+  borders recolor, drag-with-snapping, and MainWindow shows the
+  ControlPanelWindow (hidden again on lock); leaving edit mode
   persists all window positions + the re-encrypted rolled cookie. `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
   fracture badges toggle; health/hunger/thirst fills pulse below 25% — stamina
@@ -164,11 +167,12 @@ references — keep it that way. Every overlay window derives from
   (`MinimapMode`): "island" (arrow translates over the fitted map) and
   "centered" (arrow pinned at centre, the map — rendered at size×`MinimapZoom`,
   clamped 1.25–6, default 5 — translates instead; no pan clamping, coasts show the map's
-  own ocean border). VIEW button toggles, wheel zooms (edit mode only); a
-  footer under the map always shows the active view (+ zoom when centered).
+  own ocean border). The control panel's Map view button or Ctrl+F7 toggles
+  views (`ToggleView`), wheel zooms in edit mode; a footer under the map
+  always shows the active view (+ zoom when centered).
   `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified
-  in-game, Sep 2026). ✕ on its banner hides it (`MinimapEnabled=false`); the
-  MAP button on the stats panel brings it back. Waypoint: right-click in edit
+  in-game, Sep 2026). Shown/hidden via the control panel or tray
+  (`MinimapEnabled`). Waypoint: right-click in edit
   mode places/moves it (stored as world cm in config — persists), right-click
   on the marker clears it; blue diamond, edge-clamped in the centered view,
   distance appended to the footer (◆ 830m / ◆ 1.2km).

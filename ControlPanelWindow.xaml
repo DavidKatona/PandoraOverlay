@@ -1,0 +1,55 @@
+<local:OverlayWindowBase x:Class="PandoraOverlay.ControlPanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PandoraOverlay"
+        Title="Pandora Control Panel"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        FontFamily="Segoe UI"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+        <Style x:Key="PanelButton" TargetType="Button">
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background" Value="#2A3038"/>
+            <Setter Property="Foreground" Value="#C7D1DA"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="RootPanel"
+            CornerRadius="10"
+            Background="#CC10151B"
+            BorderBrush="#FFC864"
+            BorderThickness="1"
+            Padding="10,8">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Settings…" Click="Settings_Click"
+                        Style="{StaticResource PanelButton}"/>
+                <Button Content="Show/hide minimap" Click="Minimap_Click"
+                        Style="{StaticResource PanelButton}"/>
+                <Button Content="Map view" Click="MapView_Click"
+                        Style="{StaticResource PanelButton}"/>
+                <Button Content="Lock" Click="Lock_Click"
+                        Style="{StaticResource PanelButton}"
+                        Background="#2E5E38" Foreground="#DFF3E2"/>
+                <Button Content="Exit" Click="Exit_Click"
+                        Style="{StaticResource PanelButton}"
+                        Background="#552B2B" Foreground="#FFDDDD"
+                        Margin="14,0,0,0"/>
+            </StackPanel>
+            <TextBlock x:Name="HintText"
+                       Text="drag panels to move · right-click map = waypoint · Ctrl+F8 locks"
+                       Foreground="#7B8790" FontSize="10" Margin="2,7,0,0"/>
+        </StackPanel>
+    </Border>
+</local:OverlayWindowBase>

@@ -52,7 +52,7 @@ The exe lands in `bin\Release\net8.0-windows\PandoraOverlay.exe`.
 3. On the live-map page press F12 → Network tab → type `mylocation` into the filter → click any row.
 4. Under **Request Headers**, copy the whole value of `cookie` and paste it into the Account section's paste box. It validates as you type (it also cleans up stray quotes, a `cookie:` prefix, and line breaks automatically). Hit Save — the overlay connects immediately, no restart needed.
 
-You can reopen settings any time: right-click the tray icon → **Settings…**, or press the edit-mode hotkey (**Ctrl+F8** by default) and click ⚙.
+You can reopen settings any time: right-click the tray icon → **Settings…**, or press the edit-mode hotkey (**Ctrl+F8** by default) and use the control panel's Settings button.
 
 The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows user account) and stored in `config.json` as an opaque blob — it never sits readable on disk, and copying the file to another machine yields nothing usable. The session also rolls forward automatically: every response renews it, and the overlay re-encrypts and saves the refreshed value on exit, so this should be a one-time setup unless you log out or Cloudflare re-challenges the browser.
 
@@ -61,7 +61,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Basics
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
-- The edit-mode hotkey (**Ctrl+F8** by default) toggles **edit mode** — an orange border appears, you can drag the panels anywhere, open Settings with ⚙, and close the overlay with ✕. The hotkey again locks everything back. Positions are remembered, and the panels stay exactly where you put them — the edit banner grows upward instead of pushing content around.
+- The edit-mode hotkey (**Ctrl+F8** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with labeled buttons: **Settings**, **Show/hide minimap**, **Map view**, **Lock**, and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
 - While dragging, panels **snap** to the screen edges, a small inset from them, and to each other — **guide lines** light up along whatever you snapped to (orange = screen, blue = the other panel). Hold **Alt** while dragging for pixel-perfect free placement.
 - You can't lose a panel off-screen: locking edit mode (or restarting the app) pulls every panel fully back into view — dragging itself stays free, so moving panels to another monitor still works.
 - **Ctrl+F9** hides/shows the whole overlay without quitting — for screenshots and cutscenes; polling continues, and the app always starts visible. **Ctrl+F7** flips the minimap view without entering edit mode. All three hotkeys are rebindable in Settings.
@@ -70,7 +70,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Show/hide minimap, Settings, and **Exit** (double-click toggles edit mode). Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or ⚙ in edit mode) gathers everything configurable: replace your cookie, rebind the hotkey, start with Windows, set the minimap view and zoom, and adjust the overlay scale and background opacity.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable: replace your cookie, rebind the hotkey, start with Windows, set the minimap view and zoom, and adjust the overlay scale and background opacity.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -81,13 +81,13 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
 - Status-line states you'll see:
   - `Not in-game` — you're logged in but not spawned on the server (or the server is restarting).
-  - `Disconnected · retrying` — network/auth problem; it keeps retrying every poll. If it never recovers, reopen ⚙ and paste a fresh cookie.
-  - `Not set up yet` — no cookie stored; open Settings (tray icon → Settings…, or hotkey → ⚙).
+  - `Disconnected · retrying` — network/auth problem; it keeps retrying every poll. If it never recovers, open Settings and paste a fresh cookie.
+  - `Not set up yet` — no cookie stored; open Settings (tray icon → Settings…).
 
 ### Minimap
 
-- The **minimap** is a separate window sharing the same edit mode: drag it independently, hide it with its ✕, bring it back with the **MAP** button on the stats panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
-- Two views, toggled with the **VIEW** button in edit mode (or **Ctrl+F7** any time): the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
+- The **minimap** is a separate window sharing the same edit mode: drag it independently, show or hide it from the control panel (or the tray menu). Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
+- Two views, toggled with the control panel's **Map view** button (or **Ctrl+F7** any time): the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
 - Right-click the minimap in edit mode to drop a **waypoint** — the footer shows your distance to it, and in the centered view an off-screen marker sticks to the panel edge pointing the way. Right-click the marker to clear it; it survives restarts.
 
   ![The centered minimap view with the player arrow, a waypoint diamond, and the footer showing "centered · 4× · 733m"](docs/waypoint.png)
@@ -102,9 +102,9 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `PollIntervalSeconds` | Default 3. Don't go below 2 — the site's own page polls at this pace and the API is rate-limited (300/window). |
 | `WindowX` / `WindowY` | Saved panel position. |
 | `Hotkey` / `HotkeyHideAll` / `HotkeyMinimapView` | The three global hotkeys (edit mode `Ctrl+F8`, hide/show overlay `Ctrl+F9`, minimap view toggle `Ctrl+F7`); modifiers + one key. All rebindable in Settings. |
-| `MinimapEnabled` | Show the minimap window (the ✕ on its banner turns this off, the MAP button back on). |
+| `MinimapEnabled` | Show the minimap window (toggled from the control panel or the tray menu). |
 | `MinimapX` / `MinimapY` / `MinimapSize` | Minimap position and edge length. |
-| `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). The VIEW button toggles it. |
+| `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). Map view button / Ctrl+F7 toggles it. |
 | `MinimapZoom` | Centered-view magnification, clamped to 1.25–6 (default 5). Mouse wheel in edit mode adjusts it. |
 | `MinimapYawOffsetDegrees` | Rotation added to the raw yaw for the arrow. Default 90 matches the current map. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |

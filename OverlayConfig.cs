@@ -111,6 +111,11 @@ public sealed class OverlayConfig
 
     public double? WaypointY { get; set; }
 
+    /// <summary>Edit-mode control panel position; null until first moved (defaults to bottom-center).</summary>
+    public double? ControlPanelX { get; set; }
+
+    public double? ControlPanelY { get; set; }
+
     // ---- Appearance -------------------------------------------------------
 
     /// <summary>UI scale for both overlay windows (layout transform). Clamped 0.75–1.5.</summary>

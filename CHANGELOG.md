@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Edit mode redesigned around a new **control panel**: the per-widget button
+  banners are gone — panels now only recolor their border and stay
+  pixel-identical in size and position in both modes — and a draggable
+  control panel appears with edit mode (bottom-center by default, position
+  remembered) carrying labeled buttons: Settings, Show/hide minimap, Map
+  view, Lock, and Exit, plus the hint line. This also retires the whole
+  banner-compensation machinery behind the recent sizing/position bugs.
+
 ## [1.8.0] - 2026-09-13
 
 ### Added

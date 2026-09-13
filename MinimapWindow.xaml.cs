@@ -80,11 +80,8 @@ public partial class MinimapWindow : OverlayWindowBase
         };
     }
 
-    protected override FrameworkElement? BannerElement => EditBanner;
-
     protected override void OnEditModeChanged(bool editMode)
     {
-        EditBanner.Visibility = editMode ? Visibility.Visible : Visibility.Collapsed;
         RootPanel.BorderBrush = editMode ? BorderEdit : BorderLocked;
     }
 
@@ -98,20 +95,12 @@ public partial class MinimapWindow : OverlayWindowBase
         ApplyViewMode();
     }
 
-    private void View_Click(object sender, RoutedEventArgs e) => ToggleView();
-
-    /// <summary>Flips island ↔ centered — the VIEW button and the global hotkey both land here.</summary>
+    /// <summary>Flips island ↔ centered — the control panel button and the global hotkey both land here.</summary>
     public void ToggleView()
     {
         _centered = !_centered;
         _config.MinimapMode = _centered ? "centered" : "island";
         ApplyViewMode();
-    }
-
-    private void Hide_Click(object sender, RoutedEventArgs e)
-    {
-        _config.MinimapEnabled = false;
-        Close();
     }
 
     private void OnCalibrationChanged(MapCalibration _)
