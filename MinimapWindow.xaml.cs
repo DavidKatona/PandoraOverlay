@@ -108,6 +108,14 @@ public partial class MinimapWindow : OverlayWindowBase
         }
     }
 
+    /// <summary>Re-reads view mode + zoom from config after the settings dialog saves.</summary>
+    public void ApplySettings()
+    {
+        _centered = string.Equals(_config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
+        _zoom = Math.Clamp(_config.MinimapZoom, MinZoom, MaxZoom);
+        ApplyViewMode();
+    }
+
     /// <summary>Sizes the map for the current mode, resets transforms, and snap-renders the last fix.</summary>
     private void ApplyViewMode()
     {

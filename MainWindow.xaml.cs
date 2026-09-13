@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -19,14 +18,6 @@ public partial class MainWindow : OverlayWindowBase
     // ---- Global hotkey (registered once, toggles every overlay window) ----
     private const int WM_HOTKEY = 0x0312;
     private const int HotkeyId = 0xA11C;
-    private const uint MOD_CONTROL = 0x0002;
-    private const uint VK_F8 = 0x77;
-
-    [DllImport("user32.dll")]
-    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
-
-    [DllImport("user32.dll")]
-    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     // ---- Brushes ----------------------------------------------------------
     private static readonly Brush HealthGood = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
@@ -38,6 +29,7 @@ public partial class MainWindow : OverlayWindowBase
     private readonly PollService _poll;
     private readonly TrayIcon _tray;
     private MinimapWindow? _minimap;
+    private HotkeySpec _hotkey;
 
     public MainWindow()
     {
@@ -46,6 +38,7 @@ public partial class MainWindow : OverlayWindowBase
         _config = OverlayConfig.Load();
         Left = _config.WindowX;
         Top = _config.WindowY;
+        _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
 
         _poll = new PollService(_config);
         _poll.SnapshotReceived += OnSnapshot;
@@ -56,6 +49,7 @@ public partial class MainWindow : OverlayWindowBase
             toggleMinimap: ToggleMinimap,
             openSettings: OpenSettings,
             exit: () => Application.Current.Shutdown());
+        UpdateHotkeyTexts();
 
         Loaded += (_, _) =>
         {
@@ -93,15 +87,50 @@ public partial class MainWindow : OverlayWindowBase
             if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState();
             return;
         }
-        DinoText.Text = "Connecting…";
-        StatusText.Text = "";
-        _poll.RebuildClient();
+        if (dialog.CookieChanged)
+        {
+            DinoText.Text = "Connecting…";
+            StatusText.Text = "";
+            _poll.RebuildClient();
+        }
+        if (dialog.HotkeyChanged) ApplyHotkeyFromConfig();
+        if (dialog.MinimapChanged) _minimap?.ApplySettings();
+    }
+
+    /// <summary>
+    /// Re-registers the hotkey after a settings change. The dialog already
+    /// availability-checked the combo, but another app can grab it in the
+    /// meantime — then we fall back to the old, still-working one.
+    /// </summary>
+    private void ApplyHotkeyFromConfig()
+    {
+        var spec = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
+        if (spec == _hotkey) return;
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+        HotkeySpec.Unregister(hwnd, HotkeyId);
+        if (!HotkeySpec.Register(hwnd, HotkeyId, spec))
+        {
+            HotkeySpec.Register(hwnd, HotkeyId, _hotkey);
+            _config.Hotkey = _hotkey.ToString();
+            _config.Save();
+            StatusText.Text = $"Hotkey {spec} unavailable — keeping {_hotkey}";
+            return;
+        }
+        _hotkey = spec;
+        UpdateHotkeyTexts();
+    }
+
+    private void UpdateHotkeyTexts()
+    {
+        EditBannerText.Text = $"EDIT MODE — drag to move · {_hotkey} to lock";
+        _tray.UpdateHotkeyLabel(_hotkey.ToString());
     }
 
     private void ShowNoCookieState()
     {
         DinoText.Text = "Not set up yet";
-        StatusText.Text = "Press Ctrl+F8, then click ⚙ to connect your account";
+        StatusText.Text = $"Press {_hotkey}, then click ⚙ to connect your account";
     }
 
     // ---- Minimap ----------------------------------------------------------
@@ -137,7 +166,7 @@ public partial class MainWindow : OverlayWindowBase
     {
         base.OnSourceInitialized(e); // applies the click-through styles
         var hwnd = new WindowInteropHelper(this).Handle;
-        RegisterHotKey(hwnd, HotkeyId, MOD_CONTROL, VK_F8);
+        HotkeySpec.Register(hwnd, HotkeyId, _hotkey);
         HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
     }
 
@@ -194,11 +223,15 @@ public partial class MainWindow : OverlayWindowBase
     private void OnPollFailed(Exception ex)
     {
         StatusText.Text = $"Disconnected · retrying ({ex.GetType().Name})";
+        _tray.SetStatus("Pandora Overlay — disconnected");
     }
 
     private void OnSnapshot(MyLocationResponse result)
     {
         UpdateUi(result);
+        _tray.SetStatus(result.InGame && result.Player is { } p
+            ? $"Pandora Overlay — {p.Dino} · HP {p.Health * 100:0}% · Growth {p.Growth * 100:0.#}%"
+            : "Pandora Overlay — not in-game");
 
         // Cheap re-assert in case the game reshuffles the z-order.
         if (!EditMode && !Topmost)

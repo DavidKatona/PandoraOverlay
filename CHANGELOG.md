@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Full settings window (tray → Settings…, or ⚙ in edit mode), sectioned into
+  Account / Controls / General / Minimap: replace the cookie (leaving the box
+  empty keeps the current one), rebind the edit-mode hotkey with live
+  availability checking, toggle Start with Windows, and set the minimap view
+  and centered zoom — all applied without a restart.
+- Rebindable edit-mode hotkey (default Ctrl+F8) — previously changing it
+  required editing the source and recompiling.
+- Start with Windows toggle (HKCU Run entry).
+- The tray icon's hover tooltip now shows live stats (dino · HP · growth).
+- Single-instance guard: launching a second copy shows a notice and exits
+  instead of silently doubling the poll rate.
+
 ## [1.3.1] - 2026-09-12
 
 ### Fixed

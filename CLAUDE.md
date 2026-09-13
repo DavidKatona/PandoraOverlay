@@ -98,8 +98,9 @@ references — keep it that way. Every overlay window derives from
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
   any failure; nothing in this class ever throws.
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
-  and the minimap window's lifetime. Global hotkey **Ctrl+F8** (RegisterHotKey
-  + WM_HOTKEY in WndProc hook) toggles edit mode on every window (drag, ⚙
+  and the minimap window's lifetime. Global hotkey (config `Hotkey`, default
+  **Ctrl+F8**; RegisterHotKey + WM_HOTKEY in WndProc hook; banner/tray labels
+  follow it) toggles edit mode on every window (drag, ⚙
   settings, MAP minimap toggle, ✕ close; leaving edit mode persists all window
   positions + the re-encrypted rolled cookie). `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
@@ -107,7 +108,9 @@ references — keep it that way. Every overlay window derives from
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
   always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
   Right-click menu = edit mode / minimap toggle / settings / exit;
-  double-click = edit mode. Disposed on shutdown.
+  double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
+  127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
+  Disposed on shutdown.
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow. World→pixel
   per `MapCalibration` (with the Y flip); movement animates between polls
   (shortest-arc yaw; first fix / mode switch snaps). Two north-up views
@@ -119,11 +122,26 @@ references — keep it that way. Every overlay window derives from
   `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified
   in-game, Sep 2026). ✕ on its banner hides it (`MinimapEnabled=false`); the
   MAP button on the stats panel brings it back.
-- **SettingsWindow.xaml(.cs)** — cookie paste dialog. `Clean()` strips `cookie:`
-  prefix, quotes, newlines, trailing `;`. Live validation (needs `connect.sid`;
-  warns if `cf_clearance` missing). Auto-opens on first run; save hot-swaps the
-  client via `MainWindow.RebuildClient()` — no restart.
-- Icons are font glyphs (✕ ♂ ♀, text badges) — no image assets in the project.
+- **SettingsWindow.xaml(.cs)** — sectioned settings dialog (Account / Controls
+  / General / Minimap; single column, no tabs — deliberate, avoids theming
+  stock TabControl chrome). Cookie box is a replace-inbox: empty = keep the
+  current cookie; first run gates Save on a valid paste (`Clean()` strips
+  `cookie:` prefix, quotes, newlines, trailing `;`; live validation needs
+  `connect.sid`, warns if `cf_clearance` missing). Hotkey capture box
+  availability-tests combos via a throwaway RegisterHotKey on its own hwnd.
+  Save writes config + Run key and sets Cookie/Hotkey/MinimapChanged flags;
+  MainWindow hot-applies each (RebuildClient / re-register with fallback /
+  minimap ApplySettings) — no restart, ever.
+- **HotkeySpec.cs** — record converting the config string ("Ctrl+F8") ⇄ the
+  RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
+  shared Register/Unregister p/invokes. Modifier-less hotkeys are rejected
+  (a bare global key would be swallowed from the game).
+- **StartupRegistration.cs** — Start-with-Windows via HKCU Run; the registry
+  entry IS the state (deliberately no config field to drift). Fail-soft.
+- **App.xaml.cs** — single-instance mutex: a second launch shows a notice and
+  exits (protects constraint #3 from silently doubled polling).
+- In-UI icons are font glyphs (✕ ♂ ♀, text badges); the only image assets are
+  `Assets/map.png` and `Assets/app.ico`.
 
 ## Runtime expectations
 

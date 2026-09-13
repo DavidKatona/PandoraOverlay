@@ -49,6 +49,15 @@ public sealed class OverlayConfig
     public double WindowX { get; set; } = 40;
     public double WindowY { get; set; } = 40;
 
+    // ---- Controls ---------------------------------------------------------
+
+    /// <summary>
+    /// Global edit-mode hotkey: modifiers (Ctrl/Alt/Shift/Win) plus one key,
+    /// separated by "+", e.g. "Ctrl+F8" or "Ctrl+Shift+M". Editable in the
+    /// settings window; unparseable values fall back to Ctrl+F8.
+    /// </summary>
+    public string Hotkey { get; set; } = "Ctrl+F8";
+
     // ---- Minimap (v1.1) ---------------------------------------------------
 
     /// <summary>Show the minimap window (✕ on its edit banner hides it; MAP on the stats panel brings it back).</summary>
