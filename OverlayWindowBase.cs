@@ -38,6 +38,8 @@ public abstract class OverlayWindowBase : Window
     private static readonly List<OverlayWindowBase> Instances = new();
 
     private double _bannerShift;
+    private double _topBeforeEdit;
+    private bool _movedDuringEdit;
     private bool _dragging;
     private Point _dragStartCursor;
     private Point _dragStartWindow;
@@ -103,6 +105,8 @@ public abstract class OverlayWindowBase : Window
     {
         if (entering)
         {
+            _topBeforeEdit = Top;
+            _movedDuringEdit = false;
             UpdateLayout(); // the banner just became visible — measure it
             var banner = BannerElement;
             var scale = (Content as FrameworkElement)?.LayoutTransform is ScaleTransform s ? s.ScaleY : 1.0;
@@ -115,7 +119,11 @@ public abstract class OverlayWindowBase : Window
         }
         else
         {
-            Top += _bannerShift;
+            // Restore the remembered position ABSOLUTELY when the window
+            // wasn't dragged: window positions round-trip through device
+            // pixels, so a relative -=/+= pair re-accumulates rounding error
+            // on every toggle (a visible downward crawl at some DPI scales).
+            Top = _movedDuringEdit ? Top + _bannerShift : _topBeforeEdit;
             _bannerShift = 0;
         }
     }
@@ -191,6 +199,7 @@ public abstract class OverlayWindowBase : Window
 
         Left = x;
         Top = y;
+        _movedDuringEdit = true;
     }
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
