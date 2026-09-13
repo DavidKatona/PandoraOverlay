@@ -82,6 +82,9 @@ public abstract class OverlayWindowBase : Window
     /// <summary>Moves the window fully into its monitor's bounds.</summary>
     private void ClampIntoScreen()
     {
+        // The banner may have just collapsed — settle layout first, or the
+        // clamp measures the stale (taller) height and leaves a gap below.
+        UpdateLayout();
         var clamped = SnapResolver.ClampIntoRect(
             new Rect(Left, Top, ActualWidth, ActualHeight), GetScreenBoundsDips());
         Left = clamped.X;
