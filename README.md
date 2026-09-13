@@ -8,6 +8,19 @@ It is **fully external**: the only thing it ever does is replay the same authent
 
 ![The overlay in-game: stats panel and player-centered minimap while flying a Pteranodon](docs/screenshot.png)
 
+## Contents
+
+- [Get it](#get-it)
+- [Requirements](#requirements)
+- [Build](#build)
+- [First-run setup](#first-run-setup)
+- [Usage](#usage) — [Basics](#basics) · [Tray icon & settings](#tray-icon--settings) · [Stats panel](#stats-panel) · [Minimap](#minimap)
+- [Configuration (config.json)](#configuration-configjson)
+- [Troubleshooting](#troubleshooting)
+- [Fair-play notes](#fair-play-notes)
+- [Roadmap](#roadmap)
+- [License](#license)
+
 ## Get it
 
 Download the latest zip from the [Releases page](../../releases) and unzip it anywhere — it needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) installed. Or build from source as described below.
@@ -104,7 +117,7 @@ Most of these are editable from the Settings window; `UserAgent`, `PollIntervalS
 - It polls at the same rate as the website itself and respects their rate limit.
 - This consumes Isla Pandora's private, login-gated API. Be a good citizen: ask their admins whether they're okay with a personal overlay client, and stop using it if they say no.
 
-## Roadmap (v1.7+)
+## Roadmap
 
 - Friends markers from the `friends` endpoint *(needs a green light from the site dev first)*.
 - Zone overlays (sanctuaries, patrol zones, migrations) *(same — ask first)*.
