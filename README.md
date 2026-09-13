@@ -42,21 +42,32 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ## Usage
 
+### Basics
+
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
-- A **tray icon** in the notification area is always available: right-click for Edit mode, Show/hide minimap, Settings, and **Exit** (double-click toggles edit mode). Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- The edit-mode hotkey (**Ctrl+F8** by default, rebindable in Settings) toggles edit mode — an orange border appears, you can drag the panels anywhere, open Settings with ⚙, and close the overlay with ✕. The hotkey again locks everything back. Positions are remembered.
-- **Settings** (tray → Settings…, or ⚙ in edit mode) gathers everything configurable: replace your cookie, rebind the hotkey, start with Windows, set the minimap view and zoom, and adjust the overlay scale and background opacity.
+- The edit-mode hotkey (**Ctrl+F8** by default, rebindable in Settings) toggles **edit mode** — an orange border appears, you can drag the panels anywhere, open Settings with ⚙, and close the overlay with ✕. The hotkey again locks everything back. Positions are remembered.
 - Only one copy runs at a time — launching a second shows a notice and exits.
-- The **minimap** is a separate window sharing the same edit mode: drag it independently, hide it with its ✕, bring it back with the **MAP** button on the stats panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
-- The minimap has two views, toggled with the **VIEW** button in edit mode: the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
-- Right-click the minimap in edit mode to drop a **waypoint** — the footer shows your distance to it, and in the centered view an off-screen marker sticks to the panel edge pointing the way. Right-click the marker to clear it; it survives restarts.
-- The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint).
+
+### Tray icon & settings
+
+- A **tray icon** in the notification area is always available: right-click for Edit mode, Show/hide minimap, Settings, and **Exit** (double-click toggles edit mode). Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
+- **Settings** (tray → Settings…, or ⚙ in edit mode) gathers everything configurable: replace your cookie, rebind the hotkey, start with Windows, set the minimap view and zoom, and adjust the overlay scale and background opacity.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
+
+### Stats panel
+
+- The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint).
 - After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
-- States you'll see:
+- Status-line states you'll see:
   - `Not in-game` — you're logged in but not spawned on the server (or the server is restarting).
   - `Disconnected · retrying` — network/auth problem; it keeps retrying every poll. If it never recovers, reopen ⚙ and paste a fresh cookie.
   - `Not set up yet` — no cookie stored; open Settings (tray icon → Settings…, or hotkey → ⚙).
+
+### Minimap
+
+- The **minimap** is a separate window sharing the same edit mode: drag it independently, hide it with its ✕, bring it back with the **MAP** button on the stats panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
+- Two views, toggled with the **VIEW** button in edit mode: the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
+- Right-click the minimap in edit mode to drop a **waypoint** — the footer shows your distance to it, and in the centered view an off-screen marker sticks to the panel edge pointing the way. Right-click the marker to clear it; it survives restarts.
 
 ## Configuration (`config.json`)
 
