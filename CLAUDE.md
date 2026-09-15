@@ -260,13 +260,15 @@ human-facing artifacts per release — Setup.exe and a portable zip
 (portable stays fully manual: choosing portable is choosing manual
 control) — plus the nupkg/manifest feed files, with release notes
 pointing people at the right two. Update
-policy (decided Sep 2026): three-way setting, default **"Just notify
-me"** — prompt on launch, and only a user click triggers the download +
-apply (no silent pre-download: negligible UX gain for our tiny deltas,
-strictly more state to manage, and notify mode should fetch nothing
-beyond the version check without consent). "Install updates
-automatically" and "Don't check" (= no GitHub call at all) are the two
-escapes; never update without consent outside auto mode.
+policy (decided Sep 2026): a single checkbox, **"Check for updates at
+launch"**, default ON — notify only; a user click triggers the download +
+apply; unchecked = no GitHub call at all. The app can NEVER modify itself
+without a click — "Install automatically" was considered and dropped
+(silent apply must defer to next launch anyway to avoid restarting the
+overlay mid-game, so auto saves exactly one click per release while
+weakening the trust story and adding a background pipeline). No silent
+pre-download either: negligible gain for tiny deltas, more state, and
+notify mode fetches nothing beyond the version check without consent.
 Prerequisite refactor: config.json must move from
 next-to-exe into %AppData%\PandoraOverlay (Velopack uses versioned
 app-X.Y.Z folders — the current location would reset settings every
