@@ -236,10 +236,9 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        // Skip the availability probe for combos we hold ourselves — the
-        // registration would fail against our own MainWindow.
-        var registeredByUs = _hotkeyEntries.Values.Any(v => v.Initial == spec);
-        if (!registeredByUs && !IsHotkeyAvailable(spec))
+        // MainWindow suspends its registrations while this dialog is open,
+        // so our own combos probe as free like any other.
+        if (!IsHotkeyAvailable(spec))
         {
             HotkeyHint.Text = $"{spec} is taken by another app — keeping {entry.Chosen}.";
             HotkeyHint.Foreground = HintBad;

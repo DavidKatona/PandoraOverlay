@@ -95,26 +95,42 @@ public partial class MainWindow : OverlayWindowBase
     // ---- Settings flow ----------------------------------------------------
     private void OpenSettings()
     {
-        var dialog = new SettingsWindow(_config) { Topmost = true };
-        var saved = dialog.ShowDialog() == true;
+        // Suspend the global hotkeys while the dialog is open: WM_HOTKEY is
+        // system-level, so they would fire behind the modal dialog (Ctrl+F4
+        // hiding the overlay mid-configuration), and suspension also frees
+        // our own combos so the capture boxes can see and reassign them.
+        var hwnd = new WindowInteropHelper(this).Handle;
+        HotkeySpec.Unregister(hwnd, HotkeyId);
+        HotkeySpec.Unregister(hwnd, HideAllHotkeyId);
+        HotkeySpec.Unregister(hwnd, ViewHotkeyId);
+        try
+        {
+            var dialog = new SettingsWindow(_config) { Topmost = true };
+            var saved = dialog.ShowDialog() == true;
 
-        if (!saved)
-        {
-            if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState();
-            return;
+            if (!saved)
+            {
+                if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState();
+                return;
+            }
+            if (dialog.CookieChanged)
+            {
+                DinoText.Text = "Connecting…";
+                StatusText.Text = "";
+                _poll.RebuildClient();
+            }
+            if (dialog.MinimapChanged || dialog.AppearanceChanged) _minimap?.ApplySettings();
+            if (dialog.AppearanceChanged)
+            {
+                ApplyAppearance(_config);
+                _controlPanel?.ApplySettingsFromConfig();
+            }
         }
-        if (dialog.CookieChanged)
+        finally
         {
-            DinoText.Text = "Connecting…";
-            StatusText.Text = "";
-            _poll.RebuildClient();
-        }
-        if (dialog.HotkeyChanged) ApplyHotkeysFromConfig();
-        if (dialog.MinimapChanged || dialog.AppearanceChanged) _minimap?.ApplySettings();
-        if (dialog.AppearanceChanged)
-        {
-            ApplyAppearance(_config);
-            _controlPanel?.ApplySettingsFromConfig();
+            // Restore (or apply changed) registrations from config — this
+            // also covers the cancel path.
+            ApplyHotkeysFromConfig();
         }
     }
 

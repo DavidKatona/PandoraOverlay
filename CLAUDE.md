@@ -197,7 +197,10 @@ references — keep it that way. Every overlay window derives from
   `connect.sid`, warns if `cf_clearance` missing). Three hotkey capture boxes
   (edit / hide-overlay / minimap-view) share the capture UX: combos are
   availability-tested via a throwaway RegisterHotKey on the dialog's hwnd
-  (skipped for combos our app already holds) and cross-duplicates rejected.
+  and cross-duplicates rejected. MainWindow suspends its three
+  registrations for the dialog's lifetime (WM_HOTKEY is system-level and
+  would fire behind the modal dialog; suspension also lets the boxes see
+  and reassign our own combos) and restores them in a finally on close.
   Save writes config + Run key and sets Cookie/Hotkey/Minimap/Appearance
   Changed flags; MainWindow hot-applies each (RebuildClient / re-register
   with fallback / minimap ApplySettings / ApplyAppearance) — no restart,

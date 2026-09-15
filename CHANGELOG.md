@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - If another app already holds one of our combos when the overlay launches,
   the status line now says so ("in use by another app — rebind in
   Settings") instead of the hotkey being silently dead for the session.
+- The app's own hotkeys no longer fire while the settings dialog is open
+  (pressing Ctrl+F4 mid-configuration used to hide the overlay behind the
+  dialog), and the current combos can now be captured and reassigned
+  between the hotkey boxes: all registrations are suspended for the
+  dialog's lifetime and restored on close.
 
 ## [1.11.0] - 2026-09-13
 
