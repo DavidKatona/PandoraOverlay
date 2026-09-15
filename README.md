@@ -28,6 +28,8 @@ It is **fully external**: the only thing it ever does is replay the same authent
 
 Download the latest zip from the [Releases page](../../releases) and unzip it anywhere — it needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) installed. Or build from source as described below.
 
+Windows will likely warn about an **unknown publisher** the first time you run a freshly downloaded version — the releases aren't code-signed, so every update starts with zero trust. See [Troubleshooting](#troubleshooting) for the quick fix.
+
 ## Requirements
 
 - Windows 10/11, x64
@@ -125,6 +127,7 @@ Most of these are editable from the Settings window; `UserAgent`, `PollIntervalS
 - **Overlay not visible over the game** → make sure the game is borderless windowed, not fullscreen.
 - **The hotkey does nothing** → another app grabbed it; pick a different combination in Settings (tray icon → Settings…) — the capture box checks availability as you press.
 - **Bars frozen** → check the timestamp in the status line; it updates on every successful poll.
+- **Windows blocks the app / "unknown publisher"** → expected for every new version, not just the first install: the releases aren't code-signed, and Windows trusts exact files, not app names — each update is new files with no reputation yet. Either click **More info → Run anyway** on the SmartScreen warning, or cleaner: right-click the downloaded **zip** → Properties → tick **Unblock** → OK *before* extracting, which clears every file inside. If the dialog names `PandoraOverlay.dll` and offers no "Run anyway" button, that's Windows 11's **Smart App Control**, which blocks all unsigned apps machine-wide with no per-app exception — it can only be switched off entirely in Windows Security (App & browser control), and that switch is one-way.
 
 ## Fair-play notes
 
