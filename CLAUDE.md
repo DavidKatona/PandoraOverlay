@@ -255,8 +255,15 @@ Fluent Icons for stat glyphs. Velopack auto-update installer (decided Sep
 2026) — TRIGGER: only if the overlay goes community-wide beyond the friend
 group (e.g. posted publicly after a heatmap yes); then skip Inno entirely
 and go straight to Velopack: `vpk pack` replaces the zip step in CI,
-GitHub Releases stays the update feed, deltas auto-apply, UpdateChecker
-retires. Prerequisite refactor: config.json must move from
+GitHub Releases stays the update feed, UpdateChecker retires. Update
+policy (decided Sep 2026): three-way setting, default **"Just notify
+me"** — prompt on launch, and only a user click triggers the download +
+apply (no silent pre-download: negligible UX gain for our tiny deltas,
+strictly more state to manage, and notify mode should fetch nothing
+beyond the version check without consent). "Install updates
+automatically" and "Don't check" (= no GitHub call at all) are the two
+escapes; never update without consent outside auto mode.
+Prerequisite refactor: config.json must move from
 next-to-exe into %AppData%\PandoraOverlay (Velopack uses versioned
 app-X.Y.Z folders — the current location would reset settings every
 update) with a one-time migration. Until the trigger: zip + notifier is
