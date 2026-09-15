@@ -40,6 +40,7 @@ public partial class MainWindow : OverlayWindowBase
     private HotkeySpec _hotkeyHide;
     private HotkeySpec _hotkeyView;
     private bool _overlayHidden;
+    private readonly List<string> _registerFailures = new();
 
     public MainWindow()
     {
@@ -160,11 +161,15 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, HideAllHotkeyId);
         HotkeySpec.Unregister(hwnd, ViewHotkeyId);
 
+        _registerFailures.Clear();
         _hotkey = RegisterWithFallback(hwnd, HotkeyId, _config.Hotkey, _hotkey, v => _config.Hotkey = v);
         _hotkeyHide = RegisterWithFallback(hwnd, HideAllHotkeyId, _config.HotkeyHideAll, _hotkeyHide, v => _config.HotkeyHideAll = v);
         _hotkeyView = RegisterWithFallback(hwnd, ViewHotkeyId, _config.HotkeyMinimapView, _hotkeyView, v => _config.HotkeyMinimapView = v);
         _config.Save();
         UpdateHotkeyTexts();
+
+        if (_registerFailures.Count == 0) _tray.ClearHotkeyConflict();
+        else _tray.ShowHotkeyConflict(string.Join(", ", _registerFailures));
     }
 
     private HotkeySpec RegisterWithFallback(IntPtr hwnd, int id, string configured, HotkeySpec fallback, Action<string> writeBack)
@@ -172,6 +177,7 @@ public partial class MainWindow : OverlayWindowBase
         var wanted = HotkeySpec.TryParse(configured) ?? fallback;
         if (HotkeySpec.Register(hwnd, id, wanted)) return wanted;
 
+        _registerFailures.Add(wanted.ToString());
         HotkeySpec.Register(hwnd, id, fallback);
         writeBack(fallback.ToString());
         StatusText.Text = $"Hotkey {wanted} unavailable — keeping {fallback}";
@@ -236,13 +242,15 @@ public partial class MainWindow : OverlayWindowBase
         // Surface registration failures instead of swallowing them: another
         // app holding a combo at our launch would otherwise leave that hotkey
         // silently dead for the whole session.
-        var failed = new List<string>();
-        if (!HotkeySpec.Register(hwnd, HotkeyId, _hotkey)) failed.Add(_hotkey.ToString());
-        if (!HotkeySpec.Register(hwnd, HideAllHotkeyId, _hotkeyHide)) failed.Add(_hotkeyHide.ToString());
-        if (!HotkeySpec.Register(hwnd, ViewHotkeyId, _hotkeyView)) failed.Add(_hotkeyView.ToString());
-        if (failed.Count > 0)
+        _registerFailures.Clear();
+        if (!HotkeySpec.Register(hwnd, HotkeyId, _hotkey)) _registerFailures.Add(_hotkey.ToString());
+        if (!HotkeySpec.Register(hwnd, HideAllHotkeyId, _hotkeyHide)) _registerFailures.Add(_hotkeyHide.ToString());
+        if (!HotkeySpec.Register(hwnd, ViewHotkeyId, _hotkeyView)) _registerFailures.Add(_hotkeyView.ToString());
+        if (_registerFailures.Count > 0)
         {
-            StatusText.Text = $"Hotkey {string.Join(" + ", failed)} in use by another app — rebind in Settings";
+            var combos = string.Join(", ", _registerFailures);
+            StatusText.Text = $"Hotkey {combos} in use by another app — rebind in Settings";
+            _tray.ShowHotkeyConflict(combos);
         }
 
         HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);

@@ -14,8 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   toggled on and instantly off, looking like a dead keypress). Registration
   now uses MOD_NOREPEAT.
 - If another app already holds one of our combos when the overlay launches,
-  the status line now says so ("in use by another app — rebind in
-  Settings") instead of the hotkey being silently dead for the session.
+  it is no longer silently dead for the session: the status line says so at
+  launch, and — since that line is overwritten by the next poll — the tray
+  now carries a persistent "Hotkey … in use elsewhere — open Settings" menu
+  entry plus a tooltip note until the conflict is resolved by rebinding.
 - The app's own hotkeys no longer fire while the settings dialog is open
   (pressing Ctrl+F4 mid-configuration used to hide the overlay behind the
   dialog), and the current combos can now be captured and reassigned

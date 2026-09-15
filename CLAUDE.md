@@ -169,7 +169,10 @@ references — keep it that way. Every overlay window derives from
   settings / exit (hotkey labels follow config); double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
   127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
   `ShowUpdateAvailable` reveals a hidden menu entry (opens the Releases page)
-  and appends the tag to the tooltip. Disposed on shutdown.
+  and appends the tag to the tooltip; `ShowHotkeyConflict`/`ClearHotkeyConflict`
+  do the same for combos another app holds (entry opens Settings) — the
+  status-line warning alone is overwritten by the next poll. Disposed on
+  shutdown.
 - **UpdateChecker.cs** — one fail-soft GET to the GitHub releases API at
   launch (the only non-islapandora network call); a newer tag surfaces via
   the status line (once) and the tray (for the session). Never re-checks,

@@ -19,14 +19,18 @@ public sealed class TrayIcon : IDisposable
     private readonly ToolStripMenuItem _editItem;
     private readonly ToolStripMenuItem _overlayItem;
     private readonly ToolStripMenuItem _updateItem;
+    private readonly ToolStripMenuItem _conflictItem;
     private readonly ToolStripSeparator _updateSeparator;
     private string _status = "Pandora Overlay";
     private string _updateSuffix = "";
+    private string _conflictSuffix = "";
 
     public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action toggleStats, Action toggleMinimap, Action openSettings, Action exit)
     {
         _updateItem = new ToolStripMenuItem { Visible = false };
         _updateItem.Click += (_, _) => OpenReleasesPage();
+        _conflictItem = new ToolStripMenuItem { Visible = false };
+        _conflictItem.Click += (_, _) => openSettings();
         _updateSeparator = new ToolStripSeparator { Visible = false };
         _editItem = new ToolStripMenuItem("Edit mode", null, (_, _) => toggleEditMode())
         {
@@ -39,6 +43,7 @@ public sealed class TrayIcon : IDisposable
 
         var menu = new ContextMenuStrip();
         menu.Items.Add(_updateItem);
+        menu.Items.Add(_conflictItem);
         menu.Items.Add(_updateSeparator);
         menu.Items.Add(_editItem);
         menu.Items.Add(_overlayItem);
@@ -82,9 +87,31 @@ public sealed class TrayIcon : IDisposable
         RefreshTooltip();
     }
 
+    /// <summary>
+    /// Persistently flags hotkeys another app holds (the status-line note is
+    /// overwritten by the next poll within seconds): a tray menu entry that
+    /// opens Settings, plus a tooltip note for the session.
+    /// </summary>
+    public void ShowHotkeyConflict(string combos)
+    {
+        _conflictItem.Text = $"Hotkey {combos} in use elsewhere — open Settings";
+        _conflictItem.Visible = true;
+        _updateSeparator.Visible = true;
+        _conflictSuffix = " · hotkey conflict";
+        RefreshTooltip();
+    }
+
+    public void ClearHotkeyConflict()
+    {
+        _conflictItem.Visible = false;
+        _updateSeparator.Visible = _updateItem.Visible;
+        _conflictSuffix = "";
+        RefreshTooltip();
+    }
+
     private void RefreshTooltip()
     {
-        var text = _status + _updateSuffix;
+        var text = _status + _conflictSuffix + _updateSuffix;
         _icon.Text = text.Length <= 127 ? text : text[..127];
     }
 
