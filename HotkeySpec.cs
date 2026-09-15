@@ -14,6 +14,11 @@ public sealed record HotkeySpec(ModifierKeys Modifiers, Key Key)
 {
     public static HotkeySpec Default { get; } = new(ModifierKeys.Control, Key.F3);
 
+    // Without MOD_NOREPEAT, holding the combo past the key-repeat delay fires
+    // the hotkey twice — edit mode toggles on and instantly off, which reads
+    // as "the hotkey didn't work".
+    private const uint MOD_NOREPEAT = 0x4000;
+
     [DllImport("user32.dll")]
     private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
@@ -21,7 +26,7 @@ public sealed record HotkeySpec(ModifierKeys Modifiers, Key Key)
     private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     public static bool Register(IntPtr hwnd, int id, HotkeySpec spec) =>
-        RegisterHotKey(hwnd, id, (uint)spec.Modifiers, (uint)KeyInterop.VirtualKeyFromKey(spec.Key));
+        RegisterHotKey(hwnd, id, (uint)spec.Modifiers | MOD_NOREPEAT, (uint)KeyInterop.VirtualKeyFromKey(spec.Key));
 
     public static bool Unregister(IntPtr hwnd, int id) => UnregisterHotKey(hwnd, id);
 

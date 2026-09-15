@@ -205,8 +205,12 @@ references — keep it that way. Every overlay window derives from
   (30–100%) sliders.
 - **HotkeySpec.cs** — record converting the config string ("Ctrl+F3") ⇄ the
   RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
-  shared Register/Unregister p/invokes. Modifier-less hotkeys are rejected
-  (a bare global key would be swallowed from the game).
+  shared Register/Unregister p/invokes. Registration always adds
+  MOD_NOREPEAT (without it, holding the combo past the key-repeat delay
+  fires twice — a toggle turns on and instantly off, reading as a dead
+  keypress). Modifier-less hotkeys are rejected (a bare global key would be
+  swallowed from the game). Startup registration failures are surfaced in
+  the status line by MainWindow, not swallowed.
 - **StartupRegistration.cs** — Start-with-Windows via HKCU Run; the registry
   entry IS the state (deliberately no config field to drift). Fail-soft.
 - **App.xaml.cs** — single-instance mutex: a second launch shows a notice and

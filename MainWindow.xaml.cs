@@ -216,9 +216,19 @@ public partial class MainWindow : OverlayWindowBase
     {
         base.OnSourceInitialized(e); // applies the click-through styles
         var hwnd = new WindowInteropHelper(this).Handle;
-        HotkeySpec.Register(hwnd, HotkeyId, _hotkey);
-        HotkeySpec.Register(hwnd, HideAllHotkeyId, _hotkeyHide);
-        HotkeySpec.Register(hwnd, ViewHotkeyId, _hotkeyView);
+
+        // Surface registration failures instead of swallowing them: another
+        // app holding a combo at our launch would otherwise leave that hotkey
+        // silently dead for the whole session.
+        var failed = new List<string>();
+        if (!HotkeySpec.Register(hwnd, HotkeyId, _hotkey)) failed.Add(_hotkey.ToString());
+        if (!HotkeySpec.Register(hwnd, HideAllHotkeyId, _hotkeyHide)) failed.Add(_hotkeyHide.ToString());
+        if (!HotkeySpec.Register(hwnd, ViewHotkeyId, _hotkeyView)) failed.Add(_hotkeyView.ToString());
+        if (failed.Count > 0)
+        {
+            StatusText.Text = $"Hotkey {string.Join(" + ", failed)} in use by another app — rebind in Settings";
+        }
+
         HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
     }
 

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Hotkeys no longer mis-fire when the combo is held slightly too long:
+  Windows' key auto-repeat used to fire the hotkey twice (edit mode
+  toggled on and instantly off, looking like a dead keypress). Registration
+  now uses MOD_NOREPEAT.
+- If another app already holds one of our combos when the overlay launches,
+  the status line now says so ("in use by another app — rebind in
+  Settings") instead of the hotkey being silently dead for the session.
+
 ## [1.11.0] - 2026-09-13
 
 ### Changed
