@@ -295,7 +295,11 @@ tokens unanswered), Segoe Fluent Icons for stat glyphs. Velopack auto-update ins
 2026) — TRIGGER: only if the overlay goes community-wide beyond the friend
 group (e.g. posted publicly after a heatmap yes); then skip Inno entirely
 and go straight to Velopack: `vpk pack` replaces the zip step in CI,
-GitHub Releases stays the update feed, UpdateChecker retires. Ship BOTH
+GitHub Releases stays the update feed, UpdateChecker retires.
+Code-signing rides the same trigger (decided Sep 15 2026, after an
+unknown-publisher report — unsigned releases reset SmartScreen/Smart App
+Control trust on every update; until then the README's unblock-the-zip
+note is the answer). Ship BOTH
 human-facing artifacts per release — Setup.exe and a portable zip
 (portable stays fully manual: choosing portable is choosing manual
 control) — plus the nupkg/manifest feed files, with release notes
