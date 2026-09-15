@@ -34,14 +34,17 @@ public sealed record MyLocationResponse(bool InGame, PlayerState? Player);
 public sealed record MapCalibration(double OffsetX, double OffsetY, double ScaleX, double ScaleY, double MapSize);
 
 /// <summary>
-/// Minimal client for the Isla Pandora live-map API. This is the entire data
-/// path of the overlay: an authenticated, empty-bodied POST — identical to the
-/// one the website's own frontend makes. Nothing here touches the game.
+/// Minimal client for the Isla Pandora live-map API — the overlay's entire
+/// data path: authenticated, empty-bodied POSTs identical to the website
+/// frontend's own (mylocation, calibration), plus the public, cookie-less
+/// heatmap GETs. Nothing here touches the game.
 /// </summary>
 public sealed class PandoraClient : IDisposable
 {
     private const string Endpoint = "https://islapandora.eu/api/map/mylocation";
     private const string CalibrationEndpoint = "https://islapandora.eu/api/map/calibration";
+    private const string HeatmapStatusEndpoint = "https://islapandora.eu/map/api/heatmap-status";
+    private const string HeatmapImageEndpoint = "https://islapandora.eu/map/heatmap-live.png";
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -96,8 +99,7 @@ public sealed class PandoraClient : IDisposable
 
     /// <summary>
     /// Fetches the map calibration constants. Called once per launch (per
-    /// credential swap at most) — static site config, and the only endpoint
-    /// besides mylocation the overlay is allowed to touch. POST with an empty
+    /// credential swap at most) — static site config. POST with an empty
     /// body, mirroring the frontend's own fetch (the route is POST-only; GET
     /// returns 404). Parsing is tolerant of wrapping: the first JSON object
     /// carrying offsetX/…/mapSize anywhere in the response wins.
@@ -117,6 +119,37 @@ public sealed class PandoraClient : IDisposable
         await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
         using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
         return FindCalibration(doc.RootElement);
+    }
+
+    /// <summary>
+    /// Fetches the site's pre-rendered heatmap image (an opaque 1000×1000 PNG
+    /// with the grayscale map and a player-count caption baked in — approved
+    /// by the site dev, Sep 2026). Honors the admin kill-switch first:
+    /// /map/api/heatmap-status reporting enabled:false returns null. The site
+    /// fails open on a broken status check; we fail closed — when in doubt,
+    /// skip the ~1 MB download. Both URLs are public, so no Cookie header is
+    /// sent — this adds no credential path. The cache-buster mirrors the
+    /// live-map page's own image refresh.
+    /// </summary>
+    public async Task<byte[]?> FetchHeatmapAsync(CancellationToken ct = default)
+    {
+        using (var status = await _http.GetAsync(HeatmapStatusEndpoint, ct).ConfigureAwait(false))
+        {
+            status.EnsureSuccessStatusCode();
+            await using var stream = await status.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty("enabled", out var enabled) &&
+                enabled.ValueKind == JsonValueKind.False)
+            {
+                return null;
+            }
+        }
+
+        var url = $"{HeatmapImageEndpoint}?_t={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+        using var response = await _http.GetAsync(url, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
     }
 
     internal static MapCalibration? FindCalibration(JsonElement el)

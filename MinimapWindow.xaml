@@ -32,6 +32,15 @@
                     <Image x:Name="MapImage"
                            Stretch="Fill"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <!-- The site's pre-rendered heatmap: an opaque PNG (grayscale
+                         map + blobs + caption baked in), blended at the same 55%
+                         the live-map page uses. Sized and translated in lockstep
+                         with MapImage, so both views just work. -->
+                    <Image x:Name="HeatmapImage"
+                           Stretch="Fill"
+                           Opacity="0.55"
+                           Visibility="Collapsed"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
                 </Canvas>
                 <Canvas>
                     <Path x:Name="WaypointMark"

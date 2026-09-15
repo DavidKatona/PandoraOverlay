@@ -96,6 +96,7 @@ public partial class SettingsWindow : Window
         ModeIsland.IsChecked = !centered;
         ZoomSlider.Value = Math.Clamp(config.MinimapZoom, ZoomSlider.Minimum, ZoomSlider.Maximum);
         MapSizeSlider.Value = Math.Clamp(config.MinimapSize, MapSizeSlider.Minimum, MapSizeSlider.Maximum);
+        HeatmapCheck.IsChecked = config.HeatmapEnabled;
 
         Validate();
     }
@@ -318,13 +319,16 @@ public partial class SettingsWindow : Window
         var mode = ModeCentered.IsChecked == true ? "centered" : "island";
         var zoom = Math.Round(ZoomSlider.Value, 2);
         var mapSize = Math.Round(MapSizeSlider.Value);
+        var heatmap = HeatmapCheck.IsChecked == true;
         if (mode != _config.MinimapMode ||
             Math.Abs(zoom - _config.MinimapZoom) > 0.005 ||
-            Math.Abs(mapSize - _config.MinimapSize) > 0.5)
+            Math.Abs(mapSize - _config.MinimapSize) > 0.5 ||
+            heatmap != _config.HeatmapEnabled)
         {
             _config.MinimapMode = mode;
             _config.MinimapZoom = zoom;
             _config.MinimapSize = mapSize;
+            _config.HeatmapEnabled = heatmap;
             MinimapChanged = true;
         }
 

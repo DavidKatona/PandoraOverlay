@@ -212,6 +212,10 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="MapSizeSlider_ValueChanged"/>
             </DockPanel>
+            <CheckBox x:Name="HeatmapCheck" Content="Show activity heatmap on the map"
+                      Foreground="#C7D1DA" FontSize="12" Margin="0,10,0,0"/>
+            <TextBlock Text="The server's live heatmap image, refreshed every minute. Mutes the map colors a little while it's on."
+                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
             <!-- ============================ Buttons ======================== -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">

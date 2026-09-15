@@ -121,6 +121,7 @@ public partial class MainWindow : OverlayWindowBase
                 _poll.RebuildClient();
             }
             if (dialog.MinimapChanged || dialog.AppearanceChanged) _minimap?.ApplySettings();
+            if (dialog.MinimapChanged) _ = _poll.RefreshHeatmapAsync(); // fetch now if the heatmap was just enabled
             if (dialog.AppearanceChanged)
             {
                 ApplyAppearance(_config);
@@ -230,6 +231,7 @@ public partial class MainWindow : OverlayWindowBase
             _minimap.Show();
         }
         _config.MinimapEnabled = true;
+        _ = _poll.RefreshHeatmapAsync(); // a fresh window starts without the layer
         if (EditMode) _minimap.SetEditMode(true);
     }
 

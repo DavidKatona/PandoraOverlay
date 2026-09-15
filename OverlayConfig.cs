@@ -81,6 +81,13 @@ public sealed class OverlayConfig
     /// <summary>Show the minimap window (toggled from the control panel or the tray menu).</summary>
     public bool MinimapEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Overlay the site's pre-rendered activity heatmap on the minimap
+    /// (approved by the site dev, Sep 2026). Off by default: opting in adds
+    /// two public, cookie-less GETs per minute while the minimap is shown.
+    /// </summary>
+    public bool HeatmapEnabled { get; set; }
+
     public double MinimapX { get; set; } = 300;
     public double MinimapY { get; set; } = 40;
 

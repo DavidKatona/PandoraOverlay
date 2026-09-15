@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -15,7 +16,9 @@ namespace PandoraOverlay;
 /// A personal waypoint (right-click in edit mode: place/move; right-click the
 /// marker: clear) is stored in world coordinates, drawn as a blue diamond
 /// (edge-clamped in the centered view when off-screen), with the distance in
-/// the footer. A pure consumer of the shared PollService stream — it never
+/// the footer. An optional heatmap layer (HeatmapEnabled) blends the site's
+/// pre-rendered activity image over the map, delivered by PollService's slow
+/// timer. A pure consumer of the shared PollService stream — it never
 /// makes requests of its own. The world→pixel transform mirrors the live-map
 /// frontend (see MapCalibration); movement glides between polls and yaw
 /// rotates along the shortest arc.
@@ -64,6 +67,7 @@ public partial class MinimapWindow : OverlayWindowBase
         bmp.Freeze();
         MapImage.Source = bmp;
         MapImage.RenderTransform = _mapTranslate;
+        HeatmapImage.RenderTransform = _mapTranslate; // shared: heatmap pans with the map
 
         PlayerArrow.RenderTransform = new TransformGroup
         {
@@ -75,10 +79,12 @@ public partial class MinimapWindow : OverlayWindowBase
 
         _poll.SnapshotReceived += OnSnapshot;
         _poll.CalibrationChanged += OnCalibrationChanged;
+        _poll.HeatmapChanged += OnHeatmap;
         Closed += (_, _) =>
         {
             _poll.SnapshotReceived -= OnSnapshot;
             _poll.CalibrationChanged -= OnCalibrationChanged;
+            _poll.HeatmapChanged -= OnHeatmap;
         };
     }
 
@@ -122,8 +128,36 @@ public partial class MinimapWindow : OverlayWindowBase
         _centered = string.Equals(_config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
         _zoom = Math.Clamp(_config.MinimapZoom, MinZoom, MaxZoom);
         MapHost.Width = MapHost.Height = Math.Clamp(_config.MinimapSize, MinMapSize, MaxMapSize);
+        if (!_config.HeatmapEnabled) OnHeatmap(null); // toggled off: clear immediately
         ApplyAppearance(_config);
         ApplyViewMode();
+    }
+
+    /// <summary>Fresh heatmap bytes from PollService's slow timer; null hides the layer.</summary>
+    private void OnHeatmap(byte[]? png)
+    {
+        if (png is null || !_config.HeatmapEnabled)
+        {
+            HeatmapImage.Visibility = Visibility.Collapsed;
+            HeatmapImage.Source = null;
+            return;
+        }
+        try
+        {
+            using var stream = new MemoryStream(png);
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.StreamSource = stream;
+            bmp.EndInit();
+            bmp.Freeze();
+            HeatmapImage.Source = bmp;
+            HeatmapImage.Visibility = Visibility.Visible;
+        }
+        catch
+        {
+            HeatmapImage.Visibility = Visibility.Collapsed; // undecodable image: keep the map usable
+        }
     }
 
     /// <summary>Sizes the map for the current mode, resets transforms, and snap-renders the last fix.</summary>
@@ -144,6 +178,7 @@ public partial class MinimapWindow : OverlayWindowBase
             _mapTranslate.X = 0;
             _mapTranslate.Y = 0;
         }
+        HeatmapImage.Width = HeatmapImage.Height = MapImage.Width;
 
         _hasFix = false; // next render snaps into place
         RenderLastFix();

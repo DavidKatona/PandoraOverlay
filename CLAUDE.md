@@ -11,13 +11,17 @@ web dev.**
    touch the game process in any way. The Isle runs Easy Anti-Cheat. The ONLY data
    source is the islapandora.eu web API. If a feature seems to need game-side data,
    the answer is no.
-2. **Two endpoints only.** `POST /api/map/mylocation` (the poll) and
+2. **Approved endpoints only.** `POST /api/map/mylocation` (the poll),
    `POST /api/map/calibration` (once per launch — static map-transform constants
    for the approved minimap; the live-map page itself loads it on every visit;
-   added at the owner's direction, Sep 2026). The `friends` and heatmap/zone
-   endpoints are NOT cleared for use (see Permissions). The launch-time update
-   check calls the GitHub releases API — not an islapandora endpoint, so it
-   sits outside this constraint.
+   added at the owner's direction, Sep 2026), and the heatmap pair
+   `GET /map/api/heatmap-status` + `GET /map/heatmap-live.png` (approved by
+   the site dev Sep 15 2026; public and fetched WITHOUT a cookie, every 60 s
+   and only while the heatmap layer is on and the minimap shown — the site's
+   own page refetches every 10 s per open tab). The `friends` endpoint and
+   the zone overlays are NOT cleared for use (see Permissions). The
+   launch-time update check calls the GitHub releases API — not an
+   islapandora endpoint, so it sits outside this constraint.
 3. **Poll interval >= 2 s** (default 3 s, matching the website's own cadence).
    Server-side rate limit is 300/window. Never add endpoints or frequency without
    the owner's explicit okay — the dev specifically praised the polling restraint.
@@ -31,7 +35,12 @@ web dev.**
   overlay, explicitly including a future **minimap** from the same endpoint.
   Distributing the app / public source is fine — it's a simple tracker and the
   server team has no problem with such tools.
-- **NOT approved:** using the `friends` endpoint — ask him first. A read-only API
+- Approved Sep 15 2026 (same dev): the **heatmap layer** — mirroring the
+  live-map page's pre-rendered `/map/heatmap-live.png` (+ its status
+  endpoint) on the minimap.
+- **NOT approved:** using the `friends` endpoint or the zone overlay images
+  (the live-map bundles patrols / sanctuaries / migrations / salt rocks as
+  static PNGs) — ask him first. A read-only API
   token feature was pitched to him; if it ships, auth migration happens inside
   `OverlayConfig.GetCookie/SetCookie` + `PandoraClient` header — nothing else changes.
 
@@ -88,7 +97,10 @@ references — keep it that way. Every overlay window derives from
   reentrancy guard; raises `SnapshotReceived`/`PollFailed`/`CalibrationChanged`
   on the UI thread. Windows are pure consumers: N windows, still ONE request
   stream (this is what preserves constraint #3). Fetches calibration once per
-  launch (retried after a credential swap) and caches it into config.
+  launch (retried after a credential swap) and caches it into config. A
+  second 60 s timer (`RefreshHeatmapAsync` — also hot-triggered on settings
+  save and minimap re-show) raises `HeatmapChanged(byte[]?)`, gated on
+  `HeatmapEnabled` + `MinimapEnabled`; null hides the layer.
 - **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
   toolwindow styles via SetWindowLongPtr, x64), `EditMode` state, shared
   edit-border brushes, `ApplyAppearance` (UI scale as a LayoutTransform +
@@ -130,7 +142,10 @@ references — keep it that way. Every overlay window derives from
   (case-insensitive JSON). One long-lived HttpClient, `UseCookies=false` (manual
   Cookie header so cf_clearance is sent verbatim), 8 s timeout, rolling-cookie
   capture *before* status check. `ConfigureAwait(false)` inside; UI hops back only
-  at the outermost await.
+  at the outermost await. `FetchHeatmapAsync` mirrors the live-map page:
+  checks the public `/map/api/heatmap-status` kill-switch (the site fails
+  open, we fail closed), then GETs the cache-busted heatmap PNG — no Cookie
+  header on either.
 - **GrowthTracker.cs** — pure class fed from the snapshot stream: 15-min
   sliding window of (time, growth) samples → slope → in-game ETA to full
   growth. Needs a ≥5-min baseline before showing anything; a full baseline
@@ -194,7 +209,11 @@ references — keep it that way. Every overlay window derives from
   (`MinimapEnabled`). Waypoint: right-click in edit
   mode places/moves it (stored as world cm in config — persists), right-click
   on the marker clears it; blue diamond, edge-clamped in the centered view,
-  distance appended to the footer (◆ 830m / ◆ 1.2km).
+  distance appended to the footer (◆ 830m / ◆ 1.2km). Optional heatmap
+  layer (`HeatmapEnabled`): the site's pre-rendered heatmap PNG (opaque —
+  grayscale map, blobs and a player-count caption baked in) as a second
+  Image sharing the map image's size and translate transform, blended at
+  the site's own 55%; null/undecodable bytes collapse it.
 - **SettingsWindow.xaml(.cs)** — sectioned settings dialog (Account / Controls
   / General / Minimap; single column, no tabs — deliberate, avoids theming
   stock TabControl chrome). Cookie box is a replace-inbox: empty = keep the
@@ -207,10 +226,12 @@ references — keep it that way. Every overlay window derives from
   registrations for the dialog's lifetime (WM_HOTKEY is system-level and
   would fire behind the modal dialog; suspension also lets the boxes see
   and reassign our own combos) and restores them in a finally on close.
+  The Minimap section holds view mode, centered zoom, map size and the
+  heatmap toggle (folded into the Minimap flag).
   Save writes config + Run key and sets Cookie/Hotkey/Minimap/Appearance
   Changed flags; MainWindow hot-applies each (RebuildClient / re-register
-  with fallback / minimap ApplySettings / ApplyAppearance) — no restart,
-  ever. General also holds the UI scale (75–150%) and background opacity
+  with fallback / minimap ApplySettings + a heatmap refresh / ApplyAppearance)
+  — no restart, ever. General also holds the UI scale (75–150%) and background opacity
   (30–100%) sliders.
 - **HotkeySpec.cs** — record converting the config string ("Ctrl+F7") ⇄ the
   RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
@@ -262,13 +283,11 @@ the tray, registrations suspended during the settings dialog; edit
 default moved to Ctrl+F7 after Ctrl+F3 proved squatted by third-party
 software — verified in-game).
 
-Later/maybe: heatmap layer on the minimap (permission ask sent to the site
-dev ~Sep 14 2026, together with a token-auth nudge; design ready: overlay
-their pre-rendered `/map/heatmap-live.png` as a second image in the map
-layer group, refetched every few minutes, same-or-no cookie — build only on
-his explicit yes), friends markers (needs permission first), zone overlays
-(needs permission), official token auth (if the dev builds it), Segoe
-Fluent Icons for stat glyphs. Velopack auto-update installer (decided Sep
+Later/maybe: friends markers (needs permission first), zone overlays
+(needs permission; the live-map bundles them as static PNGs — patrols,
+sanctuaries, migrations, salt rocks), official token auth (the nudge went
+out with the heatmap ask ~Sep 14 2026; the heatmap got its yes Sep 15,
+tokens unanswered), Segoe Fluent Icons for stat glyphs. Velopack auto-update installer (decided Sep
 2026) — TRIGGER: only if the overlay goes community-wide beyond the friend
 group (e.g. posted publicly after a heatmap yes); then skip Inno entirely
 and go straight to Velopack: `vpk pack` replaces the zip step in CI,

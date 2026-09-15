@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Optional activity heatmap on the minimap — approved by the server's dev:
+  Settings → Minimap → "Show activity heatmap on the map". Overlays the
+  same pre-rendered image the website's heatmap toggle shows (grayscale
+  island, activity blobs, and its baked-in player-count + timestamp
+  caption), blended at the website's own 55% opacity, in both map views.
+  Refreshed every 60 s while enabled and the minimap is shown — the site's
+  own page refetches every 10 s per open tab, so this stays well under its
+  footprint — and the image is public, so no login cookie is ever sent for
+  it. Off by default; if the server disables the heatmap, the layer simply
+  hides until it returns.
+
 ## [1.12.0] - 2026-09-15
 
 ### Changed
