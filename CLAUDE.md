@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.11.0 is built, working, and approved by the server's
+and settings window. **v1.12.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -256,7 +256,11 @@ v1.9.0 (banner-less widgets + edit-mode control panel, focus grab so the
 game releases the cursor, hover-readable buttons), v1.10.0 (hide-stats
 toggle, per-widget sizing: native Map size slider + stats-only scale),
 v1.11.0 (hotkey defaults rebased to Ctrl+F3/F4/F5 with auto-migration —
-verified: migration fired, new combos work in-game).
+verified: migration fired, new combos work in-game), v1.12.0 (hotkey
+reliability: MOD_NOREPEAT, startup conflicts surfaced persistently in
+the tray, registrations suspended during the settings dialog; edit
+default moved to Ctrl+F7 after Ctrl+F3 proved squatted by third-party
+software — verified in-game).
 
 Later/maybe: heatmap layer on the minimap (permission ask sent to the site
 dev ~Sep 14 2026, together with a token-auth nudge; design ready: overlay
@@ -297,7 +301,7 @@ re-propose.
 - Keep files well under ~500 lines; current style is regions + XML doc comments.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.11.0.
+  minor, fixes bump patch. Current: 1.12.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
