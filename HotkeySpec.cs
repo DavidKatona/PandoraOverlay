@@ -5,14 +5,14 @@ namespace PandoraOverlay;
 
 /// <summary>
 /// The global edit-mode hotkey: converts between the config string
-/// ("Ctrl+F3") and what Win32 RegisterHotKey wants. WPF's ModifierKeys flag
+/// ("Ctrl+F7") and what Win32 RegisterHotKey wants. WPF's ModifierKeys flag
 /// values equal the Win32 MOD_* flags, so the cast is direct. Also hosts the
 /// RegisterHotKey/UnregisterHotKey p/invokes shared by MainWindow (the real
 /// registration) and SettingsWindow (the availability test during capture).
 /// </summary>
 public sealed record HotkeySpec(ModifierKeys Modifiers, Key Key)
 {
-    public static HotkeySpec Default { get; } = new(ModifierKeys.Control, Key.F3);
+    public static HotkeySpec Default { get; } = new(ModifierKeys.Control, Key.F7);
 
     // Without MOD_NOREPEAT, holding the combo past the key-repeat delay fires
     // the hotkey twice — edit mode toggles on and instantly off, which reads

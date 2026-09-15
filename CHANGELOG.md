@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The default edit-mode hotkey moves from **Ctrl+F3** to **Ctrl+F7**:
+  Ctrl+F3 turned out to be held globally by third-party software in the
+  wild, which made edit mode look dead. The quick mid-game toggles keep
+  the nearest keys — **Ctrl+F4** (hide/show overlay) and **Ctrl+F5**
+  (minimap view) are unchanged — while edit mode, an occasional setup
+  action, sits farthest out, still clear of the game's F2 (recording)
+  and F10 (hide HUD) keys. Configs still holding an exact past default
+  trio (F3/F4/F5 or the pre-1.11 F7/F8/F9) are migrated automatically;
+  any customized set is left untouched, and everything remains
+  rebindable in Settings.
+
 ### Fixed
 
 - Hotkeys no longer mis-fire when the combo is held slightly too long:
@@ -19,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now carries a persistent "Hotkey … in use elsewhere — open Settings" menu
   entry plus a tooltip note until the conflict is resolved by rebinding.
 - The app's own hotkeys no longer fire while the settings dialog is open
-  (pressing Ctrl+F4 mid-configuration used to hide the overlay behind the
+  (pressing the hide hotkey mid-configuration used to hide the overlay behind the
   dialog), and the current combos can now be captured and reassigned
   between the hotkey boxes: all registrations are suspended for the
   dialog's lifetime and restored on close.

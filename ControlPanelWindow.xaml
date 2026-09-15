@@ -81,7 +81,7 @@
                         Margin="0"/>
             </StackPanel>
             <TextBlock x:Name="HintText"
-                       Text="drag panels to move · right-click map = waypoint · Ctrl+F3 locks"
+                       Text="drag panels to move · right-click map = waypoint · Ctrl+F7 locks"
                        Foreground="#7B8790" FontSize="10" Margin="2,7,0,0"/>
         </StackPanel>
     </Border>

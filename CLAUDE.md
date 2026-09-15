@@ -143,14 +143,17 @@ references — keep it that way. Every overlay window derives from
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
   and the minimap window's lifetime. Three global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
-  (`Hotkey`, Ctrl+F3) toggling every window, hide/show overlay
+  (`Hotkey`, Ctrl+F7) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
   the edit hotkey un-hides first), and minimap view toggle
   (`HotkeyMinimapView`, Ctrl+F5 → `MinimapWindow.ToggleView`). Defaults sit
-  in F3–F5 (v1.11 rebase), clear of the game's F2 recording and F10 hide-HUD
-  keys — raw-input games can react to the bare F-key despite Ctrl;
-  `OverlayConfig.Load` migrates configs still holding the exact old
-  F7/F8/F9 trio and leaves customized sets alone. Edit mode:
+  in F4–F7 (v1.12 rebase — Ctrl+F3 proved globally held by third-party
+  software in the wild; the mid-game toggles take the nearest keys, the
+  occasional edit toggle the farthest), clear of the game's F2 recording
+  and F10 hide-HUD keys — raw-input games can react to the bare F-key
+  despite Ctrl;
+  `OverlayConfig.Load` migrates configs still holding an exact past
+  default trio (F3/F4/F5 or F7/F8/F9) and leaves customized sets alone. Edit mode:
   borders recolor, drag-with-snapping, and MainWindow shows the
   ControlPanelWindow (hidden again on lock); leaving edit mode
   persists all window positions + the re-encrypted rolled cookie.
@@ -209,7 +212,7 @@ references — keep it that way. Every overlay window derives from
   with fallback / minimap ApplySettings / ApplyAppearance) — no restart,
   ever. General also holds the UI scale (75–150%) and background opacity
   (30–100%) sliders.
-- **HotkeySpec.cs** — record converting the config string ("Ctrl+F3") ⇄ the
+- **HotkeySpec.cs** — record converting the config string ("Ctrl+F7") ⇄ the
   RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
   shared Register/Unregister p/invokes. Registration always adds
   MOD_NOREPEAT (without it, holding the combo past the key-repeat delay

@@ -53,13 +53,16 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Global edit-mode hotkey: modifiers (Ctrl/Alt/Shift/Win) plus one key,
-    /// separated by "+", e.g. "Ctrl+F3" or "Ctrl+Shift+M". Editable in the
-    /// settings window; unparseable values fall back to Ctrl+F3. Defaults
-    /// deliberately live in F3–F5, clear of the game's F2 (recording) and
+    /// separated by "+", e.g. "Ctrl+F7" or "Ctrl+Shift+M". Editable in the
+    /// settings window; unparseable values fall back to Ctrl+F7. Defaults
+    /// deliberately live in F4–F7, clear of the game's F2 (recording) and
     /// F10 (hide HUD) — raw-input games can react to the bare F-key even
-    /// with Ctrl held.
+    /// with Ctrl held — and of Ctrl+F3, which proved to be held globally by
+    /// third-party software in the wild. The quick mid-game toggles take
+    /// the nearest keys; edit mode, an occasional setup action, sits
+    /// farthest out.
     /// </summary>
-    public string Hotkey { get; set; } = "Ctrl+F3";
+    public string Hotkey { get; set; } = "Ctrl+F7";
 
     /// <summary>
     /// Hide/show the whole overlay (screenshots, cutscenes) — same format as
@@ -154,13 +157,17 @@ public sealed class OverlayConfig
             cfg.Cookie = "";
         }
 
-        // v1.11 hotkey rebase: configs still holding the exact pre-1.11
-        // default trio were never customized — move them off the game's
-        // F-key border along with the new defaults. Any customized set
-        // (even one changed combo) is left untouched.
-        if (cfg.Hotkey == "Ctrl+F8" && cfg.HotkeyHideAll == "Ctrl+F9" && cfg.HotkeyMinimapView == "Ctrl+F7")
+        // Hotkey default rebases: configs still holding an exact past
+        // default trio were never customized — move them to the current
+        // defaults (v1.11 introduced F3/F4/F5 edit/hide/view; v1.12 moved
+        // to F7/F4/F5 after Ctrl+F3 proved conflict-prone in the wild).
+        // Any customized set (even one changed combo) is left untouched.
+        var holdsOldDefaults =
+            (cfg.Hotkey == "Ctrl+F8" && cfg.HotkeyHideAll == "Ctrl+F9" && cfg.HotkeyMinimapView == "Ctrl+F7") ||
+            (cfg.Hotkey == "Ctrl+F3" && cfg.HotkeyHideAll == "Ctrl+F4" && cfg.HotkeyMinimapView == "Ctrl+F5");
+        if (holdsOldDefaults)
         {
-            cfg.Hotkey = "Ctrl+F3";
+            cfg.Hotkey = "Ctrl+F7";
             cfg.HotkeyHideAll = "Ctrl+F4";
             cfg.HotkeyMinimapView = "Ctrl+F5";
         }
