@@ -255,7 +255,11 @@ Fluent Icons for stat glyphs. Velopack auto-update installer (decided Sep
 2026) — TRIGGER: only if the overlay goes community-wide beyond the friend
 group (e.g. posted publicly after a heatmap yes); then skip Inno entirely
 and go straight to Velopack: `vpk pack` replaces the zip step in CI,
-GitHub Releases stays the update feed, UpdateChecker retires. Update
+GitHub Releases stays the update feed, UpdateChecker retires. Ship BOTH
+human-facing artifacts per release — Setup.exe and a portable zip
+(portable stays fully manual: choosing portable is choosing manual
+control) — plus the nupkg/manifest feed files, with release notes
+pointing people at the right two. Update
 policy (decided Sep 2026): three-way setting, default **"Just notify
 me"** — prompt on launch, and only a user click triggers the download +
 apply (no silent pre-download: negligible UX gain for our tiny deltas,
