@@ -251,8 +251,18 @@ their pre-rendered `/map/heatmap-live.png` as a second image in the map
 layer group, refetched every few minutes, same-or-no cookie — build only on
 his explicit yes), friends markers (needs permission first), zone overlays
 (needs permission), official token auth (if the dev builds it), Segoe
-Fluent Icons for stat glyphs. Rejected: rotating (facing-up) minimap mode — owner decided
-it isn't useful enough (Sep 2026); don't re-propose.
+Fluent Icons for stat glyphs. Velopack auto-update installer (decided Sep
+2026) — TRIGGER: only if the overlay goes community-wide beyond the friend
+group (e.g. posted publicly after a heatmap yes); then skip Inno entirely
+and go straight to Velopack: `vpk pack` replaces the zip step in CI,
+GitHub Releases stays the update feed, deltas auto-apply, UpdateChecker
+retires. Prerequisite refactor: config.json must move from
+next-to-exe into %AppData%\PandoraOverlay (Velopack uses versioned
+app-X.Y.Z folders — the current location would reset settings every
+update) with a one-time migration. Until the trigger: zip + notifier is
+the right size, don't build an installer. Rejected: rotating (facing-up)
+minimap mode — owner decided it isn't useful enough (Sep 2026); don't
+re-propose.
 
 ## Conventions
 
