@@ -68,6 +68,8 @@
                         Style="{StaticResource PanelButton}"/>
                 <Button Content="Map view" Click="MapView_Click"
                         Style="{StaticResource PanelButton}"/>
+                <Button Content="Heatmap" Click="Heatmap_Click"
+                        Style="{StaticResource PanelButton}"/>
 
                 <Border Width="1" Background="#33FFFFFF" Margin="6,3,12,3"/>
 

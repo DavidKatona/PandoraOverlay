@@ -99,8 +99,9 @@ references — keep it that way. Every overlay window derives from
   stream (this is what preserves constraint #3). Fetches calibration once per
   launch (retried after a credential swap) and caches it into config. A
   second 60 s timer (`RefreshHeatmapAsync` — also hot-triggered on settings
-  save and minimap re-show) raises `HeatmapChanged(byte[]?)`, gated on
-  `HeatmapEnabled` + `MinimapEnabled`; null hides the layer.
+  save, minimap re-show and the control-panel/tray heatmap toggle) raises
+  `HeatmapChanged(byte[]?)`, gated on `HeatmapEnabled` + `MinimapEnabled`;
+  null hides the layer.
 - **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
   toolwindow styles via SetWindowLongPtr, x64), `EditMode` state, shared
   edit-border brushes, `ApplyAppearance` (UI scale as a LayoutTransform +
@@ -124,7 +125,7 @@ references — keep it that way. Every overlay window derives from
   and whether it was a peer) so the caller can draw guides.
 - **ControlPanelWindow.xaml(.cs)** — the edit-mode control panel (v1.9):
   appears with edit mode, hides on lock; labeled buttons Settings /
-  Show-hide stats / Show-hide minimap / Map view | Lock / Exit + the hint
+  Show-hide stats / Show-hide minimap / Map view / Heatmap | Lock / Exit + the hint
   line (hotkey label follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
   permanently interactive while visible, `IsSnapTarget` false, first show
   bottom-center, position persisted (`ControlPanelX/Y`, nullable). Activated
@@ -183,8 +184,8 @@ references — keep it that way. Every overlay window derives from
   on Loaded, feeding the status line + tray.
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
   always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
-  Right-click menu = edit mode / hide-show overlay / minimap toggle /
-  settings / exit (hotkey labels follow config); double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
+  Right-click menu = edit mode / hide-show overlay / stats / minimap /
+  heatmap / settings / exit (hotkey labels follow config); double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
   127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
   `ShowUpdateAvailable` reveals a hidden menu entry (opens the Releases page)
   and appends the tag to the tooltip; `ShowHotkeyConflict`/`ClearHotkeyConflict`

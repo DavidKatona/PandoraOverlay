@@ -63,6 +63,7 @@ public partial class MainWindow : OverlayWindowBase
             toggleOverlay: ToggleOverlayVisibility,
             toggleStats: ToggleStats,
             toggleMinimap: ToggleMinimap,
+            toggleHeatmap: ToggleHeatmap,
             openSettings: OpenSettings,
             exit: () => Application.Current.Shutdown());
         UpdateHotkeyTexts();
@@ -207,6 +208,13 @@ public partial class MainWindow : OverlayWindowBase
         if (_config.StatsEnabled) Show(); else Hide();
     }
 
+    /// <summary>Control panel / tray: flips the minimap's heatmap layer (persisted with the next Save).</summary>
+    private void ToggleHeatmap()
+    {
+        _config.HeatmapEnabled = !_config.HeatmapEnabled;
+        _ = _poll.RefreshHeatmapAsync(); // delivers fresh bytes, or null to clear the layer
+    }
+
     private void Minimap_Click(object sender, RoutedEventArgs e) => ToggleMinimap();
 
     private void ToggleMinimap()
@@ -333,6 +341,7 @@ public partial class MainWindow : OverlayWindowBase
                 toggleStats: ToggleStats,
                 toggleMinimap: ToggleMinimap,
                 toggleMinimapView: () => _minimap?.ToggleView(),
+                toggleHeatmap: ToggleHeatmap,
                 lockOverlay: ToggleEditMode,
                 exit: () => Application.Current.Shutdown());
         }

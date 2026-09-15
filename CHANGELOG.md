@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Optional activity heatmap on the minimap — approved by the server's dev:
-  Settings → Minimap → "Show activity heatmap on the map". Overlays the
+  Settings → Minimap → "Show activity heatmap on the map", the edit-mode
+  control panel's new Heatmap button, or "Show/hide heatmap" in the tray
+  menu all toggle it. Overlays the
   same pre-rendered image the website's heatmap toggle shows (grayscale
   island, activity blobs, and its baked-in player-count + timestamp
   caption), blended at the website's own 55% opacity, in both map views.
