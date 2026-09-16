@@ -220,8 +220,8 @@ public partial class MinimapWindow : OverlayWindowBase
         var p = result.Player;
         _lastWorld = (p.X, p.Y);
         _lastFix = (
-            Math.Clamp((cal.OffsetX + p.X * cal.ScaleX) / cal.MapSize, 0, 1),
-            Math.Clamp(1 - (cal.OffsetY + p.Y * cal.ScaleY) / cal.MapSize, 0, 1),
+            Math.Clamp((cal.OffsetX + p.X * cal.ScaleX + cal.PinOffsetX) / cal.MapSize, 0, 1),
+            Math.Clamp(1 - (cal.OffsetY + p.Y * cal.ScaleY + cal.PinOffsetY) / cal.MapSize, 0, 1),
             p.Yaw + _config.MinimapYawOffsetDegrees);
         RenderLastFix();
     }
@@ -317,8 +317,8 @@ public partial class MinimapWindow : OverlayWindowBase
             fy = Math.Clamp(fy, 0, 1);
 
             // Inverse of the calibration transform: map fraction → world cm.
-            _config.WaypointX = (fx * cal.MapSize - cal.OffsetX) / cal.ScaleX;
-            _config.WaypointY = ((1 - fy) * cal.MapSize - cal.OffsetY) / cal.ScaleY;
+            _config.WaypointX = (fx * cal.MapSize - cal.OffsetX - cal.PinOffsetX) / cal.ScaleX;
+            _config.WaypointY = ((1 - fy) * cal.MapSize - cal.OffsetY - cal.PinOffsetY) / cal.ScaleY;
         }
 
         UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
@@ -334,8 +334,8 @@ public partial class MinimapWindow : OverlayWindowBase
         {
             return null;
         }
-        return (Math.Clamp((cal.OffsetX + wx * cal.ScaleX) / cal.MapSize, 0, 1),
-                Math.Clamp(1 - (cal.OffsetY + wy * cal.ScaleY) / cal.MapSize, 0, 1));
+        return (Math.Clamp((cal.OffsetX + wx * cal.ScaleX + cal.PinOffsetX) / cal.MapSize, 0, 1),
+                Math.Clamp(1 - (cal.OffsetY + wy * cal.ScaleY + cal.PinOffsetY) / cal.MapSize, 0, 1));
     }
 
     /// <summary>

@@ -27,11 +27,16 @@ public sealed record MyLocationResponse(bool InGame, PlayerState? Player);
 
 /// <summary>
 /// World→map transform constants served by /api/map/calibration — the same
-/// values the live-map frontend feeds its pin-placement function:
-///   left fraction = (OffsetX + x·ScaleX) / MapSize
-///   top fraction  = 1 − (OffsetY + y·ScaleY) / MapSize   (note the Y flip)
+/// values the live-map frontend feeds its marker-placement function:
+///   left fraction = (OffsetX + x·ScaleX + PinOffsetX) / MapSize
+///   top fraction  = 1 − (OffsetY + y·ScaleY + PinOffsetY) / MapSize   (note the Y flip)
+/// pinOffset is part of the site's coordinate mapping for EVERY marker (the
+/// frontend anchors them centered via translate(-50%,-50%), player arrow
+/// included) — skipping it draws ~0.6%/1% off the website, the
+/// v1.13.0-and-earlier bug. Defaults keep older cached calibrations loading.
 /// </summary>
-public sealed record MapCalibration(double OffsetX, double OffsetY, double ScaleX, double ScaleY, double MapSize);
+public sealed record MapCalibration(double OffsetX, double OffsetY, double ScaleX, double ScaleY, double MapSize,
+                                    double PinOffsetX = 0, double PinOffsetY = 0);
 
 /// <summary>
 /// Minimal client for the Isla Pandora live-map API — the overlay's entire
@@ -163,7 +168,18 @@ public sealed class PandoraClient : IDisposable
                     TryReadNumber(el, "scaleY", out var sy) &&
                     TryReadNumber(el, "mapSize", out var size) && size > 0)
                 {
-                    return new MapCalibration(ox, oy, sx, sy, size);
+                    // Optional nested pinOffset {x,y}; absent reads as 0.
+                    double px = 0, py = 0;
+                    foreach (var prop in el.EnumerateObject())
+                    {
+                        if (string.Equals(prop.Name, "pinOffset", StringComparison.OrdinalIgnoreCase) &&
+                            prop.Value.ValueKind == JsonValueKind.Object)
+                        {
+                            TryReadNumber(prop.Value, "x", out px);
+                            TryReadNumber(prop.Value, "y", out py);
+                        }
+                    }
+                    return new MapCalibration(ox, oy, sx, sy, size, px, py);
                 }
                 foreach (var prop in el.EnumerateObject())
                 {

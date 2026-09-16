@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The minimap arrow (and waypoint placement) sat about 0.6% of the map
+  width right and 1% of the map height below where the website draws
+  them: the calibration's `pinOffset` turned out to be part of the
+  site's coordinate transform for every marker, not a pin-icon anchor
+  correction, and is now applied. Stored waypoints are unaffected (they
+  live in world coordinates) and simply render at the corrected spot.
+
 ## [1.13.0] - 2026-09-15
 
 ### Added

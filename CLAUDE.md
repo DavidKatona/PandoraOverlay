@@ -66,12 +66,16 @@ POST-only (GET 404s); works even unauthenticated. Verified response (Sep 2026):
 `{"success":true,"scaleX":0.002001...,"scaleY":-0.002000...,"offsetX":1160.92...,
 "offsetY":1223.28...,"mapSize":2500,"pinOffset":{"x":-15,"y":25}}`
 Transform (mirrors the frontend; note negative scaleY + the flip):
-`left% = (offsetX + x·scaleX)/mapSize·100`,
-`top%  = (1 − (offsetY + y·scaleY)/mapSize)·100`.
-`pinOffset` is deliberately skipped — it compensates the website's pin-icon
-anchor, not the player position; our arrow geometry is origin-centred.
+`left% = (offsetX + x·scaleX + pinOffset.x)/mapSize·100`,
+`top%  = (1 − (offsetY + y·scaleY + pinOffset.y)/mapSize)·100`.
+`pinOffset` is part of the site's coordinate mapping for EVERY marker — the
+frontend anchors markers centered (translate(-50%,-50%)), player arrow
+included (verified in the bundle, Sep 16 2026). v1.13.0 and earlier skipped
+it on the wrong assumption it compensated the pin-icon anchor, drawing
+~0.6%/1% off the website.
 `PandoraClient.FindCalibration` scans the JSON for the first object carrying
-the five fields, so wrapping changes won't break it. Map image: site asset
+the five fields (+ the optional nested pinOffset — absent reads as 0), so
+wrapping changes won't break it. Map image: site asset
 `/assets/map-<hash>.png` (1000×1000); the hash changes per deploy, so a copy
 is bundled as `Assets/map.png` (WPF Resource).
 

@@ -26,6 +26,8 @@ public class CalibrationParsingTests
         Assert.NotNull(cal);
         Assert.Equal(2500, cal!.MapSize);
         Assert.Equal(-0.002, cal.ScaleY);
+        Assert.Equal(-15, cal.PinOffsetX);
+        Assert.Equal(25, cal.PinOffsetY);
     }
 
     [Fact]
@@ -33,7 +35,10 @@ public class CalibrationParsingTests
     {
         using var doc = JsonDocument.Parse(
             """{"data":{"calibration":{"scaleX":1,"scaleY":1,"offsetX":0,"offsetY":0,"mapSize":100}}}""");
-        Assert.NotNull(PandoraClient.FindCalibration(doc.RootElement));
+        var cal = PandoraClient.FindCalibration(doc.RootElement);
+        Assert.NotNull(cal);
+        Assert.Equal(0, cal!.PinOffsetX); // absent pinOffset reads as no shift
+        Assert.Equal(0, cal.PinOffsetY);
     }
 
     [Fact]
