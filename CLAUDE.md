@@ -293,7 +293,17 @@ site dev Sep 15 — verified in-game), v1.13.1 (calibration pinOffset
 applied to the arrow/waypoint transforms — matches the website exactly,
 verified in-game).
 
-Later/maybe: friends markers (needs permission first), zone overlays
+Later/maybe: Prime objective tracker widget (design ready Sep 2026 —
+needs permission for `POST /api/prime/check` + `POST /api/prime/cooldown`,
+cookie-authed and server-cooldown-gated at 5 min, so likely the most
+sensitive ask yet; the pitch: mirror the site exactly — button-triggered
+from the control panel/tray, NEVER polled, cooldown honored client-side
+too. A click-through display widget shows Prime status + the 10
+condition ✓/✗ rows; last result + timestamp persist in config. The
+condition texts are baked into the site's frontend, not served — bake
+ours the same way; parse `conditions` tolerant of "1" vs "c1" keys like
+the site does; grey the Check action when the poll says not-in-game),
+friends markers (needs permission first), zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
 sanctuaries, migrations, salt rocks), official token auth (the nudge went
 out with the heatmap ask ~Sep 14 2026; the heatmap got its yes Sep 15,
