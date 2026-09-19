@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the ten Prime conditions as a ✓/✗ list, the same result as the website's
   "Prime Check" box. It docks to the left screen edge by default and drags,
   snaps and scales like the other panels. Checks are never automatic: press
-  Check Prime on the control panel or "Check Prime status" in the tray menu.
+  Check in the control panel's Prime group or "Check Prime status" in the
+  tray menu.
   The server's 5-minute cooldown is mirrored locally (with a live countdown),
   so a click during it sends no request, and neither does one made while you
   are not spawned in. The last result is kept across restarts with its time
@@ -21,9 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The edit-mode control panel is now two rows: settings and the show/hide
-  toggles (stats, minimap, prime) on top; Map view, Heatmap, Check Prime and
-  Lock/Exit below.
+- The edit-mode control panel is organized by widget: still one row, but
+  with a small caption over each widget's own controls — Stats (Show/hide),
+  Minimap (Show/hide, Map view, Heatmap), Prime (Show/hide, Check) — between
+  Settings and Lock/Exit. The button labels got shorter to match.
 
 ## [1.13.1] - 2026-09-16
 

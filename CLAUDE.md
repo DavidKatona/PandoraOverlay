@@ -142,9 +142,11 @@ references — keep it that way. Every overlay window derives from
   a `SnapResult` (position + per-axis `SnapGuide` naming the engaged target
   and whether it was a peer) so the caller can draw guides.
 - **ControlPanelWindow.xaml(.cs)** — the edit-mode control panel (v1.9):
-  appears with edit mode, hides on lock; labeled buttons in two rows
-  (since the prime tracker): Settings / Show-hide stats / Show-hide minimap /
-  Show-hide prime, then Map view / Heatmap / Check Prime | Lock / Exit + the hint
+  appears with edit mode, hides on lock; ONE row grouped by widget (owner's
+  call, Sep 2026 — a two-row layout was tried and rejected): Settings |
+  STATS: Show/hide | MINIMAP: Show/hide, Map view, Heatmap | PRIME:
+  Show/hide, Check | Lock / Exit — small captions over each group keep
+  labels short, and a new widget adds a group, not loose buttons; + the hint
   line (hotkey label follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
   permanently interactive while visible, `IsSnapTarget` false, first show
   bottom-center, position persisted (`ControlPanelX/Y`, nullable). Activated

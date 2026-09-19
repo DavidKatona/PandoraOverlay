@@ -63,7 +63,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Basics
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
-- The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with labeled buttons in two rows: **Settings**, **Show/hide stats**, **Show/hide minimap**, **Show/hide prime**, then **Map view**, **Heatmap**, **Check Prime**, **Lock**, and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
+- The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with its buttons in one row, grouped by widget: **Settings**, then **Stats** (Show/hide), **Minimap** (Show/hide, Map view, Heatmap) and **Prime** (Show/hide, Check), and finally **Lock** and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
 - While dragging, panels **snap** to the screen edges, a small inset from them, and to each other — **guide lines** light up along whatever you snapped to (orange = screen, blue = the other panel). Hold **Alt** while dragging for pixel-perfect free placement.
 - You can't lose a panel off-screen: locking edit mode (or restarting the app) pulls every panel fully back into view — dragging itself stays free, so moving panels to another monitor still works.
 - **Ctrl+F4** hides/shows the whole overlay without quitting — for screenshots and cutscenes; polling continues, and the app always starts visible. **Ctrl+F5** flips the minimap view without entering edit mode. All three hotkeys are rebindable in Settings; the defaults deliberately avoid the game's F2 (recording) and F10 (hide HUD), and the quick toggles sit on the nearest keys.
@@ -79,7 +79,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ![The stats panel: dino name and gender, growth, the four stat bars — hunger critical at 13% — and the live status line](docs/stats-panel.png)
 
-- The stats panel can be **hidden** entirely (control panel → Show/hide stats, or the tray menu) — the app keeps running from the tray, and hotkeys and the minimap stay live. Its size is adjustable with the "Stats panel scale" slider in Settings.
+- The stats panel can be **hidden** entirely (control panel → Stats → Show/hide, or the tray menu) — the app keeps running from the tray, and hotkeys and the minimap stay live. Its size is adjustable with the "Stats panel scale" slider in Settings.
 
 - The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint).
 - After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
@@ -100,9 +100,9 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Prime tracker
 
 - The **Prime tracker** is a third widget (docked to the left screen edge by default, draggable like the others) showing your Prime status and the server's ten Prime conditions as a ✓/✗ list — the same result as the website's "Prime Check" box. 5 of 10 are needed for Prime.
-- It never checks by itself. Press **Check Prime** on the control panel, or **Check Prime status** in the tray menu (which works while locked, mid-game). The server allows one check every 5 minutes; the widget counts the cooldown down and a click during it sends nothing. You need to be spawned in for a check to work.
+- It never checks by itself. Press **Check** in the control panel's Prime group, or **Check Prime status** in the tray menu (which works while locked, mid-game). The server allows one check every 5 minutes; the widget counts the cooldown down and a click during it sends nothing. You need to be spawned in for a check to work.
 - The last result stays on screen with the time it was taken and the dino it was taken as, and it survives restarts. If you have switched dino since, that line turns amber as a reminder that the list is about your previous one.
-- Hide or show the widget with **Show/hide prime** (control panel) or **Show/hide prime tracker** (tray). It scales with the "Stats panel scale" slider.
+- Hide or show the widget with **Show/hide** in the control panel's Prime group, or **Show/hide prime tracker** in the tray. It scales with the "Stats panel scale" slider.
 
 ## Configuration (`config.json`)
 
