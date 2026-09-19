@@ -9,7 +9,7 @@ It is **fully external**: the only thing it ever does is replay the same authent
 [![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
 [![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
-![The overlay in-game: stats panel and player-centered minimap while flying a Pteranodon](docs/screenshot.png)
+![The overlay in-game, in edit mode: the Prime tracker docked left, the player-centered minimap and stats panel on the right, and the control panel bottom-center, over a Deinosuchus on a night-time riverbank](docs/screenshot.png)
 
 ## Contents
 
@@ -64,6 +64,9 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
 - The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with its buttons in one row, grouped by widget: **Settings**, then **Stats** (Show/hide), **Minimap** (Show/hide, Map view, Heatmap) and **Prime** (Show/hide, Check), and finally **Lock** and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
+
+  ![The edit-mode control panel: Settings, then the Stats, Minimap and Prime button groups under small captions, Lock and Exit, and the hint line underneath](docs/control-panel.png)
+
 - While dragging, panels **snap** to the screen edges, a small inset from them, and to each other — **guide lines** light up along whatever you snapped to (orange = screen, blue = the other panel). Hold **Alt** while dragging for pixel-perfect free placement.
 - You can't lose a panel off-screen: locking edit mode (or restarting the app) pulls every panel fully back into view — dragging itself stays free, so moving panels to another monitor still works.
 - **Ctrl+F4** hides/shows the whole overlay without quitting — for screenshots and cutscenes; polling continues, and the app always starts visible. **Ctrl+F5** flips the minimap view and **Ctrl+F6** flips the minimap's heatmap layer, both without entering edit mode. All four hotkeys are rebindable in Settings; the defaults deliberately avoid the game's F2 (recording) and F10 (hide HUD), and the quick toggles sit on the nearest keys.
@@ -77,7 +80,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Stats panel
 
-![The stats panel: dino name and gender, growth, the four stat bars — hunger critical at 13% — and the live status line](docs/stats-panel.png)
+![The stats panel in edit mode: a male Deinosuchus at 96,7% growth, the four stat bars — health, stamina, hunger, thirst — and the live status line](docs/stats-panel.png)
 
 - The stats panel can be **hidden** entirely (control panel → Stats → Show/hide) — the app keeps running from the tray, and hotkeys and the minimap stay live. Its size is adjustable with the "Stats panel scale" slider in Settings.
 
@@ -90,14 +93,16 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Minimap
 
+![The minimap in edit mode: the player-centered view of a river delta with the orange player arrow, and the footer showing "centered · 5,22×"](docs/minimap.png)
+
 - The **minimap** is a separate window sharing the same edit mode: drag it independently, show or hide it from the control panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
 - Two views, toggled with the control panel's **Map view** button (or **Ctrl+F5** any time): the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
 - Right-click the minimap in edit mode to drop a **waypoint** — the footer shows your distance to it, and in the centered view an off-screen marker sticks to the panel edge pointing the way. Right-click the marker to clear it; it survives restarts.
 - **Activity heatmap** (optional, off by default): press **Ctrl+F6** any time, or the control panel's **Heatmap** button, to overlay the server's live heatmap — the same image the website shows, complete with its player-count and timestamp caption — at the website's own 55% blend, in both views. It refreshes every minute while the minimap is visible; the image is public, so your login cookie is never sent for it. Expect the map colors to mute a little while it's on, and if the server disables the heatmap the layer quietly disappears until it returns.
 
-  ![The centered minimap view with the player arrow, a waypoint diamond, and the footer showing "centered · 4× · 733m"](docs/waypoint.png)
-
 ### Prime tracker
+
+![The Prime tracker: "Prime Elder" status, the ten conditions as a ✓/✗ list, and the footer showing "Checked 08:29 · Deinosuchus" with the "next check in 0:43" countdown](docs/prime-tracker.png)
 
 - The **Prime tracker** is a third widget (docked to the left screen edge by default, draggable like the others) showing your Prime status and the server's ten Prime conditions as a ✓/✗ list — the same result as the website's "Prime Check" box. 5 of 10 are needed for Prime.
 - It never checks by itself. Press **Check** in the control panel's Prime group, or **Check Prime status** in the tray menu (which works while locked, mid-game). The server enforces a cooldown between checks — 5 minutes normally, shorter with some supporter ranks — so after each check the overlay asks the server for *your* cooldown, counts it down in the widget, and remembers it across restarts. A click during the cooldown sends nothing. You need to be spawned in for a check to work.
