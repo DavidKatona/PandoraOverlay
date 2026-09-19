@@ -94,6 +94,25 @@ public class PrimeParsingTests
         Assert.Equal(TimeSpan.FromSeconds(125), result.Remaining);
     }
 
+    [Theory]
+    [InlineData("""{"success":true,"remainingMs":42000}""", 42.0)]   // e.g. a shortened supporter-rank cooldown
+    [InlineData("""{"success":true,"remainingMs":0}""", 0.0)]
+    [InlineData("""{"success":true}""", 0.0)]                        // like the frontend: no running cooldown
+    public void ReadsTheServersCooldown(string json, double expectedSeconds)
+    {
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal(TimeSpan.FromSeconds(expectedSeconds), PandoraClient.ParsePrimeCooldown(doc.RootElement));
+    }
+
+    [Theory]
+    [InlineData("""{"success":false,"remainingMs":42000}""")]
+    [InlineData("""[]""")]
+    public void UnusableCooldownAnswersReadAsUnknown(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        Assert.Null(PandoraClient.ParsePrimeCooldown(doc.RootElement));
+    }
+
     [Fact]
     public void MapsNotInGame() =>
         Assert.Equal(PrimeCheckOutcome.NotInGame, Parse("""{"success":false,"error":"not_in_game"}""").Outcome);

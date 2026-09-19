@@ -68,6 +68,8 @@ public sealed class PandoraClient : IDisposable
     private const string HeatmapStatusEndpoint = "https://islapandora.eu/map/api/heatmap-status";
     private const string HeatmapImageEndpoint = "https://islapandora.eu/map/heatmap-live.png";
     private const string PrimeCheckEndpoint = "https://islapandora.eu/api/prime/check";
+    private const string PrimeCooldownEndpoint = "https://islapandora.eu/api/prime/cooldown";
+    private const double MaxPrimeCooldownMs = 3_600_000; // sanity clamp on server-reported waits
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -248,12 +250,49 @@ public sealed class PandoraClient : IDisposable
                     ? r.GetDouble()
                     : 0;
                 return new PrimeCheckResult(PrimeCheckOutcome.Cooldown,
-                    Remaining: TimeSpan.FromMilliseconds(Math.Clamp(ms, 0, 3_600_000)));
+                    Remaining: TimeSpan.FromMilliseconds(Math.Clamp(ms, 0, MaxPrimeCooldownMs)));
             case "not_in_game":
                 return new PrimeCheckResult(PrimeCheckOutcome.NotInGame);
             default:
                 return new PrimeCheckResult(PrimeCheckOutcome.Failed, Reason: "server declined");
         }
+    }
+
+    /// <summary>
+    /// Asks the server how long this account's prime-check cooldown still
+    /// runs. Called ONCE right after a successful check — never on a timer:
+    /// the success response carries no cooldown, and the length differs per
+    /// account (supporter ranks shorten it), so assuming the website's 5 min
+    /// would lock ranked players out for longer than the server does. The
+    /// live-map page asks the same endpoint on every load. Null when the
+    /// server gives no usable answer.
+    /// </summary>
+    public async Task<TimeSpan?> FetchPrimeCooldownAsync(CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, PrimeCooldownEndpoint)
+        {
+            Content = new ByteArrayContent(Array.Empty<byte>())
+        };
+        request.Headers.TryAddWithoutValidation("Cookie", _cookie);
+
+        using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+        UpdateRollingCookie(response);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+        return ParsePrimeCooldown(doc.RootElement);
+    }
+
+    /// <summary>Like the frontend: success without a positive remainingMs means no cooldown is running.</summary>
+    internal static TimeSpan? ParsePrimeCooldown(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !IsTruthy(root, "success")) return null;
+
+        var ms = root.TryGetProperty("remainingMs", out var r) && r.ValueKind == JsonValueKind.Number
+            ? r.GetDouble()
+            : 0;
+        return TimeSpan.FromMilliseconds(Math.Clamp(ms, 0, MaxPrimeCooldownMs));
     }
 
     private static bool IsTruthy(JsonElement obj, string name) =>

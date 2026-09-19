@@ -20,13 +20,16 @@ public sealed class PollService : IDisposable
     private const int HeatmapIntervalSeconds = 60;
 
     /// <summary>
-    /// Client-side mirror of the server's prime-check cooldown (the live-map
-    /// page locks its button for the same 5 min), so a cooling-down check
-    /// costs no request at all.
+    /// Fallback prime-check cooldown, used only when the server's own answer
+    /// is unavailable. The real length differs per account (supporter ranks
+    /// shorten it), so after each successful check the server is asked once.
     /// </summary>
-    private static readonly TimeSpan PrimeCooldown = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan DefaultPrimeCooldown = TimeSpan.FromMinutes(5);
 
-    /// <summary>Breather after a failed check, so a broken endpoint can't be button-mashed.</summary>
+    /// <summary>
+    /// Floor under every cooldown, and the breather after a failed check: the
+    /// check can never be button-mashed, whatever the server would allow.
+    /// </summary>
     private static readonly TimeSpan PrimeRetryGuard = TimeSpan.FromSeconds(15);
 
     private readonly OverlayConfig _config;
@@ -66,7 +69,13 @@ public sealed class PollService : IDisposable
     {
         _config = config;
         Calibration = config.Calibration;
-        if (config.Prime is { } lastPrime) PrimeCooldownUntilUtc = lastPrime.CheckedAtUtc + PrimeCooldown;
+        // The server-reported cooldown end survives restarts; configs written
+        // before it existed fall back to "last check + default". A value far
+        // in the future can only be a clock jump — ignore it rather than lock
+        // the check out.
+        var until = config.PrimeCooldownUntilUtc
+                    ?? (config.Prime is { } lastPrime ? lastPrime.CheckedAtUtc + DefaultPrimeCooldown : default);
+        if (until <= DateTime.UtcNow + TimeSpan.FromHours(1)) PrimeCooldownUntilUtc = until;
         _client = new PandoraClient(config.GetCookie(), config.UserAgent);
 
         _timer = new DispatcherTimer
@@ -161,7 +170,8 @@ public sealed class PollService : IDisposable
     /// gating lives here so windows stay pure consumers: a running cooldown
     /// or a not-in-game poll state answers locally with no request sent. A
     /// successful snapshot is cached into config (persisted with the next
-    /// Save).
+    /// Save), and the server is then asked once for this account's actual
+    /// cooldown — its length varies with supporter rank.
     /// </summary>
     public async Task CheckPrimeAsync()
     {
@@ -187,11 +197,13 @@ public sealed class PollService : IDisposable
             switch (result.Outcome)
             {
                 case PrimeCheckOutcome.Ok:
-                    PrimeCooldownUntilUtc = DateTime.UtcNow + PrimeCooldown;
                     _config.Prime = result.Snapshot;
+                    // Ask before announcing the result, so the widget's
+                    // countdown is right from its first tick.
+                    SetPrimeCooldown(await FetchPrimeCooldownOrDefaultAsync());
                     break;
                 case PrimeCheckOutcome.Cooldown:
-                    PrimeCooldownUntilUtc = DateTime.UtcNow + result.Remaining;
+                    SetPrimeCooldown(result.Remaining);
                     break;
                 case PrimeCheckOutcome.Failed:
                     PrimeCooldownUntilUtc = DateTime.UtcNow + PrimeRetryGuard;
@@ -207,6 +219,27 @@ public sealed class PollService : IDisposable
         finally
         {
             _primeBusy = false;
+        }
+    }
+
+    /// <summary>The server's word on the cooldown (remembered across restarts), never shorter than the mash guard.</summary>
+    private void SetPrimeCooldown(TimeSpan remaining)
+    {
+        if (remaining < PrimeRetryGuard) remaining = PrimeRetryGuard;
+        PrimeCooldownUntilUtc = DateTime.UtcNow + remaining;
+        _config.PrimeCooldownUntilUtc = PrimeCooldownUntilUtc; // persisted with the next Save()
+    }
+
+    /// <summary>One request, right after a successful check; any failure falls back to the default length.</summary>
+    private async Task<TimeSpan> FetchPrimeCooldownOrDefaultAsync()
+    {
+        try
+        {
+            return await _client.FetchPrimeCooldownAsync() ?? DefaultPrimeCooldown;
+        }
+        catch
+        {
+            return DefaultPrimeCooldown;
         }
     }
 

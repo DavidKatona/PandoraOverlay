@@ -15,9 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   snaps and scales like the other panels. Checks are never automatic: press
   Check in the control panel's Prime group or "Check Prime status" in the
   tray menu.
-  The server's 5-minute cooldown is mirrored locally (with a live countdown),
-  so a click during it sends no request, and neither does one made while you
-  are not spawned in. The last result is kept across restarts with its time
+  The server's cooldown is mirrored locally (with a live countdown), so a
+  click during it sends no request, and neither does one made while you are
+  not spawned in. The cooldown length is taken from the server after each
+  check rather than assumed, so supporter ranks with a shorter cooldown are
+  not held to the default 5 minutes, and it is remembered across restarts. The last result is kept across restarts with its time
   and dino, and turns amber once you are playing a different dino.
 
 ### Changed

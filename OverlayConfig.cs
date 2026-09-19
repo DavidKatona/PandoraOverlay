@@ -149,6 +149,14 @@ public sealed class OverlayConfig
     /// </summary>
     public PrimeSnapshot? Prime { get; set; }
 
+    /// <summary>
+    /// When the server will accept the next Prime check (UTC), as reported by
+    /// the server itself — the cooldown length differs per account (supporter
+    /// ranks shorten it), so it is stored rather than re-derived as "last
+    /// check + 5 min" after a restart. Managed by the app.
+    /// </summary>
+    public DateTime? PrimeCooldownUntilUtc { get; set; }
+
     // ---- Appearance -------------------------------------------------------
 
     /// <summary>

@@ -100,7 +100,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Prime tracker
 
 - The **Prime tracker** is a third widget (docked to the left screen edge by default, draggable like the others) showing your Prime status and the server's ten Prime conditions as a ✓/✗ list — the same result as the website's "Prime Check" box. 5 of 10 are needed for Prime.
-- It never checks by itself. Press **Check** in the control panel's Prime group, or **Check Prime status** in the tray menu (which works while locked, mid-game). The server allows one check every 5 minutes; the widget counts the cooldown down and a click during it sends nothing. You need to be spawned in for a check to work.
+- It never checks by itself. Press **Check** in the control panel's Prime group, or **Check Prime status** in the tray menu (which works while locked, mid-game). The server enforces a cooldown between checks — 5 minutes normally, shorter with some supporter ranks — so after each check the overlay asks the server for *your* cooldown, counts it down in the widget, and remembers it across restarts. A click during the cooldown sends nothing. You need to be spawned in for a check to work.
 - The last result stays on screen with the time it was taken and the dino it was taken as, and it survives restarts. If you have switched dino since, that line turns amber as a reminder that the list is about your previous one.
 - Hide or show the widget with **Show/hide** in the control panel's Prime group, or **Show/hide prime tracker** in the tray. It scales with the "Stats panel scale" slider.
 
@@ -122,7 +122,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `MinimapYawOffsetDegrees` | Rotation added to the raw yaw for the arrow. Default 90 matches the current map. |
 | `HeatmapEnabled` | Overlay the server's live activity heatmap on the minimap (refreshed every minute; public image, no cookie sent). Toggle in Settings → Minimap. Default `false`. |
 | `PrimeEnabled` / `PrimeX` / `PrimeY` | Show the Prime tracker widget, and its position (empty until first placed: left screen edge, vertically centered). |
-| `Prime` | The last Prime check result (status, ten condition flags, time, dino), kept so the widget has something to show after a restart. Managed by the app. |
+| `Prime` / `PrimeCooldownUntilUtc` | The last Prime check result (status, ten condition flags, time, dino) and when the server will accept the next check, kept so the widget is right after a restart. Managed by the app. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
 | `WaypointX` / `WaypointY` | The minimap waypoint in world coordinates; `null` when none is set. Right-click the minimap in edit mode. |
 | `UiScale` | Stats panel (and control panel) scale, 0.75–1.5 (default 1). Slider in Settings; the minimap sizes natively via `MinimapSize`. |

@@ -18,13 +18,16 @@ web dev.**
    `GET /map/api/heatmap-status` + `GET /map/heatmap-live.png` (approved by
    the site dev Sep 15 2026; public and fetched WITHOUT a cookie, every 60 s
    and only while the heatmap layer is on and the minimap shown — the site's
-   own page refetches every 10 s per open tab), and `POST /api/prime/check`
-   (approved Sep 19 2026; cookie-authed and USER-TRIGGERED ONLY — control
-   panel / tray click, never a timer; the server's 5 min cooldown is mirrored
-   client-side so a cooling-down or not-in-game click sends nothing. The
-   sibling `POST /api/prime/cooldown` is deliberately unused — the local
-   mirror plus the server's `remainingMs` answer cover it with one endpoint
-   fewer). The `friends` endpoint and
+   own page refetches every 10 s per open tab), and the prime pair
+   `POST /api/prime/check` + `POST /api/prime/cooldown` (approved Sep 19
+   2026, both confirmed covered by the owner; cookie-authed and
+   USER-TRIGGERED ONLY — a control panel / tray click, never a timer. The
+   cooldown is mirrored client-side, so a cooling-down or not-in-game click
+   sends nothing; `prime/cooldown` is called exactly once after each
+   SUCCESSFUL check, because the success response carries no cooldown and
+   its length varies per account — supporter ranks shorten it, so assuming
+   the website button's hardcoded 5 min over-blocks ranked players). The
+   `friends` endpoint and
    the zone overlays are NOT cleared for use (see Permissions). The
    launch-time update check calls the GitHub releases API — not an
    islapandora endpoint, so it sits outside this constraint.
@@ -114,11 +117,16 @@ references — keep it that way. Every overlay window derives from
   save, minimap re-show and the control-panel/tray heatmap toggle) raises
   `HeatmapChanged(byte[]?)`, gated on `HeatmapEnabled` + `MinimapEnabled`;
   null hides the layer. `CheckPrimeAsync` is the on-demand prime check —
-  NO timer may ever call it. All gating lives here: busy guard, the 5 min
-  cooldown mirror (`PrimeCooldownUntilUtc`, seeded from the cached
-  snapshot, reset from the server's `remainingMs`, 15 s retry guard after a
-  failure) and the last poll's in-game state answer locally with no
-  request; raises `PrimeCheckStarted` / `PrimeChecked(PrimeCheckResult)`
+  NO timer may ever call it. All gating lives here: busy guard, the
+  cooldown mirror (`PrimeCooldownUntilUtc`) and the last poll's in-game
+  state answer locally with no request. The cooldown is the SERVER's word,
+  never an assumption (it varies with supporter rank): after an Ok check
+  `prime/cooldown` is asked once (5 min only as the fallback when that
+  fails), a rejected check supplies `remainingMs`, and the result is
+  persisted as `config.PrimeCooldownUntilUtc` so restarts don't re-assume;
+  a 15 s floor/retry guard means the check can never be mashed. Raises
+  `PrimeCheckStarted` / `PrimeChecked(PrimeCheckResult)` — the latter only
+  after the cooldown is known, so the widget's countdown starts right —
   and caches an Ok snapshot into `config.Prime`.
 - **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
   toolwindow styles via SetWindowLongPtr, x64), `EditMode` state, shared
@@ -173,6 +181,9 @@ references — keep it that way. Every overlay window derives from
   pure + tested: status under isPrimeElder/isPrime and
   isEligiblePrime/isEligible, condition flags keyed "1".."10" or
   "c1".."c10"; server error strings are mapped, never echoed.
+  `FetchPrimeCooldownAsync` / `ParsePrimeCooldown` read the account's
+  remaining cooldown (success without a positive `remainingMs` = none
+  running, like the frontend; anything unusable = null → caller falls back).
 - **GrowthTracker.cs** — pure class fed from the snapshot stream: 15-min
   sliding window of (time, growth) samples → slope → in-game ETA to full
   growth. Needs a ≥5-min baseline before showing anything; a full baseline
