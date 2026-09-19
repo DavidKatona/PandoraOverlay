@@ -72,7 +72,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Check Prime status, Settings, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden, and showing or hiding individual widgets is done from the control panel. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable: replace your cookie, rebind the hotkeys, start with Windows, set the minimap view, zoom and size, and adjust the stats panel scale and background opacity.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable: replace your cookie, rebind the hotkeys, start with Windows, set the minimap view, zoom and size, and adjust the background opacity. Every widget has its own size slider there — stats panel scale, prime tracker scale, map size — so you can size each one independently.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -102,7 +102,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - The **Prime tracker** is a third widget (docked to the left screen edge by default, draggable like the others) showing your Prime status and the server's ten Prime conditions as a ✓/✗ list — the same result as the website's "Prime Check" box. 5 of 10 are needed for Prime.
 - It never checks by itself. Press **Check** in the control panel's Prime group, or **Check Prime status** in the tray menu (which works while locked, mid-game). The server enforces a cooldown between checks — 5 minutes normally, shorter with some supporter ranks — so after each check the overlay asks the server for *your* cooldown, counts it down in the widget, and remembers it across restarts. A click during the cooldown sends nothing. You need to be spawned in for a check to work.
 - The last result stays on screen with the time it was taken and the dino it was taken as, and it survives restarts. If you have switched dino since, that line turns amber as a reminder that the list is about your previous one.
-- Hide or show the widget with **Show/hide** in the control panel's Prime group. It scales with the "Stats panel scale" slider.
+- Hide or show the widget with **Show/hide** in the control panel's Prime group. Its size has its own slider in Settings, "Prime tracker scale" (75–150%).
 
 ## Configuration (`config.json`)
 
@@ -126,6 +126,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
 | `WaypointX` / `WaypointY` | The minimap waypoint in world coordinates; `null` when none is set. Right-click the minimap in edit mode. |
 | `UiScale` | Stats panel (and control panel) scale, 0.75–1.5 (default 1). Slider in Settings; the minimap sizes natively via `MinimapSize`. |
+| `PrimeScale` | Prime tracker scale, 0.75–1.5. Slider in Settings; starts out equal to `UiScale`. |
 | `BackgroundOpacity` | Panel-glass opacity, 0.3–1 (default 0.8) — text stays crisp. Slider in Settings. |
 
 Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file.

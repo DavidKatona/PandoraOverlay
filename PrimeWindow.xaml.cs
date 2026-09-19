@@ -116,6 +116,9 @@ public partial class PrimeWindow : OverlayWindowBase
         Top = bounds.Top + (bounds.Height - ActualHeight) / 2;
     }
 
+    /// <summary>Its own size control, like every widget; UiScale is only the pre-seed fallback.</summary>
+    protected override double AppearanceScale(OverlayConfig config) => config.PrimeScale ?? config.UiScale;
+
     /// <summary>Reapplies scale/opacity after a settings save.</summary>
     public void ApplySettingsFromConfig() => ApplyAppearance(_config);
 

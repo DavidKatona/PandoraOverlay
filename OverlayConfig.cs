@@ -169,9 +169,18 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Stats panel (and control panel) scale, as a layout transform. Clamped
-    /// 0.75–1.5. The minimap is sized natively via MinimapSize instead.
+    /// 0.75–1.5. The minimap is sized natively via MinimapSize instead, and
+    /// the prime tracker has its own PrimeScale.
     /// </summary>
     public double UiScale { get; set; } = 1.0;
+
+    /// <summary>
+    /// Prime tracker scale, clamped 0.75–1.5 — every widget has its own size
+    /// control. Null only in configs written before it existed: Load() seeds
+    /// it from UiScale, which the widget followed until then, so an update
+    /// never resizes anyone's widget.
+    /// </summary>
+    public double? PrimeScale { get; set; }
 
     /// <summary>Opacity of the dark glass behind the panels (text stays crisp). Clamped 0.3–1.</summary>
     public double BackgroundOpacity { get; set; } = 0.8;
@@ -211,6 +220,8 @@ public sealed class OverlayConfig
             cfg.HotkeyHideAll = "Ctrl+F4";
             cfg.HotkeyMinimapView = "Ctrl+F5";
         }
+
+        cfg.PrimeScale ??= cfg.UiScale;
 
         cfg.Save();
         return cfg;

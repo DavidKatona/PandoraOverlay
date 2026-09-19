@@ -90,6 +90,7 @@ public partial class SettingsWindow : Window
         _initialStartup = StartupRegistration.IsEnabled();
         StartupCheck.IsChecked = _initialStartup;
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
+        PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale ?? config.UiScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
 
         // Minimap
@@ -271,6 +272,11 @@ public partial class SettingsWindow : Window
         if (ScaleLabel != null) ScaleLabel.Text = $"{e.NewValue:0%}";
     }
 
+    private void PrimeScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (PrimeScaleLabel != null) PrimeScaleLabel.Text = $"{e.NewValue:0%}";
+    }
+
     private void OpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (OpacityLabel != null) OpacityLabel.Text = $"{e.NewValue:0%}";
@@ -310,10 +316,14 @@ public partial class SettingsWindow : Window
         if (startup != _initialStartup) StartupRegistration.SetEnabled(startup);
 
         var scale = Math.Round(ScaleSlider.Value, 2);
+        var primeScale = Math.Round(PrimeScaleSlider.Value, 2);
         var bgOpacity = Math.Round(OpacitySlider.Value, 2);
-        if (Math.Abs(scale - _config.UiScale) > 0.001 || Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001)
+        if (Math.Abs(scale - _config.UiScale) > 0.001 ||
+            Math.Abs(primeScale - (_config.PrimeScale ?? _config.UiScale)) > 0.001 ||
+            Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001)
         {
             _config.UiScale = scale;
+            _config.PrimeScale = primeScale;
             _config.BackgroundOpacity = bgOpacity;
             AppearanceChanged = true;
         }

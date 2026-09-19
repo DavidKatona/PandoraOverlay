@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- "Prime tracker scale" slider in Settings (75–150%): the prime tracker no
+  longer follows the stats panel's scale, so every widget now has its own
+  size control. It starts out at your current stats panel scale, so nothing
+  changes size when you update.
+
 ## [1.14.0] - 2026-09-19
 
 ### Added

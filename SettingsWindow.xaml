@@ -180,6 +180,16 @@
                         ValueChanged="ScaleSlider_ValueChanged"/>
             </DockPanel>
             <DockPanel Margin="0,8,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Prime tracker scale:"/>
+                <TextBlock x:Name="PrimeScaleLabel" DockPanel.Dock="Right" Width="42"
+                           Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
+                           VerticalAlignment="Center"/>
+                <Slider x:Name="PrimeScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="PrimeScaleSlider_ValueChanged"/>
+            </DockPanel>
+            <DockPanel Margin="0,8,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Background opacity:"/>
                 <TextBlock x:Name="OpacityLabel" DockPanel.Dock="Right" Width="42"
                            Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"

@@ -221,8 +221,8 @@ references — keep it that way. Every overlay window derives from
   `ToggleStats` (v1.10) hides/shows the stats panel itself (`StatsEnabled`;
   hwnd stays alive so hotkeys/tray/polling continue; hide-all unhide
   respects the flag). Minimap is sized natively (`MinimapSize`, Settings
-  slider 160–400, `AppearanceScale` override 1.0) while `UiScale` scales
-  only the stats + control panels. `UpdateUi` is a 3-state machine:
+  slider 160–400, `AppearanceScale` override 1.0), the prime tracker by
+  `PrimeScale`, and `UiScale` scales only the stats + control panels. `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
   fracture badges toggle; health/hunger/thirst fills pulse below 25% — stamina
   deliberately excluded, it drains by design). Fires one `UpdateChecker` call
@@ -271,7 +271,9 @@ references — keep it that way. Every overlay window derives from
   the check is triggered from the control panel or tray via
   `MainWindow.CheckPrime` → `PollService.CheckPrimeAsync`. Fixed 250 px
   content width and a reserved footer keep it one size in every state.
-  Derives OverlayWindowBase (drag/snap/clamp, `UiScale` applies); first
+  Derives OverlayWindowBase (drag/snap/clamp; sized by its own `PrimeScale`
+  via the `AppearanceScale` override — seeded from `UiScale` in
+  `OverlayConfig.Load` for configs that predate it); first
   show docks to the left screen edge (16 px inset), vertically centered;
   position persists (`PrimeX/Y`, nullable), visibility via `PrimeEnabled`
   (default on — a visible widget costs zero requests until clicked).
@@ -293,8 +295,9 @@ references — keep it that way. Every overlay window derives from
   Save writes config + Run key and sets Cookie/Hotkey/Minimap/Appearance
   Changed flags; MainWindow hot-applies each (RebuildClient / re-register
   with fallback / minimap ApplySettings / ApplyAppearance)
-  — no restart, ever. General also holds the UI scale (75–150%) and background opacity
-  (30–100%) sliders.
+  — no restart, ever. General also holds the stats panel scale and prime
+  tracker scale (both 75–150%, folded into the Appearance flag) and the
+  background opacity (30–100%) sliders.
 - **HotkeySpec.cs** — record converting the config string ("Ctrl+F7") ⇄ the
   RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
   shared Register/Unregister p/invokes. Registration always adds
@@ -405,6 +408,13 @@ re-propose.
   with no hotkey — Check Prime. The tray must never grow with the number
   of widgets: no per-widget show/hide. A mid-game toggle used often earns a
   **hotkey** instead of a tray line (the heatmap did).
+- Every distinct widget gets its OWN size slider in Settings (owner's rule,
+  Sep 2026): stats panel `UiScale`, minimap `MinimapSize`, prime tracker
+  `PrimeScale` — a new widget ships with one, seeded so an update never
+  resizes anything (override `AppearanceScale`). Sliders are independent:
+  no global scale multiplier on top (considered and dropped — Windows
+  display scaling already does it, two multiplying sliders confuse, and
+  scaling everything at once breaks docked/snapped layouts).
 - Fail soft: config/crypto/HTTP errors degrade to a UI state, never crash.
 - Keep files well under ~500 lines; current style is regions + XML doc comments.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
