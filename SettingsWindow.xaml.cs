@@ -79,6 +79,8 @@ public partial class SettingsWindow : Window
             HotkeySpec.TryParse(config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F4), "hide/show overlay");
         _hotkeyEntries[ViewHotkeyBox] = new HotkeyEntry(
             HotkeySpec.TryParse(config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F5), "the minimap view toggle");
+        _hotkeyEntries[HeatmapHotkeyBox] = new HotkeyEntry(
+            HotkeySpec.TryParse(config.HotkeyHeatmap) ?? new HotkeySpec(ModifierKeys.Control, Key.F6), "the heatmap toggle");
         foreach (var (box, entry) in _hotkeyEntries)
         {
             box.Text = entry.Chosen.ToString();
@@ -96,7 +98,6 @@ public partial class SettingsWindow : Window
         ModeIsland.IsChecked = !centered;
         ZoomSlider.Value = Math.Clamp(config.MinimapZoom, ZoomSlider.Minimum, ZoomSlider.Maximum);
         MapSizeSlider.Value = Math.Clamp(config.MinimapSize, MapSizeSlider.Minimum, MapSizeSlider.Maximum);
-        HeatmapCheck.IsChecked = config.HeatmapEnabled;
 
         Validate();
     }
@@ -301,6 +302,7 @@ public partial class SettingsWindow : Window
             _config.Hotkey = _hotkeyEntries[EditHotkeyBox].Chosen.ToString();
             _config.HotkeyHideAll = _hotkeyEntries[HideHotkeyBox].Chosen.ToString();
             _config.HotkeyMinimapView = _hotkeyEntries[ViewHotkeyBox].Chosen.ToString();
+            _config.HotkeyHeatmap = _hotkeyEntries[HeatmapHotkeyBox].Chosen.ToString();
             HotkeyChanged = true;
         }
 
@@ -319,16 +321,13 @@ public partial class SettingsWindow : Window
         var mode = ModeCentered.IsChecked == true ? "centered" : "island";
         var zoom = Math.Round(ZoomSlider.Value, 2);
         var mapSize = Math.Round(MapSizeSlider.Value);
-        var heatmap = HeatmapCheck.IsChecked == true;
         if (mode != _config.MinimapMode ||
             Math.Abs(zoom - _config.MinimapZoom) > 0.005 ||
-            Math.Abs(mapSize - _config.MinimapSize) > 0.5 ||
-            heatmap != _config.HeatmapEnabled)
+            Math.Abs(mapSize - _config.MinimapSize) > 0.5)
         {
             _config.MinimapMode = mode;
             _config.MinimapZoom = zoom;
             _config.MinimapSize = mapSize;
-            _config.HeatmapEnabled = heatmap;
             MinimapChanged = true;
         }
 

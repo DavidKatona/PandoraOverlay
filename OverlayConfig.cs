@@ -73,6 +73,14 @@ public sealed class OverlayConfig
     /// <summary>Toggle the minimap island/centered view from gameplay — same format as Hotkey.</summary>
     public string HotkeyMinimapView { get; set; } = "Ctrl+F5";
 
+    /// <summary>
+    /// Flip the minimap's heatmap layer from gameplay — same format as Hotkey.
+    /// The heatmap is a glance-and-dismiss lens, so it gets a key rather than
+    /// a tray entry. If the default collides with a combo the user already
+    /// gave one of the other three, MainWindow picks a free one at startup.
+    /// </summary>
+    public string HotkeyHeatmap { get; set; } = "Ctrl+F6";
+
     // ---- Minimap (v1.1) ---------------------------------------------------
 
     /// <summary>Show the stats panel (toggled from the control panel or the tray menu).</summary>

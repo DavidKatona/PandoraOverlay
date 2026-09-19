@@ -22,8 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not held to the default 5 minutes, and it is remembered across restarts. The last result is kept across restarts with its time
   and dino, and turns amber once you are playing a different dino.
 
+- Heatmap hotkey (default **Ctrl+F6**, rebindable in Settings like the
+  others): flips the minimap's heatmap layer mid-game without entering edit
+  mode. If Ctrl+F6 is already one of your own three combos, the overlay
+  picks the next free one (Ctrl+F8, F9, F11) instead of clashing with it.
+  The hotkey does nothing while the minimap is hidden.
+
 ### Changed
 
+- The tray menu is short again: Edit mode, Hide/show overlay, Check Prime
+  status, Settings and Exit. It keeps what must work while the overlay is
+  locked or hidden; showing and hiding individual widgets (stats, minimap,
+  prime tracker) is done from the control panel, and the heatmap entry is
+  replaced by the new hotkey.
+- The "Show activity heatmap" checkbox is gone from Settings: the heatmap is
+  something you flip, not a preference you set once, so it lives on the
+  hotkey and the control panel's Heatmap button. Your current on/off state
+  is kept.
 - The edit-mode control panel is organized by widget: still one row, but
   with a small caption over each widget's own controls — Stats (Show/hide),
   Minimap (Show/hide, Map view, Heatmap), Prime (Show/hide, Check) — between

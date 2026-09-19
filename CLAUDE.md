@@ -113,8 +113,8 @@ references — keep it that way. Every overlay window derives from
   on the UI thread. Windows are pure consumers: N windows, still ONE request
   stream (this is what preserves constraint #3). Fetches calibration once per
   launch (retried after a credential swap) and caches it into config. A
-  second 60 s timer (`RefreshHeatmapAsync` — also hot-triggered on settings
-  save, minimap re-show and the control-panel/tray heatmap toggle) raises
+  second 60 s timer (`RefreshHeatmapAsync` — also hot-triggered on minimap
+  re-show and the heatmap hotkey / control-panel toggle) raises
   `HeatmapChanged(byte[]?)`, gated on `HeatmapEnabled` + `MinimapEnabled`;
   null hides the layer. `CheckPrimeAsync` is the on-demand prime check —
   NO timer may ever call it. All gating lives here: busy guard, the
@@ -196,12 +196,18 @@ references — keep it that way. Every overlay window derives from
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
   and the minimap + prime windows' lifetimes (both follow edit mode and
   hide-all; `CheckPrime` un-hides and shows the prime widget first, then
-  fires the one user-triggered check). Three global hotkeys (RegisterHotKey +
+  fires the one user-triggered check). Four global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
   (`Hotkey`, Ctrl+F7) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
-  the edit hotkey un-hides first), and minimap view toggle
-  (`HotkeyMinimapView`, Ctrl+F5 → `MinimapWindow.ToggleView`). Defaults sit
+  the edit hotkey un-hides first), minimap view toggle
+  (`HotkeyMinimapView`, Ctrl+F5 → `MinimapWindow.ToggleView`), and the
+  heatmap toggle (`HotkeyHeatmap`, Ctrl+F6 → `ToggleHeatmap`, a no-op while
+  the minimap is hidden; it replaced the tray entry and the Settings
+  checkbox). The heatmap key arrived after users had customized the other
+  three, so `ResolveHeatmapHotkey` swaps a colliding default for the first
+  free candidate (F6/F8/F9/F11) instead of letting an own-app duplicate
+  fail to register and read as "in use by another app". Defaults sit
   in F4–F7 (v1.12 rebase — Ctrl+F3 proved globally held by third-party
   software in the wild; the mid-game toggles take the nearest keys, the
   occasional edit toggle the farthest), clear of the game's F2 recording
@@ -223,9 +229,10 @@ references — keep it that way. Every overlay window derives from
   on Loaded, feeding the status line + tray.
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
   always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
-  Right-click menu = edit mode / hide-show overlay / stats / minimap /
-  heatmap / prime tracker / Check Prime status / settings / exit (hotkey
-  labels follow config); double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
+  Right-click menu, deliberately short = edit mode / hide-show overlay |
+  Check Prime status | settings / exit (hotkey labels follow config) — no
+  per-widget toggles, see the surface rules under Conventions;
+  double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
   127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
   `ShowUpdateAvailable` reveals a hidden menu entry (opens the Releases page)
   and appends the tag to the tooltip; `ShowHotkeyConflict`/`ClearHotkeyConflict`
@@ -273,18 +280,19 @@ references — keep it that way. Every overlay window derives from
   stock TabControl chrome). Cookie box is a replace-inbox: empty = keep the
   current cookie; first run gates Save on a valid paste (`Clean()` strips
   `cookie:` prefix, quotes, newlines, trailing `;`; live validation needs
-  `connect.sid`, warns if `cf_clearance` missing). Three hotkey capture boxes
-  (edit / hide-overlay / minimap-view) share the capture UX: combos are
+  `connect.sid`, warns if `cf_clearance` missing). Four hotkey capture boxes
+  (edit / hide-overlay / minimap-view / heatmap) share the capture UX: combos are
   availability-tested via a throwaway RegisterHotKey on the dialog's hwnd
-  and cross-duplicates rejected. MainWindow suspends its three
+  and cross-duplicates rejected. MainWindow suspends its four
   registrations for the dialog's lifetime (WM_HOTKEY is system-level and
   would fire behind the modal dialog; suspension also lets the boxes see
   and reassign our own combos) and restores them in a finally on close.
-  The Minimap section holds view mode, centered zoom, map size and the
-  heatmap toggle (folded into the Minimap flag).
+  The Minimap section holds view mode, centered zoom and map size — NOT the
+  heatmap on/off (removed Sep 2026: something you flip is not a preference,
+  see the surface rules under Conventions).
   Save writes config + Run key and sets Cookie/Hotkey/Minimap/Appearance
   Changed flags; MainWindow hot-applies each (RebuildClient / re-register
-  with fallback / minimap ApplySettings + a heatmap refresh / ApplyAppearance)
+  with fallback / minimap ApplySettings / ApplyAppearance)
   — no restart, ever. General also holds the UI scale (75–150%) and background opacity
   (30–100%) sliders.
 - **HotkeySpec.cs** — record converting the config string ("Ctrl+F7") ⇄ the
@@ -380,6 +388,20 @@ re-propose.
 ## Conventions
 
 - Code-behind over MVVM — deliberate at this size; don't introduce frameworks.
+- Where a control goes (owner's rules, Sep 2026 — apply them to every new
+  feature, and don't put one thing on all three surfaces by reflex):
+  **Settings** = a preference: it has a value (number, text, key combo,
+  choice) or is an on/off decided once; changed rarely; may need
+  explanation, validation or Save/Cancel. Test: "set once and forget?"
+  **Control panel** = arranging the HUD: changes what is on screen right
+  now, belongs to one widget (goes in that widget's captioned group), fine
+  to be unreachable while locked. Test: "part of composing my layout?"
+  **Tray** = only (1) lifelines that must work while locked, hidden or with
+  dead hotkeys — edit mode, hide/show overlay, settings, exit; (2) alerts
+  needing a persistent home — update, hotkey conflict; (3) mid-game actions
+  with no hotkey — Check Prime. The tray must never grow with the number
+  of widgets: no per-widget show/hide. A mid-game toggle used often earns a
+  **hotkey** instead of a tray line (the heatmap did).
 - Fail soft: config/crypto/HTTP errors degrade to a UI state, never crash.
 - Keep files well under ~500 lines; current style is regions + XML doc comments.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;

@@ -22,6 +22,17 @@ public partial class MainWindow : OverlayWindowBase
     private const int HotkeyId = 0xA11C;        // edit mode (0xA11D is the settings dialog's test id)
     private const int HideAllHotkeyId = 0xA11E;
     private const int ViewHotkeyId = 0xA11F;
+    private const int HeatmapHotkeyId = 0xA120;
+
+    // Tried in order when the heatmap combo collides with one of the other
+    // three; four candidates against three takers, so one is always free.
+    private static readonly HotkeySpec[] HeatmapHotkeyCandidates =
+    {
+        new(ModifierKeys.Control, Key.F6),
+        new(ModifierKeys.Control, Key.F8),
+        new(ModifierKeys.Control, Key.F9),
+        new(ModifierKeys.Control, Key.F11)
+    };
 
     // ---- Brushes ----------------------------------------------------------
     private static readonly Brush HealthGood = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
@@ -40,6 +51,7 @@ public partial class MainWindow : OverlayWindowBase
     private HotkeySpec _hotkey;
     private HotkeySpec _hotkeyHide;
     private HotkeySpec _hotkeyView;
+    private HotkeySpec _hotkeyHeatmap;
     private bool _overlayHidden;
     private readonly List<string> _registerFailures = new();
 
@@ -53,6 +65,7 @@ public partial class MainWindow : OverlayWindowBase
         _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
         _hotkeyHide = HotkeySpec.TryParse(_config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F4);
         _hotkeyView = HotkeySpec.TryParse(_config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F5);
+        _hotkeyHeatmap = ResolveHeatmapHotkey();
         ApplyAppearance(_config);
 
         _poll = new PollService(_config);
@@ -62,10 +75,6 @@ public partial class MainWindow : OverlayWindowBase
         _tray = new TrayIcon(
             toggleEditMode: ToggleEditMode,
             toggleOverlay: ToggleOverlayVisibility,
-            toggleStats: ToggleStats,
-            toggleMinimap: ToggleMinimap,
-            toggleHeatmap: ToggleHeatmap,
-            togglePrime: TogglePrime,
             checkPrime: CheckPrime,
             openSettings: OpenSettings,
             exit: () => Application.Current.Shutdown());
@@ -110,6 +119,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, HotkeyId);
         HotkeySpec.Unregister(hwnd, HideAllHotkeyId);
         HotkeySpec.Unregister(hwnd, ViewHotkeyId);
+        HotkeySpec.Unregister(hwnd, HeatmapHotkeyId);
         try
         {
             var dialog = new SettingsWindow(_config) { Topmost = true };
@@ -127,7 +137,6 @@ public partial class MainWindow : OverlayWindowBase
                 _poll.RebuildClient();
             }
             if (dialog.MinimapChanged || dialog.AppearanceChanged) _minimap?.ApplySettings();
-            if (dialog.MinimapChanged) _ = _poll.RefreshHeatmapAsync(); // fetch now if the heatmap was just enabled
             if (dialog.AppearanceChanged)
             {
                 ApplyAppearance(_config);
@@ -168,16 +177,37 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, HotkeyId);
         HotkeySpec.Unregister(hwnd, HideAllHotkeyId);
         HotkeySpec.Unregister(hwnd, ViewHotkeyId);
+        HotkeySpec.Unregister(hwnd, HeatmapHotkeyId);
 
         _registerFailures.Clear();
         _hotkey = RegisterWithFallback(hwnd, HotkeyId, _config.Hotkey, _hotkey, v => _config.Hotkey = v);
         _hotkeyHide = RegisterWithFallback(hwnd, HideAllHotkeyId, _config.HotkeyHideAll, _hotkeyHide, v => _config.HotkeyHideAll = v);
         _hotkeyView = RegisterWithFallback(hwnd, ViewHotkeyId, _config.HotkeyMinimapView, _hotkeyView, v => _config.HotkeyMinimapView = v);
+        _hotkeyHeatmap = RegisterWithFallback(hwnd, HeatmapHotkeyId, _config.HotkeyHeatmap, _hotkeyHeatmap, v => _config.HotkeyHeatmap = v);
         _config.Save();
         UpdateHotkeyTexts();
 
         if (_registerFailures.Count == 0) _tray.ClearHotkeyConflict();
         else _tray.ShowHotkeyConflict(string.Join(", ", _registerFailures));
+    }
+
+    /// <summary>
+    /// The heatmap hotkey arrived after people had already customized the
+    /// other three, so its default can collide with one of them — and a
+    /// duplicate inside our own app would fail to register and read as "in
+    /// use by another app". Then the first free candidate wins and is
+    /// written back. (The settings dialog rejects duplicates at capture time,
+    /// so this only matters for that upgrade case and hand-edited configs.)
+    /// </summary>
+    private HotkeySpec ResolveHeatmapHotkey()
+    {
+        var wanted = HotkeySpec.TryParse(_config.HotkeyHeatmap) ?? HeatmapHotkeyCandidates[0];
+        var taken = new[] { _hotkey, _hotkeyHide, _hotkeyView };
+        if (!taken.Contains(wanted)) return wanted;
+
+        var free = HeatmapHotkeyCandidates.First(c => !taken.Contains(c));
+        _config.HotkeyHeatmap = free.ToString();
+        return free;
     }
 
     private HotkeySpec RegisterWithFallback(IntPtr hwnd, int id, string configured, HotkeySpec fallback, Action<string> writeBack)
@@ -214,9 +244,15 @@ public partial class MainWindow : OverlayWindowBase
         if (_config.StatsEnabled) Show(); else Hide();
     }
 
-    /// <summary>Control panel / tray: flips the minimap's heatmap layer (persisted with the next Save).</summary>
+    /// <summary>
+    /// Heatmap hotkey / control panel: flips the minimap's heatmap layer
+    /// (persisted with the next Save). Ignored while the minimap is hidden —
+    /// flipping an invisible layer would only surprise whoever shows the map
+    /// again later.
+    /// </summary>
     private void ToggleHeatmap()
     {
+        if (_minimap is null || _overlayHidden) return;
         _config.HeatmapEnabled = !_config.HeatmapEnabled;
         _ = _poll.RefreshHeatmapAsync(); // delivers fresh bytes, or null to clear the layer
     }
@@ -301,6 +337,7 @@ public partial class MainWindow : OverlayWindowBase
         if (!HotkeySpec.Register(hwnd, HotkeyId, _hotkey)) _registerFailures.Add(_hotkey.ToString());
         if (!HotkeySpec.Register(hwnd, HideAllHotkeyId, _hotkeyHide)) _registerFailures.Add(_hotkeyHide.ToString());
         if (!HotkeySpec.Register(hwnd, ViewHotkeyId, _hotkeyView)) _registerFailures.Add(_hotkeyView.ToString());
+        if (!HotkeySpec.Register(hwnd, HeatmapHotkeyId, _hotkeyHeatmap)) _registerFailures.Add(_hotkeyHeatmap.ToString());
         if (_registerFailures.Count > 0)
         {
             var combos = string.Join(", ", _registerFailures);
@@ -327,6 +364,10 @@ public partial class MainWindow : OverlayWindowBase
                     break;
                 case ViewHotkeyId:
                     _minimap?.ToggleView();
+                    handled = true;
+                    break;
+                case HeatmapHotkeyId:
+                    ToggleHeatmap();
                     handled = true;
                     break;
             }

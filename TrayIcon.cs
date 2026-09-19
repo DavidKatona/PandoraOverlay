@@ -7,8 +7,10 @@ namespace PandoraOverlay;
 /// <summary>
 /// Notification-area icon — the overlay's only always-visible affordance (the
 /// windows themselves are click-through, absent from the taskbar and Alt-Tab).
-/// The right-click menu drives the same actions as the edit banners; a
-/// double-click toggles edit mode. The hover tooltip carries live stats and,
+/// The right-click menu is deliberately small: the lifelines (edit mode,
+/// hide/show overlay, settings, exit), mid-game actions that have no hotkey,
+/// and alerts — layout controls belong to the control panel. A double-click
+/// toggles edit mode. The hover tooltip carries live stats and,
 /// when a newer release exists, an update note plus a menu entry opening the
 /// download page. WinForms interop, since NotifyIcon has no WPF counterpart.
 /// Must be disposed on shutdown or the icon lingers in the tray until hovered.
@@ -25,8 +27,7 @@ public sealed class TrayIcon : IDisposable
     private string _updateSuffix = "";
     private string _conflictSuffix = "";
 
-    public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action toggleStats, Action toggleMinimap, Action toggleHeatmap,
-                    Action togglePrime, Action checkPrime, Action openSettings, Action exit)
+    public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action checkPrime, Action openSettings, Action exit)
     {
         _updateItem = new ToolStripMenuItem { Visible = false };
         _updateItem.Click += (_, _) => OpenReleasesPage();
@@ -46,15 +47,16 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(_updateItem);
         menu.Items.Add(_conflictItem);
         menu.Items.Add(_updateSeparator);
+        // Lifelines (must work while locked, hidden, or with dead hotkeys) ·
+        // mid-game actions with no hotkey · the app itself. Per-widget
+        // show/hide deliberately lives on the control panel only, so this
+        // menu never grows with the number of widgets.
         menu.Items.Add(_editItem);
         menu.Items.Add(_overlayItem);
-        menu.Items.Add(new ToolStripMenuItem("Show/hide stats panel", null, (_, _) => toggleStats()));
-        menu.Items.Add(new ToolStripMenuItem("Show/hide minimap", null, (_, _) => toggleMinimap()));
-        menu.Items.Add(new ToolStripMenuItem("Show/hide heatmap", null, (_, _) => toggleHeatmap()));
-        menu.Items.Add(new ToolStripMenuItem("Show/hide prime tracker", null, (_, _) => togglePrime()));
-        menu.Items.Add(new ToolStripMenuItem("Check Prime status", null, (_, _) => checkPrime()));
-        menu.Items.Add(new ToolStripMenuItem("Settings…", null, (_, _) => openSettings()));
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(new ToolStripMenuItem("Check Prime status", null, (_, _) => checkPrime()));
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(new ToolStripMenuItem("Settings…", null, (_, _) => openSettings()));
         menu.Items.Add(new ToolStripMenuItem("Exit", null, (_, _) => exit()));
 
         _icon = new NotifyIcon
