@@ -19,13 +19,26 @@ public sealed class PollService : IDisposable
     /// </summary>
     private const int HeatmapIntervalSeconds = 60;
 
+    /// <summary>
+    /// Client-side mirror of the server's prime-check cooldown (the live-map
+    /// page locks its button for the same 5 min), so a cooling-down check
+    /// costs no request at all.
+    /// </summary>
+    private static readonly TimeSpan PrimeCooldown = TimeSpan.FromMinutes(5);
+
+    /// <summary>Breather after a failed check, so a broken endpoint can't be button-mashed.</summary>
+    private static readonly TimeSpan PrimeRetryGuard = TimeSpan.FromSeconds(15);
+
     private readonly OverlayConfig _config;
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _heatmapTimer;
     private PandoraClient _client;
     private bool _busy;
     private bool _heatmapBusy;
+    private bool _primeBusy;
     private bool _calibrationRequested;
+    private bool _inGame;
+    private string? _dino;
 
     /// <summary>Latest cookie, including any rolled connect.sid (persist on exit).</summary>
     public string CurrentCookie => _client.CurrentCookie;
@@ -40,10 +53,20 @@ public sealed class PollService : IDisposable
     /// <summary>Fresh heatmap PNG bytes, or null (disabled / off / fetch failed) → hide the layer.</summary>
     public event Action<byte[]?>? HeatmapChanged;
 
+    /// <summary>Raised right before a prime check request actually goes out (not for locally answered ones).</summary>
+    public event Action? PrimeCheckStarted;
+
+    /// <summary>Outcome of a user-triggered prime check, including the no-request cooldown / not-in-game answers.</summary>
+    public event Action<PrimeCheckResult>? PrimeChecked;
+
+    /// <summary>When the next prime check is allowed (UTC); in the past means available now.</summary>
+    public DateTime PrimeCooldownUntilUtc { get; private set; }
+
     public PollService(OverlayConfig config)
     {
         _config = config;
         Calibration = config.Calibration;
+        if (config.Prime is { } lastPrime) PrimeCooldownUntilUtc = lastPrime.CheckedAtUtc + PrimeCooldown;
         _client = new PandoraClient(config.GetCookie(), config.UserAgent);
 
         _timer = new DispatcherTimer
@@ -89,6 +112,8 @@ public sealed class PollService : IDisposable
         try
         {
             var result = await _client.FetchAsync();
+            _inGame = result.InGame && result.Player is not null;
+            _dino = result.Player?.Dino;
             SnapshotReceived?.Invoke(result);
         }
         catch (Exception ex)
@@ -127,6 +152,61 @@ public sealed class PollService : IDisposable
         finally
         {
             _heatmapBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// One USER-TRIGGERED prime check (control panel / tray) — never call this
+    /// from a timer; the endpoint is approved on exactly that condition. All
+    /// gating lives here so windows stay pure consumers: a running cooldown
+    /// or a not-in-game poll state answers locally with no request sent. A
+    /// successful snapshot is cached into config (persisted with the next
+    /// Save).
+    /// </summary>
+    public async Task CheckPrimeAsync()
+    {
+        if (_primeBusy) return;
+
+        var now = DateTime.UtcNow;
+        if (now < PrimeCooldownUntilUtc)
+        {
+            PrimeChecked?.Invoke(new PrimeCheckResult(PrimeCheckOutcome.Cooldown, Remaining: PrimeCooldownUntilUtc - now));
+            return;
+        }
+        if (!_inGame)
+        {
+            PrimeChecked?.Invoke(new PrimeCheckResult(PrimeCheckOutcome.NotInGame));
+            return;
+        }
+
+        _primeBusy = true;
+        PrimeCheckStarted?.Invoke();
+        try
+        {
+            var result = await _client.CheckPrimeAsync(_dino);
+            switch (result.Outcome)
+            {
+                case PrimeCheckOutcome.Ok:
+                    PrimeCooldownUntilUtc = DateTime.UtcNow + PrimeCooldown;
+                    _config.Prime = result.Snapshot;
+                    break;
+                case PrimeCheckOutcome.Cooldown:
+                    PrimeCooldownUntilUtc = DateTime.UtcNow + result.Remaining;
+                    break;
+                case PrimeCheckOutcome.Failed:
+                    PrimeCooldownUntilUtc = DateTime.UtcNow + PrimeRetryGuard;
+                    break;
+            }
+            PrimeChecked?.Invoke(result);
+        }
+        catch (Exception ex)
+        {
+            PrimeCooldownUntilUtc = DateTime.UtcNow + PrimeRetryGuard;
+            PrimeChecked?.Invoke(new PrimeCheckResult(PrimeCheckOutcome.Failed, Reason: ex.GetType().Name));
+        }
+        finally
+        {
+            _primeBusy = false;
         }
     }
 

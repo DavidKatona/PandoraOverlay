@@ -25,7 +25,8 @@ public sealed class TrayIcon : IDisposable
     private string _updateSuffix = "";
     private string _conflictSuffix = "";
 
-    public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action toggleStats, Action toggleMinimap, Action toggleHeatmap, Action openSettings, Action exit)
+    public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action toggleStats, Action toggleMinimap, Action toggleHeatmap,
+                    Action togglePrime, Action checkPrime, Action openSettings, Action exit)
     {
         _updateItem = new ToolStripMenuItem { Visible = false };
         _updateItem.Click += (_, _) => OpenReleasesPage();
@@ -50,6 +51,8 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(new ToolStripMenuItem("Show/hide stats panel", null, (_, _) => toggleStats()));
         menu.Items.Add(new ToolStripMenuItem("Show/hide minimap", null, (_, _) => toggleMinimap()));
         menu.Items.Add(new ToolStripMenuItem("Show/hide heatmap", null, (_, _) => toggleHeatmap()));
+        menu.Items.Add(new ToolStripMenuItem("Show/hide prime tracker", null, (_, _) => togglePrime()));
+        menu.Items.Add(new ToolStripMenuItem("Check Prime status", null, (_, _) => checkPrime()));
         menu.Items.Add(new ToolStripMenuItem("Settings…", null, (_, _) => openSettings()));
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Exit", null, (_, _) => exit()));

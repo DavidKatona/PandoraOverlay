@@ -18,7 +18,13 @@ web dev.**
    `GET /map/api/heatmap-status` + `GET /map/heatmap-live.png` (approved by
    the site dev Sep 15 2026; public and fetched WITHOUT a cookie, every 60 s
    and only while the heatmap layer is on and the minimap shown — the site's
-   own page refetches every 10 s per open tab). The `friends` endpoint and
+   own page refetches every 10 s per open tab), and `POST /api/prime/check`
+   (approved Sep 19 2026; cookie-authed and USER-TRIGGERED ONLY — control
+   panel / tray click, never a timer; the server's 5 min cooldown is mirrored
+   client-side so a cooling-down or not-in-game click sends nothing. The
+   sibling `POST /api/prime/cooldown` is deliberately unused — the local
+   mirror plus the server's `remainingMs` answer cover it with one endpoint
+   fewer). The `friends` endpoint and
    the zone overlays are NOT cleared for use (see Permissions). The
    launch-time update check calls the GitHub releases API — not an
    islapandora endpoint, so it sits outside this constraint.
@@ -38,6 +44,8 @@ web dev.**
 - Approved Sep 15 2026 (same dev): the **heatmap layer** — mirroring the
   live-map page's pre-rendered `/map/heatmap-live.png` (+ its status
   endpoint) on the minimap.
+- Approved Sep 19 2026 (relayed by the owner): the **Prime tracker** —
+  rebuilding the live-map page's "Prime Check" box as an overlay widget.
 - **NOT approved:** using the `friends` endpoint or the zone overlay images
   (the live-map bundles patrols / sanctuaries / migrations / salt rocks as
   static PNGs) — ask him first. A read-only API
@@ -105,7 +113,13 @@ references — keep it that way. Every overlay window derives from
   second 60 s timer (`RefreshHeatmapAsync` — also hot-triggered on settings
   save, minimap re-show and the control-panel/tray heatmap toggle) raises
   `HeatmapChanged(byte[]?)`, gated on `HeatmapEnabled` + `MinimapEnabled`;
-  null hides the layer.
+  null hides the layer. `CheckPrimeAsync` is the on-demand prime check —
+  NO timer may ever call it. All gating lives here: busy guard, the 5 min
+  cooldown mirror (`PrimeCooldownUntilUtc`, seeded from the cached
+  snapshot, reset from the server's `remainingMs`, 15 s retry guard after a
+  failure) and the last poll's in-game state answer locally with no
+  request; raises `PrimeCheckStarted` / `PrimeChecked(PrimeCheckResult)`
+  and caches an Ok snapshot into `config.Prime`.
 - **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
   toolwindow styles via SetWindowLongPtr, x64), `EditMode` state, shared
   edit-border brushes, `ApplyAppearance` (UI scale as a LayoutTransform +
@@ -128,8 +142,9 @@ references — keep it that way. Every overlay window derives from
   a `SnapResult` (position + per-axis `SnapGuide` naming the engaged target
   and whether it was a peer) so the caller can draw guides.
 - **ControlPanelWindow.xaml(.cs)** — the edit-mode control panel (v1.9):
-  appears with edit mode, hides on lock; labeled buttons Settings /
-  Show-hide stats / Show-hide minimap / Map view / Heatmap | Lock / Exit + the hint
+  appears with edit mode, hides on lock; labeled buttons in two rows
+  (since the prime tracker): Settings / Show-hide stats / Show-hide minimap /
+  Show-hide prime, then Map view / Heatmap / Check Prime | Lock / Exit + the hint
   line (hotkey label follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
   permanently interactive while visible, `IsSnapTarget` false, first show
   bottom-center, position persisted (`ControlPanelX/Y`, nullable). Activated
@@ -150,7 +165,12 @@ references — keep it that way. Every overlay window derives from
   at the outermost await. `FetchHeatmapAsync` mirrors the live-map page:
   checks the public `/map/api/heatmap-status` kill-switch (the site fails
   open, we fail closed), then GETs the cache-busted heatmap PNG — no Cookie
-  header on either.
+  header on either. `CheckPrimeAsync` is the cookie-authed, empty-bodied
+  prime POST; like the frontend it parses the JSON body regardless of HTTP
+  status (cooldown / not_in_game arrive as error bodies). `ParsePrime` is
+  pure + tested: status under isPrimeElder/isPrime and
+  isEligiblePrime/isEligible, condition flags keyed "1".."10" or
+  "c1".."c10"; server error strings are mapped, never echoed.
 - **GrowthTracker.cs** — pure class fed from the snapshot stream: 15-min
   sliding window of (time, growth) samples → slope → in-game ETA to full
   growth. Needs a ≥5-min baseline before showing anything; a full baseline
@@ -161,7 +181,9 @@ references — keep it that way. Every overlay window derives from
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
   any failure; nothing in this class ever throws.
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
-  and the minimap window's lifetime. Three global hotkeys (RegisterHotKey +
+  and the minimap + prime windows' lifetimes (both follow edit mode and
+  hide-all; `CheckPrime` un-hides and shows the prime widget first, then
+  fires the one user-triggered check). Three global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
   (`Hotkey`, Ctrl+F7) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
@@ -189,7 +211,8 @@ references — keep it that way. Every overlay window derives from
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
   always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
   Right-click menu = edit mode / hide-show overlay / stats / minimap /
-  heatmap / settings / exit (hotkey labels follow config); double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
+  heatmap / prime tracker / Check Prime status / settings / exit (hotkey
+  labels follow config); double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
   127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
   `ShowUpdateAvailable` reveals a hidden menu entry (opens the Releases page)
   and appends the tag to the tooltip; `ShowHotkeyConflict`/`ClearHotkeyConflict`
@@ -219,6 +242,19 @@ references — keep it that way. Every overlay window derives from
   grayscale map, blobs and a player-count caption baked in) as a second
   Image sharing the map image's size and translate transform, blended at
   the site's own 55%; null/undecodable bytes collapse it.
+- **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
+  ten ✓/✗ condition rows (texts baked in — the site bakes them into its
+  frontend too, the API only returns flags) + a two-line footer (what the
+  rows reflect: time and dino, amber once the live dino differs; then
+  checking / sticky notice / live cooldown countdown — its 1 s timer only
+  runs while cooling down). Display-only and click-through when locked;
+  the check is triggered from the control panel or tray via
+  `MainWindow.CheckPrime` → `PollService.CheckPrimeAsync`. Fixed 250 px
+  content width and a reserved footer keep it one size in every state.
+  Derives OverlayWindowBase (drag/snap/clamp, `UiScale` applies); first
+  show docks to the left screen edge (16 px inset), vertically centered;
+  position persists (`PrimeX/Y`, nullable), visibility via `PrimeEnabled`
+  (default on — a visible widget costs zero requests until clicked).
 - **SettingsWindow.xaml(.cs)** — sectioned settings dialog (Account / Controls
   / General / Minimap; single column, no tabs — deliberate, avoids theming
   stock TabControl chrome). Cookie box is a replace-inbox: empty = keep the
@@ -293,17 +329,7 @@ site dev Sep 15 — verified in-game), v1.13.1 (calibration pinOffset
 applied to the arrow/waypoint transforms — matches the website exactly,
 verified in-game).
 
-Later/maybe: Prime objective tracker widget (design ready Sep 2026 —
-needs permission for `POST /api/prime/check` + `POST /api/prime/cooldown`,
-cookie-authed and server-cooldown-gated at 5 min, so likely the most
-sensitive ask yet; the pitch: mirror the site exactly — button-triggered
-from the control panel/tray, NEVER polled, cooldown honored client-side
-too. A click-through display widget shows Prime status + the 10
-condition ✓/✗ rows; last result + timestamp persist in config. The
-condition texts are baked into the site's frontend, not served — bake
-ours the same way; parse `conditions` tolerant of "1" vs "c1" keys like
-the site does; grey the Check action when the poll says not-in-game),
-friends markers (needs permission first), zone overlays
+Later/maybe: friends markers (needs permission first), zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
 sanctuaries, migrations, salt rocks), official token auth (the nudge went
 out with the heatmap ask ~Sep 14 2026; the heatmap got its yes Sep 15,

@@ -132,6 +132,23 @@ public sealed class OverlayConfig
 
     public double? ControlPanelY { get; set; }
 
+    // ---- Prime tracker ----------------------------------------------------
+
+    /// <summary>Show the Prime tracker widget (toggled from the control panel or the tray menu).</summary>
+    public bool PrimeEnabled { get; set; } = true;
+
+    /// <summary>Prime widget position; null until first moved (defaults to the left screen edge, vertically centered).</summary>
+    public double? PrimeX { get; set; }
+
+    public double? PrimeY { get; set; }
+
+    /// <summary>
+    /// Last Prime check result, kept across restarts. Checks are user-triggered
+    /// and server-cooldown-gated, so the widget shows this with its timestamp
+    /// rather than refetching on launch.
+    /// </summary>
+    public PrimeSnapshot? Prime { get; set; }
+
     // ---- Appearance -------------------------------------------------------
 
     /// <summary>

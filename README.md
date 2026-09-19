@@ -17,7 +17,7 @@ It is **fully external**: the only thing it ever does is replay the same authent
 - [Requirements](#requirements)
 - [Build](#build)
 - [First-run setup](#first-run-setup)
-- [Usage](#usage) — [Basics](#basics) · [Tray icon & settings](#tray-icon--settings) · [Stats panel](#stats-panel) · [Minimap](#minimap)
+- [Usage](#usage) — [Basics](#basics) · [Tray icon & settings](#tray-icon--settings) · [Stats panel](#stats-panel) · [Minimap](#minimap) · [Prime tracker](#prime-tracker)
 - [Configuration (config.json)](#configuration-configjson)
 - [Troubleshooting](#troubleshooting)
 - [Fair-play notes](#fair-play-notes)
@@ -63,7 +63,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Basics
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
-- The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with labeled buttons: **Settings**, **Show/hide stats**, **Show/hide minimap**, **Map view**, **Heatmap**, **Lock**, and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
+- The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with labeled buttons in two rows: **Settings**, **Show/hide stats**, **Show/hide minimap**, **Show/hide prime**, then **Map view**, **Heatmap**, **Check Prime**, **Lock**, and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
 - While dragging, panels **snap** to the screen edges, a small inset from them, and to each other — **guide lines** light up along whatever you snapped to (orange = screen, blue = the other panel). Hold **Alt** while dragging for pixel-perfect free placement.
 - You can't lose a panel off-screen: locking edit mode (or restarting the app) pulls every panel fully back into view — dragging itself stays free, so moving panels to another monitor still works.
 - **Ctrl+F4** hides/shows the whole overlay without quitting — for screenshots and cutscenes; polling continues, and the app always starts visible. **Ctrl+F5** flips the minimap view without entering edit mode. All three hotkeys are rebindable in Settings; the defaults deliberately avoid the game's F2 (recording) and F10 (hide HUD), and the quick toggles sit on the nearest keys.
@@ -71,7 +71,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Tray icon & settings
 
-- A **tray icon** in the notification area is always available: right-click for Edit mode, Show/hide minimap, Settings, and **Exit** (double-click toggles edit mode). Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
+- A **tray icon** in the notification area is always available: right-click for Edit mode, the show/hide toggles (overlay, stats, minimap, heatmap, prime tracker), Check Prime status, Settings, and **Exit** (double-click toggles edit mode). Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
 - **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable: replace your cookie, rebind the hotkeys, start with Windows, set the minimap view, zoom and size, and adjust the stats panel scale and background opacity.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
@@ -97,6 +97,13 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
   ![The centered minimap view with the player arrow, a waypoint diamond, and the footer showing "centered · 4× · 733m"](docs/waypoint.png)
 
+### Prime tracker
+
+- The **Prime tracker** is a third widget (docked to the left screen edge by default, draggable like the others) showing your Prime status and the server's ten Prime conditions as a ✓/✗ list — the same result as the website's "Prime Check" box. 5 of 10 are needed for Prime.
+- It never checks by itself. Press **Check Prime** on the control panel, or **Check Prime status** in the tray menu (which works while locked, mid-game). The server allows one check every 5 minutes; the widget counts the cooldown down and a click during it sends nothing. You need to be spawned in for a check to work.
+- The last result stays on screen with the time it was taken and the dino it was taken as, and it survives restarts. If you have switched dino since, that line turns amber as a reminder that the list is about your previous one.
+- Hide or show the widget with **Show/hide prime** (control panel) or **Show/hide prime tracker** (tray). It scales with the "Stats panel scale" slider.
+
 ## Configuration (`config.json`)
 
 | Field | Meaning |
@@ -114,6 +121,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `MinimapZoom` | Centered-view magnification, clamped to 1.25–6 (default 5). Mouse wheel in edit mode adjusts it. |
 | `MinimapYawOffsetDegrees` | Rotation added to the raw yaw for the arrow. Default 90 matches the current map. |
 | `HeatmapEnabled` | Overlay the server's live activity heatmap on the minimap (refreshed every minute; public image, no cookie sent). Toggle in Settings → Minimap. Default `false`. |
+| `PrimeEnabled` / `PrimeX` / `PrimeY` | Show the Prime tracker widget, and its position (empty until first placed: left screen edge, vertically centered). |
+| `Prime` | The last Prime check result (status, ten condition flags, time, dino), kept so the widget has something to show after a restart. Managed by the app. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
 | `WaypointX` / `WaypointY` | The minimap waypoint in world coordinates; `null` when none is set. Right-click the minimap in edit mode. |
 | `UiScale` | Stats panel (and control panel) scale, 0.75–1.5 (default 1). Slider in Settings; the minimap sizes natively via `MinimapSize`. |

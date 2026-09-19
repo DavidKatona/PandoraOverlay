@@ -49,6 +49,67 @@ public class CalibrationParsingTests
     }
 }
 
+public class PrimeParsingTests
+{
+    private static readonly DateTime Now = new(2026, 9, 19, 12, 0, 0, DateTimeKind.Utc);
+
+    private static PrimeCheckResult Parse(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return PandoraClient.ParsePrime(doc.RootElement, Now, "Deinosuchus");
+    }
+
+    [Fact]
+    public void ParsesNumericConditionKeys()
+    {
+        var result = Parse(
+            """{"success":true,"data":{"isPrime":false,"isEligible":true,"conditions":{"1":true,"2":false,"3":true,"10":true}}}""");
+        Assert.Equal(PrimeCheckOutcome.Ok, result.Outcome);
+        var snap = result.Snapshot!;
+        Assert.False(snap.IsPrime);
+        Assert.True(snap.IsEligible);
+        Assert.Equal(new[] { true, false, true, false, false, false, false, false, false, true }, snap.Conditions);
+        Assert.Equal(Now, snap.CheckedAtUtc);
+        Assert.Equal("Deinosuchus", snap.Dino);
+    }
+
+    [Fact]
+    public void ParsesPrefixedKeysAndAlternateStatusNames()
+    {
+        var result = Parse(
+            """{"success":true,"data":{"isPrimeElder":true,"isEligiblePrime":true,"conditions":{"c1":true,"c5":1,"c6":0}}}""");
+        var snap = result.Snapshot!;
+        Assert.True(snap.IsPrime);
+        Assert.True(snap.IsEligible);
+        Assert.True(snap.Conditions[0]);
+        Assert.True(snap.Conditions[4]);
+        Assert.False(snap.Conditions[5]);
+    }
+
+    [Fact]
+    public void MapsCooldownWithRemainingTime()
+    {
+        var result = Parse("""{"success":false,"error":"cooldown","remainingMs":125000}""");
+        Assert.Equal(PrimeCheckOutcome.Cooldown, result.Outcome);
+        Assert.Equal(TimeSpan.FromSeconds(125), result.Remaining);
+    }
+
+    [Fact]
+    public void MapsNotInGame() =>
+        Assert.Equal(PrimeCheckOutcome.NotInGame, Parse("""{"success":false,"error":"not_in_game"}""").Outcome);
+
+    [Theory]
+    [InlineData("""{"success":false,"error":"something else"}""")]
+    [InlineData("""{"success":true}""")]
+    [InlineData("""[1,2,3]""")]
+    public void AnythingElseFailsWithoutEchoingTheServer(string json)
+    {
+        var result = Parse(json);
+        Assert.Equal(PrimeCheckOutcome.Failed, result.Outcome);
+        Assert.DoesNotContain("something else", result.Reason ?? "");
+    }
+}
+
 public class UpdateCheckerTests
 {
     [Theory]

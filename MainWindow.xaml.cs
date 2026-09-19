@@ -35,6 +35,7 @@ public partial class MainWindow : OverlayWindowBase
     private readonly TrayIcon _tray;
     private readonly GrowthTracker _growth = new();
     private MinimapWindow? _minimap;
+    private PrimeWindow? _prime;
     private ControlPanelWindow? _controlPanel;
     private HotkeySpec _hotkey;
     private HotkeySpec _hotkeyHide;
@@ -64,6 +65,8 @@ public partial class MainWindow : OverlayWindowBase
             toggleStats: ToggleStats,
             toggleMinimap: ToggleMinimap,
             toggleHeatmap: ToggleHeatmap,
+            togglePrime: TogglePrime,
+            checkPrime: CheckPrime,
             openSettings: OpenSettings,
             exit: () => Application.Current.Shutdown());
         UpdateHotkeyTexts();
@@ -73,6 +76,7 @@ public partial class MainWindow : OverlayWindowBase
             _ = CheckForUpdateAsync();
             if (!_config.StatsEnabled) Hide();
             if (_config.MinimapEnabled) ShowMinimap();
+            if (_config.PrimeEnabled) ShowPrime();
 
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
             {
@@ -90,6 +94,7 @@ public partial class MainWindow : OverlayWindowBase
             PersistState();
             _poll.Dispose();
             _minimap?.Close();
+            _prime?.Close();
             _controlPanel?.Close();
         };
     }
@@ -126,6 +131,7 @@ public partial class MainWindow : OverlayWindowBase
             if (dialog.AppearanceChanged)
             {
                 ApplyAppearance(_config);
+                _prime?.ApplySettingsFromConfig();
                 _controlPanel?.ApplySettingsFromConfig();
             }
         }
@@ -243,6 +249,45 @@ public partial class MainWindow : OverlayWindowBase
         if (EditMode) _minimap.SetEditMode(true);
     }
 
+    private void TogglePrime()
+    {
+        if (_prime is null)
+        {
+            ShowPrime();
+        }
+        else
+        {
+            _config.PrimeEnabled = false;
+            _config.PrimeX = _prime.Left; // a hidden widget comes back where it was
+            _config.PrimeY = _prime.Top;
+            _prime.Close();
+        }
+    }
+
+    private void ShowPrime()
+    {
+        if (_prime is null)
+        {
+            _prime = new PrimeWindow(_config, _poll);
+            _prime.Closed += (_, _) => _prime = null;
+            _prime.Show();
+        }
+        _config.PrimeEnabled = true;
+        if (EditMode) _prime.SetEditMode(true);
+    }
+
+    /// <summary>
+    /// Control panel / tray: the ONLY trigger for a prime check — user-clicked,
+    /// never timed (the endpoint is approved on that condition). Asking for a
+    /// check implies wanting to see the answer, so the widget is shown first.
+    /// </summary>
+    private void CheckPrime()
+    {
+        if (_overlayHidden) ToggleOverlayVisibility();
+        ShowPrime();
+        _ = _poll.CheckPrimeAsync();
+    }
+
     // ---- Window setup ------------------------------------------------------
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -302,12 +347,14 @@ public partial class MainWindow : OverlayWindowBase
             _overlayHidden = true;
             Hide();
             _minimap?.Hide();
+            _prime?.Hide();
         }
         else
         {
             _overlayHidden = false;
             if (_config.StatsEnabled) Show(); // a deliberately hidden stats panel stays hidden
             _minimap?.Show();
+            _prime?.Show();
         }
     }
 
@@ -319,6 +366,7 @@ public partial class MainWindow : OverlayWindowBase
         var on = !EditMode;
         SetEditMode(on);
         _minimap?.SetEditMode(on);
+        _prime?.SetEditMode(on);
 
         if (on)
         {
@@ -342,6 +390,8 @@ public partial class MainWindow : OverlayWindowBase
                 toggleMinimap: ToggleMinimap,
                 toggleMinimapView: () => _minimap?.ToggleView(),
                 toggleHeatmap: ToggleHeatmap,
+                togglePrime: TogglePrime,
+                checkPrime: CheckPrime,
                 lockOverlay: ToggleEditMode,
                 exit: () => Application.Current.Shutdown());
         }
@@ -371,6 +421,11 @@ public partial class MainWindow : OverlayWindowBase
         {
             _config.MinimapX = _minimap.Left;
             _config.MinimapY = _minimap.Top;
+        }
+        if (_prime is not null)
+        {
+            _config.PrimeX = _prime.Left;
+            _config.PrimeY = _prime.Top;
         }
         if (_controlPanel is not null)
         {

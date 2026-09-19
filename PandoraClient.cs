@@ -39,6 +39,23 @@ public sealed record MapCalibration(double OffsetX, double OffsetY, double Scale
                                     double PinOffsetX = 0, double PinOffsetY = 0);
 
 /// <summary>
+/// One Prime check result as shown by the live-map page's "Prime Check" box:
+/// overall status plus the ten condition flags (index 0 = condition 1). Cached
+/// in config with its timestamp and the dino it was taken for, so the widget
+/// can show the last known state across restarts.
+/// </summary>
+public sealed record PrimeSnapshot(bool IsPrime, bool IsEligible, bool[] Conditions, DateTime CheckedAtUtc, string? Dino = null);
+
+public enum PrimeCheckOutcome { Ok, Cooldown, NotInGame, Failed }
+
+/// <summary>Outcome of a prime check: a snapshot on Ok, the remaining wait on Cooldown, a short reason on Failed.</summary>
+public sealed record PrimeCheckResult(
+    PrimeCheckOutcome Outcome,
+    PrimeSnapshot? Snapshot = null,
+    TimeSpan Remaining = default,
+    string? Reason = null);
+
+/// <summary>
 /// Minimal client for the Isla Pandora live-map API — the overlay's entire
 /// data path: authenticated, empty-bodied POSTs identical to the website
 /// frontend's own (mylocation, calibration), plus the public, cookie-less
@@ -50,6 +67,7 @@ public sealed class PandoraClient : IDisposable
     private const string CalibrationEndpoint = "https://islapandora.eu/api/map/calibration";
     private const string HeatmapStatusEndpoint = "https://islapandora.eu/map/api/heatmap-status";
     private const string HeatmapImageEndpoint = "https://islapandora.eu/map/heatmap-live.png";
+    private const string PrimeCheckEndpoint = "https://islapandora.eu/api/prime/check";
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -156,6 +174,92 @@ public sealed class PandoraClient : IDisposable
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// One user-triggered Prime check (approved by the site dev, Sep 2026) —
+    /// the same authenticated, empty-bodied POST the live-map page's "Check
+    /// Prime Status" button sends. NEVER call this on a timer: the server
+    /// gates it behind a 5-minute cooldown because the check does real work.
+    /// Like the frontend, the JSON body is parsed regardless of HTTP status
+    /// (cooldown / not-in-game arrive as error bodies); only an unparseable
+    /// response throws.
+    /// </summary>
+    public async Task<PrimeCheckResult> CheckPrimeAsync(string? dino, CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, PrimeCheckEndpoint)
+        {
+            Content = new ByteArrayContent(Array.Empty<byte>())
+        };
+        request.Headers.TryAddWithoutValidation("Cookie", _cookie);
+
+        using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+        UpdateRollingCookie(response);
+
+        var body = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            return ParsePrime(doc.RootElement, DateTime.UtcNow, dino);
+        }
+        catch (JsonException)
+        {
+            response.EnsureSuccessStatusCode();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Tolerant like the frontend: status under isPrimeElder/isPrime and
+    /// isEligiblePrime/isEligible, condition flags keyed "1".."10" or
+    /// "c1".."c10". Server error strings are mapped, never echoed.
+    /// </summary>
+    internal static PrimeCheckResult ParsePrime(JsonElement root, DateTime nowUtc, string? dino)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return new PrimeCheckResult(PrimeCheckOutcome.Failed, Reason: "unexpected response");
+        }
+
+        if (IsTruthy(root, "success") &&
+            root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+        {
+            var conditions = new bool[10];
+            if (data.TryGetProperty("conditions", out var cond) && cond.ValueKind == JsonValueKind.Object)
+            {
+                for (var i = 1; i <= 10; i++)
+                {
+                    var key = i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    conditions[i - 1] = IsTruthy(cond, key) || IsTruthy(cond, "c" + key);
+                }
+            }
+            return new PrimeCheckResult(PrimeCheckOutcome.Ok, new PrimeSnapshot(
+                IsTruthy(data, "isPrimeElder") || IsTruthy(data, "isPrime"),
+                IsTruthy(data, "isEligiblePrime") || IsTruthy(data, "isEligible"),
+                conditions, nowUtc, dino));
+        }
+
+        var error = root.TryGetProperty("error", out var e) && e.ValueKind == JsonValueKind.String
+            ? e.GetString()
+            : null;
+        switch (error)
+        {
+            case "cooldown":
+                var ms = root.TryGetProperty("remainingMs", out var r) && r.ValueKind == JsonValueKind.Number
+                    ? r.GetDouble()
+                    : 0;
+                return new PrimeCheckResult(PrimeCheckOutcome.Cooldown,
+                    Remaining: TimeSpan.FromMilliseconds(Math.Clamp(ms, 0, 3_600_000)));
+            case "not_in_game":
+                return new PrimeCheckResult(PrimeCheckOutcome.NotInGame);
+            default:
+                return new PrimeCheckResult(PrimeCheckOutcome.Failed, Reason: "server declined");
+        }
+    }
+
+    private static bool IsTruthy(JsonElement obj, string name) =>
+        obj.TryGetProperty(name, out var v) &&
+        (v.ValueKind == JsonValueKind.True ||
+         (v.ValueKind == JsonValueKind.Number && v.GetDouble() != 0));
 
     internal static MapCalibration? FindCalibration(JsonElement el)
     {

@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Prime tracker widget, approved by the server's dev: your Prime status and
+  the ten Prime conditions as a ✓/✗ list, the same result as the website's
+  "Prime Check" box. It docks to the left screen edge by default and drags,
+  snaps and scales like the other panels. Checks are never automatic: press
+  Check Prime on the control panel or "Check Prime status" in the tray menu.
+  The server's 5-minute cooldown is mirrored locally (with a live countdown),
+  so a click during it sends no request, and neither does one made while you
+  are not spawned in. The last result is kept across restarts with its time
+  and dino, and turns amber once you are playing a different dino.
+
+### Changed
+
+- The edit-mode control panel is now two rows: settings and the show/hide
+  toggles (stats, minimap, prime) on top; Map view, Heatmap, Check Prime and
+  Lock/Exit below.
+
 ## [1.13.1] - 2026-09-16
 
 ### Fixed

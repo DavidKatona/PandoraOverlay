@@ -58,30 +58,39 @@
             BorderThickness="1"
             Padding="10,8">
         <StackPanel>
+            <!-- Row 1: settings + widget visibility -->
             <StackPanel Orientation="Horizontal">
-                <!-- Feature controls -->
                 <Button Content="Settings…" Click="Settings_Click"
                         Style="{StaticResource PanelButton}"/>
                 <Button Content="Show/hide stats" Click="Stats_Click"
                         Style="{StaticResource PanelButton}"/>
                 <Button Content="Show/hide minimap" Click="Minimap_Click"
                         Style="{StaticResource PanelButton}"/>
-                <Button Content="Map view" Click="MapView_Click"
-                        Style="{StaticResource PanelButton}"/>
-                <Button Content="Heatmap" Click="Heatmap_Click"
-                        Style="{StaticResource PanelButton}"/>
-
-                <Border Width="1" Background="#33FFFFFF" Margin="6,3,12,3"/>
-
-                <!-- Overlay-session controls -->
-                <Button Content="Lock" Click="Lock_Click"
+                <Button Content="Show/hide prime" Click="Prime_Click"
                         Style="{StaticResource PanelButton}"
-                        Background="#2E5E38" Foreground="#DFF3E2"/>
-                <Button Content="Exit" Click="Exit_Click"
-                        Style="{StaticResource PanelButton}"
-                        Background="#552B2B" Foreground="#FFDDDD"
                         Margin="0"/>
             </StackPanel>
+
+            <!-- Row 2: widget actions, with the overlay-session controls on the right -->
+            <DockPanel Margin="0,6,0,0">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="Lock" Click="Lock_Click"
+                            Style="{StaticResource PanelButton}"
+                            Background="#2E5E38" Foreground="#DFF3E2"/>
+                    <Button Content="Exit" Click="Exit_Click"
+                            Style="{StaticResource PanelButton}"
+                            Background="#552B2B" Foreground="#FFDDDD"
+                            Margin="0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Map view" Click="MapView_Click"
+                            Style="{StaticResource PanelButton}"/>
+                    <Button Content="Heatmap" Click="Heatmap_Click"
+                            Style="{StaticResource PanelButton}"/>
+                    <Button Content="Check Prime" Click="CheckPrime_Click"
+                            Style="{StaticResource PanelButton}"/>
+                </StackPanel>
+            </DockPanel>
             <TextBlock x:Name="HintText"
                        Text="drag panels to move · right-click map = waypoint · Ctrl+F7 locks"
                        Foreground="#7B8790" FontSize="10" Margin="2,7,0,0"/>
