@@ -39,6 +39,10 @@ public partial class MainWindow : OverlayWindowBase
     private static readonly Brush HealthWarn = new SolidColorBrush(Color.FromRgb(0xFF, 0xB3, 0x00));
     private static readonly Brush HealthCrit = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
     private static readonly Brush GrowthNormal = new SolidColorBrush(Color.FromRgb(0x9A, 0xA7, 0xB0));
+    private static readonly Brush HungerTint = new SolidColorBrush(Color.FromRgb(0xFF, 0xB7, 0x4D));     // the bar's orange, lightened for text
+    private static readonly Brush ThirstTint = new SolidColorBrush(Color.FromRgb(0x81, 0xD4, 0xFA));     // the bar's blue, lightened for text
+    private static readonly Brush TimeLeftOnFill = new SolidColorBrush(Color.FromRgb(0x10, 0x15, 0x1B)); // panel-glass dark, for a label inside the fill
+    private const double TimeLeftGap = 5; // px between the fill's tip and its label
 
     // ---- State ------------------------------------------------------------
     private readonly OverlayConfig _config;
@@ -584,18 +588,37 @@ public partial class MainWindow : OverlayWindowBase
         StatusText.Text = $"Live · updated {DateTime.Now:HH:mm:ss}";
     }
 
-    /// <summary>The time-left pills inside the hunger/thirst bars; the trackers run either way, so the Settings checkbox applies at once.</summary>
+    /// <summary>The time-left labels on the hunger/thirst bars; the trackers run either way, so the Settings checkbox applies at once.</summary>
     private void RenderTimeLeft()
     {
-        SetTimeLeft(HungerLeft, HungerLeftText, _hungerDrain);
-        SetTimeLeft(ThirstLeft, ThirstLeftText, _thirstDrain);
+        SetTimeLeft(HungerLeft, _hungerDrain, HungerFill.Width, HungerTint);
+        SetTimeLeft(ThirstLeft, _thirstDrain, ThirstFill.Width, ThirstTint);
     }
 
-    private void SetTimeLeft(Border pill, System.Windows.Controls.TextBlock text, DrainTracker tracker)
+    /// <summary>
+    /// A bar-chart data label: it rides just past the fill's tip in the bar's
+    /// own (lightened) colour, so it reads as part of that bar rather than a
+    /// second number next to the percent. With no room left on the track it
+    /// flips inside the fill's end, dark on the bright colour.
+    /// </summary>
+    private void SetTimeLeft(System.Windows.Controls.TextBlock label, DrainTracker tracker, double fillWidth, Brush tint)
     {
-        var label = _config.StatTimeLeftEnabled ? tracker.Label : null;
-        pill.Visibility = label is null ? Visibility.Collapsed : Visibility.Visible;
-        if (label is not null) text.Text = label;
+        var text = _config.StatTimeLeftEnabled ? tracker.Label : null;
+        if (text is null)
+        {
+            label.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        label.Text = text;
+        label.Visibility = Visibility.Visible; // before measuring — a collapsed element measures as 0
+        label.Margin = default;
+        label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var width = label.DesiredSize.Width;
+        var outside = fillWidth + TimeLeftGap + width <= TrackWidth;
+
+        label.Foreground = outside ? tint : TimeLeftOnFill;
+        label.Margin = new Thickness(outside ? fillWidth + TimeLeftGap : fillWidth - TimeLeftGap - width, 0, 0, 0);
     }
 
     // ---- Critical-stat pulse ------------------------------------------------

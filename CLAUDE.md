@@ -213,12 +213,21 @@ references — keep it that way. Every overlay window derives from
   endpoint slope → `TimeLeft` to zero. The drain RATE survives a refill (a
   rise > 0.002 between polls restarts the window but keeps the rate — eating
   moves the level, not the metabolism), so the estimate is back on the next
-  poll; a full flat baseline clears it. `Label` ("~40m", "~2h 10m") is what
-  the UI shows: only under 3 h left, with a 3 h/3.25 h show/hide gap so it
-  can't blink at the edge. Resets on death/dino swap/not-in-game. Rendered
-  as a dark pill INSIDE the bar's right end (`HungerLeft`/`ThirstLeft`), so
-  the panel keeps its exact size — widening the 44 px percent column was
-  rejected (an update must never resize a panel). `StatTimeLeftEnabled`
+  poll; a full flat baseline clears it. `Label` ("~40m") is what the UI
+  shows: only under 1 h left (owner's call — 3 h was tried and read as
+  clutter), with a 60/65 min show/hide gap so it can't blink at the edge.
+  Resets on death/dino swap/not-in-game. Rendered as a bar-chart data
+  label (`HungerLeft`/`ThirstLeft`, `MainWindow.SetTimeLeft`): it rides
+  just past the fill's tip in the bar's own lightened colour, flipping
+  inside the fill's end (dark text) when the track has no room left; the
+  TextBlock overlays the track's grid cell rather than living in it, so
+  the 12 px bar can't clip it. The panel keeps its exact size — widening
+  the 44 px percent column was rejected (an update must never resize a
+  panel), and a first version (white 9 px text in a dark pill at the
+  track's right end) was rejected on sight: the track is near-invisible,
+  so it floated next to the percent like a second unrelated number.
+  Whether drain varies with activity (sprinting) is UNVERIFIED — don't
+  claim it in user-facing text. `StatTimeLeftEnabled`
   (Settings checkbox, default on) only gates rendering; the trackers always
   run, so ticking the box shows the estimate at once.
 - **OverlayConfig.cs** — config.json persistence + DPAPI vault. Plaintext `Cookie`

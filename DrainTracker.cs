@@ -3,7 +3,8 @@ namespace PandoraOverlay;
 /// <summary>
 /// Estimates how long a draining stat (hunger, thirst) lasts at the current
 /// rate, from the poll stream — GrowthTracker's endpoint-slope idea over a
-/// shorter window, since drain follows activity and should adapt faster.
+/// shorter window, so a changed rate shows within minutes. (What changes
+/// the rate in-game is unverified; the tracker just measures it.)
 /// The drain RATE survives a refill: eating or drinking moves the level, not
 /// the metabolism, so the estimate is back on the next poll instead of after
 /// a fresh baseline (which then replaces it). Session-only; resets on
@@ -16,11 +17,12 @@ public sealed class DrainTracker
     private const double MinDelta = 0.002;   // the API carries 3 decimals — below this the slope is quantization noise
     private const double RefillStep = 0.002; // a rise this large between two polls = ate / drank
 
-    // Far-out estimates are noise and clutter: the label appears once the
-    // stat has under ShowBelow left and only leaves again above HideAbove —
-    // the gap keeps it from blinking while the estimate hovers at the edge.
-    private static readonly TimeSpan ShowBelow = TimeSpan.FromHours(3);
-    private static readonly TimeSpan HideAbove = TimeSpan.FromHours(3.25);
+    // Far-out estimates are clutter, not information (owner's call, Sep 2026:
+    // 3 h was tried first): the label appears once the stat has under
+    // ShowBelow left and only leaves again above HideAbove — the gap keeps
+    // it from blinking while the estimate hovers at the edge.
+    private static readonly TimeSpan ShowBelow = TimeSpan.FromMinutes(60);
+    private static readonly TimeSpan HideAbove = TimeSpan.FromMinutes(65);
 
     private readonly Func<PlayerState, double> _stat;
     private readonly List<(DateTime At, double Value)> _samples = new();
@@ -34,7 +36,7 @@ public sealed class DrainTracker
     /// <summary>Time until the stat hits zero at the measured rate; null while unknown or not draining.</summary>
     public TimeSpan? TimeLeft { get; private set; }
 
-    /// <summary>Bar label ("~40m", "~2h 10m"), or null when there is nothing worth showing.</summary>
+    /// <summary>Bar label ("~40m", "&lt;1m"), or null when there is nothing worth showing.</summary>
     public string? Label { get; private set; }
 
     /// <summary>Call when leaving the game (or on death/dino swap): the rate belonged to that life.</summary>

@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Time left on the hunger and thirst bars: once a stat has under about three
-  hours to go, the bar shows an estimate ("~40m", "~2h 10m") measured from
-  how fast it is draining right now. It needs about three minutes of play
-  first, follows what you are doing (sprinting drains faster), and is back
-  right after you eat or drink because the drain rate is remembered. The
-  panel keeps its exact size — the label sits inside the bar. A checkbox in
-  Settings ("Show time left on the hunger and thirst bars") turns it off.
+- Time left on the hunger and thirst bars: once a stat has under about an
+  hour to go, an estimate ("~40m") appears at the tip of the bar's fill, in
+  the bar's own colour, measured from how fast the stat is draining right
+  now. It needs about three minutes of play first, and is back right after
+  you eat or drink because the drain rate is remembered. The panel keeps
+  its exact size. A checkbox in Settings ("Show time left on the hunger and
+  thirst bars") turns it off.
 
 ### Changed
 

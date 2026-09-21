@@ -82,12 +82,27 @@ public class DrainTrackerTests
     }
 
     [Fact]
-    public void HourLabelFormat()
+    public void JustOverAnHourIsHiddenWhenNeverShown()
     {
         var tracker = Tracker();
-        // 5% over 5 minutes → 60%/h → 0.95 / 0.6 ≈ 1 h 35 m.
-        Feed(tracker, 1.00, 0.95, TimeSpan.FromMinutes(5));
-        Assert.Matches(@"^~1h 3[3-6]m$", tracker.Label);
+        // 60%/h → 0.63 / 0.6 = 63 min: above the 60 min show threshold.
+        Feed(tracker, 0.68, 0.63, TimeSpan.FromMinutes(5));
+        Assert.InRange(tracker.TimeLeft!.Value.TotalMinutes, 62, 64);
+        Assert.Null(tracker.Label);
+    }
+
+    [Fact]
+    public void ShownLabelSurvivesADriftJustOverAnHour() // no blinking at the threshold
+    {
+        var tracker = Tracker();
+        Feed(tracker, 0.63, 0.58, TimeSpan.FromMinutes(5)); // 60%/h → 58 min: shown
+        Assert.Matches(@"^~5[78]m$", tracker.Label);
+
+        tracker.Add(Player(0.63), T0 + TimeSpan.FromMinutes(5.1)); // a bite: 63 min, inside the 65 min hide gap
+        Assert.Matches(@"^~1h 0[23]m$", tracker.Label);
+
+        tracker.Add(Player(0.70), T0 + TimeSpan.FromMinutes(5.2)); // a meal: 70 min — gone
+        Assert.Null(tracker.Label);
     }
 
     [Fact]

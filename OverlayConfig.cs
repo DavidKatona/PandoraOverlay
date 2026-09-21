@@ -186,8 +186,8 @@ public sealed class OverlayConfig
     public double BackgroundOpacity { get; set; } = 0.8;
 
     /// <summary>
-    /// Show the estimated time left inside the hunger and thirst bars (once
-    /// under ~3 h). A checkbox in Settings — not everyone wants more on the
+    /// Show the estimated time left on the hunger and thirst bars (once
+    /// under ~1 h). A checkbox in Settings — not everyone wants more on the
     /// stats panel.
     /// </summary>
     public bool StatTimeLeftEnabled { get; set; } = true;
