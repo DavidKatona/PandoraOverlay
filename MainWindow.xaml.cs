@@ -45,6 +45,8 @@ public partial class MainWindow : OverlayWindowBase
     private readonly PollService _poll;
     private readonly TrayIcon _tray;
     private readonly GrowthTracker _growth = new();
+    private readonly DrainTracker _hungerDrain = new(p => p.Hunger);
+    private readonly DrainTracker _thirstDrain = new(p => p.Thirst);
     private MinimapWindow? _minimap;
     private PrimeWindow? _prime;
     private ControlPanelWindow? _controlPanel;
@@ -140,6 +142,7 @@ public partial class MainWindow : OverlayWindowBase
             if (dialog.AppearanceChanged)
             {
                 ApplyAppearance(_config);
+                RenderTimeLeft(); // the time-left checkbox rides the Appearance flag
                 _prime?.ApplySettingsFromConfig();
                 _controlPanel?.ApplySettingsFromConfig();
             }
@@ -396,6 +399,7 @@ public partial class MainWindow : OverlayWindowBase
             if (_config.StatsEnabled) Show(); // a deliberately hidden stats panel stays hidden
             _minimap?.Show();
             _prime?.Show();
+            _poll.Nudge(); // someone is looking again — don't wait out an idle poll interval
         }
     }
 
@@ -412,6 +416,7 @@ public partial class MainWindow : OverlayWindowBase
         if (on)
         {
             ShowControlPanel();
+            _poll.Nudge();
         }
         else
         {
@@ -507,6 +512,9 @@ public partial class MainWindow : OverlayWindowBase
         if (!result.InGame || result.Player is null)
         {
             _growth.Reset(); // a wall-clock gap would flatten the measured slope
+            _hungerDrain.Reset();
+            _thirstDrain.Reset();
+            RenderTimeLeft();
             DinoText.Text = "Not in-game";
             GrowthText.Text = "";
             GrowthText.Foreground = GrowthNormal;
@@ -518,7 +526,10 @@ public partial class MainWindow : OverlayWindowBase
             SetPulse(HungerFill, false);
             SetPulse(ThirstFill, false);
             FractureRow.Visibility = Visibility.Collapsed;
-            StatusText.Text = $"Connected · waiting for spawn · {DateTime.Now:HH:mm:ss}";
+            // Not in-game the poll idles; say so, or a slow reaction to a spawn reads as frozen.
+            StatusText.Text = _poll.IsIdling
+                ? $"Connected · checking every {_poll.Interval.TotalSeconds:0}s · {DateTime.Now:HH:mm:ss}"
+                : $"Connected · waiting for spawn · {DateTime.Now:HH:mm:ss}";
             return;
         }
 
@@ -553,6 +564,9 @@ public partial class MainWindow : OverlayWindowBase
         SetBar(StaminaFill, StaminaPct, p.Stamina);
         SetBar(HungerFill, HungerPct, p.Hunger);
         SetBar(ThirstFill, ThirstPct, p.Thirst);
+        _hungerDrain.Add(p);
+        _thirstDrain.Add(p);
+        RenderTimeLeft();
 
         // Critical-stat pulse. Stamina is deliberately excluded — it drains to
         // zero every sprint by design and would train the eye to ignore it.
@@ -568,6 +582,20 @@ public partial class MainWindow : OverlayWindowBase
             : Visibility.Collapsed;
 
         StatusText.Text = $"Live · updated {DateTime.Now:HH:mm:ss}";
+    }
+
+    /// <summary>The time-left pills inside the hunger/thirst bars; the trackers run either way, so the Settings checkbox applies at once.</summary>
+    private void RenderTimeLeft()
+    {
+        SetTimeLeft(HungerLeft, HungerLeftText, _hungerDrain);
+        SetTimeLeft(ThirstLeft, ThirstLeftText, _thirstDrain);
+    }
+
+    private void SetTimeLeft(Border pill, System.Windows.Controls.TextBlock text, DrainTracker tracker)
+    {
+        var label = _config.StatTimeLeftEnabled ? tracker.Label : null;
+        pill.Visibility = label is null ? Visibility.Collapsed : Visibility.Visible;
+        if (label is not null) text.Text = label;
     }
 
     // ---- Critical-stat pulse ------------------------------------------------

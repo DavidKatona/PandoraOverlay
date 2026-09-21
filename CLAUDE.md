@@ -23,7 +23,9 @@ web dev.**
    2026, both confirmed covered by the owner; cookie-authed and
    USER-TRIGGERED ONLY — a control panel / tray click, never a timer. The
    cooldown is mirrored client-side, so a cooling-down or not-in-game click
-   sends nothing; `prime/cooldown` is called exactly once after each
+   sends no prime request — a STALE not-in-game state is first refreshed by
+   one regular `mylocation` poll, since idle pacing can trail a spawn by up
+   to a minute; `prime/cooldown` is called exactly once after each
    SUCCESSFUL check, because the success response carries no cooldown and
    its length varies per account — supporter ranks shorten it, so assuming
    the website button's hardcoded 5 min over-blocks ranked players). The
@@ -34,6 +36,10 @@ web dev.**
 3. **Poll interval >= 2 s** (default 3 s, matching the website's own cadence).
    Server-side rate limit is 300/window. Never add endpoints or frequency without
    the owner's explicit okay — the dev specifically praised the polling restraint.
+   The cadence is adaptive, DOWNWARDS ONLY: the configured interval is the
+   in-game pace; not in-game (or 5 straight failures) idles at 15 s, then
+   60 s after 10 min. Off-schedule polls (user nudges) are floored at the
+   configured interval and re-arm the timer — nothing may ever poll faster.
 4. **The cookie is a credential.** Never log it, print it, put it in exceptions,
    window text, or commit it. Error paths surface exception *type* only.
 5. `config.json` is runtime state (holds the DPAPI blob) — stays in `.gitignore`.
@@ -111,7 +117,19 @@ references — keep it that way. Every overlay window derives from
 - **PollService.cs** — owns the shared client + `DispatcherTimer` + `_busy`
   reentrancy guard; raises `SnapshotReceived`/`PollFailed`/`CalibrationChanged`
   on the UI thread. Windows are pure consumers: N windows, still ONE request
-  stream (this is what preserves constraint #3). Fetches calibration once per
+  stream (this is what preserves constraint #3). Adaptive pacing (Sep 2026
+  — a fixed 3 s poll sent ~28,800 requests/day with the game closed):
+  `ApplyPacing` runs after every poll, BEFORE the event is raised, and sets
+  the timer from the pure, tested `NextInterval` — configured cadence while
+  live, 15 s when not in-game or after `FailuresBeforeIdle` (5) straight
+  failures, 60 s once that has lasted 10 min; a slower configured cadence is
+  never sped up. The interval is assigned only on a change (assigning
+  re-arms a running DispatcherTimer), so the in-game rhythm is untouched.
+  `Nudge()` (MainWindow: entering edit mode, un-hiding) and a Check Prime
+  click on a stale not-in-game state poll right away via `PollNowAsync`,
+  which re-arms the timer and is floored at the configured interval — the
+  spawn-detection lag is the feature's price, these are its relief valves.
+  `IsIdling`/`Interval` feed the status line. Fetches calibration once per
   launch (retried after a credential swap) and caches it into config. A
   second 60 s timer (`RefreshHeatmapAsync` — also hot-triggered on minimap
   re-show and the heatmap hotkey / control-panel toggle) raises
@@ -119,7 +137,8 @@ references — keep it that way. Every overlay window derives from
   null hides the layer. `CheckPrimeAsync` is the on-demand prime check —
   NO timer may ever call it. All gating lives here: busy guard, the
   cooldown mirror (`PrimeCooldownUntilUtc`) and the last poll's in-game
-  state answer locally with no request. The cooldown is the SERVER's word,
+  state answer locally with no prime request (a stale not-in-game state
+  gets one regular poll first). The cooldown is the SERVER's word,
   never an assumption (it varies with supporter rank): after an Ok check
   `prime/cooldown` is asked once (5 min only as the fallback when that
   fails), a rejected check supplies `remainingMs`, and the result is
@@ -189,6 +208,19 @@ references — keep it that way. Every overlay window derives from
   growth. Needs a ≥5-min baseline before showing anything; a full baseline
   with no measurable delta → Paused (amber header). Resets on death/dino
   swap/not-in-game (a wall-clock gap would flatten the slope). Session-only.
+- **DrainTracker.cs** — GrowthTracker's sibling for a draining stat (two
+  instances in MainWindow: hunger, thirst): 10-min window, ≥3-min baseline,
+  endpoint slope → `TimeLeft` to zero. The drain RATE survives a refill (a
+  rise > 0.002 between polls restarts the window but keeps the rate — eating
+  moves the level, not the metabolism), so the estimate is back on the next
+  poll; a full flat baseline clears it. `Label` ("~40m", "~2h 10m") is what
+  the UI shows: only under 3 h left, with a 3 h/3.25 h show/hide gap so it
+  can't blink at the edge. Resets on death/dino swap/not-in-game. Rendered
+  as a dark pill INSIDE the bar's right end (`HungerLeft`/`ThirstLeft`), so
+  the panel keeps its exact size — widening the 44 px percent column was
+  rejected (an update must never resize a panel). `StatTimeLeftEnabled`
+  (Settings checkbox, default on) only gates rendering; the trackers always
+  run, so ticking the box shows the estimate at once.
 - **OverlayConfig.cs** — config.json persistence + DPAPI vault. Plaintext `Cookie`
   field is a paste-inbox only: `Load()` encrypts it into `CookieProtected`
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
@@ -296,8 +328,9 @@ references — keep it that way. Every overlay window derives from
   Changed flags; MainWindow hot-applies each (RebuildClient / re-register
   with fallback / minimap ApplySettings / ApplyAppearance)
   — no restart, ever. General also holds the stats panel scale and prime
-  tracker scale (both 75–150%, folded into the Appearance flag) and the
-  background opacity (30–100%) sliders.
+  tracker scale (both 75–150%, folded into the Appearance flag), the
+  background opacity (30–100%) slider and the hunger/thirst time-left
+  checkbox (same flag).
 - **HotkeySpec.cs** — record converting the config string ("Ctrl+F7") ⇄ the
   RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
   shared Register/Unregister p/invokes. Registration always adds

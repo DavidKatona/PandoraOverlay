@@ -86,9 +86,10 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 - The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint).
 - After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
+- The hunger and thirst bars show an **estimated time left** inside the bar ("~40m", "~2h 10m") once a stat has under about three hours to go, measured from how fast it is draining right now — so it moves with what you're doing, and it's back right after you eat or drink. It needs about three minutes of play first. Don't want it? Untick "Show time left on the hunger and thirst bars" in Settings.
 - Status-line states you'll see:
-  - `Not in-game` — you're logged in but not spawned on the server (or the server is restarting).
-  - `Disconnected · retrying` — network/auth problem; it keeps retrying every poll. If it never recovers, open Settings and paste a fresh cookie.
+  - `Not in-game` — you're logged in but not spawned on the server (or the server is restarting). While you aren't spawned the overlay checks less often — every 15 seconds, and once a minute after ten minutes (the status line says so) — so a fresh spawn can take that long to show up. Entering edit mode, un-hiding the overlay or pressing Check Prime makes it look right away.
+  - `Disconnected · retrying` — network/auth problem; it keeps retrying (less often once the failures pile up). If it never recovers, open Settings and paste a fresh cookie.
   - `Not set up yet` — no cookie stored; open Settings (tray icon → Settings…).
 
 ### Minimap
@@ -116,7 +117,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `Cookie` | Paste-here inbox only. Encrypted into `CookieProtected` and blanked on next launch. |
 | `CookieProtected` | DPAPI-encrypted session cookie (base64). Managed by the app — don't edit, and it's useless off this machine/account. |
 | `UserAgent` | Sent with every request; keep it matching your real browser. |
-| `PollIntervalSeconds` | Default 3. Don't go below 2 — the site's own page polls at this pace and the API is rate-limited (300/window). |
+| `PollIntervalSeconds` | Default 3. Don't go below 2 — the site's own page polls at this pace and the API is rate-limited (300/window). This is the in-game pace; while you aren't spawned (or the connection keeps failing) the overlay slows itself to 15 s, then 60 s. |
 | `WindowX` / `WindowY` | Saved panel position. |
 | `Hotkey` / `HotkeyHideAll` / `HotkeyMinimapView` / `HotkeyHeatmap` | The four global hotkeys (edit mode `Ctrl+F7`, hide/show overlay `Ctrl+F4`, minimap view toggle `Ctrl+F5`, heatmap toggle `Ctrl+F6`); modifiers + one key. All rebindable in Settings. |
 | `StatsEnabled` | Show the stats panel (toggled from the control panel). |
@@ -133,6 +134,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `UiScale` | Stats panel (and control panel) scale, 0.75–1.5 (default 1). Slider in Settings; the minimap sizes natively via `MinimapSize`. |
 | `PrimeScale` | Prime tracker scale, 0.75–1.5. Slider in Settings; starts out equal to `UiScale`. |
 | `BackgroundOpacity` | Panel-glass opacity, 0.3–1 (default 0.8) — text stays crisp. Slider in Settings. |
+| `StatTimeLeftEnabled` | Show the estimated time left inside the hunger and thirst bars. Checkbox in Settings. Default `true`. |
 
 Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file.
 
@@ -147,7 +149,7 @@ Most of these are editable from the Settings window; `UserAgent`, `PollIntervalS
 ## Fair-play notes
 
 - The overlay only shows **your own** dino — the same data Isla Pandora already displays to you in a browser tab. It cannot see other players (except the site's own friends feature, not used yet).
-- It polls at the same rate as the website itself and respects their rate limit.
+- It polls at the same rate as the website itself while you play, slows right down while you aren't spawned in, and respects their rate limit.
 - This consumes Isla Pandora's private, login-gated API. Be a good citizen: ask their admins whether they're okay with a personal overlay client, and stop using it if they say no.
 
 ## Roadmap

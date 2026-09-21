@@ -185,6 +185,13 @@ public sealed class OverlayConfig
     /// <summary>Opacity of the dark glass behind the panels (text stays crisp). Clamped 0.3–1.</summary>
     public double BackgroundOpacity { get; set; } = 0.8;
 
+    /// <summary>
+    /// Show the estimated time left inside the hunger and thirst bars (once
+    /// under ~3 h). A checkbox in Settings — not everyone wants more on the
+    /// stats panel.
+    /// </summary>
+    public bool StatTimeLeftEnabled { get; set; } = true;
+
     public static OverlayConfig Load()
     {
         OverlayConfig cfg;

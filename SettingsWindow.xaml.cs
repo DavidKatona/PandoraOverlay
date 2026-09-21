@@ -56,7 +56,7 @@ public partial class SettingsWindow : Window
     /// <summary>True after Save when minimap view/zoom differ (ApplySettings needed).</summary>
     public bool MinimapChanged { get; private set; }
 
-    /// <summary>True after Save when UI scale / background opacity differ (ApplyAppearance needed).</summary>
+    /// <summary>True after Save when a scale, the background opacity or the time-left checkbox differ (ApplyAppearance needed).</summary>
     public bool AppearanceChanged { get; private set; }
 
     public SettingsWindow(OverlayConfig config)
@@ -89,6 +89,7 @@ public partial class SettingsWindow : Window
         // General
         _initialStartup = StartupRegistration.IsEnabled();
         StartupCheck.IsChecked = _initialStartup;
+        TimeLeftCheck.IsChecked = config.StatTimeLeftEnabled;
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
         PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale ?? config.UiScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
@@ -318,13 +319,16 @@ public partial class SettingsWindow : Window
         var scale = Math.Round(ScaleSlider.Value, 2);
         var primeScale = Math.Round(PrimeScaleSlider.Value, 2);
         var bgOpacity = Math.Round(OpacitySlider.Value, 2);
+        var timeLeft = TimeLeftCheck.IsChecked == true;
         if (Math.Abs(scale - _config.UiScale) > 0.001 ||
             Math.Abs(primeScale - (_config.PrimeScale ?? _config.UiScale)) > 0.001 ||
-            Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001)
+            Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001 ||
+            timeLeft != _config.StatTimeLeftEnabled)
         {
             _config.UiScale = scale;
             _config.PrimeScale = primeScale;
             _config.BackgroundOpacity = bgOpacity;
+            _config.StatTimeLeftEnabled = timeLeft;
             AppearanceChanged = true;
         }
 

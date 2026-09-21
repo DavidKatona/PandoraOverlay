@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Time left on the hunger and thirst bars: once a stat has under about three
+  hours to go, the bar shows an estimate ("~40m", "~2h 10m") measured from
+  how fast it is draining right now. It needs about three minutes of play
+  first, follows what you are doing (sprinting drains faster), and is back
+  right after you eat or drink because the drain rate is remembered. The
+  panel keeps its exact size — the label sits inside the bar. A checkbox in
+  Settings ("Show time left on the hunger and thirst bars") turns it off.
+
+### Changed
+
+- Adaptive polling: while you are not spawned in (menus, server restarts,
+  the game closed) the overlay now checks every 15 seconds instead of every
+  3, and once a minute after ten minutes — an overlay left running overnight
+  used to send about 28,800 pointless requests a day, now about 1,440. The
+  same applies once the connection has failed five times in a row (expired
+  cookie, site down). In-game polling is unchanged. The status line says
+  "checking every 15s/60s" while idling; entering edit mode, un-hiding the
+  overlay or pressing Check Prime polls right away (never faster than the
+  normal pace), so you don't have to wait the interval out after spawning.
+
 ## [1.15.0] - 2026-09-19
 
 ### Added
