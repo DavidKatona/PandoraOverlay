@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.16.0 is built, working, and approved by the server's
+and settings window. **v1.17.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -428,7 +428,9 @@ v1.15.0 (prime tracker's own size slider, `PrimeScale` seeded from
 v1.16.0 (adaptive polling — 15 s, then 60 s while not in-game or
 persistently failing, with user-activity nudges; time left on the hunger
 and thirst bars as a fill-tip data label under 1 h, Settings checkbox —
-verified in-game).
+verified in-game), v1.17.0 (minimap breadcrumb trail — age-banded,
+Off/10/30/60 min, survives a relog, cleared by death/swap/teleport — and
+scale bar, both computed locally; verified in-game).
 
 Later/maybe: friends markers (needs permission first), zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
@@ -493,7 +495,7 @@ re-propose.
 - Keep files well under ~500 lines; current style is regions + XML doc comments.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.16.0.
+  minor, fixes bump patch. Current: 1.17.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
