@@ -18,7 +18,9 @@ namespace PandoraOverlay;
 /// (edge-clamped in the centered view when off-screen), with the distance in
 /// the footer. An optional heatmap layer (HeatmapEnabled) blends the site's
 /// pre-rendered activity image over the map, delivered by PollService's slow
-/// timer. A pure consumer of the shared PollService stream — it never
+/// timer. A breadcrumb trail (MinimapTrailMinutes) draws the recent path and
+/// a scale bar (MinimapScaleBarEnabled) sits bottom-left — both computed
+/// locally. A pure consumer of the shared PollService stream — it never
 /// makes requests of its own. The world→pixel transform mirrors the live-map
 /// frontend (see MapCalibration); movement glides between polls and yaw
 /// rotates along the shortest arc.
@@ -31,9 +33,11 @@ public partial class MinimapWindow : OverlayWindowBase
     private const double MaxMapSize = 400;
     private const double WaypointMargin = 8; // edge-clamp inset for the off-screen indicator
     private const double ClearRadius = 12;   // right-click this close to the marker removes it
+    private const double MaxScaleBarPixels = 80; // the bar takes ≤ 30% of the map's width, and never more than this
 
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
+    private readonly BreadcrumbTrail _trail = new();
     private readonly RotateTransform _arrowRotate = new();
     private readonly TranslateTransform _arrowTranslate = new();
     private readonly TranslateTransform _mapTranslate = new();
@@ -68,6 +72,7 @@ public partial class MinimapWindow : OverlayWindowBase
         MapImage.Source = bmp;
         MapImage.RenderTransform = _mapTranslate;
         HeatmapImage.RenderTransform = _mapTranslate; // shared: heatmap pans with the map
+        TrailOld.RenderTransform = TrailMid.RenderTransform = TrailNew.RenderTransform = _mapTranslate; // so does the trail
 
         PlayerArrow.RenderTransform = new TransformGroup
         {
@@ -117,6 +122,8 @@ public partial class MinimapWindow : OverlayWindowBase
         {
             MapStatus.Text = "connecting…";
         }
+        UpdateScaleBar();
+        RenderTrail();
     }
 
     /// <summary>The minimap is sized natively (MinimapSize) — never scale-transformed.</summary>
@@ -129,6 +136,7 @@ public partial class MinimapWindow : OverlayWindowBase
         _zoom = Math.Clamp(_config.MinimapZoom, MinZoom, MaxZoom);
         MapHost.Width = MapHost.Height = Math.Clamp(_config.MinimapSize, MinMapSize, MaxMapSize);
         if (!_config.HeatmapEnabled) OnHeatmap(null); // toggled off: clear immediately
+        if (TrailKeep <= TimeSpan.Zero) _trail.Reset(); // switched off: forget the path, not just hide it
         ApplyAppearance(_config);
         ApplyViewMode();
     }
@@ -179,6 +187,8 @@ public partial class MinimapWindow : OverlayWindowBase
             _mapTranslate.Y = 0;
         }
         HeatmapImage.Width = HeatmapImage.Height = MapImage.Width;
+        UpdateScaleBar();
+        RenderTrail(); // map-pixel space: the rendered size just changed
 
         _hasFix = false; // next render snaps into place
         RenderLastFix();
@@ -213,17 +223,76 @@ public partial class MinimapWindow : OverlayWindowBase
             PlayerArrow.Visibility = Visibility.Collapsed;
             MapStatus.Text = cal is null ? "waiting for map calibration…" : "not in-game";
             MapStatus.Visibility = Visibility.Visible;
+            RenderTrail(); // hidden with the arrow; the path itself is kept (see BreadcrumbTrail)
             UpdateFooter();
             return;
         }
 
         var p = result.Player;
         _lastWorld = (p.X, p.Y);
-        _lastFix = (
-            Math.Clamp((cal.OffsetX + p.X * cal.ScaleX + cal.PinOffsetX) / cal.MapSize, 0, 1),
-            Math.Clamp(1 - (cal.OffsetY + p.Y * cal.ScaleY + cal.PinOffsetY) / cal.MapSize, 0, 1),
-            p.Yaw + _config.MinimapYawOffsetDegrees);
+        var (fx, fy) = ToFraction(cal, p.X, p.Y);
+        _lastFix = (fx, fy, p.Yaw + _config.MinimapYawOffsetDegrees);
+        if (TrailKeep > TimeSpan.Zero) _trail.Add(p, TrailKeep);
+        RenderTrail();
         RenderLastFix();
+    }
+
+    /// <summary>World cm → map fractions (0–1, y flipped) — mirrors the live-map frontend, pinOffset included.</summary>
+    private static (double Fx, double Fy) ToFraction(MapCalibration cal, double x, double y) =>
+        (Math.Clamp((cal.OffsetX + x * cal.ScaleX + cal.PinOffsetX) / cal.MapSize, 0, 1),
+         Math.Clamp(1 - (cal.OffsetY + y * cal.ScaleY + cal.PinOffsetY) / cal.MapSize, 0, 1));
+
+    // ---- Breadcrumb trail + scale bar ----------------------------------------
+    private TimeSpan TrailKeep => TimeSpan.FromMinutes(Math.Clamp(_config.MinimapTrailMinutes, 0, 120));
+
+    /// <summary>
+    /// Redraws the trail from the tracker — per snapshot, and whenever the
+    /// map's rendered size changes (the points live in map-pixel space and
+    /// pan with the map). Split into three age bands, oldest faintest; each
+    /// band starts on the previous band's last point so they meet.
+    /// </summary>
+    private void RenderTrail()
+    {
+        var bands = new[] { new PointCollection(), new PointCollection(), new PointCollection() }; // newest → oldest
+        var keep = TrailKeep;
+        if (keep > TimeSpan.Zero && _lastFix is not null && _poll.Calibration is { } cal && _trail.Points.Count > 1)
+        {
+            var render = MapImage.Width;
+            var now = DateTime.UtcNow;
+            Point? previous = null;
+            var previousBand = -1;
+            foreach (var (at, x, y) in _trail.Points)
+            {
+                var (fx, fy) = ToFraction(cal, x, y);
+                var point = new Point(fx * render, fy * render);
+                var band = Math.Clamp((int)((now - at).TotalSeconds / keep.TotalSeconds * 3), 0, 2);
+                if (band != previousBand && previous is { } join) bands[band].Add(join);
+                bands[band].Add(point);
+                previous = point;
+                previousBand = band;
+            }
+        }
+        TrailNew.Points = bands[0];
+        TrailMid.Points = bands[1];
+        TrailOld.Points = bands[2];
+    }
+
+    /// <summary>A round real-world length for the current view; follows mode, zoom and map size.</summary>
+    private void UpdateScaleBar()
+    {
+        var (meters, pixels) = _config.MinimapScaleBarEnabled && _poll.Calibration is { MapSize: > 0 } cal
+            // World cm → map units (ScaleX) → rendered pixels; ×100 for metres.
+            ? ScaleBar.Pick(100 * Math.Abs(cal.ScaleX) * MapImage.Width / cal.MapSize,
+                            Math.Min(MapHost.Width * 0.3, MaxScaleBarPixels))
+            : (0, 0);
+        if (meters <= 0)
+        {
+            ScaleBarPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        ScaleBarLabel.Text = ScaleBar.Format(meters);
+        ScaleBarLine.Width = pixels;
+        ScaleBarPanel.Visibility = Visibility.Visible;
     }
 
     private void RenderLastFix()
@@ -334,8 +403,7 @@ public partial class MinimapWindow : OverlayWindowBase
         {
             return null;
         }
-        return (Math.Clamp((cal.OffsetX + wx * cal.ScaleX + cal.PinOffsetX) / cal.MapSize, 0, 1),
-                Math.Clamp(1 - (cal.OffsetY + wy * cal.ScaleY + cal.PinOffsetY) / cal.MapSize, 0, 1));
+        return ToFraction(cal, wx, wy);
     }
 
     /// <summary>

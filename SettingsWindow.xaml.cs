@@ -53,7 +53,7 @@ public partial class SettingsWindow : Window
     /// <summary>True after Save when the hotkey differs (re-registration needed).</summary>
     public bool HotkeyChanged { get; private set; }
 
-    /// <summary>True after Save when minimap view/zoom differ (ApplySettings needed).</summary>
+    /// <summary>True after Save when minimap view/zoom/size, the trail length or the scale bar differ (ApplySettings needed).</summary>
     public bool MinimapChanged { get; private set; }
 
     /// <summary>True after Save when a scale, the background opacity or the time-left checkbox differ (ApplyAppearance needed).</summary>
@@ -100,6 +100,10 @@ public partial class SettingsWindow : Window
         ModeIsland.IsChecked = !centered;
         ZoomSlider.Value = Math.Clamp(config.MinimapZoom, ZoomSlider.Minimum, ZoomSlider.Maximum);
         MapSizeSlider.Value = Math.Clamp(config.MinimapSize, MapSizeSlider.Minimum, MapSizeSlider.Maximum);
+        // A hand-edited in-between value shows as the next option up.
+        var trailRadio = config.MinimapTrailMinutes switch { <= 0 => TrailOff, <= 10 => Trail10, <= 30 => Trail30, _ => Trail60 };
+        trailRadio.IsChecked = true;
+        ScaleBarCheck.IsChecked = config.MinimapScaleBarEnabled;
 
         Validate();
     }
@@ -335,13 +339,19 @@ public partial class SettingsWindow : Window
         var mode = ModeCentered.IsChecked == true ? "centered" : "island";
         var zoom = Math.Round(ZoomSlider.Value, 2);
         var mapSize = Math.Round(MapSizeSlider.Value);
+        var trail = TrailOff.IsChecked == true ? 0 : Trail10.IsChecked == true ? 10 : Trail30.IsChecked == true ? 30 : 60;
+        var scaleBar = ScaleBarCheck.IsChecked == true;
         if (mode != _config.MinimapMode ||
             Math.Abs(zoom - _config.MinimapZoom) > 0.005 ||
-            Math.Abs(mapSize - _config.MinimapSize) > 0.5)
+            Math.Abs(mapSize - _config.MinimapSize) > 0.5 ||
+            trail != _config.MinimapTrailMinutes ||
+            scaleBar != _config.MinimapScaleBarEnabled)
         {
             _config.MinimapMode = mode;
             _config.MinimapZoom = zoom;
             _config.MinimapSize = mapSize;
+            _config.MinimapTrailMinutes = trail;
+            _config.MinimapScaleBarEnabled = scaleBar;
             MinimapChanged = true;
         }
 

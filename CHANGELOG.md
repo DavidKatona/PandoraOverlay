@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Breadcrumb trail on the minimap: the path you walked over the last 30
+  minutes, fading with age, in both views. Settings → Minimap → Trail picks
+  Off / 10 / 30 / 60 min. It is drawn from the positions the overlay already
+  receives (no extra requests), lives only for the session, and starts over
+  when you die, switch dino or get teleported; a relog or server restart on
+  the same spot keeps it.
+- Scale bar in the minimap's bottom-left corner: a round real-world distance
+  ("500 m", "2 km") that follows the view, zoom and map size — so the
+  centered view's zoom finally means something. "Show scale bar" in
+  Settings turns it off.
+
 ## [1.16.0] - 2026-09-21
 
 ### Added

@@ -41,6 +41,15 @@
                            Opacity="0.55"
                            Visibility="Collapsed"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <!-- Breadcrumb trail, in map-pixel space and panned with the
+                         map. Three age bands, oldest faintest: one polyline
+                         can't fade along its length. -->
+                    <Polyline x:Name="TrailOld" Stroke="#FFC864" StrokeThickness="2"
+                              StrokeLineJoin="Round" Opacity="0.3"/>
+                    <Polyline x:Name="TrailMid" Stroke="#FFC864" StrokeThickness="2"
+                              StrokeLineJoin="Round" Opacity="0.55"/>
+                    <Polyline x:Name="TrailNew" Stroke="#FFC864" StrokeThickness="2"
+                              StrokeLineJoin="Round" Opacity="0.85"/>
                 </Canvas>
                 <Canvas>
                     <Path x:Name="WaypointMark"
@@ -60,6 +69,19 @@
                            Text="connecting…"
                            Foreground="#9AA7B0" FontSize="11"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- Scale bar: bottom-left (the heatmap's baked caption owns the
+                     top-left); the glass backing keeps it readable over any terrain. -->
+                <Border x:Name="ScaleBarPanel"
+                        HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="6"
+                        Background="#9910151B" CornerRadius="4" Padding="5,1,5,4"
+                        IsHitTestVisible="False" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="ScaleBarLabel" Foreground="#ECF2F8" FontSize="9"
+                                   HorizontalAlignment="Center"/>
+                        <Border x:Name="ScaleBarLine" Height="4" HorizontalAlignment="Center"
+                                BorderBrush="#ECF2F8" BorderThickness="1.5,0,1.5,1.5"/>
+                    </StackPanel>
+                </Border>
             </Grid>
 
             <!-- Mode footer: which view is active (and the zoom, in centered mode) -->

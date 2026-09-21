@@ -123,6 +123,16 @@ public sealed class OverlayConfig
     /// </summary>
     public double MinimapYawOffsetDegrees { get; set; } = 90;
 
+    /// <summary>
+    /// Breadcrumb trail on the minimap: minutes of recent path to draw, 0 =
+    /// off (Settings offers Off / 10 / 30 / 60; clamped to 0–120). Built from
+    /// the existing poll stream — no extra requests. Session-only.
+    /// </summary>
+    public int MinimapTrailMinutes { get; set; } = 30;
+
+    /// <summary>Show the scale bar in the minimap's bottom-left corner. Checkbox in Settings.</summary>
+    public bool MinimapScaleBarEnabled { get; set; } = true;
+
     /// <summary>Cached /api/map/calibration values; refreshed once per launch.</summary>
     public MapCalibration? Calibration { get; set; }
 

@@ -302,7 +302,31 @@ references — keep it that way. Every overlay window derives from
   layer (`HeatmapEnabled`): the site's pre-rendered heatmap PNG (opaque —
   grayscale map, blobs and a player-count caption baked in) as a second
   Image sharing the map image's size and translate transform, blended at
-  the site's own 55%; null/undecodable bytes collapse it.
+  the site's own 55%; null/undecodable bytes collapse it. Breadcrumb trail
+  (`MinimapTrailMinutes`, Settings radios Off/10/30/60, default 30): three
+  Polylines in the MAP canvas, in map-pixel space and sharing
+  `_mapTranslate`, so they pan and glide with the map for free —
+  `RenderTrail` rebuilds them per snapshot and in `ApplyViewMode` (the
+  rendered size changed). Three age bands at 0.85/0.55/0.3 opacity, since
+  one polyline can't fade along its length; each band starts on the
+  previous band's last point. Solid on purpose — a dash pattern is anchored
+  at the first point and would crawl along the whole trail whenever the
+  tail trims. Hidden with the arrow while not in-game. Scale bar
+  (`MinimapScaleBarEnabled`, default on): bottom-left, because the
+  heatmap's baked caption owns the top-left; `UpdateScaleBar` runs from
+  `ApplyViewMode` and `OnCalibrationChanged`, budget = 30% of the map
+  width capped at 80 px. `ToFraction` is the one world→map-fraction
+  transform (arrow, waypoint, trail).
+- **BreadcrumbTrail.cs** — pure, tested path store in world cm: a point
+  per poll once moved ≥ 5 m, expiry by age, reset on death/dino swap
+  (identity / growth decrease, like the trackers) and on a jump no dino
+  could travel (> 60 m/s, or > 500 m across any poll gap — the path is
+  unknown there anyway), which would otherwise draw a line across the map.
+  Deliberately NOT reset by not-in-game: after a relog/restart you stand
+  where you stood. Lives in MinimapWindow, so closing the minimap widget
+  (not hide-all, which only hides) starts it over.
+- **ScaleBar.cs** — pure, tested: largest 1-2-5 × 10ⁿ metres fitting a
+  pixel budget, + the "500 m" / "2 km" label.
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
   ten ✓/✗ condition rows (texts baked in — the site bakes them into its
   frontend too, the API only returns flags) + a two-line footer (what the
@@ -330,7 +354,9 @@ references — keep it that way. Every overlay window derives from
   registrations for the dialog's lifetime (WM_HOTKEY is system-level and
   would fire behind the modal dialog; suspension also lets the boxes see
   and reassign our own combos) and restores them in a finally on close.
-  The Minimap section holds view mode, centered zoom and map size — NOT the
+  The Minimap section holds view mode, centered zoom, map size, the trail
+  length (radio buttons, not a ComboBox — stock ComboBox chrome is light
+  and ignores Background) and the scale-bar checkbox — NOT the
   heatmap on/off (removed Sep 2026: something you flip is not a preference,
   see the surface rules under Conventions).
   Save writes config + Run key and sets Cookie/Hotkey/Minimap/Appearance
