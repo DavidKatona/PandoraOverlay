@@ -23,9 +23,11 @@ public partial class MainWindow : OverlayWindowBase
     private const int HideAllHotkeyId = 0xA11E;
     private const int ViewHotkeyId = 0xA11F;
     private const int HeatmapHotkeyId = 0xA120;
+    private const int PrimeHotkeyId = 0xA121;
 
-    // Tried in order when the heatmap combo collides with one of the other
-    // three; four candidates against three takers, so one is always free.
+    // Tried in order when a late-added key's combo collides with one the
+    // user already gave another action; always one more candidate than
+    // takers, so one is always free.
     private static readonly HotkeySpec[] HeatmapHotkeyCandidates =
     {
         new(ModifierKeys.Control, Key.F6),
@@ -33,6 +35,17 @@ public partial class MainWindow : OverlayWindowBase
         new(ModifierKeys.Control, Key.F9),
         new(ModifierKeys.Control, Key.F11)
     };
+
+    private static readonly HotkeySpec[] PrimeHotkeyCandidates =
+    {
+        new(ModifierKeys.Control, Key.F8),
+        new(ModifierKeys.Control, Key.F9),
+        new(ModifierKeys.Control, Key.F11),
+        new(ModifierKeys.Control, Key.F12),
+        new(ModifierKeys.Control, Key.F6)
+    };
+
+    private static readonly TimeSpan HeaderPulse = TimeSpan.FromSeconds(10);
 
     // ---- Brushes ----------------------------------------------------------
     private static readonly Brush HealthGood = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
@@ -59,6 +72,9 @@ public partial class MainWindow : OverlayWindowBase
     private HotkeySpec _hotkeyHide;
     private HotkeySpec _hotkeyView;
     private HotkeySpec _hotkeyHeatmap;
+    private HotkeySpec _hotkeyPrime;
+    private readonly LowStatAlert _lowStat = new();
+    private readonly GrowthMilestones _milestones = new();
     private bool _overlayHidden;
     private readonly List<string> _registerFailures = new();
 
@@ -82,7 +98,10 @@ public partial class MainWindow : OverlayWindowBase
         _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
         _hotkeyHide = HotkeySpec.TryParse(_config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F4);
         _hotkeyView = HotkeySpec.TryParse(_config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F5);
-        _hotkeyHeatmap = ResolveHeatmapHotkey();
+        _hotkeyHeatmap = ResolveLateHotkey(_config.HotkeyHeatmap, HeatmapHotkeyCandidates,
+            new[] { _hotkey, _hotkeyHide, _hotkeyView }, v => _config.HotkeyHeatmap = v);
+        _hotkeyPrime = ResolveLateHotkey(_config.HotkeyPrimeCheck, PrimeHotkeyCandidates,
+            new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap }, v => _config.HotkeyPrimeCheck = v);
         ApplyAppearance(_config);
 
         _poll = new PollService(_config);
@@ -92,7 +111,6 @@ public partial class MainWindow : OverlayWindowBase
         _tray = new TrayIcon(
             toggleEditMode: ToggleEditMode,
             toggleOverlay: ToggleOverlayVisibility,
-            checkPrime: CheckPrime,
             openSettings: OpenSettings,
             exit: () => Application.Current.Shutdown());
         UpdateHotkeyTexts();
@@ -137,6 +155,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, HideAllHotkeyId);
         HotkeySpec.Unregister(hwnd, ViewHotkeyId);
         HotkeySpec.Unregister(hwnd, HeatmapHotkeyId);
+        HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
         try
         {
             var dialog = new SettingsWindow(_config) { Topmost = true };
@@ -198,12 +217,14 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, HideAllHotkeyId);
         HotkeySpec.Unregister(hwnd, ViewHotkeyId);
         HotkeySpec.Unregister(hwnd, HeatmapHotkeyId);
+        HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
 
         _registerFailures.Clear();
         _hotkey = RegisterWithFallback(hwnd, HotkeyId, _config.Hotkey, _hotkey, v => _config.Hotkey = v);
         _hotkeyHide = RegisterWithFallback(hwnd, HideAllHotkeyId, _config.HotkeyHideAll, _hotkeyHide, v => _config.HotkeyHideAll = v);
         _hotkeyView = RegisterWithFallback(hwnd, ViewHotkeyId, _config.HotkeyMinimapView, _hotkeyView, v => _config.HotkeyMinimapView = v);
         _hotkeyHeatmap = RegisterWithFallback(hwnd, HeatmapHotkeyId, _config.HotkeyHeatmap, _hotkeyHeatmap, v => _config.HotkeyHeatmap = v);
+        _hotkeyPrime = RegisterWithFallback(hwnd, PrimeHotkeyId, _config.HotkeyPrimeCheck, _hotkeyPrime, v => _config.HotkeyPrimeCheck = v);
         _config.Save();
         UpdateHotkeyTexts();
 
@@ -212,21 +233,21 @@ public partial class MainWindow : OverlayWindowBase
     }
 
     /// <summary>
-    /// The heatmap hotkey arrived after people had already customized the
-    /// other three, so its default can collide with one of them — and a
-    /// duplicate inside our own app would fail to register and read as "in
-    /// use by another app". Then the first free candidate wins and is
-    /// written back. (The settings dialog rejects duplicates at capture time,
-    /// so this only matters for that upgrade case and hand-edited configs.)
+    /// The heatmap and Prime hotkeys arrived after people had already
+    /// customized the earlier ones, so their defaults can collide with one of
+    /// those — and a duplicate inside our own app would fail to register and
+    /// read as "in use by another app". Then the first free candidate wins
+    /// and is written back. (The settings dialog rejects duplicates at
+    /// capture time, so this only matters for that upgrade case and
+    /// hand-edited configs.)
     /// </summary>
-    private HotkeySpec ResolveHeatmapHotkey()
+    private static HotkeySpec ResolveLateHotkey(string configured, HotkeySpec[] candidates, HotkeySpec[] taken, Action<string> writeBack)
     {
-        var wanted = HotkeySpec.TryParse(_config.HotkeyHeatmap) ?? HeatmapHotkeyCandidates[0];
-        var taken = new[] { _hotkey, _hotkeyHide, _hotkeyView };
+        var wanted = HotkeySpec.TryParse(configured) ?? candidates[0];
         if (!taken.Contains(wanted)) return wanted;
 
-        var free = HeatmapHotkeyCandidates.First(c => !taken.Contains(c));
-        _config.HotkeyHeatmap = free.ToString();
+        var free = candidates.First(c => !taken.Contains(c));
+        writeBack(free.ToString());
         return free;
     }
 
@@ -362,6 +383,7 @@ public partial class MainWindow : OverlayWindowBase
         if (!HotkeySpec.Register(hwnd, HideAllHotkeyId, _hotkeyHide)) _registerFailures.Add(_hotkeyHide.ToString());
         if (!HotkeySpec.Register(hwnd, ViewHotkeyId, _hotkeyView)) _registerFailures.Add(_hotkeyView.ToString());
         if (!HotkeySpec.Register(hwnd, HeatmapHotkeyId, _hotkeyHeatmap)) _registerFailures.Add(_hotkeyHeatmap.ToString());
+        if (!HotkeySpec.Register(hwnd, PrimeHotkeyId, _hotkeyPrime)) _registerFailures.Add(_hotkeyPrime.ToString());
         if (_registerFailures.Count > 0)
         {
             var combos = string.Join(", ", _registerFailures);
@@ -392,6 +414,10 @@ public partial class MainWindow : OverlayWindowBase
                     break;
                 case HeatmapHotkeyId:
                     ToggleHeatmap();
+                    handled = true;
+                    break;
+                case PrimeHotkeyId:
+                    CheckPrime();
                     handled = true;
                     break;
             }
@@ -596,6 +622,8 @@ public partial class MainWindow : OverlayWindowBase
             _hungerDrain.Reset();
             _thirstDrain.Reset();
             _attention.Reset();
+            _lowStat.Reset();
+            _milestones.Reset();
             SetAttention(false); // "Not in-game" is nothing to watch
             RenderTimeLeft();
             DinoText.Text = "Not in-game";
@@ -650,6 +678,16 @@ public partial class MainWindow : OverlayWindowBase
         _hungerDrain.Add(p);
         _thirstDrain.Add(p);
         RenderTimeLeft();
+
+        // Alerts: the rules are pure and always run; the sounds are opt-in.
+        if (_milestones.Update(p) is not null)
+        {
+            PulseBriefly(GrowthText, HeaderPulse); // a stage reached is always worth a blink
+            _attention.NoteEvent();
+            if (_config.GrowthChimeEnabled) Chime();
+        }
+        if (_lowStat.Update(p) && _config.LowStatChimeEnabled) Chime();
+
         SetAttention(_attention.Update(p, _hungerDrain.TimeLeft, _thirstDrain.TimeLeft));
 
         // Critical-stat pulse. Stamina is deliberately excluded — it drains to
@@ -699,6 +737,19 @@ public partial class MainWindow : OverlayWindowBase
 
         label.Foreground = outside ? tint : TimeLeftOnFill;
         label.Margin = new Thickness(outside ? fillWidth + TimeLeftGap : fillWidth - TimeLeftGap - width, 0, 0, 0);
+    }
+
+    /// <summary>The Windows "Exclamation" sound — no bundled audio, and it follows the user's sound scheme.</summary>
+    private static void Chime()
+    {
+        try
+        {
+            System.Media.SystemSounds.Exclamation.Play();
+        }
+        catch
+        {
+            // No sound device / scheme: silence is the right fallback.
+        }
     }
 
     // ---- Critical-stat pulse ------------------------------------------------

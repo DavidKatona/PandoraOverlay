@@ -89,6 +89,8 @@ public partial class SettingsWindow : Window
             HotkeySpec.TryParse(config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F5), "the minimap view toggle");
         _hotkeyEntries[HeatmapHotkeyBox] = new HotkeyEntry(
             HotkeySpec.TryParse(config.HotkeyHeatmap) ?? new HotkeySpec(ModifierKeys.Control, Key.F6), "the heatmap toggle");
+        _hotkeyEntries[PrimeHotkeyBox] = new HotkeyEntry(
+            HotkeySpec.TryParse(config.HotkeyPrimeCheck) ?? new HotkeySpec(ModifierKeys.Control, Key.F8), "Check Prime");
         foreach (var (box, entry) in _hotkeyEntries)
         {
             box.Text = entry.Chosen.ToString();
@@ -99,6 +101,8 @@ public partial class SettingsWindow : Window
         StartupCheck.IsChecked = _initialStartup;
         TimeLeftCheck.IsChecked = config.StatTimeLeftEnabled;
         HideNotInGameCheck.IsChecked = config.HideWhenNotInGame;
+        LowStatChimeCheck.IsChecked = config.LowStatChimeEnabled;
+        GrowthChimeCheck.IsChecked = config.GrowthChimeEnabled;
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
         PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale ?? config.UiScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
@@ -342,12 +346,15 @@ public partial class SettingsWindow : Window
             _config.HotkeyHideAll = _hotkeyEntries[HideHotkeyBox].Chosen.ToString();
             _config.HotkeyMinimapView = _hotkeyEntries[ViewHotkeyBox].Chosen.ToString();
             _config.HotkeyHeatmap = _hotkeyEntries[HeatmapHotkeyBox].Chosen.ToString();
+            _config.HotkeyPrimeCheck = _hotkeyEntries[PrimeHotkeyBox].Chosen.ToString();
             HotkeyChanged = true;
         }
 
         var startup = StartupCheck.IsChecked == true;
         if (startup != _initialStartup) StartupRegistration.SetEnabled(startup);
-        _config.HideWhenNotInGame = HideNotInGameCheck.IsChecked == true; // MainWindow reads it live, no flag needed
+        _config.HideWhenNotInGame = HideNotInGameCheck.IsChecked == true; // MainWindow reads these live, no flag needed
+        _config.LowStatChimeEnabled = LowStatChimeCheck.IsChecked == true;
+        _config.GrowthChimeEnabled = GrowthChimeCheck.IsChecked == true;
 
         var scale = Math.Round(ScaleSlider.Value, 2);
         var primeScale = Math.Round(PrimeScaleSlider.Value, 2);

@@ -242,7 +242,7 @@ public sealed class PollService : IDisposable
     }
 
     /// <summary>
-    /// One USER-TRIGGERED prime check (control panel / tray) — never call this
+    /// One USER-TRIGGERED prime check (control panel / hotkey) — never call this
     /// from a timer; the endpoint is approved on exactly that condition. All
     /// gating lives here so windows stay pure consumers: a running cooldown
     /// or a not-in-game poll state answers locally with no prime request

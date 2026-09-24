@@ -83,6 +83,17 @@ public class StatsAttentionTests
     }
 
     [Fact]
+    public void ANotedEventWakesForAFewSeconds()
+    {
+        var a = new StatsAttention();
+        a.Update(Player(), null, null, T0);
+        a.NoteEvent(T0 + TimeSpan.FromSeconds(3));
+        Assert.True(a.Update(Player(), null, null, T0 + TimeSpan.FromSeconds(3)));
+        Assert.True(a.Update(Player(), null, null, T0 + TimeSpan.FromSeconds(12)));
+        Assert.False(a.Update(Player(), null, null, T0 + TimeSpan.FromSeconds(14)));
+    }
+
+    [Fact]
     public void ResetDropsTheDamageBaseline()
     {
         var a = new StatsAttention();

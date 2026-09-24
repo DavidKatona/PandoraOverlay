@@ -9,7 +9,7 @@ namespace PandoraOverlay;
 /// <summary>
 /// The Prime tracker widget: overall Prime status plus the ten condition rows
 /// from the site's "Prime Check" — display-only and click-through when locked.
-/// The check itself is triggered from the control panel or the tray and runs
+/// The check itself is triggered from the control panel or its hotkey and runs
 /// through PollService (user-clicked only, never polled, server cooldown
 /// honored); this window just renders the last result, which is cached in
 /// config so it survives restarts, and a live cooldown countdown. The
@@ -43,6 +43,9 @@ public partial class PrimeWindow : OverlayWindowBase
     private static readonly Brush StatusNeutral = new SolidColorBrush(Color.FromRgb(0x9A, 0xA7, 0xB0));
     private static readonly Brush StatusPrime = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));
     private static readonly Brush Warn = new SolidColorBrush(Color.FromRgb(0xFF, 0xB3, 0x00));
+    private static readonly Brush Fresh = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8)); // a condition newly met since the last check
+
+    private static readonly TimeSpan FooterPulse = TimeSpan.FromSeconds(10);
 
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
@@ -53,6 +56,8 @@ public partial class PrimeWindow : OverlayWindowBase
     private string? _notice;   // sticky explanation of the last non-Ok outcome
     private string? _liveDino; // null while not in-game
     private bool _checking;
+    private PrimeSnapshot? _before;                              // the result on screen when the current check started
+    private readonly bool[] _changed = new bool[ConditionTexts.Length]; // rows that flipped in the latest result (session-only)
 
     /// <summary>How long a moment worth seeing (a result, the cooldown ending, a dino change) keeps the widget lit.</summary>
     private static readonly TimeSpan AttentionHold = TimeSpan.FromSeconds(30);
@@ -182,6 +187,7 @@ public partial class PrimeWindow : OverlayWindowBase
     private void OnCheckStarted()
     {
         _checking = true;
+        _before = _config.Prime; // PollService swaps in the new result before PrimeChecked fires
         Wake(hold: null); // lit until the result lands
         RenderNotice();
     }
@@ -190,6 +196,17 @@ public partial class PrimeWindow : OverlayWindowBase
     {
         _checking = false;
         Wake(AttentionHold);
+        if (result.Outcome == PrimeCheckOutcome.Ok && result.Snapshot is { } fresh)
+        {
+            // What flipped since the previous result: a new ✓ reads bright,
+            // a lost one amber, until the next check replaces the comparison.
+            for (var i = 0; i < _changed.Length; i++)
+            {
+                var was = _before is { } b && i < b.Conditions.Length && b.Conditions[i];
+                var now = i < fresh.Conditions.Length && fresh.Conditions[i];
+                _changed[i] = _before is not null && was != now;
+            }
+        }
         _notice = result.Outcome switch
         {
             PrimeCheckOutcome.Ok => null,
@@ -217,7 +234,8 @@ public partial class PrimeWindow : OverlayWindowBase
             var met = i < snap.Conditions.Length && snap.Conditions[i];
             _icons[i].Text = met ? "✓" : "✗";
             _icons[i].Foreground = met ? MetIcon : UnmetIcon;
-            _labels[i].Foreground = met ? MetText : Dim;
+            _labels[i].Foreground = _changed[i] ? (met ? Fresh : Warn) : met ? MetText : Dim;
+            _labels[i].FontWeight = _changed[i] ? FontWeights.SemiBold : FontWeights.Normal;
         }
 
         if (snap is null)
@@ -243,7 +261,7 @@ public partial class PrimeWindow : OverlayWindowBase
     {
         if (_config.Prime is not { } snap)
         {
-            InfoText.Text = "Not checked yet — Check Prime: control panel or tray";
+            InfoText.Text = "Not checked yet — Check Prime: control panel or hotkey";
             InfoText.Foreground = Dim;
             return false;
         }
@@ -271,6 +289,7 @@ public partial class PrimeWindow : OverlayWindowBase
         {
             _cooldownTimer.Stop();
             Wake(AttentionHold); // the countdown just hit zero: a check is available again
+            PulseBriefly(NoticeText, FooterPulse); // and a quiet blink for those without the fade
         }
 
         NoticeText.Text =

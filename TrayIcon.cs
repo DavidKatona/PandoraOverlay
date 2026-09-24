@@ -8,8 +8,9 @@ namespace PandoraOverlay;
 /// Notification-area icon — the overlay's only always-visible affordance (the
 /// windows themselves are click-through, absent from the taskbar and Alt-Tab).
 /// The right-click menu is deliberately small: the lifelines (edit mode,
-/// hide/show overlay, settings, exit), mid-game actions that have no hotkey,
-/// and alerts — layout controls belong to the control panel. A double-click
+/// hide/show overlay, settings, exit) and alerts — layout controls belong to
+/// the control panel, and mid-game actions get a hotkey (Check Prime moved
+/// to one in v1.19; the slot for hotkey-less actions is empty). A double-click
 /// toggles edit mode. The hover tooltip carries live stats and,
 /// when a newer release exists, an update note plus a menu entry opening the
 /// download page. WinForms interop, since NotifyIcon has no WPF counterpart.
@@ -27,7 +28,7 @@ public sealed class TrayIcon : IDisposable
     private string _updateSuffix = "";
     private string _conflictSuffix = "";
 
-    public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action checkPrime, Action openSettings, Action exit)
+    public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action openSettings, Action exit)
     {
         _updateItem = new ToolStripMenuItem { Visible = false };
         _updateItem.Click += (_, _) => OpenReleasesPage();
@@ -48,13 +49,11 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(_conflictItem);
         menu.Items.Add(_updateSeparator);
         // Lifelines (must work while locked, hidden, or with dead hotkeys) ·
-        // mid-game actions with no hotkey · the app itself. Per-widget
-        // show/hide deliberately lives on the control panel only, so this
-        // menu never grows with the number of widgets.
+        // the app itself. Per-widget show/hide deliberately lives on the
+        // control panel only, so this menu never grows with the number of
+        // widgets, and mid-game actions earn a hotkey instead of a line here.
         menu.Items.Add(_editItem);
         menu.Items.Add(_overlayItem);
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("Check Prime status", null, (_, _) => checkPrime()));
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Settings…", null, (_, _) => openSettings()));
         menu.Items.Add(new ToolStripMenuItem("Exit", null, (_, _) => exit()));

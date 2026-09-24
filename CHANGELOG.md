@@ -5,6 +5,32 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Check Prime hotkey (default **Ctrl+F8**, rebindable in Settings): runs a
+  Prime check from gameplay without entering edit mode. If Ctrl+F8 is
+  already one of your own combos, the overlay picks the next free one
+  (Ctrl+F9, F11, F12, F6) instead of clashing with it.
+- Growth stage blink: the growth readout blinks for a few seconds when you
+  reach 25% (juvenile), 50% (subadult), 75% (adult) or 100% (elder).
+- Two optional chimes (Settings → Stats panel, both off by default), using
+  the Windows "Exclamation" sound: one when hunger or thirst drops under
+  20% — repeated every five minutes while it stays there, and re-armed once
+  you've eaten or drunk — and one at the growth stages above. For AFK
+  growing, where a slow stat is easy to miss while alt-tabbed.
+- Prime tracker: after a check, conditions that changed since the previous
+  result stand out (a newly met one in bright text, a lost one in amber)
+  until the next check, and the footer blinks briefly when the cooldown
+  runs out.
+
+### Changed
+
+- "Check Prime status" is gone from the tray menu: it has a hotkey now, and
+  the control panel's Check button stays. The tray is back to Edit mode,
+  Hide/show overlay, Settings and Exit.
+
 ## [1.18.0] - 2026-09-24
 
 ### Added

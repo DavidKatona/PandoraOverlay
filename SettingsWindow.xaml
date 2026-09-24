@@ -215,6 +215,13 @@
                          GotKeyboardFocus="HotkeyBox_GotFocus"
                          LostKeyboardFocus="HotkeyBox_LostFocus"/>
             </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Check Prime:" Width="150"/>
+                <TextBox x:Name="PrimeHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
             <TextBlock x:Name="HotkeyHint"
                        Text="Click a box, then press the combination you want."
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
@@ -259,6 +266,10 @@
             </DockPanel>
             <CheckBox x:Name="TimeLeftCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
                       Content="Show time left on the hunger and thirst bars"/>
+            <CheckBox x:Name="LowStatChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Chime when hunger or thirst drops under 20%"/>
+            <CheckBox x:Name="GrowthChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Chime at growth milestones (25 / 50 / 75 / 100%)"/>
 
             <!-- ============================ Minimap ======================== -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="MINIMAP"/>

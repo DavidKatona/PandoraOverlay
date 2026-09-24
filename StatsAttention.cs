@@ -19,10 +19,13 @@ public sealed class StatsAttention
     private static readonly TimeSpan WakeLeftBelow = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan CalmLeftAbove = TimeSpan.FromMinutes(20);
 
+    private static readonly TimeSpan EventHold = TimeSpan.FromSeconds(10);
+
     private string? _identity;
     private double _lastGrowth;
     private double? _lastHealth;
     private DateTime _damageUntil;
+    private DateTime _eventUntil;
 
     /// <summary>True while the panel should show at full opacity. Starts lit: nothing is known yet.</summary>
     public bool Lit { get; private set; } = true;
@@ -34,6 +37,11 @@ public sealed class StatsAttention
         _lastHealth = null;
         _damageUntil = default;
     }
+
+    /// <summary>Something worth a glance just happened (a growth milestone): keeps the panel lit for a few seconds.</summary>
+    public void NoteEvent() => NoteEvent(DateTime.UtcNow);
+
+    internal void NoteEvent(DateTime now) => _eventUntil = now + EventHold;
 
     public bool Update(PlayerState p, TimeSpan? hungerLeft, TimeSpan? thirstLeft) =>
         Update(p, hungerLeft, thirstLeft, DateTime.UtcNow);
@@ -54,7 +62,7 @@ public sealed class StatsAttention
 
         var lowest = Math.Min(p.Health, Math.Min(p.Hunger, p.Thirst));
         var fractured = p.HeadFractured || p.BodyFractured || p.LegsFractured;
-        var damaged = now < _damageUntil;
+        var damaged = now < _damageUntil || now < _eventUntil;
         TimeSpan? soonest = (hungerLeft, thirstLeft) switch
         {
             ({ } h, { } t) => h < t ? h : t,

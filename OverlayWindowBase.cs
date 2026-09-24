@@ -108,6 +108,20 @@ public abstract class OverlayWindowBase : Window
         UpdateFade(animate: true);
     }
 
+    /// <summary>
+    /// A quiet "look here" for one element: blinks its opacity for the given
+    /// time and then leaves it exactly as it was (FillBehavior.Stop). Used
+    /// for the growth header at a milestone and the Prime footer when the
+    /// cooldown ends — the fade's window-level wake covers the rest.
+    /// </summary>
+    protected static void PulseBriefly(UIElement element, TimeSpan total) =>
+        element.BeginAnimation(OpacityProperty, new DoubleAnimation(1.0, 0.3, TimeSpan.FromMilliseconds(500))
+        {
+            AutoReverse = true,
+            RepeatBehavior = new RepeatBehavior(total),
+            FillBehavior = FillBehavior.Stop
+        });
+
     private void UpdateFade(bool animate)
     {
         var target = EditMode || _attention ? 1.0 : _idleOpacity;

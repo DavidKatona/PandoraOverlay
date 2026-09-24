@@ -81,6 +81,14 @@ public sealed class OverlayConfig
     /// </summary>
     public string HotkeyHeatmap { get; set; } = "Ctrl+F6";
 
+    /// <summary>
+    /// Run a Prime check from gameplay — same format as Hotkey. It replaced
+    /// the tray's "Check Prime status" entry (Sep 2026): a mid-game action
+    /// used often earns a key. Collides with a customized combo? MainWindow
+    /// picks a free one at startup, like the heatmap key.
+    /// </summary>
+    public string HotkeyPrimeCheck { get; set; } = "Ctrl+F8";
+
     // ---- Minimap (v1.1) ---------------------------------------------------
 
     /// <summary>Show the stats panel (toggled from the control panel or the tray menu).</summary>
@@ -209,6 +217,20 @@ public sealed class OverlayConfig
     /// stats panel.
     /// </summary>
     public bool StatTimeLeftEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Play the Windows "Exclamation" sound when hunger or thirst drops under
+    /// 20% (again every 5 min while it stays there). Off by default — for
+    /// AFK growing, where a slow stat is easy to miss while alt-tabbed.
+    /// </summary>
+    public bool LowStatChimeEnabled { get; set; }
+
+    /// <summary>
+    /// Play the same sound when growth reaches a stage line — 25% juvenile,
+    /// 50% subadult, 75% adult, 100% elder. The growth header pulses at
+    /// those moments regardless. Off by default.
+    /// </summary>
+    public bool GrowthChimeEnabled { get; set; }
 
     /// <summary>
     /// Attention fade: the stats panel and the Prime tracker drop to

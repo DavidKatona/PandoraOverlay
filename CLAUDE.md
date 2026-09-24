@@ -21,7 +21,8 @@ web dev.**
    own page refetches every 10 s per open tab), and the prime pair
    `POST /api/prime/check` + `POST /api/prime/cooldown` (approved Sep 19
    2026, both confirmed covered by the owner; cookie-authed and
-   USER-TRIGGERED ONLY — a control panel / tray click, never a timer. The
+   USER-TRIGGERED ONLY — a control panel click or the Check Prime hotkey
+   press, never a timer. The
    cooldown is mirrored client-side, so a cooling-down or not-in-game click
    sends no prime request — a STALE not-in-game state is first refreshed by
    one regular `mylocation` poll, since idle pacing can trail a spawn by up
@@ -172,7 +173,10 @@ references — keep it that way. Every overlay window derives from
   idle value is read in `ApplyAppearance`, so a Settings save hot-applies
   through the existing Appearance flag. Each window decides its own
   verdict: the stats panel via the pure `StatsAttention`, the Prime
-  tracker via its own events (see PrimeWindow).
+  tracker via its own events (see PrimeWindow). `PulseBriefly(element,
+  total)` is the shared one-element blink (opacity 1→0.3 autoreverse,
+  FillBehavior.Stop so the element ends exactly as it was) for the growth
+  header at a milestone and the Prime footer at cooldown end.
 - **SnapResolver.cs** — pure, tested snapping math: screen edges + 16px
   inset + peer edges, 12px threshold (threshold < inset on purpose, so the
   two magnets read as distinct stops), axes independent; leading- and
@@ -247,9 +251,23 @@ references — keep it that way. Every overlay window derives from
   momentary) or a drain estimate under 15 min; calm only above 55% / 20
   min with none of the rest, so a stat at the line can't blink. Resets
   its damage baseline on death/dino swap (identity or growth decrease,
-  like the trackers) and on not-in-game. MainWindow also lights the panel
+  like the trackers) and on not-in-game. `NoteEvent` holds it lit 10 s for
+  a one-off moment (a growth milestone). MainWindow also lights the panel
   by hand for not-set-up, connecting and disconnected, and calms it for
   not-in-game — nothing to watch there.
+- **LowStatAlert.cs** — pure, tested chime rule for hunger/thirst (v1.19,
+  `LowStatChimeEnabled`, default off): each stat chimes once on dropping
+  under 20%, repeats every 5 min while it stays there (the AFK grower who
+  missed the first), and re-arms only above 30% so a stat at the line
+  can't chime per poll; a new life starts armed. The sound is the Windows
+  "Exclamation" scheme sound (`MainWindow.Chime`, no bundled audio —
+  owner's call, a custom sound only if users ask).
+- **GrowthMilestones.cs** — pure, tested: reports the stage line crossed
+  by a sample (25 juvenile / 50 subadult / 75 adult / 100 elder, the last
+  at GrowthTracker's 0.9995 full line); the first sample of a life is only
+  a baseline, a gap over two lines reports the higher, death/swap resets.
+  MainWindow always `PulseBriefly`s the growth header + `NoteEvent`s the
+  fade for it; the chime is gated by `GrowthChimeEnabled` (default off).
 - **OverlayConfig.cs** — config.json persistence + DPAPI vault. Plaintext `Cookie`
   field is a paste-inbox only: `Load()` encrypts it into `CookieProtected`
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
@@ -257,7 +275,7 @@ references — keep it that way. Every overlay window derives from
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
   and the minimap + prime windows' lifetimes (both follow edit mode and
   hide-all; `CheckPrime` un-hides and shows the prime widget first, then
-  fires the one user-triggered check). Four global hotkeys (RegisterHotKey +
+  fires the one user-triggered check). Five global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
   (`Hotkey`, Ctrl+F7) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
@@ -265,9 +283,12 @@ references — keep it that way. Every overlay window derives from
   (`HotkeyMinimapView`, Ctrl+F5 → `MinimapWindow.ToggleView`), and the
   heatmap toggle (`HotkeyHeatmap`, Ctrl+F6 → `ToggleHeatmap`, a no-op while
   the minimap is hidden; it replaced the tray entry and the Settings
-  checkbox). The heatmap key arrived after users had customized the other
-  three, so `ResolveHeatmapHotkey` swaps a colliding default for the first
-  free candidate (F6/F8/F9/F11) instead of letting an own-app duplicate
+  checkbox), and Check Prime (`HotkeyPrimeCheck`, Ctrl+F8 → `CheckPrime`;
+  v1.19, replacing the tray's "Check Prime status" line). The heatmap and
+  Prime keys arrived after users had customized the earlier ones, so
+  `ResolveLateHotkey` swaps a colliding default for the first free
+  candidate (heatmap F6/F8/F9/F11, prime F8/F9/F11/F12/F6 — always one
+  more candidate than takers) instead of letting an own-app duplicate
   fail to register and read as "in use by another app". Defaults sit
   in F4–F7 (v1.12 rebase — Ctrl+F3 proved globally held by third-party
   software in the wild; the mid-game toggles take the nearest keys, the
@@ -307,8 +328,9 @@ references — keep it that way. Every overlay window derives from
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
   always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
   Right-click menu, deliberately short = edit mode / hide-show overlay |
-  Check Prime status | settings / exit (hotkey labels follow config) — no
-  per-widget toggles, see the surface rules under Conventions;
+  settings / exit (hotkey labels follow config) — no per-widget toggles,
+  and no Check Prime since v1.19 (it earned Ctrl+F8), see the surface
+  rules under Conventions;
   double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
   127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
   `ShowUpdateAvailable` reveals a hidden menu entry (opens the Releases page)
@@ -330,7 +352,7 @@ references — keep it that way. Every overlay window derives from
   views (`ToggleView`), wheel zooms in edit mode; a footer under the map
   always shows the active view (+ zoom when centered).
   `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified
-  in-game, Sep 2026). Shown/hidden via the control panel or tray
+  in-game, Sep 2026). Shown/hidden via the control panel
   (`MinimapEnabled`). Waypoint: right-click in edit
   mode places/moves it (stored as world cm in config — persists), right-click
   on the marker clears it; blue diamond, edge-clamped in the centered view,
@@ -369,8 +391,15 @@ references — keep it that way. Every overlay window derives from
   rows reflect: time and dino, amber once the live dino differs; then
   checking / sticky notice / live cooldown countdown — its 1 s timer only
   runs while cooling down). Display-only and click-through when locked;
-  the check is triggered from the control panel or tray via
-  `MainWindow.CheckPrime` → `PollService.CheckPrimeAsync`. Fixed 250 px
+  the check is triggered from the control panel or the Ctrl+F8 hotkey via
+  `MainWindow.CheckPrime` → `PollService.CheckPrimeAsync`. Changed-since-
+  last-check highlight (v1.19): `OnCheckStarted` snapshots `_config.Prime`
+  as `_before` (PollService swaps in the new result before `PrimeChecked`
+  fires), an Ok result diffs the flags into `_changed`, and
+  `RenderSnapshot` paints a newly met row bright/semibold and a lost one
+  amber until the next check replaces the comparison; session-only. The
+  cooldown reaching zero also `PulseBriefly`s the footer for those
+  without the fade. Fixed 250 px
   content width and a reserved footer keep it one size in every state.
   Derives OverlayWindowBase (drag/snap/clamp; sized by its own `PrimeScale`
   via the `AppearanceScale` override — seeded from `UiScale` in
@@ -405,10 +434,10 @@ references — keep it that way. Every overlay window derives from
   hidden paste can't be saved) and the hint line hides while empty; first
   run shows the box + walkthrough up front and gates Save on a valid paste (`Clean()` strips
   `cookie:` prefix, quotes, newlines, trailing `;`; live validation needs
-  `connect.sid`, warns if `cf_clearance` missing). Four hotkey capture boxes
-  (edit / hide-overlay / minimap-view / heatmap) share the capture UX: combos are
+  `connect.sid`, warns if `cf_clearance` missing). Five hotkey capture boxes
+  (edit / hide-overlay / minimap-view / heatmap / Check Prime) share the capture UX: combos are
   availability-tested via a throwaway RegisterHotKey on the dialog's hwnd
-  and cross-duplicates rejected. MainWindow suspends its four
+  and cross-duplicates rejected. MainWindow suspends its five
   registrations for the dialog's lifetime (WM_HOTKEY is system-level and
   would fire behind the modal dialog; suspension also lets the boxes see
   and reassign our own combos) and restores them in a finally on close.
@@ -423,7 +452,9 @@ references — keep it that way. Every overlay window derives from
   — no restart, ever. General = Start with Windows, the not-in-game
   auto-hide checkbox (no flag: MainWindow reads it live), background
   opacity (30–100%) and the fade row (20–80%); Stats panel = scale
-  (75–150%) + the hunger/thirst time-left checkbox; Prime tracker = scale.
+  (75–150%), the hunger/thirst time-left checkbox and the two chime
+  checkboxes (low stat / growth stages — no flag, MainWindow reads them
+  live); Prime tracker = scale.
   All scales, opacities, the time-left and fade settings ride the one
   Appearance flag.
 - **HotkeySpec.cs** — record converting the config string ("Ctrl+F7") ⇄ the
@@ -544,9 +575,10 @@ re-propose.
   **Tray** = only (1) lifelines that must work while locked, hidden or with
   dead hotkeys — edit mode, hide/show overlay, settings, exit; (2) alerts
   needing a persistent home — update, hotkey conflict; (3) mid-game actions
-  with no hotkey — Check Prime. The tray must never grow with the number
-  of widgets: no per-widget show/hide. A mid-game toggle used often earns a
-  **hotkey** instead of a tray line (the heatmap did).
+  with no hotkey — currently none (Check Prime sat here until it earned
+  Ctrl+F8 in v1.19). The tray must never grow with the number
+  of widgets: no per-widget show/hide. A mid-game action used often earns a
+  **hotkey** instead of a tray line (the heatmap and Check Prime did).
 - Every distinct widget gets its OWN size slider in Settings (owner's rule,
   Sep 2026): stats panel `UiScale`, minimap `MinimapSize`, prime tracker
   `PrimeScale` — a new widget ships with one, seeded so an update never
