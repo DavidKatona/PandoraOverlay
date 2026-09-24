@@ -71,6 +71,14 @@ public partial class SettingsWindow : Window
             : "Cookie stored ✓ — the session rolls forward automatically.";
         CookieStatus.Foreground = _firstRun ? HintWarn : HintGood;
         if (_firstRun) SetHowToVisible(true); // first run: show the walkthrough up front
+        // Once a cookie is stored the paste box is the exception: folded
+        // behind "Replace cookie…" so the everyday dialog stays short.
+        CookiePanel.Visibility = _firstRun ? Visibility.Visible : Visibility.Collapsed;
+        ReplaceLink.Visibility = _firstRun ? Visibility.Collapsed : Visibility.Visible;
+
+        // Safety net for small screens: the sections scroll rather than the
+        // dialog running off the bottom (SizeToContent honours MaxHeight).
+        MaxHeight = SystemParameters.WorkArea.Height * 0.92;
 
         // Controls
         _hotkeyEntries[EditHotkeyBox] = new HotkeyEntry(
@@ -131,13 +139,29 @@ public partial class SettingsWindow : Window
         }
         catch
         {
-            HintText.Text = "Couldn't open the browser — visit islapandora.eu/live-map manually.";
-            HintText.Foreground = HintWarn;
+            SetHint("Couldn't open the browser — visit islapandora.eu/live-map manually.", HintWarn);
         }
     }
 
     private void HowToLink_Click(object sender, MouseButtonEventArgs e) =>
         SetHowToVisible(HowToText.Visibility != Visibility.Visible);
+
+    private void ReplaceLink_Click(object sender, MouseButtonEventArgs e)
+    {
+        var show = CookiePanel.Visibility != Visibility.Visible;
+        CookiePanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        ReplaceLink.Text = (show ? "▾" : "▸") + " Replace cookie…";
+        if (!show) CookieBox.Text = ""; // folding it away must not save a hidden paste
+        if (show) CookieBox.Focus();
+    }
+
+    /// <summary>The hint line under the Account section; an empty text takes no room.</summary>
+    private void SetHint(string text, Brush brush)
+    {
+        HintText.Text = text;
+        HintText.Foreground = brush;
+        HintText.Visibility = text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
 
     private void SetHowToVisible(bool show)
     {
@@ -166,30 +190,26 @@ public partial class SettingsWindow : Window
 
         if (s.Length == 0)
         {
-            HintText.Text = _firstRun
-                ? "Waiting for a pasted cookie…"
-                : "Leave empty to keep the current cookie.";
-            HintText.Foreground = HintNeutral;
+            // With a cookie stored, an empty box needs no commentary — the
+            // box is folded away most of the time anyway.
+            SetHint(_firstRun ? "Waiting for a pasted cookie…" : "", HintNeutral);
             ok = !_firstRun;
         }
         else if (hasSid && hasCf)
         {
-            HintText.Text = "Looks good ✓ — both session and Cloudflare cookies found.";
-            HintText.Foreground = HintGood;
+            SetHint("Looks good ✓ — both session and Cloudflare cookies found.", HintGood);
             ok = true;
         }
         else if (hasSid)
         {
-            HintText.Text = "cf_clearance is missing. This can still work, but if the overlay " +
-                            "gets blocked, go back and copy the WHOLE cookie value.";
-            HintText.Foreground = HintWarn;
+            SetHint("cf_clearance is missing. This can still work, but if the overlay " +
+                    "gets blocked, go back and copy the WHOLE cookie value.", HintWarn);
             ok = true;
         }
         else
         {
-            HintText.Text = "connect.sid not found — that doesn't look like the cookie header. " +
-                            "Make sure you copy the full value of \"cookie\" under Request Headers.";
-            HintText.Foreground = HintBad;
+            SetHint("connect.sid not found — that doesn't look like the cookie header. " +
+                    "Make sure you copy the full value of \"cookie\" under Request Headers.", HintBad);
             ok = false;
         }
         SaveButton.IsEnabled = ok;

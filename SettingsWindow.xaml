@@ -59,6 +59,38 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
+        <!-- Slider rows share one label width so every slider in the dialog
+             starts on the same x, whichever section it sits in. -->
+        <Style x:Key="SliderLabel" TargetType="TextBlock" BasedOn="{StaticResource FieldLabel}">
+            <Setter Property="Width" Value="140"/>
+        </Style>
+
+        <Style x:Key="SliderValue" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#ECF2F8"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="46"/>
+        </Style>
+
+        <Style x:Key="Check" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#C7D1DA"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="Radio" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#C7D1DA"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="Link" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#7FB2D9"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
         <Style x:Key="HotkeyBox" TargetType="TextBox">
             <Setter Property="Width" Value="150"/>
             <Setter Property="Margin" Value="10,0,0,0"/>
@@ -77,11 +109,13 @@
 
     <Border CornerRadius="10" Background="#F210151B" BorderBrush="#33FFFFFF"
             BorderThickness="1" Padding="16,12">
-        <StackPanel>
+        <!-- Title and buttons stay put; the sections scroll if the dialog is
+             taller than the screen allows (MaxHeight is set in code). -->
+        <DockPanel>
 
             <!-- Title bar (draggable) -->
-            <DockPanel MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" Margin="0,0,0,4"
-                       Background="Transparent">
+            <DockPanel DockPanel.Dock="Top" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
+                       Margin="0,0,0,4" Background="Transparent">
                 <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Cancel_Click"
                         Width="22" Height="22" Padding="0"
                         Background="#552B2B" Foreground="#FFDDDD"
@@ -90,6 +124,19 @@
                            Foreground="#ECF2F8" FontSize="14" FontWeight="Bold"
                            VerticalAlignment="Center"/>
             </DockPanel>
+
+            <!-- Buttons -->
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                        HorizontalAlignment="Right" Margin="0,18,0,0">
+                <Button Content="Cancel" Click="Cancel_Click"
+                        Padding="14,5" Margin="0,0,8,0" FontSize="12"
+                        Background="#2A3038" Foreground="#C7D1DA" BorderThickness="0"/>
+                <Button x:Name="SaveButton" Content="Save" Click="Save_Click"
+                        Style="{StaticResource SaveButtonStyle}"/>
+            </StackPanel>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
 
             <!-- ============================ Account ======================== -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="ACCOUNT" Margin="0,6,0,6"/>
@@ -101,9 +148,16 @@
                     Background="#264A63" Foreground="#DCEBF7" BorderThickness="0"
                     FontSize="12"/>
 
-            <TextBlock x:Name="HowToLink" Text="&#x25B8; How do I get my cookie?"
-                       Foreground="#7FB2D9" FontSize="11" Cursor="Hand" Margin="0,8,0,0"
-                       MouseLeftButtonDown="HowToLink_Click"/>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock x:Name="HowToLink" Style="{StaticResource Link}"
+                           Text="&#x25B8; How do I get my cookie?"
+                           MouseLeftButtonDown="HowToLink_Click"/>
+                <!-- Only once a cookie is stored: the paste box is the exception, not the rule. -->
+                <TextBlock x:Name="ReplaceLink" Style="{StaticResource Link}"
+                           Text="&#x25B8; Replace cookie…" Margin="18,0,0,0"
+                           Visibility="Collapsed"
+                           MouseLeftButtonDown="ReplaceLink_Click"/>
+            </StackPanel>
             <TextBlock x:Name="HowToText" Visibility="Collapsed"
                        Foreground="#C7D1DA" FontSize="12" TextWrapping="Wrap"
                        LineHeight="19" Margin="0,4,0,0">
@@ -113,18 +167,20 @@
                 4. Under Request Headers, copy the whole value of "cookie".
             </TextBlock>
 
-            <TextBlock Text="Paste a cookie value to set or replace it:"
-                       Foreground="#9AA7B0" FontSize="11" Margin="0,10,0,4"/>
-            <TextBox x:Name="CookieBox"
-                     Height="52"
-                     TextWrapping="Wrap"
-                     AcceptsReturn="False"
-                     VerticalScrollBarVisibility="Auto"
-                     Background="#1A2129" Foreground="#ECF2F8"
-                     BorderBrush="#33FFFFFF" BorderThickness="1"
-                     Padding="6" FontSize="11" FontFamily="Consolas"
-                     TextChanged="CookieBox_TextChanged"/>
-            <TextBlock x:Name="HintText"
+            <StackPanel x:Name="CookiePanel">
+                <TextBlock Text="Paste a cookie value to set or replace it:"
+                           Foreground="#9AA7B0" FontSize="11" Margin="0,10,0,4"/>
+                <TextBox x:Name="CookieBox"
+                         Height="52"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="False"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="#1A2129" Foreground="#ECF2F8"
+                         BorderBrush="#33FFFFFF" BorderThickness="1"
+                         Padding="6" FontSize="11" FontFamily="Consolas"
+                         TextChanged="CookieBox_TextChanged"/>
+            </StackPanel>
+            <TextBlock x:Name="HintText" Visibility="Collapsed"
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
                        Margin="0,6,0,0"/>
 
@@ -165,108 +221,99 @@
                        Margin="0,6,0,0"/>
 
             <!-- ============================ General ======================== -->
+            <!-- App-wide only. Anything about one widget goes in that widget's section. -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="GENERAL"/>
 
-            <CheckBox x:Name="StartupCheck" Content="Start with Windows"
-                      Foreground="#C7D1DA" FontSize="12"/>
-            <CheckBox x:Name="TimeLeftCheck" Content="Show time left on the hunger and thirst bars"
-                      Foreground="#C7D1DA" FontSize="12" Margin="0,6,0,0"/>
-            <CheckBox x:Name="HideNotInGameCheck" Content="Hide the overlay while not in-game (comes back when you spawn)"
-                      Foreground="#C7D1DA" FontSize="12" Margin="0,6,0,0"/>
+            <CheckBox x:Name="StartupCheck" Style="{StaticResource Check}" Content="Start with Windows"/>
+            <CheckBox x:Name="HideNotInGameCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Hide the overlay while not in-game"/>
             <DockPanel Margin="0,10,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Stats panel scale:"/>
-                <TextBlock x:Name="ScaleLabel" DockPanel.Dock="Right" Width="42"
-                           Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
-                           VerticalAlignment="Center"/>
-                <Slider x:Name="ScaleSlider" Minimum="0.75" Maximum="1.5"
-                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
-                        VerticalAlignment="Center" Margin="10,0,6,0"
-                        ValueChanged="ScaleSlider_ValueChanged"/>
-            </DockPanel>
-            <DockPanel Margin="0,8,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Prime tracker scale:"/>
-                <TextBlock x:Name="PrimeScaleLabel" DockPanel.Dock="Right" Width="42"
-                           Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
-                           VerticalAlignment="Center"/>
-                <Slider x:Name="PrimeScaleSlider" Minimum="0.75" Maximum="1.5"
-                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
-                        VerticalAlignment="Center" Margin="10,0,6,0"
-                        ValueChanged="PrimeScaleSlider_ValueChanged"/>
-            </DockPanel>
-            <DockPanel Margin="0,8,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Background opacity:"/>
-                <TextBlock x:Name="OpacityLabel" DockPanel.Dock="Right" Width="42"
-                           Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
-                           VerticalAlignment="Center"/>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Background opacity:"/>
+                <TextBlock x:Name="OpacityLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
                 <Slider x:Name="OpacitySlider" Minimum="0.3" Maximum="1"
                         SmallChange="0.05" LargeChange="0.2" IsMoveToPointEnabled="True"
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="OpacitySlider_ValueChanged"/>
             </DockPanel>
-            <CheckBox x:Name="FadeCheck" Content="Fade the stats panel and Prime tracker when nothing needs attention"
-                      Foreground="#C7D1DA" FontSize="12" Margin="0,10,0,0"/>
             <DockPanel Margin="0,8,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Faded opacity:"/>
-                <TextBlock x:Name="FadeLabel" DockPanel.Dock="Right" Width="42"
-                           Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
-                           VerticalAlignment="Center"/>
+                <CheckBox x:Name="FadeCheck" Style="{StaticResource Check}" Width="140"
+                          Content="Fade idle panels to"/>
+                <TextBlock x:Name="FadeLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
                 <Slider x:Name="FadeSlider" Minimum="0.2" Maximum="0.8"
                         SmallChange="0.05" LargeChange="0.2" IsMoveToPointEnabled="True"
                         VerticalAlignment="Center" Margin="10,0,6,0"
+                        IsEnabled="{Binding IsChecked, ElementName=FadeCheck}"
                         ValueChanged="FadeSlider_ValueChanged"/>
             </DockPanel>
+
+            <!-- ============================ Stats panel ==================== -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="STATS PANEL"/>
+
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="ScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider x:Name="ScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="ScaleSlider_ValueChanged"/>
+            </DockPanel>
+            <CheckBox x:Name="TimeLeftCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
+                      Content="Show time left on the hunger and thirst bars"/>
 
             <!-- ============================ Minimap ======================== -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="MINIMAP"/>
 
-            <StackPanel Orientation="Horizontal">
-                <RadioButton x:Name="ModeIsland" Content="Whole island" GroupName="MapMode"
-                             Foreground="#C7D1DA" FontSize="12"/>
-                <RadioButton x:Name="ModeCentered" Content="Player-centered" GroupName="MapMode"
-                             Foreground="#C7D1DA" FontSize="12" Margin="18,0,0,0"/>
-            </StackPanel>
-            <DockPanel Margin="0,10,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Centered zoom:"/>
-                <TextBlock x:Name="ZoomLabel" DockPanel.Dock="Right" Width="36"
-                           Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
-                           VerticalAlignment="Center"/>
-                <Slider x:Name="ZoomSlider" Minimum="1.25" Maximum="6"
-                        SmallChange="0.25" LargeChange="1" IsMoveToPointEnabled="True"
-                        VerticalAlignment="Center" Margin="10,0,6,0"
-                        ValueChanged="ZoomSlider_ValueChanged"/>
-            </DockPanel>
-            <DockPanel Margin="0,8,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Map size:"/>
-                <TextBlock x:Name="MapSizeLabel" DockPanel.Dock="Right" Width="46"
-                           Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
-                           VerticalAlignment="Center"/>
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Size:"/>
+                <TextBlock x:Name="MapSizeLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
                 <Slider x:Name="MapSizeSlider" Minimum="160" Maximum="400"
                         SmallChange="10" LargeChange="40" IsMoveToPointEnabled="True"
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="MapSizeSlider_ValueChanged"/>
             </DockPanel>
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="View:"/>
+                <RadioButton x:Name="ModeIsland" Style="{StaticResource Radio}" Content="Whole island"
+                             GroupName="MapMode" Margin="14,0,0,0"/>
+                <RadioButton x:Name="ModeCentered" Style="{StaticResource Radio}" Content="Player-centered"
+                             GroupName="MapMode" Margin="14,0,0,0"/>
+            </StackPanel>
+            <DockPanel Margin="0,8,0,0">
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Centered zoom:"/>
+                <TextBlock x:Name="ZoomLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider x:Name="ZoomSlider" Minimum="1.25" Maximum="6"
+                        SmallChange="0.25" LargeChange="1" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="ZoomSlider_ValueChanged"/>
+            </DockPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Trail:"/>
-                <RadioButton x:Name="TrailOff" Content="Off" GroupName="Trail"
-                             Foreground="#C7D1DA" FontSize="12" Margin="14,0,0,0"/>
-                <RadioButton x:Name="Trail10" Content="10 min" GroupName="Trail"
-                             Foreground="#C7D1DA" FontSize="12" Margin="14,0,0,0"/>
-                <RadioButton x:Name="Trail30" Content="30 min" GroupName="Trail"
-                             Foreground="#C7D1DA" FontSize="12" Margin="14,0,0,0"/>
-                <RadioButton x:Name="Trail60" Content="60 min" GroupName="Trail"
-                             Foreground="#C7D1DA" FontSize="12" Margin="14,0,0,0"/>
+                <RadioButton x:Name="TrailOff" Style="{StaticResource Radio}" Content="Off"
+                             GroupName="Trail" Margin="14,0,0,0"/>
+                <RadioButton x:Name="Trail10" Style="{StaticResource Radio}" Content="10 min"
+                             GroupName="Trail" Margin="14,0,0,0"/>
+                <RadioButton x:Name="Trail30" Style="{StaticResource Radio}" Content="30 min"
+                             GroupName="Trail" Margin="14,0,0,0"/>
+                <RadioButton x:Name="Trail60" Style="{StaticResource Radio}" Content="60 min"
+                             GroupName="Trail" Margin="14,0,0,0"/>
             </StackPanel>
-            <CheckBox x:Name="ScaleBarCheck" Content="Show scale bar"
-                      Foreground="#C7D1DA" FontSize="12" Margin="0,8,0,0"/>
+            <CheckBox x:Name="ScaleBarCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
+                      Content="Show scale bar"/>
 
-            <!-- ============================ Buttons ======================== -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
-                <Button Content="Cancel" Click="Cancel_Click"
-                        Padding="14,5" Margin="0,0,8,0" FontSize="12"
-                        Background="#2A3038" Foreground="#C7D1DA" BorderThickness="0"/>
-                <Button x:Name="SaveButton" Content="Save" Click="Save_Click"
-                        Style="{StaticResource SaveButtonStyle}"/>
+            <!-- ============================ Prime tracker ================== -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="PRIME TRACKER"/>
+
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="PrimeScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider x:Name="PrimeScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="PrimeScaleSlider_ValueChanged"/>
+            </DockPanel>
+
             </StackPanel>
-        </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
     </Border>
 </Window>

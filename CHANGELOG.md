@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   everything in full, and the fade only ever makes a panel fainter than
   your background opacity setting, never brighter.
 
+### Changed
+
+- Settings regrouped: General now holds only app-wide options (start with
+  Windows, hide while not in-game, background opacity, the fade), and each
+  widget has its own section — Stats panel, Minimap, Prime tracker — with
+  its Scale or Size slider and its own options. The cookie paste box folds
+  away behind "Replace cookie…" once a cookie is stored, the fade's
+  checkbox and slider share a row, and on small screens the sections
+  scroll instead of the dialog running off the bottom. Nothing changed
+  meaning or default.
+
 ## [1.17.0] - 2026-09-21
 
 ### Added

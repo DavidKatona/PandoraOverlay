@@ -386,10 +386,24 @@ references — keep it that way. Every overlay window derives from
   fades again. Deliberately not lit for as long as the cue stays amber:
   a permanently lit widget would defeat the fade. Calm at launch — the
   cached result is old news.
-- **SettingsWindow.xaml(.cs)** — sectioned settings dialog (Account / Controls
-  / General / Minimap; single column, no tabs — deliberate, avoids theming
-  stock TabControl chrome). Cookie box is a replace-inbox: empty = keep the
-  current cookie; first run gates Save on a valid paste (`Clean()` strips
+- **SettingsWindow.xaml(.cs)** — sectioned settings dialog: Account /
+  Controls / General (APP-WIDE ONLY) / Stats panel / Minimap / Prime
+  tracker — widget sections in the control panel's order, each holding
+  that widget's Scale-or-Size slider and its own options; a new widget
+  adds a section (regrouped Sep 24 2026, "option A", after the dialog hit
+  ~850 px with General as a grab bag; a left-nav "option B" is the plan
+  if it outgrows a screen again). Single column, no tabs — deliberate,
+  avoids theming stock TabControl chrome. Title and buttons are docked
+  outside a ScrollViewer and `MaxHeight` = 92% of the work area, so a
+  small screen scrolls the sections instead of losing the buttons. Slider
+  rows share a 140 px label width (`SliderLabel`) so every slider starts
+  on the same x; a checkbox that owns a slider sits on the slider's row
+  ("Fade idle panels to [slider]", slider IsEnabled bound to the box).
+  Cookie box is a replace-inbox: empty = keep the
+  current cookie; once a cookie is stored the box is folded behind a
+  "▸ Replace cookie…" link (`CookiePanel`; folding it clears the box so a
+  hidden paste can't be saved) and the hint line hides while empty; first
+  run shows the box + walkthrough up front and gates Save on a valid paste (`Clean()` strips
   `cookie:` prefix, quotes, newlines, trailing `;`; live validation needs
   `connect.sid`, warns if `cf_clearance` missing). Four hotkey capture boxes
   (edit / hide-overlay / minimap-view / heatmap) share the capture UX: combos are
@@ -398,7 +412,7 @@ references — keep it that way. Every overlay window derives from
   registrations for the dialog's lifetime (WM_HOTKEY is system-level and
   would fire behind the modal dialog; suspension also lets the boxes see
   and reassign our own combos) and restores them in a finally on close.
-  The Minimap section holds view mode, centered zoom, map size, the trail
+  The Minimap section holds size, view mode, centered zoom, the trail
   length (radio buttons, not a ComboBox — stock ComboBox chrome is light
   and ignores Background) and the scale-bar checkbox — NOT the
   heatmap on/off (removed Sep 2026: something you flip is not a preference,
@@ -406,12 +420,12 @@ references — keep it that way. Every overlay window derives from
   Save writes config + Run key and sets Cookie/Hotkey/Minimap/Appearance
   Changed flags; MainWindow hot-applies each (RebuildClient / re-register
   with fallback / minimap ApplySettings / ApplyAppearance)
-  — no restart, ever. General also holds the stats panel scale and prime
-  tracker scale (both 75–150%, folded into the Appearance flag), the
-  background opacity (30–100%) slider, the hunger/thirst time-left
-  checkbox and the attention-fade checkbox + faded-opacity slider
-  (20–80%; all on the same flag), plus the not-in-game auto-hide checkbox
-  (no flag: MainWindow reads it live).
+  — no restart, ever. General = Start with Windows, the not-in-game
+  auto-hide checkbox (no flag: MainWindow reads it live), background
+  opacity (30–100%) and the fade row (20–80%); Stats panel = scale
+  (75–150%) + the hunger/thirst time-left checkbox; Prime tracker = scale.
+  All scales, opacities, the time-left and fade settings ride the one
+  Appearance flag.
 - **HotkeySpec.cs** — record converting the config string ("Ctrl+F7") ⇄ the
   RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
   shared Register/Unregister p/invokes. Registration always adds
