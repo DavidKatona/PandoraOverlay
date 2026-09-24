@@ -150,7 +150,7 @@ references — keep it that way. Every overlay window derives from
 - **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
   toolwindow styles via SetWindowLongPtr, x64), `EditMode` state, shared
   edit-border brushes, `ApplyAppearance` (UI scale as a LayoutTransform +
-  panel-glass alpha), and the edit-mode drag: manual (no DragMove) so it snaps
+  panel-glass alpha), the attention fade, and the edit-mode drag: manual (no DragMove) so it snaps
   live via SnapResolver against the current monitor's FULL bounds (not the
   work area — the game covers the taskbar; per-monitor through WinForms
   `Screen`, DIP-converted) and the other overlay window
@@ -161,7 +161,18 @@ references — keep it that way. Every overlay window derives from
   `ClampIntoScreen` (via `SnapResolver.ClampIntoRect`), so a locked panel is
   always fully on-screen — dragging stays free for cross-monitor moves;
   stale-monitor/resolution positions self-heal at startup. The global
-  hotkeys are registered once, in MainWindow.
+  hotkeys are registered once, in MainWindow. Attention fade (Sep 2026,
+  `FadeEnabled` + `FadeIdleOpacity`, default off): windows opting in via
+  `Fades => true` (stats panel, Prime tracker — NOT the minimap: nothing
+  on it can wake it, and it is consulted rather than watched) call
+  `SetAttention(bool)`; `UpdateFade` eases the whole window's `Opacity`
+  (text, bars and glass alike — `BackgroundOpacity` only touches the
+  glass, so the fade can only ever make a panel fainter, never brighter)
+  to 1 or the idle value over 300 ms, and edit mode overrides to 1. The
+  idle value is read in `ApplyAppearance`, so a Settings save hot-applies
+  through the existing Appearance flag. Each window decides its own
+  verdict: the stats panel via the pure `StatsAttention`, the Prime
+  tracker via its own events (see PrimeWindow).
 - **SnapResolver.cs** — pure, tested snapping math: screen edges + 16px
   inset + peer edges, 12px threshold (threshold < inset on purpose, so the
   two magnets read as distinct stops), axes independent; leading- and
@@ -230,6 +241,15 @@ references — keep it that way. Every overlay window derives from
   claim it in user-facing text. `StatTimeLeftEnabled`
   (Settings checkbox, default on) only gates rendering; the trackers always
   run, so ticking the box shows the estimate at once.
+- **StatsAttention.cs** — pure, tested wake/calm rule for the stats
+  panel's fade: wake on health/hunger/thirst < 50%, any fracture, damage
+  (health down > 0.005 between polls, held 10 s — one poll's drop is
+  momentary) or a drain estimate under 15 min; calm only above 55% / 20
+  min with none of the rest, so a stat at the line can't blink. Resets
+  its damage baseline on death/dino swap (identity or growth decrease,
+  like the trackers) and on not-in-game. MainWindow also lights the panel
+  by hand for not-set-up, connecting and disconnected, and calms it for
+  not-in-game — nothing to watch there.
 - **OverlayConfig.cs** — config.json persistence + DPAPI vault. Plaintext `Cookie`
   field is a paste-inbox only: `Load()` encrypts it into `CookieProtected`
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
@@ -356,6 +376,14 @@ references — keep it that way. Every overlay window derives from
   show docks to the left screen edge (16 px inset), vertically centered;
   position persists (`PrimeX/Y`, nullable), visibility via `PrimeEnabled`
   (default on — a visible widget costs zero requests until clicked).
+  Takes part in the attention fade (`Fades => true`): `Wake(hold)` lights
+  it — a check in flight holds until its result, while a result, the
+  countdown reaching zero (caught where `RenderNotice` stops the 1 s
+  timer) and the stale-dino cue first appearing (`RenderInfo` returns
+  stale) each hold `AttentionHold` (30 s) via a one-shot timer, then it
+  fades again. Deliberately not lit for as long as the cue stays amber:
+  a permanently lit widget would defeat the fade. Calm at launch — the
+  cached result is old news.
 - **SettingsWindow.xaml(.cs)** — sectioned settings dialog (Account / Controls
   / General / Minimap; single column, no tabs — deliberate, avoids theming
   stock TabControl chrome). Cookie box is a replace-inbox: empty = keep the
@@ -378,8 +406,10 @@ references — keep it that way. Every overlay window derives from
   with fallback / minimap ApplySettings / ApplyAppearance)
   — no restart, ever. General also holds the stats panel scale and prime
   tracker scale (both 75–150%, folded into the Appearance flag), the
-  background opacity (30–100%) slider and the hunger/thirst time-left
-  checkbox (same flag).
+  background opacity (30–100%) slider, the hunger/thirst time-left
+  checkbox and the attention-fade checkbox + faded-opacity slider
+  (20–80%; all on the same flag), plus the not-in-game auto-hide checkbox
+  (no flag: MainWindow reads it live).
 - **HotkeySpec.cs** — record converting the config string ("Ctrl+F7") ⇄ the
   RegisterHotKey pair (ModifierKeys flags == Win32 MOD_* values); hosts the
   shared Register/Unregister p/invokes. Registration always adds

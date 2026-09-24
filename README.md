@@ -86,7 +86,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 - The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint).
 - After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
-- The hunger and thirst bars show an **estimated time left** ("~40m") at the tip of the bar's fill once a stat has under about an hour to go, measured from how fast it is draining right now; it's back right after you eat or drink. It needs about three minutes of play first. Don't want it? Untick "Show time left on the hunger and thirst bars" in Settings.
+- The hunger and thirst bars show an **estimated time left** ("~40m") at the tip of the bar's fill once a stat has under about an hour to go, measured from how fast it is draining right now; it's back right after you eat or drink. It needs about three minutes of play first.
+- Optional **attention fade** (Settings → "Fade the stats panel and Prime tracker when nothing needs attention", off by default): while all is well the two panels sit at a faded opacity you choose (20–80%), and come back to full when something is worth a look — a stat under 50%, a fracture, damage taken, hunger or thirst with under 15 minutes left; for the Prime tracker a check in flight, a fresh result, the cooldown ending, or the "as a different dino" cue appearing (each lit for about half a minute). The minimap never fades, and edit mode always shows everything in full. The fade works on top of the background opacity slider, so it can only make a panel fainter than your usual look. Don't want it? Untick "Show time left on the hunger and thirst bars" in Settings.
 - Status-line states you'll see:
   - `Not in-game` — you're logged in but not spawned on the server (or the server is restarting). While you aren't spawned the overlay checks less often — every 15 seconds, and once a minute after ten minutes (the status line says so) — so a fresh spawn can take that long to show up. Entering edit mode, un-hiding the overlay or pressing Check Prime makes it look right away.
   - `Disconnected · retrying` — network/auth problem; it keeps retrying (less often once the failures pile up). If it never recovers, open Settings and paste a fresh cookie.
@@ -140,6 +141,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `PrimeScale` | Prime tracker scale, 0.75–1.5. Slider in Settings; starts out equal to `UiScale`. |
 | `BackgroundOpacity` | Panel-glass opacity, 0.3–1 (default 0.8) — text stays crisp. Slider in Settings. |
 | `StatTimeLeftEnabled` | Show the estimated time left inside the hunger and thirst bars. Checkbox in Settings. Default `true`. |
+| `FadeEnabled` / `FadeIdleOpacity` | Attention fade for the stats panel and Prime tracker, and the opacity they rest at while nothing needs attention (0.2–0.8, default 0.4). Checkbox + slider in Settings. Default off. |
 
 Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file.
 

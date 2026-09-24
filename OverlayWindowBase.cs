@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace PandoraOverlay;
 
@@ -44,11 +45,23 @@ public abstract class OverlayWindowBase : Window
     private Point _dragStartCursor;
     private Point _dragStartWindow;
 
+    // ---- Attention fade ----------------------------------------------------
+    private static readonly TimeSpan FadeDuration = TimeSpan.FromMilliseconds(300);
+    private bool _attention = true;   // lit until the window says otherwise
+    private double _idleOpacity = 1;  // 1 = fade off (or a window that never fades)
+
     /// <summary>True while the window is interactive (draggable, buttons usable).</summary>
     public bool EditMode { get; private set; }
 
     /// <summary>False for transient chrome (the control panel): it snaps when dragged, but is never a target.</summary>
     protected virtual bool IsSnapTarget => true;
+
+    /// <summary>
+    /// True for windows that take part in the attention fade (stats panel,
+    /// Prime tracker). The minimap does not: nothing on it can wake it, and
+    /// it is consulted, not watched.
+    /// </summary>
+    protected virtual bool Fades => false;
 
     protected OverlayWindowBase()
     {
@@ -77,10 +90,37 @@ public abstract class OverlayWindowBase : Window
         EditMode = on;
         ApplyClickThrough(clickThrough: !on);
         OnEditModeChanged(on);
+        UpdateFade(animate: true); // editing always shows every panel in full
         if (!on) ClampIntoScreen(); // a locked panel is always fully on-screen
     }
 
     protected abstract void OnEditModeChanged(bool editMode);
+
+    /// <summary>
+    /// The window's own verdict on whether it needs eyes right now. With the
+    /// fade on, false eases the whole window (text, bars and glass alike) to
+    /// the idle opacity and true brings it back; edit mode overrides to full.
+    /// </summary>
+    protected void SetAttention(bool lit)
+    {
+        if (lit == _attention) return;
+        _attention = lit;
+        UpdateFade(animate: true);
+    }
+
+    private void UpdateFade(bool animate)
+    {
+        var target = EditMode || _attention ? 1.0 : _idleOpacity;
+        if (animate && IsVisible)
+        {
+            BeginAnimation(OpacityProperty, new DoubleAnimation(target, FadeDuration));
+        }
+        else
+        {
+            BeginAnimation(OpacityProperty, null); // release any running animation before setting
+            Opacity = target;
+        }
+    }
 
     /// <summary>
     /// Applies the shared appearance settings: UI scale as a LayoutTransform
@@ -100,6 +140,9 @@ public abstract class OverlayWindowBase : Window
 
         var alpha = (byte)Math.Round(Math.Clamp(config.BackgroundOpacity, 0.3, 1.0) * 255);
         panel.Background = new SolidColorBrush(Color.FromArgb(alpha, 0x10, 0x15, 0x1B));
+
+        _idleOpacity = Fades && config.FadeEnabled ? Math.Clamp(config.FadeIdleOpacity, 0.2, 0.8) : 1.0;
+        UpdateFade(animate: false);
     }
 
     private void ApplyClickThrough(bool clickThrough) =>

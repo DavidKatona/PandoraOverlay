@@ -51,6 +51,7 @@ public partial class MainWindow : OverlayWindowBase
     private readonly GrowthTracker _growth = new();
     private readonly DrainTracker _hungerDrain = new(p => p.Hunger);
     private readonly DrainTracker _thirstDrain = new(p => p.Thirst);
+    private readonly StatsAttention _attention = new();
     private MinimapWindow? _minimap;
     private PrimeWindow? _prime;
     private ControlPanelWindow? _controlPanel;
@@ -151,6 +152,7 @@ public partial class MainWindow : OverlayWindowBase
             {
                 DinoText.Text = "Connecting…";
                 StatusText.Text = "";
+                SetAttention(true);
                 _poll.RebuildClient();
             }
             if (dialog.MinimapChanged || dialog.AppearanceChanged) _minimap?.ApplySettings();
@@ -251,7 +253,11 @@ public partial class MainWindow : OverlayWindowBase
     {
         DinoText.Text = "Not set up yet";
         StatusText.Text = "Open Settings from the tray icon to connect your account";
+        SetAttention(true);
     }
+
+    /// <summary>The stats panel takes part in the attention fade; its verdict comes from StatsAttention.</summary>
+    protected override bool Fades => true;
 
     // ---- Widget visibility -------------------------------------------------
 
@@ -562,6 +568,7 @@ public partial class MainWindow : OverlayWindowBase
     {
         StatusText.Text = $"Disconnected · retrying ({ex.GetType().Name})";
         _tray.SetStatus("Pandora Overlay — disconnected");
+        SetAttention(true); // a broken connection is worth eyes
     }
 
     private void OnSnapshot(MyLocationResponse result)
@@ -588,6 +595,8 @@ public partial class MainWindow : OverlayWindowBase
             _growth.Reset(); // a wall-clock gap would flatten the measured slope
             _hungerDrain.Reset();
             _thirstDrain.Reset();
+            _attention.Reset();
+            SetAttention(false); // "Not in-game" is nothing to watch
             RenderTimeLeft();
             DinoText.Text = "Not in-game";
             GrowthText.Text = "";
@@ -641,6 +650,7 @@ public partial class MainWindow : OverlayWindowBase
         _hungerDrain.Add(p);
         _thirstDrain.Add(p);
         RenderTimeLeft();
+        SetAttention(_attention.Update(p, _hungerDrain.TimeLeft, _thirstDrain.TimeLeft));
 
         // Critical-stat pulse. Stamina is deliberately excluded — it drains to
         // zero every sprint by design and would train the eye to ignore it.

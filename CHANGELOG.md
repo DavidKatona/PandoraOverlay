@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   back at once and keep it visible until your next spawn; a manual Ctrl+F4
   hide is never undone by a spawn. The tray tooltip says "hidden until you
   spawn" while it's away.
+- Attention fade (Settings, off by default): the stats panel and the Prime
+  tracker rest at a faded opacity of your choice (20–80%) while nothing
+  needs attention, and return to full opacity when something does. The
+  stats panel wakes on a stat under 50%, a fracture, damage taken, or
+  hunger/thirst with under 15 minutes left, and fades again once all of
+  that is clear; the Prime tracker wakes for a check in flight, a fresh
+  result, the cooldown ending, or the "as a different dino" cue, each for
+  about half a minute. The minimap never fades, edit mode always shows
+  everything in full, and the fade only ever makes a panel fainter than
+  your background opacity setting, never brighter.
 
 ## [1.17.0] - 2026-09-21
 

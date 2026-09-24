@@ -94,6 +94,8 @@ public partial class SettingsWindow : Window
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
         PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale ?? config.UiScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
+        FadeCheck.IsChecked = config.FadeEnabled;
+        FadeSlider.Value = Math.Clamp(config.FadeIdleOpacity, FadeSlider.Minimum, FadeSlider.Maximum);
 
         // Minimap
         var centered = string.Equals(config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
@@ -288,6 +290,11 @@ public partial class SettingsWindow : Window
         if (OpacityLabel != null) OpacityLabel.Text = $"{e.NewValue:0%}";
     }
 
+    private void FadeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (FadeLabel != null) FadeLabel.Text = $"{e.NewValue:0%}";
+    }
+
     // ---- Minimap ------------------------------------------------------------
     private void ZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
@@ -326,15 +333,21 @@ public partial class SettingsWindow : Window
         var primeScale = Math.Round(PrimeScaleSlider.Value, 2);
         var bgOpacity = Math.Round(OpacitySlider.Value, 2);
         var timeLeft = TimeLeftCheck.IsChecked == true;
+        var fade = FadeCheck.IsChecked == true;
+        var fadeOpacity = Math.Round(FadeSlider.Value, 2);
         if (Math.Abs(scale - _config.UiScale) > 0.001 ||
             Math.Abs(primeScale - (_config.PrimeScale ?? _config.UiScale)) > 0.001 ||
             Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001 ||
-            timeLeft != _config.StatTimeLeftEnabled)
+            timeLeft != _config.StatTimeLeftEnabled ||
+            fade != _config.FadeEnabled ||
+            Math.Abs(fadeOpacity - _config.FadeIdleOpacity) > 0.001)
         {
             _config.UiScale = scale;
             _config.PrimeScale = primeScale;
             _config.BackgroundOpacity = bgOpacity;
             _config.StatTimeLeftEnabled = timeLeft;
+            _config.FadeEnabled = fade;
+            _config.FadeIdleOpacity = fadeOpacity;
             AppearanceChanged = true;
         }
 

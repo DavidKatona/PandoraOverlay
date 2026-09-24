@@ -203,6 +203,18 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="OpacitySlider_ValueChanged"/>
             </DockPanel>
+            <CheckBox x:Name="FadeCheck" Content="Fade the stats panel and Prime tracker when nothing needs attention"
+                      Foreground="#C7D1DA" FontSize="12" Margin="0,10,0,0"/>
+            <DockPanel Margin="0,8,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Faded opacity:"/>
+                <TextBlock x:Name="FadeLabel" DockPanel.Dock="Right" Width="42"
+                           Foreground="#ECF2F8" FontSize="12" TextAlignment="Right"
+                           VerticalAlignment="Center"/>
+                <Slider x:Name="FadeSlider" Minimum="0.2" Maximum="0.8"
+                        SmallChange="0.05" LargeChange="0.2" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="FadeSlider_ValueChanged"/>
+            </DockPanel>
 
             <!-- ============================ Minimap ======================== -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="MINIMAP"/>

@@ -210,6 +210,21 @@ public sealed class OverlayConfig
     /// </summary>
     public bool StatTimeLeftEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Attention fade: the stats panel and the Prime tracker drop to
+    /// FadeIdleOpacity while nothing needs attention and return to full
+    /// opacity when something does (see StatsAttention / PrimeWindow). Off
+    /// by default — an update must not change how anyone's overlay looks.
+    /// </summary>
+    public bool FadeEnabled { get; set; }
+
+    /// <summary>
+    /// Whole-window opacity while faded, clamped 0.2–0.8. Multiplies with
+    /// BackgroundOpacity (which only affects the glass), so it can only ever
+    /// make a panel fainter than its normal look, never brighter.
+    /// </summary>
+    public double FadeIdleOpacity { get; set; } = 0.4;
+
     public static OverlayConfig Load()
     {
         OverlayConfig cfg;

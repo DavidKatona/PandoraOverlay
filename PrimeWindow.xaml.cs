@@ -49,9 +49,13 @@ public partial class PrimeWindow : OverlayWindowBase
     private readonly TextBlock[] _icons = new TextBlock[ConditionTexts.Length];
     private readonly TextBlock[] _labels = new TextBlock[ConditionTexts.Length];
     private readonly DispatcherTimer _cooldownTimer;
+    private readonly DispatcherTimer _attentionTimer; // one-shot: lets a woken widget fade again
     private string? _notice;   // sticky explanation of the last non-Ok outcome
     private string? _liveDino; // null while not in-game
     private bool _checking;
+
+    /// <summary>How long a moment worth seeing (a result, the cooldown ending, a dino change) keeps the widget lit.</summary>
+    private static readonly TimeSpan AttentionHold = TimeSpan.FromSeconds(30);
 
     public PrimeWindow(OverlayConfig config, PollService poll)
     {
@@ -74,6 +78,12 @@ public partial class PrimeWindow : OverlayWindowBase
 
         _cooldownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _cooldownTimer.Tick += (_, _) => RenderNotice();
+        _attentionTimer = new DispatcherTimer { Interval = AttentionHold };
+        _attentionTimer.Tick += (_, _) =>
+        {
+            _attentionTimer.Stop();
+            SetAttention(false);
+        };
 
         _poll.PrimeCheckStarted += OnCheckStarted;
         _poll.PrimeChecked += OnPrimeChecked;
@@ -81,6 +91,7 @@ public partial class PrimeWindow : OverlayWindowBase
         Closed += (_, _) =>
         {
             _cooldownTimer.Stop();
+            _attentionTimer.Stop();
             _poll.PrimeCheckStarted -= OnCheckStarted;
             _poll.PrimeChecked -= OnPrimeChecked;
             _poll.SnapshotReceived -= OnSnapshot;
@@ -88,6 +99,25 @@ public partial class PrimeWindow : OverlayWindowBase
 
         RenderSnapshot();
         RenderNotice();
+        SetAttention(false); // the last result is old news at launch
+    }
+
+    /// <summary>The Prime tracker takes part in the attention fade: lit by its own events, see Wake.</summary>
+    protected override bool Fades => true;
+
+    /// <summary>
+    /// Lights the widget. With a hold it fades again after that long; without
+    /// one it stays lit until the next Wake with a hold (a check in flight).
+    /// </summary>
+    private void Wake(TimeSpan? hold)
+    {
+        SetAttention(true);
+        _attentionTimer.Stop();
+        if (hold is { } h)
+        {
+            _attentionTimer.Interval = h;
+            _attentionTimer.Start();
+        }
     }
 
     private void BuildRows()
@@ -143,7 +173,7 @@ public partial class PrimeWindow : OverlayWindowBase
             _notice = null;
             RenderNotice();
         }
-        RenderInfo(); // the stale cue depends on the live dino
+        if (RenderInfo()) Wake(AttentionHold); // the stale cue depends on the live dino — and just appeared
     }
 
     // ---- Prime checks --------------------------------------------------------
@@ -152,12 +182,14 @@ public partial class PrimeWindow : OverlayWindowBase
     private void OnCheckStarted()
     {
         _checking = true;
+        Wake(hold: null); // lit until the result lands
         RenderNotice();
     }
 
     private void OnPrimeChecked(PrimeCheckResult result)
     {
         _checking = false;
+        Wake(AttentionHold);
         _notice = result.Outcome switch
         {
             PrimeCheckOutcome.Ok => null,
@@ -206,14 +238,14 @@ public partial class PrimeWindow : OverlayWindowBase
         RenderInfo();
     }
 
-    /// <summary>What the rows reflect: when and as which dino — amber once the live dino differs.</summary>
-    private void RenderInfo()
+    /// <summary>What the rows reflect: when and as which dino — amber once the live dino differs. Returns whether it is stale.</summary>
+    private bool RenderInfo()
     {
         if (_config.Prime is not { } snap)
         {
             InfoText.Text = "Not checked yet — Check Prime: control panel or tray";
             InfoText.Foreground = Dim;
-            return;
+            return false;
         }
 
         var local = snap.CheckedAtUtc.ToLocalTime();
@@ -225,6 +257,7 @@ public partial class PrimeWindow : OverlayWindowBase
             ? $"Checked {when}"
             : stale ? $"Checked {when} as {snap.Dino} — now {_liveDino}" : $"Checked {when} · {snap.Dino}";
         InfoText.Foreground = stale ? Warn : Dim;
+        return stale;
     }
 
     /// <summary>Second footer line: checking / sticky notice / live cooldown. Runs the 1 s timer only while cooling down.</summary>
@@ -234,7 +267,11 @@ public partial class PrimeWindow : OverlayWindowBase
         var cooling = remaining > TimeSpan.Zero;
 
         if (cooling && !_cooldownTimer.IsEnabled) _cooldownTimer.Start();
-        else if (!cooling && _cooldownTimer.IsEnabled) _cooldownTimer.Stop();
+        else if (!cooling && _cooldownTimer.IsEnabled)
+        {
+            _cooldownTimer.Stop();
+            Wake(AttentionHold); // the countdown just hit zero: a check is available again
+        }
 
         NoticeText.Text =
             _checking ? "checking…"
