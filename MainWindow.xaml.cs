@@ -61,6 +61,17 @@ public partial class MainWindow : OverlayWindowBase
     private bool _overlayHidden;
     private readonly List<string> _registerFailures = new();
 
+    // ---- Auto-hide while not in-game ---------------------------------------
+    // Consecutive not-in-game polls this long before the overlay hides itself:
+    // enough to ride out a single spurious inGame:false, short enough that the
+    // spawn menu and a server restart clear the screen. Coming back costs
+    // nothing (the first in-game poll does it), so there is nothing else to
+    // wait for. A constant on purpose — not a preference anyone should tune.
+    private static readonly TimeSpan AutoHideGrace = TimeSpan.FromSeconds(30);
+    private bool _autoHidden;
+    private bool _autoHideSuppressed; // the user revealed the overlay while not in-game: leave it until the next spawn
+    private DateTime? _notInGameSince;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -150,6 +161,7 @@ public partial class MainWindow : OverlayWindowBase
                 _prime?.ApplySettingsFromConfig();
                 _controlPanel?.ApplySettingsFromConfig();
             }
+            if (_autoHidden && !_config.HideWhenNotInGame) RevealAutoHidden(); // switched off while hidden by it
         }
         finally
         {
@@ -247,7 +259,7 @@ public partial class MainWindow : OverlayWindowBase
     private void ToggleStats()
     {
         _config.StatsEnabled = !_config.StatsEnabled;
-        if (_overlayHidden) return; // takes effect when the overlay is shown again
+        if (_overlayHidden || _autoHidden) return; // takes effect when the overlay is shown again
         if (_config.StatsEnabled) Show(); else Hide();
     }
 
@@ -259,7 +271,7 @@ public partial class MainWindow : OverlayWindowBase
     /// </summary>
     private void ToggleHeatmap()
     {
-        if (_minimap is null || _overlayHidden) return;
+        if (_minimap is null || _overlayHidden || _autoHidden) return;
         _config.HeatmapEnabled = !_config.HeatmapEnabled;
         _ = _poll.RefreshHeatmapAsync(); // delivers fresh bytes, or null to clear the layer
     }
@@ -326,7 +338,7 @@ public partial class MainWindow : OverlayWindowBase
     /// </summary>
     private void CheckPrime()
     {
-        if (_overlayHidden) ToggleOverlayVisibility();
+        if (_overlayHidden || _autoHidden) ToggleOverlayVisibility();
         ShowPrime();
         _ = _poll.CheckPrimeAsync();
     }
@@ -389,28 +401,83 @@ public partial class MainWindow : OverlayWindowBase
     /// </summary>
     private void ToggleOverlayVisibility()
     {
+        if (_autoHidden)
+        {
+            RevealAutoHidden(); // the user wants it back: show, and stay shown until the next spawn
+            return;
+        }
         if (!_overlayHidden)
         {
             if (EditMode) ToggleEditMode(); // lock + persist before vanishing
             _overlayHidden = true;
-            Hide();
-            _minimap?.Hide();
-            _prime?.Hide();
+            HideWindows();
         }
         else
         {
             _overlayHidden = false;
-            if (_config.StatsEnabled) Show(); // a deliberately hidden stats panel stays hidden
-            _minimap?.Show();
-            _prime?.Show();
+            ShowWindows();
             _poll.Nudge(); // someone is looking again — don't wait out an idle poll interval
         }
+    }
+
+    private void HideWindows()
+    {
+        Hide();
+        _minimap?.Hide();
+        _prime?.Hide();
+    }
+
+    private void ShowWindows()
+    {
+        if (_config.StatsEnabled) Show(); // a deliberately hidden stats panel stays hidden
+        _minimap?.Show();
+        _prime?.Show();
+    }
+
+    /// <summary>
+    /// The not-in-game auto-hide (`HideWhenNotInGame`), driven by the poll
+    /// stream. Hides after AutoHideGrace of consecutive not-in-game polls and
+    /// shows again on the first in-game one. Never while editing, never over
+    /// a manual hide (that one is the user's word), and not after the user
+    /// revealed the overlay themselves — that stands until the next spawn.
+    /// Hidden state is runtime-only, like the manual hide.
+    /// </summary>
+    private void UpdateAutoHide(bool inGame)
+    {
+        if (inGame)
+        {
+            _notInGameSince = null;
+            _autoHideSuppressed = false;
+            if (_autoHidden)
+            {
+                _autoHidden = false;
+                ShowWindows();
+            }
+            return;
+        }
+
+        _notInGameSince ??= DateTime.UtcNow;
+        if (!_config.HideWhenNotInGame || _autoHidden || _autoHideSuppressed || _overlayHidden || EditMode) return;
+        if (DateTime.UtcNow - _notInGameSince < AutoHideGrace) return;
+
+        _autoHidden = true;
+        HideWindows();
+    }
+
+    /// <summary>The user asked for the overlay (hotkey, tray, edit mode, Check Prime) while it had hidden itself.</summary>
+    private void RevealAutoHidden()
+    {
+        _autoHidden = false;
+        _autoHideSuppressed = true;
+        ShowWindows();
+        _tray.SetStatus("Pandora Overlay — not in-game");
+        _poll.Nudge();
     }
 
     // ---- Edit mode ----------------------------------------------------------
     private void ToggleEditMode()
     {
-        if (_overlayHidden) ToggleOverlayVisibility(); // un-hide first, then edit as usual
+        if (_overlayHidden || _autoHidden) ToggleOverlayVisibility(); // un-hide first, then edit as usual
 
         var on = !EditMode;
         SetEditMode(on);
@@ -426,6 +493,7 @@ public partial class MainWindow : OverlayWindowBase
         {
             _controlPanel?.Hide();
             PersistState();
+            _notInGameSince = null; // a fresh grace period: time to look at the locked layout before it auto-hides
         }
     }
 
@@ -499,8 +567,10 @@ public partial class MainWindow : OverlayWindowBase
     private void OnSnapshot(MyLocationResponse result)
     {
         UpdateUi(result);
+        UpdateAutoHide(result.InGame && result.Player is not null);
         _tray.SetStatus(result.InGame && result.Player is { } p
             ? $"Pandora Overlay — {p.Dino} · HP {p.Health * 100:0}% · Growth {p.Growth * 100:0.#}%"
+            : _autoHidden ? "Pandora Overlay — hidden until you spawn"
             : "Pandora Overlay — not in-game");
 
         // Cheap re-assert in case the game reshuffles the z-order.

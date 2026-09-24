@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- "Hide the overlay while not in-game" (Settings, off by default): after
+  about 30 seconds of not being spawned in — the spawn menu, a server
+  restart, the game closed — every widget hides itself, and comes back on
+  the first update that sees you in-game. Meant for people who start the
+  overlay with Windows and don't want three "Not in-game" panels on the
+  desktop all day. Ctrl+F4, the tray, edit mode or Check Prime bring it
+  back at once and keep it visible until your next spawn; a manual Ctrl+F4
+  hide is never undone by a spawn. The tray tooltip says "hidden until you
+  spawn" while it's away.
+
 ## [1.17.0] - 2026-09-21
 
 ### Added

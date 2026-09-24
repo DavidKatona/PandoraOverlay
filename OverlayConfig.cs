@@ -86,6 +86,14 @@ public sealed class OverlayConfig
     /// <summary>Show the stats panel (toggled from the control panel or the tray menu).</summary>
     public bool StatsEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Hide every widget after ~30 s of not being spawned in (spawn menu,
+    /// server restart, game closed) and bring them back on the first in-game
+    /// poll. Off by default: an update must not make the overlay vanish on
+    /// anyone; the Start-with-Windows crowd opts in.
+    /// </summary>
+    public bool HideWhenNotInGame { get; set; }
+
     /// <summary>Show the minimap window (toggled from the control panel or the tray menu).</summary>
     public bool MinimapEnabled { get; set; } = true;
 

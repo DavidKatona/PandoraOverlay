@@ -90,6 +90,7 @@ public partial class SettingsWindow : Window
         _initialStartup = StartupRegistration.IsEnabled();
         StartupCheck.IsChecked = _initialStartup;
         TimeLeftCheck.IsChecked = config.StatTimeLeftEnabled;
+        HideNotInGameCheck.IsChecked = config.HideWhenNotInGame;
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
         PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale ?? config.UiScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
@@ -319,6 +320,7 @@ public partial class SettingsWindow : Window
 
         var startup = StartupCheck.IsChecked == true;
         if (startup != _initialStartup) StartupRegistration.SetEnabled(startup);
+        _config.HideWhenNotInGame = HideNotInGameCheck.IsChecked == true; // MainWindow reads it live, no flag needed
 
         var scale = Math.Round(ScaleSlider.Value, 2);
         var primeScale = Math.Round(PrimeScaleSlider.Value, 2);

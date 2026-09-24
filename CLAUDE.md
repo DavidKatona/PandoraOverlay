@@ -261,7 +261,21 @@ references — keep it that way. Every overlay window derives from
   persists all window positions + the re-encrypted rolled cookie.
   `ToggleStats` (v1.10) hides/shows the stats panel itself (`StatsEnabled`;
   hwnd stays alive so hotkeys/tray/polling continue; hide-all unhide
-  respects the flag). Minimap is sized natively (`MinimapSize`, Settings
+  respects the flag). Not-in-game auto-hide (`HideWhenNotInGame`, default
+  off, Sep 2026): `UpdateAutoHide` runs per snapshot — after
+  `AutoHideGrace` (30 s, a constant: it only has to outlast one spurious
+  inGame:false, since the spawn menu and restarts are fine to hide over
+  and the first in-game poll brings everything back) it calls the shared
+  `HideWindows`; the first in-game poll calls `ShowWindows`. Three
+  precedence rules, all in that method: never while editing; never over a
+  manual hide (`_overlayHidden` is the user's word and a spawn must not
+  undo it, so the two flags are never both set); and a user reveal
+  (`RevealAutoHidden` — hotkey, tray, edit mode, Check Prime all route
+  through `ToggleOverlayVisibility`, which reveals instead of toggling
+  while auto-hidden) sets `_autoHideSuppressed` until the next in-game
+  poll, so the overlay can't fight the user. Locking edit mode resets the
+  grace clock (time to look at the locked layout). Tray tooltip reads
+  "hidden until you spawn" meanwhile. Runtime-only, like the manual hide. Minimap is sized natively (`MinimapSize`, Settings
   slider 160–400, `AppearanceScale` override 1.0), the prime tracker by
   `PrimeScale`, and `UiScale` scales only the stats + control panels. `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;

@@ -171,6 +171,8 @@
                       Foreground="#C7D1DA" FontSize="12"/>
             <CheckBox x:Name="TimeLeftCheck" Content="Show time left on the hunger and thirst bars"
                       Foreground="#C7D1DA" FontSize="12" Margin="0,6,0,0"/>
+            <CheckBox x:Name="HideNotInGameCheck" Content="Hide the overlay while not in-game (comes back when you spawn)"
+                      Foreground="#C7D1DA" FontSize="12" Margin="0,6,0,0"/>
             <DockPanel Margin="0,10,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Stats panel scale:"/>
                 <TextBlock x:Name="ScaleLabel" DockPanel.Dock="Right" Width="42"
