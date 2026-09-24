@@ -286,16 +286,18 @@ references — keep it that way. Every overlay window derives from
   `AutoHideGrace` (30 s, a constant: it only has to outlast one spurious
   inGame:false, since the spawn menu and restarts are fine to hide over
   and the first in-game poll brings everything back) it calls the shared
-  `HideWindows`; the first in-game poll calls `ShowWindows`. Three
-  precedence rules, all in that method: never while editing; never over a
-  manual hide (`_overlayHidden` is the user's word and a spawn must not
-  undo it, so the two flags are never both set); and a user reveal
+  `HideWindows`; the first in-game poll calls `ShowWindows`. Two
+  precedence rules, both in that method: never while editing, and never
+  over a manual hide (`_overlayHidden` is the user's word and a spawn
+  must not undo it, so the two flags are never both set). A user reveal
   (`RevealAutoHidden` — hotkey, tray, edit mode, Check Prime all route
   through `ToggleOverlayVisibility`, which reveals instead of toggling
-  while auto-hidden) sets `_autoHideSuppressed` until the next in-game
-  poll, so the overlay can't fight the user. Locking edit mode resets the
-  grace clock (time to look at the locked layout). Tray tooltip reads
-  "hidden until you spawn" meanwhile. Runtime-only, like the manual hide. Minimap is sized natively (`MinimapSize`, Settings
+  while auto-hidden) and locking edit mode both just restart the grace
+  clock. A "reveal keeps it visible until the next spawn" rule was tried
+  and REJECTED in testing (Sep 24 2026): unlock + lock left the overlay
+  refusing to hide, which read as a bug — don't reintroduce it. Tray
+  tooltip reads "hidden until you spawn" meanwhile. Runtime-only, like
+  the manual hide. Minimap is sized natively (`MinimapSize`, Settings
   slider 160–400, `AppearanceScale` override 1.0), the prime tracker by
   `PrimeScale`, and `UiScale` scales only the stats + control panels. `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;

@@ -15,8 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the first update that sees you in-game. Meant for people who start the
   overlay with Windows and don't want three "Not in-game" panels on the
   desktop all day. Ctrl+F4, the tray, edit mode or Check Prime bring it
-  back at once and keep it visible until your next spawn; a manual Ctrl+F4
-  hide is never undone by a spawn. The tray tooltip says "hidden until you
+  back at once for another 30 seconds (edit mode itself never hides); a
+  manual Ctrl+F4 hide is never undone by a spawn. The tray tooltip says "hidden until you
   spawn" while it's away.
 - Attention fade (Settings, off by default): the stats panel and the Prime
   tracker rest at a faded opacity of your choice (20–80%) while nothing

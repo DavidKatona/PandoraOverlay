@@ -70,7 +70,6 @@ public partial class MainWindow : OverlayWindowBase
     // wait for. A constant on purpose — not a preference anyone should tune.
     private static readonly TimeSpan AutoHideGrace = TimeSpan.FromSeconds(30);
     private bool _autoHidden;
-    private bool _autoHideSuppressed; // the user revealed the overlay while not in-game: leave it until the next spawn
     private DateTime? _notInGameSince;
 
     public MainWindow()
@@ -443,17 +442,18 @@ public partial class MainWindow : OverlayWindowBase
     /// <summary>
     /// The not-in-game auto-hide (`HideWhenNotInGame`), driven by the poll
     /// stream. Hides after AutoHideGrace of consecutive not-in-game polls and
-    /// shows again on the first in-game one. Never while editing, never over
-    /// a manual hide (that one is the user's word), and not after the user
-    /// revealed the overlay themselves — that stands until the next spawn.
-    /// Hidden state is runtime-only, like the manual hide.
+    /// shows again on the first in-game one. Never while editing, and never
+    /// over a manual hide (that one is the user's word). A reveal by the user
+    /// (hotkey, tray, edit mode, Check Prime) just restarts the grace — a
+    /// "stay until you spawn" rule was tried and read as a bug: after
+    /// unlocking and locking again the overlay refused to hide. Hidden state
+    /// is runtime-only, like the manual hide.
     /// </summary>
     private void UpdateAutoHide(bool inGame)
     {
         if (inGame)
         {
             _notInGameSince = null;
-            _autoHideSuppressed = false;
             if (_autoHidden)
             {
                 _autoHidden = false;
@@ -463,18 +463,18 @@ public partial class MainWindow : OverlayWindowBase
         }
 
         _notInGameSince ??= DateTime.UtcNow;
-        if (!_config.HideWhenNotInGame || _autoHidden || _autoHideSuppressed || _overlayHidden || EditMode) return;
+        if (!_config.HideWhenNotInGame || _autoHidden || _overlayHidden || EditMode) return;
         if (DateTime.UtcNow - _notInGameSince < AutoHideGrace) return;
 
         _autoHidden = true;
         HideWindows();
     }
 
-    /// <summary>The user asked for the overlay (hotkey, tray, edit mode, Check Prime) while it had hidden itself.</summary>
+    /// <summary>The user asked for the overlay while it had hidden itself: show it, with a fresh grace period.</summary>
     private void RevealAutoHidden()
     {
         _autoHidden = false;
-        _autoHideSuppressed = true;
+        _notInGameSince = null;
         ShowWindows();
         _tray.SetStatus("Pandora Overlay — not in-game");
         _poll.Nudge();
