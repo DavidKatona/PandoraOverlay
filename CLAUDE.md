@@ -110,10 +110,12 @@ is bundled as `Assets/map.png` (WPF Resource).
 
 ## Architecture
 
-Dependency rule: `MainWindow` → { `PollService`, `OverlayConfig` } and
-`PollService` → `PandoraClient`. `PandoraClient`/`OverlayConfig` have zero WPF
-references — keep it that way. Every overlay window derives from
-`OverlayWindowBase`.
+Dependency rule: `MainWindow` → { `PollService`, `OverlayConfig`,
+`WaypointLibrary` } and `PollService` → `PandoraClient`.
+`PandoraClient`/`OverlayConfig`/`WaypointLibrary` have zero WPF references —
+keep it that way. Windows receive the library like the config (pure
+consumers; the minimap redraws on its `Changed`, MainWindow saves on it).
+Every overlay window derives from `OverlayWindowBase`.
 
 - **PollService.cs** — owns the shared client + `DispatcherTimer` + `_busy`
   reentrancy guard; raises `SnapshotReceived`/`PollFailed`/`CalibrationChanged`
@@ -273,7 +275,10 @@ references — keep it that way. Every overlay window derives from
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
   any failure; nothing in this class ever throws.
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
-  and the minimap + prime windows' lifetimes (both follow edit mode and
+  the WaypointLibrary (loaded at startup; `MigrateWaypointSlots` turns
+  v1.20's three config slots into Blue/Green/Purple entries once and
+  blanks them; saved on every `Changed`, not just on exit — it is user
+  content), and the minimap + prime windows' lifetimes (both follow edit mode and
   hide-all; `CheckPrime` un-hides and shows the prime widget first, then
   fires the one user-triggered check). Five global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
@@ -353,52 +358,54 @@ references — keep it that way. Every overlay window derives from
   always shows the active view (+ zoom when centered).
   `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified
   in-game, Sep 2026). Shown/hidden via the control panel
-  (`MinimapEnabled`). Waypoints (v1.20): three slots
-  (`config.Waypoints`, blue/green/purple, world cm, persist — the pre-1.20
-  single `WaypointX/Y` migrates into blue in `OverlayConfig.Load`), each a
-  10 px diamond in its colour (14 px until v1.20.1 — three of those
-  crowded the 16 px arrow, which must stay the biggest mark; markers are
-  fixed-size at every map size, like the arrow), edge-clamped in the
-  centered view. Set from the
-  edit-mode right-click **map menu** (`MapMenu`, a WPF Popup declared as
-  the window's Tag so it lives outside the layout — a popup is its own
-  HWND, so the minimap never changes size, which is the owner's rule for
-  every widget; items are built in code with the control panel's glow
-  look, `MenuButton`; opened on the right-button RELEASE, not the press —
-  opened on the press, StaysOpen=false took the matching release as an
-  outside click and the menu had to be held open until the cursor reached
-  it. Right-click always means "menu here": with the menu open, a
-  right-click elsewhere moves it, like Explorer; left click, Escape (the
-  panel is focused on open for that) or an entry closes it. A 400 ms
-  "swallow the dismissing click" rule was tried and REJECTED (Sep 25
-  2026): whether a right-click closed or moved the menu depended on how
-  long the button was held — don't reintroduce timing rules here.
-  `PopupAnimation="None"` on purpose: Fade flickered on open (traced by
-  elimination, Sep 25 2026 — the Escape focus was cleared first). KNOWN
-  AND ACCEPTED (owner's call, Sep 25 2026): a left click on a widget that
-  closes the menu also reaches that widget's `DragIfEditing`, so the snap
-  guides flash and a moving hand can nudge the widget a pixel; a
-  swallow-the-closing-press flag in OverlayWindowBase was designed and
-  declined as not worth the coupling — don't add it unasked):
-  "<Colour> waypoint here" ×3 first so placing stays
-  right-click + click on the point captured at open (`_menuWorld` —
-  snapped to a marker within `SnapRadius`, so a right-click ON a waypoint
-  means that waypoint exactly), then Clear per set slot (+ "Clear all"
-  once two are set), then share-a-spot: "Copy this spot" (the clicked
-  point — "meet here"; the owner pointed out the name promised this, not
-  just my position), "Copy my position" ("come to me"), both a
-  `ShareCode` on the clipboard, and "Paste waypoint → <slot>" (first
-  empty slot, else blue; enabled only when the clipboard holds a code). Owner
-  chose three coloured slots over typed names (a text box inside a game
-  overlay fights the game for focus). Clipboard calls are wrapped: it is
-  a shared resource another app can hold. The footer shows the NEAREST
-  set slot in its colour with the distance, plus "~N min" while the
-  closing speed toward it is ≥ 0.3 m/s (from `SpeedTracker`); a 3 s
-  `_notice` (copied / pasted / nothing to paste) replaces the line
-  briefly. Heading + speed pill (`MinimapSpeedEnabled`, default on):
-  bottom-right, the scale bar's twin — `Compass.Letter` of the arrow's
-  screen heading (body yaw + `MinimapYawOffsetDegrees`, so relative to
-  the dino's body, not the free-look camera) and km/h. Optional heatmap
+  (`MinimapEnabled`). Waypoints (v1.22, the library): every shown entry
+  of `WaypointLibrary` is drawn by `RebuildMarkers` into `MarkerLayer` (a
+  Canvas under the arrow) — a 6 px dot in its palette colour, the TRACKED
+  one (`config.TrackedWaypointId`) a 10 px diamond with a 16 px ring; each
+  marker has its own TranslateTransform so `UpdateWaypointVisual` can
+  glide them with the map. Shown set = `ShownWaypoints()` per the
+  `WaypointVisibility` policy (all visible / tracked only / nearest 10 —
+  under "nearest" the set follows the player, rebuilt per snapshot only
+  when it actually changed); the tracked one is always drawn. Centered
+  view: the tracked marker edge-clamps as a direction indicator, others
+  just leave the panel. `HitTest` (within `SnapRadius`, tracked wins
+  ties) serves the menu and the edit-mode hover (`_hover` → the footer
+  names that marker). The edit-mode right-click **map menu** (`MapMenu`,
+  a WPF Popup declared as the window's Tag so it lives outside the
+  layout — a popup is its own HWND, so the minimap never changes size,
+  which is the owner's rule for every widget; items are built in code
+  with the control panel's glow look, `MenuButton`; opened on the
+  right-button RELEASE, not the press — opened on the press,
+  StaysOpen=false took the matching release as an outside click and the
+  menu had to be held open until the cursor reached it. Right-click
+  always means "menu here": with the menu open, a right-click elsewhere
+  moves it, like Explorer; left click, Escape (the panel is focused on
+  open for that) or an entry closes it. A 400 ms "swallow the dismissing
+  click" rule was tried and REJECTED (Sep 25 2026): whether a right-click
+  closed or moved the menu depended on how long the button was held —
+  don't reintroduce timing rules here. `PopupAnimation="None"` on
+  purpose: Fade flickered on open (traced by elimination). KNOWN AND
+  ACCEPTED (owner's call): a left click on a widget that closes the menu
+  also reaches that widget's `DragIfEditing`, so the snap guides flash
+  and a moving hand can nudge the widget a pixel; a swallow-the-press
+  flag was designed and declined — don't add it unasked): on a marker,
+  "Track/Untrack, Copy, Remove <name>" first; always "Waypoint here"
+  (auto-named `NextName`, `NextColour`, auto-tracked; disabled "Library
+  full (256)" at the cap), then share-a-spot: "Copy this spot" (the
+  clicked point, or the marker under it exactly — "meet here"), "Copy my
+  position" ("come to me"), "Paste waypoint" (a new tracked entry named
+  from the code; enabled only when the clipboard holds a code). Owner
+  chose the library over three coloured slots and over typed names in
+  the popup; names are typed on the Settings page. Clipboard calls are
+  wrapped: it is a shared resource another app can hold. The footer
+  shows the tracked — else nearest visible — waypoint in its colour with
+  a 14-char name, the distance, and "~N min" while the closing speed
+  toward it is ≥ 0.3 m/s (from `SpeedTracker`); a 3 s `_notice` (added /
+  removed / copied / nothing to paste) replaces the line briefly. Heading
+  + speed pill (`MinimapSpeedEnabled`, default on): bottom-right, the
+  scale bar's twin — `Compass.Letter` of the arrow's screen heading (body
+  yaw + `MinimapYawOffsetDegrees`, so relative to the dino's body, not
+  the free-look camera) and km/h. Optional heatmap
   layer (`HeatmapEnabled`): the site's pre-rendered heatmap PNG (opaque —
   grayscale map, blobs and a player-count caption baked in) as a second
   Image sharing the map image's size and translate transform, blended at
@@ -434,10 +441,25 @@ references — keep it that way. Every overlay window derives from
   or resumed idle polling never reads as a dash.
 - **Compass.cs** — eight-point letter for a screen heading (0 = north,
   clockwise, matching the arrow's RotateTransform).
-- **ShareCode.cs** — the share-a-spot text: `pandora:<x>,<y>` in METRES
-  (short, no decimals), parsed forgivingly (prefix optional, may sit
-  inside a longer message, |value| ≤ 50 km). Pure, tested, invariant
-  culture both ways.
+- **ShareCode.cs** — the share-a-spot text: `pandora:<x>,<y> [name]` in
+  METRES (short, no decimals), parsed forgivingly (prefix optional, may
+  sit inside a longer message, |value| ≤ 50 km; the rest of the line
+  after the numbers is the name, v1.22). Pure, tested, invariant culture
+  both ways.
+- **WaypointLibrary.cs** — `Waypoint` (id, name, world cm, palette
+  colour, visible, pack), `WaypointPalette` (12 hex colours — owner's
+  call; the first three are the v1.20 slot colours so migrated slots keep
+  their look; `Wrap` for cycling) and the library: up to 256 (uint8 —
+  owner's call) entries in `waypoints.json` next to config.json — USER
+  CONTENT, kept apart from runtime state and the cookie vault, and the
+  file phase 3's export/import moves around. Every mutation validates
+  (`InBounds` ≤ 50 km, `SanitizeName` ≤ 32 chars, no control chars,
+  colour wrapped, capacity) and raises `Changed`; `FromJson` is the import
+  gate (drops off-island entries, fixes empty/duplicate ids, caps). Pure
+  and tested; nothing throws. Tracking state (`config.TrackedWaypointId`)
+  and the draw policy (`config.WaypointVisibility`) are config, not
+  library. Phase 3 (export/import + packs) is next; the `Pack` field is
+  already there.
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
   ten ✓/✗ condition rows (texts baked in — the site bakes them into its
   frontend too, the API only returns flags) + a two-line footer (what the
@@ -477,7 +499,16 @@ references — keep it that way. Every overlay window derives from
   new widget (or the coming Waypoints library) adds a nav entry + page.
   History: regrouped by widget Sep 24 2026 ("option A"), then the nav
   ("option B") Sep 25 2026 as the foundation for the waypoint library's
-  list page. Not the stock TabControl — deliberate, its light chrome
+  list page. Waypoints page (v1.22): rows built in code from a DRAFT
+  (`_library.Clone()`) so Cancel drops edits and Save commits via
+  `ReplaceWith` — colour dot (click cycles the palette), `NameBox`,
+  Show checkbox, Track radio (clicking the tracked one untracks, since a
+  radio can't be un-clicked), ✕ delete, "N / 256" count, "Delete all"
+  armed by a first click ("Really delete all?") instead of a modal box.
+  The list scrolls in a fixed 260 px viewer with `DarkScrollBar` (a
+  track + thumb template; the stock scrollbar is light). Import/Export
+  land here in phase 3. The Minimap page also holds the
+  `WaypointVisibility` radios (All / Tracked only / Nearest 10). Not the stock TabControl — deliberate, its light chrome
   doesn't theme. Pages live in one Grid; unselected pages are HIDDEN,
   not Collapsed, so the grid keeps the tallest page's height and the
   dialog never jumps between pages; `_lastPage` (static, session-only)

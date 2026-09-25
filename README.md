@@ -102,10 +102,18 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - Two views, toggled with the control panel's **Map view** button (or **Ctrl+F5** any time): the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
 - A **breadcrumb trail** draws the path you walked over the last 30 minutes (Off / 10 / 30 / 60 min in Settings), fading with age — handy for finding your way back to water, a nest or a body. It's drawn from the positions the overlay already receives, lives only for the session, and starts over when you die or switch dino; a relog on the same spot keeps it.
 - A **scale bar** in the bottom-left corner shows a round real-world distance ("500 m", "2 km") for the current view and zoom. Untick "Show scale bar" in Settings to remove it.
-- Right-click the minimap in edit mode for the **map menu**: three **waypoint** slots — blue, green, purple — each set at the clicked spot with one more click, cleared from the same menu. The footer shows the nearest one in its colour with the distance and, while you're actually heading for it, an ETA at your current pace ("◆ 1.2 km · ~6 min"); in the centered view an off-screen marker sticks to the panel edge pointing the way. Waypoints survive restarts.
-- **Share a spot** from the same menu: "Copy this spot" puts the point you right-clicked (or the waypoint under the cursor) on the clipboard as a short code like `pandora:62,-3168`, "Copy my position" does the same for where you are, and "Paste waypoint" turns a code someone sent you into a waypoint (first empty slot, else blue). The code is a snapshot of a position, nothing is tracked and nothing goes to the site. "Clear all waypoints" appears once two or more are set.
+- **Waypoints** are drawn on the map as small dots in their colours; the one you're **tracking** is a ringed diamond, and in the centered view it sticks to the panel edge pointing the way when off-screen. The footer follows it by name with the distance and, while you're actually heading for it, an ETA at your current pace ("◆ Nest 1.2 km · ~6 min"); with nothing tracked it follows the nearest one. See **Waypoints** below.
 - A **heading and speed** pill in the bottom-right corner shows your compass heading and km/h, measured from your last few positions. Untick "Show heading and speed" in Settings to remove it.
 - **Activity heatmap** (optional, off by default): press **Ctrl+F6** any time, or the control panel's **Heatmap** button, to overlay the server's live heatmap — the same image the website shows, complete with its player-count and timestamp caption — at the website's own 55% blend, in both views. It refreshes every minute while the minimap is visible; the image is public, so your login cookie is never sent for it. Expect the map colors to mute a little while it's on, and if the server disables the heatmap the layer quietly disappears until it returns.
+
+### Waypoints
+
+- A **library of up to 256 named places**, each with one of twelve colours, kept in `waypoints.json` next to the app. Sanctuaries, patrol zones, nests, water, "lots of AI around here": whatever you want to find again.
+- **Adding one:** right-click the minimap in edit mode and pick **Waypoint here**. It's named "Waypoint 7" and tracked straight away; rename and recolour it in Settings → Waypoints. Right-clicking on an existing marker offers **Track / Copy / Remove** for that one. In edit mode, hovering a marker shows its name in the footer.
+- **Managing them:** Settings → Waypoints lists every waypoint: click the dot to cycle its colour, edit the name, tick **Show** to draw it or not, pick **Track** (click the tracked one again to untrack), ✕ to delete. Changes apply on Save; Cancel drops them. "Delete all" asks twice.
+- **Keeping the map readable:** Settings → Minimap → Waypoints chooses what's drawn — all visible ones, only the tracked one, or the nearest ten. The tracked one is always drawn.
+- **Share a spot** from the map menu: "Copy this spot" puts the point you right-clicked on the clipboard as a short code like `pandora:62,-3168`, "Copy my position" does the same for where you are, and "Copy Nest" on a marker includes its name (`pandora:62,-3168 Nest`). "Paste waypoint" turns a code someone sent you into a new, tracked waypoint, named from the code if it carries a name. The code is a snapshot of a position, nothing is tracked live and nothing goes to the site.
+- Your waypoints from earlier versions are carried over as Blue, Green and Purple.
 
 ### Prime tracker
 
@@ -140,7 +148,9 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `PrimeEnabled` / `PrimeX` / `PrimeY` | Show the Prime tracker widget, and its position (empty until first placed: left screen edge, vertically centered). |
 | `Prime` / `PrimeCooldownUntilUtc` | The last Prime check result (status, ten condition flags, time, dino) and when the server will accept the next check, kept so the widget is right after a restart. Managed by the app. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
-| `Waypoints` | The three minimap waypoint slots (blue, green, purple) as `{X, Y}` in world coordinates, `null` for an empty slot. Set from the map menu (right-click in edit mode). A pre-1.20 `WaypointX`/`WaypointY` pair is moved into the blue slot on first launch. |
+| `TrackedWaypointId` | The library waypoint the footer follows and the ring marks; `null` = follow the nearest visible one. Set from the map menu or Settings → Waypoints. |
+| `WaypointVisibility` | Which waypoints the minimap draws: `all` (default), `tracked` or `nearest` (the ten closest). Radio buttons in Settings → Minimap. |
+| `Waypoints` | Legacy: the 1.20 colour slots. Moved into `waypoints.json` on first launch and left empty. |
 | `UiScale` | Stats panel (and control panel) scale, 0.75–1.5 (default 1). Slider in Settings; the minimap sizes natively via `MinimapSize`. |
 | `PrimeScale` | Prime tracker scale, 0.75–1.5. Slider in Settings; starts out equal to `UiScale`. |
 | `BackgroundOpacity` | Panel-glass opacity, 0.3–1 (default 0.8) — text stays crisp. Slider in Settings. |
@@ -148,7 +158,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `LowStatChimeEnabled` / `GrowthChimeEnabled` | Play the Windows "Exclamation" sound when hunger or thirst drops under 20%, and at the 25/50/75/100% growth stages. Checkboxes in Settings → Stats panel. Both default `false`. |
 | `FadeEnabled` / `FadeIdleOpacity` | Attention fade for the stats panel and Prime tracker, and the opacity they rest at while nothing needs attention (0.2–0.8, default 0.4). Checkbox + slider in Settings. Default off. |
 
-Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file.
+Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file. The waypoint library itself lives in `waypoints.json` next to the app (a `Waypoints` array of `{Id, Name, X, Y, Colour, Visible, Pack}`): user content, kept apart from settings and the cookie, and the file that will be exported and imported.
 
 ## Troubleshooting
 

@@ -60,6 +60,7 @@ public partial class MainWindow : OverlayWindowBase
     // ---- State ------------------------------------------------------------
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
+    private readonly WaypointLibrary _library;
     private readonly TrayIcon _tray;
     private readonly GrowthTracker _growth = new();
     private readonly DrainTracker _hungerDrain = new(p => p.Hunger);
@@ -93,6 +94,9 @@ public partial class MainWindow : OverlayWindowBase
         InitializeComponent();
 
         _config = OverlayConfig.Load();
+        _library = WaypointLibrary.Load();
+        MigrateWaypointSlots();
+        _library.Changed += () => _library.Save(); // user content: saved on every change, not just on exit
         Left = _config.WindowX;
         Top = _config.WindowY;
         _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
@@ -158,7 +162,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
         try
         {
-            var dialog = new SettingsWindow(_config) { Topmost = true };
+            var dialog = new SettingsWindow(_config, _library) { Topmost = true };
             var saved = dialog.ShowDialog() == true;
 
             if (!saved)
@@ -269,6 +273,24 @@ public partial class MainWindow : OverlayWindowBase
         _tray.UpdateHotkeyLabels(_hotkey.ToString(), _hotkeyHide.ToString());
     }
 
+    /// <summary>
+    /// v1.20's three colour slots become library entries (Blue / Green /
+    /// Purple, in their colours) on the first launch of the library, and the
+    /// config slots are blanked so this runs once. Nobody loses a waypoint.
+    /// </summary>
+    private void MigrateWaypointSlots()
+    {
+        if (_config.Waypoints.All(w => w is null)) return;
+        string[] names = { "Blue", "Green", "Purple" };
+        for (var i = 0; i < _config.Waypoints.Length; i++)
+        {
+            if (_config.Waypoints[i] is { } slot) _library.Add(names[i], slot.X, slot.Y, i);
+        }
+        Array.Fill(_config.Waypoints, null);
+        _library.Save();
+        _config.Save();
+    }
+
     private void ShowNoCookieState()
     {
         DinoText.Text = "Not set up yet";
@@ -321,7 +343,7 @@ public partial class MainWindow : OverlayWindowBase
     {
         if (_minimap is null)
         {
-            _minimap = new MinimapWindow(_config, _poll);
+            _minimap = new MinimapWindow(_config, _poll, _library);
             _minimap.Closed += (_, _) => _minimap = null;
             _minimap.Show();
         }

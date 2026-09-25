@@ -122,6 +122,49 @@
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
+        <!-- Waypoint name box: the hotkey box's look, but editable. -->
+        <Style x:Key="NameBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#1A2129"/>
+            <Setter Property="Foreground" Value="#ECF2F8"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5,2"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="MaxLength" Value="32"/>
+        </Style>
+
+        <!-- Minimal dark scrollbar for the waypoint list (the stock one is
+             light and would glow on this dialog). Track + thumb, no arrows. -->
+        <Style x:Key="DarkScrollBar" TargetType="ScrollBar">
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Border Background="#1A2129" CornerRadius="4">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="#5E6B76" CornerRadius="4" Margin="1"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="HotkeyBox" TargetType="TextBox">
             <Setter Property="Width" Value="150"/>
             <Setter Property="Margin" Value="10,0,0,0"/>
@@ -180,6 +223,7 @@
                     <Button Content="Stats panel" Tag="Stats" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Minimap" Tag="Minimap" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Prime tracker" Tag="Prime" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Waypoints" Tag="Waypoints" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                 </StackPanel>
 
                 <Border Grid.Column="1" BorderBrush="#33FFFFFF" BorderThickness="1,0,0,0" Padding="16,0,0,0">
@@ -369,6 +413,49 @@
                       Content="Show scale bar"/>
             <CheckBox x:Name="SpeedCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Show heading and speed"/>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Waypoints:"/>
+                <RadioButton x:Name="WpAll" Style="{StaticResource Radio}" Content="All"
+                             GroupName="WpVisibility" Margin="14,0,0,0"/>
+                <RadioButton x:Name="WpTracked" Style="{StaticResource Radio}" Content="Tracked only"
+                             GroupName="WpVisibility" Margin="14,0,0,0"/>
+                <RadioButton x:Name="WpNearest" Style="{StaticResource Radio}" Content="Nearest 10"
+                             GroupName="WpVisibility" Margin="14,0,0,0"/>
+            </StackPanel>
+            </StackPanel>
+
+            <!-- ============================ Waypoints ===================== -->
+            <!-- Edits go to a draft copy of the library; Save commits it. -->
+            <StackPanel Tag="Waypoints" Visibility="Hidden">
+            <DockPanel Margin="0,4,0,8">
+                <TextBlock x:Name="WaypointCount" DockPanel.Dock="Right"
+                           Foreground="#7B8790" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Style="{StaticResource PageTitle}" Text="WAYPOINTS" Margin="0"/>
+            </DockPanel>
+            <Grid Margin="0,0,14,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="26"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="52"/>
+                    <ColumnDefinition Width="52"/>
+                    <ColumnDefinition Width="26"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="1" Text="Name" Foreground="#7B8790" FontSize="10"/>
+                <TextBlock Grid.Column="2" Text="Show" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="3" Text="Track" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
+            </Grid>
+            <ScrollViewer Height="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
+                </ScrollViewer.Resources>
+                <StackPanel x:Name="WaypointRows" Margin="0,0,6,0"/>
+            </ScrollViewer>
+            <DockPanel Margin="0,8,0,0">
+                <Button x:Name="DeleteAllButton" DockPanel.Dock="Right" Content="Delete all" Click="DeleteAll_Click"
+                        Padding="10,4" FontSize="11" Background="#552B2B" Foreground="#FFDDDD" BorderThickness="0"/>
+                <TextBlock Text="Right-click the minimap in edit mode to add a waypoint where you click. Click a dot to change its colour."
+                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            </DockPanel>
             </StackPanel>
 
             <!-- ============================ Prime tracker ================== -->

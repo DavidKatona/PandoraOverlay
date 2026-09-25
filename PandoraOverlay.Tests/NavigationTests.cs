@@ -111,4 +111,18 @@ public class ShareCodeTests
     [InlineData("62")]
     [InlineData("999999,1")]
     public void RejectsNonCodes(string? text) => Assert.False(ShareCode.TryParse(text, out _, out _));
+
+    [Fact]
+    public void CarriesAnOptionalName()
+    {
+        Assert.Equal("pandora:62,-3168 Nest site", ShareCode.Format(6200, -316800, "  Nest site "));
+        Assert.Equal("pandora:62,-3168", ShareCode.Format(6200, -316800, "  "));
+
+        Assert.True(ShareCode.TryParse("pandora:62,-3168 Nest site", out _, out _, out var name));
+        Assert.Equal("Nest site", name);
+        Assert.True(ShareCode.TryParse("62,-3168", out _, out _, out name));
+        Assert.Equal("", name);
+        Assert.True(ShareCode.TryParse("go to pandora:62,-3168 Nest\nsecond line", out _, out _, out name));
+        Assert.Equal("Nest", name);
+    }
 }

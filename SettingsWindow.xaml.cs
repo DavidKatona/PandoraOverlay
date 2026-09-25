@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace PandoraOverlay;
 
@@ -65,10 +66,13 @@ public partial class SettingsWindow : Window
     /// <summary>True after Save when a scale, the background opacity or the time-left checkbox differ (ApplyAppearance needed).</summary>
     public bool AppearanceChanged { get; private set; }
 
-    public SettingsWindow(OverlayConfig config)
+    public SettingsWindow(OverlayConfig config, WaypointLibrary library)
     {
         InitializeComponent();
         _config = config;
+        _library = library;
+        _draft = library.Clone();
+        _draftTracked = config.TrackedWaypointId;
         _firstRun = string.IsNullOrWhiteSpace(config.GetCookie());
 
         // Account
@@ -126,9 +130,144 @@ public partial class SettingsWindow : Window
         trailRadio.IsChecked = true;
         ScaleBarCheck.IsChecked = config.MinimapScaleBarEnabled;
         SpeedCheck.IsChecked = config.MinimapSpeedEnabled;
+        var visibilityRadio = config.WaypointVisibility switch { "tracked" => WpTracked, "nearest" => WpNearest, _ => WpAll };
+        visibilityRadio.IsChecked = true;
+
+        // Waypoints
+        BuildWaypointRows();
 
         Validate();
         SetPage(_firstRun ? "Account" : _lastPage);
+    }
+
+    // ---- Waypoints page -----------------------------------------------------
+    private readonly WaypointLibrary _library;
+    private readonly List<Waypoint> _draft;   // edited in place; committed on Save, dropped on Cancel
+    private Guid? _draftTracked;
+    private bool _waypointsDirty;
+    private bool _deleteAllArmed;
+
+    private static readonly Brush[] PaletteBrushes = WaypointPalette.Colours
+        .Select(c => { var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(c.Hex)); b.Freeze(); return (Brush)b; })
+        .ToArray();
+
+    /// <summary>One row per draft entry: colour dot (click cycles the palette), name box, Show, Track, delete.</summary>
+    private void BuildWaypointRows()
+    {
+        WaypointRows.Children.Clear();
+        WaypointCount.Text = $"{_draft.Count} / {WaypointLibrary.Capacity}";
+        DeleteAllButton.Content = "Delete all";
+        DeleteAllButton.IsEnabled = _draft.Count > 0;
+        _deleteAllArmed = false;
+
+        if (_draft.Count == 0)
+        {
+            WaypointRows.Children.Add(new TextBlock
+            {
+                Text = "No waypoints yet.",
+                Foreground = HintNeutral, FontSize = 12, Margin = new Thickness(0, 6, 0, 0)
+            });
+            return;
+        }
+
+        foreach (var wp in _draft)
+        {
+            var row = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+
+            var dot = new Ellipse
+            {
+                Width = 12, Height = 12, Fill = PaletteBrushes[WaypointPalette.Wrap(wp.Colour)],
+                Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left,
+                ToolTip = $"{WaypointPalette.Colours[WaypointPalette.Wrap(wp.Colour)].Name} — click to change"
+            };
+            dot.MouseLeftButtonDown += (_, _) =>
+            {
+                wp.Colour = WaypointPalette.Wrap(wp.Colour + 1);
+                dot.Fill = PaletteBrushes[wp.Colour];
+                dot.ToolTip = $"{WaypointPalette.Colours[wp.Colour].Name} — click to change";
+                _waypointsDirty = true;
+            };
+            row.Children.Add(dot);
+
+            var name = new TextBox { Text = wp.Name, Style = (Style)FindResource("NameBox"), Margin = new Thickness(0, 0, 8, 0) };
+            name.TextChanged += (_, _) =>
+            {
+                wp.Name = name.Text;
+                _waypointsDirty = true;
+            };
+            Grid.SetColumn(name, 1);
+            row.Children.Add(name);
+
+            var show = new CheckBox { IsChecked = wp.Visible, Style = (Style)FindResource("Check"), HorizontalAlignment = HorizontalAlignment.Center };
+            show.Click += (_, _) =>
+            {
+                wp.Visible = show.IsChecked == true;
+                _waypointsDirty = true;
+            };
+            Grid.SetColumn(show, 2);
+            row.Children.Add(show);
+
+            var track = new RadioButton
+            {
+                GroupName = "TrackWaypoint", IsChecked = wp.Id == _draftTracked,
+                Style = (Style)FindResource("Radio"), HorizontalAlignment = HorizontalAlignment.Center
+            };
+            track.Click += (_, _) =>
+            {
+                // A radio can't be un-clicked, so clicking the tracked one untracks.
+                if (_draftTracked == wp.Id)
+                {
+                    _draftTracked = null;
+                    track.IsChecked = false;
+                }
+                else
+                {
+                    _draftTracked = wp.Id;
+                }
+                _waypointsDirty = true;
+            };
+            Grid.SetColumn(track, 3);
+            row.Children.Add(track);
+
+            var delete = new Button
+            {
+                Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
+                Background = new SolidColorBrush(Color.FromRgb(0x55, 0x2B, 0x2B)),
+                Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xDD, 0xDD)), BorderThickness = new Thickness(0),
+                HorizontalAlignment = HorizontalAlignment.Right, ToolTip = "Delete"
+            };
+            delete.Click += (_, _) =>
+            {
+                _draft.Remove(wp);
+                if (_draftTracked == wp.Id) _draftTracked = null;
+                _waypointsDirty = true;
+                BuildWaypointRows();
+            };
+            Grid.SetColumn(delete, 4);
+            row.Children.Add(delete);
+
+            WaypointRows.Children.Add(row);
+        }
+    }
+
+    /// <summary>First click arms ("Really delete all?"), second click deletes — no modal box on a game overlay.</summary>
+    private void DeleteAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_deleteAllArmed)
+        {
+            _deleteAllArmed = true;
+            DeleteAllButton.Content = "Really delete all?";
+            return;
+        }
+        _draft.Clear();
+        _draftTracked = null;
+        _waypointsDirty = true;
+        BuildWaypointRows();
     }
 
     // ---- Navigation ---------------------------------------------------------
@@ -415,12 +554,14 @@ public partial class SettingsWindow : Window
         var trail = TrailOff.IsChecked == true ? 0 : Trail10.IsChecked == true ? 10 : Trail30.IsChecked == true ? 30 : 60;
         var scaleBar = ScaleBarCheck.IsChecked == true;
         var speed = SpeedCheck.IsChecked == true;
+        var visibility = WpTracked.IsChecked == true ? "tracked" : WpNearest.IsChecked == true ? "nearest" : "all";
         if (mode != _config.MinimapMode ||
             Math.Abs(zoom - _config.MinimapZoom) > 0.005 ||
             Math.Abs(mapSize - _config.MinimapSize) > 0.5 ||
             trail != _config.MinimapTrailMinutes ||
             scaleBar != _config.MinimapScaleBarEnabled ||
-            speed != _config.MinimapSpeedEnabled)
+            speed != _config.MinimapSpeedEnabled ||
+            visibility != _config.WaypointVisibility)
         {
             _config.MinimapMode = mode;
             _config.MinimapZoom = zoom;
@@ -428,6 +569,14 @@ public partial class SettingsWindow : Window
             _config.MinimapTrailMinutes = trail;
             _config.MinimapScaleBarEnabled = scaleBar;
             _config.MinimapSpeedEnabled = speed;
+            _config.WaypointVisibility = visibility;
+            MinimapChanged = true;
+        }
+
+        if (_waypointsDirty)
+        {
+            _config.TrackedWaypointId = _draftTracked;
+            _library.ReplaceWith(_draft); // raises Changed: the minimap redraws, MainWindow saves the file
             MinimapChanged = true;
         }
 

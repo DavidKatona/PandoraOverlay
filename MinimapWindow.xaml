@@ -14,6 +14,8 @@
         FontFamily="Segoe UI"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         MouseRightButtonUp="Window_MouseRightButtonUp"
+        MouseMove="Window_MouseMove"
+        MouseLeave="Window_MouseLeave"
         MouseWheel="Window_MouseWheel">
 
     <Window.Resources>
@@ -90,20 +92,10 @@
                               StrokeLineJoin="Round" Opacity="0.85"/>
                 </Canvas>
                 <Canvas>
-                    <!-- Three waypoint slots: blue, green, purple (colours matched
-                         in the footer and the map menu). Positioned in code. -->
-                    <Path x:Name="WaypointBlue"
-                          Data="M 0,-5 L 5,0 L 0,5 L -5,0 Z"
-                          Fill="#4FC3F7" Stroke="#990A1520" StrokeThickness="1.25"
-                          Visibility="Collapsed"/>
-                    <Path x:Name="WaypointGreen"
-                          Data="M 0,-5 L 5,0 L 0,5 L -5,0 Z"
-                          Fill="#81C784" Stroke="#990A1520" StrokeThickness="1.25"
-                          Visibility="Collapsed"/>
-                    <Path x:Name="WaypointPurple"
-                          Data="M 0,-5 L 5,0 L 0,5 L -5,0 Z"
-                          Fill="#CE93D8" Stroke="#990A1520" StrokeThickness="1.25"
-                          Visibility="Collapsed"/>
+                    <!-- Library waypoints: dots in their colours, the tracked one
+                         a ringed diamond. Shapes are created in code from the
+                         library; the layer sits under the arrow on purpose. -->
+                    <Canvas x:Name="MarkerLayer"/>
                     <Path x:Name="PlayerArrow"
                           Data="M 0,-8 L 6,7 L 0,3.5 L -6,7 Z"
                           Fill="#FFC864"

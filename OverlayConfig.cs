@@ -164,11 +164,27 @@ public sealed class OverlayConfig
     public double? WaypointY { get; set; }
 
     /// <summary>
-    /// The three minimap waypoint slots — blue, green, purple — in world cm;
-    /// null = empty. Set from the map's right-click menu in edit mode (or
-    /// pasted from a share code). Always exactly three; persists.
+    /// The v1.20 three colour slots. Since the waypoint library (v1.22)
+    /// MainWindow moves any set slot into waypoints.json on launch and blanks
+    /// it; kept only so v1.20/1.21 configs migrate.
     /// </summary>
     public WaypointSlot?[] Waypoints { get; set; } = new WaypointSlot?[3];
+
+    /// <summary>
+    /// The library waypoint the minimap footer follows (distance + ETA) and
+    /// the only one edge-clamped in the centered view; null = follow the
+    /// nearest visible one. Session-ish state, so it lives here, not in the
+    /// library file. A stale id (waypoint deleted) reads as null.
+    /// </summary>
+    public Guid? TrackedWaypointId { get; set; }
+
+    /// <summary>
+    /// Which library waypoints the minimap draws: "all" (visible ones),
+    /// "tracked" (only the tracked one) or "nearest" (the ten visible ones
+    /// closest to you). Radio buttons on the Minimap page. Default all —
+    /// you placed them; imports will arrive hidden instead.
+    /// </summary>
+    public string WaypointVisibility { get; set; } = "all";
 
     /// <summary>Show the heading + speed pill in the minimap's bottom-right corner. Checkbox in Settings.</summary>
     public bool MinimapSpeedEnabled { get; set; } = true;

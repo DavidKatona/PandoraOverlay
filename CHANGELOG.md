@@ -5,6 +5,36 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Waypoint library: up to 256 named waypoints, each in one of twelve
+  colours, kept in `waypoints.json` next to the app. Add one with
+  "Waypoint here" in the minimap's right-click menu (edit mode); it is
+  named and tracked at once. Right-clicking a marker offers Track, Copy and
+  Remove for it, and hovering one in edit mode shows its name in the
+  footer.
+- Settings → Waypoints: the whole library in a list — click the dot to
+  change a waypoint's colour, edit its name, show or hide it, pick the one
+  to track, delete one or all. Changes apply on Save.
+- Tracking: the tracked waypoint is drawn as a ringed diamond, is the only
+  one that sticks to the panel edge in the centered view, and the footer
+  follows it by name with distance and ETA. Nothing tracked: the nearest
+  visible one, as before.
+- Settings → Minimap → Waypoints chooses what the map draws: all visible
+  waypoints (default), only the tracked one, or the nearest ten.
+- Share codes can carry a name (`pandora:62,-3168 Nest`): "Copy" on a
+  marker includes it, and a pasted code becomes a waypoint with that name.
+
+### Changed
+
+- The three colour slots from 1.20 are gone: they become library entries
+  named Blue, Green and Purple on first launch, and the map menu's three
+  "here" entries are one "Waypoint here". Untracked waypoints are 6 px
+  dots so a large library stays readable; "Paste waypoint" creates a new
+  entry instead of filling a slot.
+
 ## [1.21.0] - 2026-09-25
 
 ### Changed
