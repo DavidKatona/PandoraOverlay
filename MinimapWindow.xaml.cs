@@ -56,14 +56,12 @@ public partial class MinimapWindow : OverlayWindowBase
     private static readonly string[] SlotNames = { "Blue", "Green", "Purple" };
     private const double MinClosingMps = 0.3;  // slower than this toward a waypoint = no ETA worth showing
     private static readonly TimeSpan NoticeHold = TimeSpan.FromSeconds(3);
-    private static readonly TimeSpan DismissGrace = TimeSpan.FromMilliseconds(400); // the click that closed the menu is not a new one
 
     private readonly System.Windows.Shapes.Path[] _marks;
     private readonly TranslateTransform[] _markTranslate = { new(), new(), new() };
     private readonly SpeedTracker _speed = new();
     private readonly DispatcherTimer _noticeTimer;
     private (double X, double Y)? _menuWorld; // the map point under the cursor when the menu opened
-    private DateTime _menuClosedAt;           // when the popup last closed, to swallow the dismissing click
     private string? _notice;                  // a brief footer message (copied / pasted / nothing to paste)
     private bool _centered;
     private double _zoom;
@@ -110,7 +108,6 @@ public partial class MinimapWindow : OverlayWindowBase
             _notice = null;
             UpdateFooter();
         };
-        MapMenu.Closed += (_, _) => _menuClosedAt = DateTime.UtcNow;
 
         ApplyViewMode();
 
@@ -399,15 +396,16 @@ public partial class MinimapWindow : OverlayWindowBase
     /// Opens on the button RELEASE, like a Windows context menu: opened on
     /// the press, the popup's own "click outside closes me" logic took the
     /// matching release as that outside click, so the menu only survived if
-    /// the button was held until the cursor reached it. And like a Windows
-    /// menu, the click that dismisses it is swallowed: a right-click outside
-    /// an open menu closes it (the press) and must not reopen it at the new
-    /// spot (the release) — hence the grace after Closed.
+    /// the button was held until the cursor reached it. Right-click always
+    /// means "menu here": with the menu open, a right-click elsewhere moves
+    /// it, as Explorer does; left click, Escape or an entry closes it. (A
+    /// timing rule that swallowed the dismissing click was tried and felt
+    /// worse — whether the menu closed or moved depended on how long the
+    /// button was held.)
     /// </summary>
     private void Window_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (!EditMode || _poll.Calibration is not { } cal) return;
-        if (DateTime.UtcNow - _menuClosedAt < DismissGrace) return; // this click closed the menu; that's all it does
         var pos = e.GetPosition(MapHost);
         var size = MapHost.Width;
         if (pos.X < 0 || pos.Y < 0 || pos.X > size || pos.Y > size) return; // footer, not the map

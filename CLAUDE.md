@@ -364,11 +364,13 @@ references — keep it that way. Every overlay window derives from
   look, `MenuButton`; opened on the right-button RELEASE, not the press —
   opened on the press, StaysOpen=false took the matching release as an
   outside click and the menu had to be held open until the cursor reached
-  it; and the dismissing click is swallowed like a Windows menu's — a
-  right-click within `DismissGrace` (400 ms) of the popup's Closed event
-  is the click that closed it, not a new one, else a right-click outside
-  "moved" the menu instead of closing it; Escape closes it too, the panel
-  is focused on open for that): "<Colour> waypoint here" ×3 first so placing stays
+  it. Right-click always means "menu here": with the menu open, a
+  right-click elsewhere moves it, like Explorer; left click, Escape (the
+  panel is focused on open for that) or an entry closes it. A 400 ms
+  "swallow the dismissing click" rule was tried and REJECTED (Sep 25
+  2026): whether a right-click closed or moved the menu depended on how
+  long the button was held — don't reintroduce timing rules here):
+  "<Colour> waypoint here" ×3 first so placing stays
   right-click + click on the point captured at open (`_menuWorld` —
   snapped to a marker within `SnapRadius`, so a right-click ON a waypoint
   means that waypoint exactly), then Clear per set slot (+ "Clear all"
