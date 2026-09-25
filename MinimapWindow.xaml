@@ -93,16 +93,16 @@
                     <!-- Three waypoint slots: blue, green, purple (colours matched
                          in the footer and the map menu). Positioned in code. -->
                     <Path x:Name="WaypointBlue"
-                          Data="M 0,-7 L 7,0 L 0,7 L -7,0 Z"
-                          Fill="#4FC3F7" Stroke="#990A1520" StrokeThickness="1.5"
+                          Data="M 0,-5 L 5,0 L 0,5 L -5,0 Z"
+                          Fill="#4FC3F7" Stroke="#990A1520" StrokeThickness="1.25"
                           Visibility="Collapsed"/>
                     <Path x:Name="WaypointGreen"
-                          Data="M 0,-7 L 7,0 L 0,7 L -7,0 Z"
-                          Fill="#81C784" Stroke="#990A1520" StrokeThickness="1.5"
+                          Data="M 0,-5 L 5,0 L 0,5 L -5,0 Z"
+                          Fill="#81C784" Stroke="#990A1520" StrokeThickness="1.25"
                           Visibility="Collapsed"/>
                     <Path x:Name="WaypointPurple"
-                          Data="M 0,-7 L 7,0 L 0,7 L -7,0 Z"
-                          Fill="#CE93D8" Stroke="#990A1520" StrokeThickness="1.5"
+                          Data="M 0,-5 L 5,0 L 0,5 L -5,0 Z"
+                          Fill="#CE93D8" Stroke="#990A1520" StrokeThickness="1.25"
                           Visibility="Collapsed"/>
                     <Path x:Name="PlayerArrow"
                           Data="M 0,-8 L 6,7 L 0,3.5 L -6,7 Z"
