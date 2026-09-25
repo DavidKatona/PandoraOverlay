@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the nearest one in its colour, and while you're heading for it, an ETA at
   your current pace ("◆ 1.2 km · ~6 min"). Your existing waypoint becomes
   the blue one.
-- Share a spot: "Copy my position" in the map menu puts a short code
-  (`pandora:62,-3168`) on the clipboard to send over voice or chat, and
-  "Paste waypoint" turns a received code into a waypoint (first empty
-  slot, else blue). A snapshot of a position, nothing is tracked and
-  nothing goes to the site.
+- Share a spot: "Copy this spot" in the map menu puts the right-clicked
+  point (or the waypoint under the cursor) on the clipboard as a short
+  code (`pandora:62,-3168`) to send over voice or chat, "Copy my position"
+  does the same for where you are, and "Paste waypoint" turns a received
+  code into a waypoint (first empty slot, else blue). A snapshot of a
+  position, nothing is tracked and nothing goes to the site. "Clear all
+  waypoints" appears once two or more are set.
 - Heading and speed pill in the minimap's bottom-right corner: compass
   heading and km/h from your last few positions. "Show heading and speed"
   in Settings turns it off.

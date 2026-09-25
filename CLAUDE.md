@@ -362,10 +362,14 @@ references — keep it that way. Every overlay window derives from
   HWND, so the minimap never changes size, which is the owner's rule for
   every widget; items are built in code with the control panel's glow
   look, `MenuButton`): "<Colour> waypoint here" ×3 first so placing stays
-  right-click + click on the point captured at open (`_menuWorld`), then
-  Clear per set slot, then share-a-spot: "Copy my position" (a
-  `ShareCode` on the clipboard) and "Paste waypoint → <slot>" (first empty
-  slot, else blue; enabled only when the clipboard holds a code). Owner
+  right-click + click on the point captured at open (`_menuWorld` —
+  snapped to a marker within `SnapRadius`, so a right-click ON a waypoint
+  means that waypoint exactly), then Clear per set slot (+ "Clear all"
+  once two are set), then share-a-spot: "Copy this spot" (the clicked
+  point — "meet here"; the owner pointed out the name promised this, not
+  just my position), "Copy my position" ("come to me"), both a
+  `ShareCode` on the clipboard, and "Paste waypoint → <slot>" (first
+  empty slot, else blue; enabled only when the clipboard holds a code). Owner
   chose three coloured slots over typed names (a text box inside a game
   overlay fights the game for focus). Clipboard calls are wrapped: it is
   a shared resource another app can hold. The footer shows the NEAREST

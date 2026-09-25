@@ -36,6 +36,7 @@ public partial class MinimapWindow : OverlayWindowBase
     private const double MinMapSize = 160;
     private const double MaxMapSize = 400;
     private const double WaypointMargin = 8; // edge-clamp inset for the off-screen indicator
+    private const double SnapRadius = 12;    // a right-click this close to a marker means that waypoint, exactly
     private const double MaxScaleBarPixels = 80; // the bar takes ≤ 30% of the map's width, and never more than this
 
     private readonly OverlayConfig _config;
@@ -415,6 +416,19 @@ public partial class MinimapWindow : OverlayWindowBase
         _menuWorld = ((fx * cal.MapSize - cal.OffsetX - cal.PinOffsetX) / cal.ScaleX,
                       ((1 - fy) * cal.MapSize - cal.OffsetY - cal.PinOffsetY) / cal.ScaleY);
 
+        // On or near a marker, the spot IS that waypoint — so sharing a nest
+        // waypoint is right-click on it, "Copy this spot", with no aiming.
+        for (var i = 0; i < _marks.Length; i++)
+        {
+            if (_marks[i].Visibility == Visibility.Visible && _config.Waypoints[i] is { } w &&
+                Math.Abs(pos.X - _markTranslate[i].X) < SnapRadius &&
+                Math.Abs(pos.Y - _markTranslate[i].Y) < SnapRadius)
+            {
+                _menuWorld = (w.X, w.Y);
+                break;
+            }
+        }
+
         BuildMapMenu();
         MapMenu.IsOpen = true;
         e.Handled = true;
@@ -422,9 +436,10 @@ public partial class MinimapWindow : OverlayWindowBase
 
     /// <summary>
     /// Rebuilds the menu for the current state: a "here" entry per slot first
-    /// (so placing stays right-click + click), Clear for the set ones, then
-    /// share-a-spot. Paste goes to the first empty slot, else blue — the
-    /// entry says which.
+    /// (so placing stays right-click + click), Clear for the set ones (+ Clear
+    /// all once two are set), then share-a-spot: the clicked spot ("meet
+    /// here"), my position ("come to me"), and Paste into the first empty
+    /// slot, else blue — the entry says which.
     /// </summary>
     private void BuildMapMenu()
     {
@@ -435,8 +450,8 @@ public partial class MinimapWindow : OverlayWindowBase
             AddMenuItem($"{SlotNames[i]} waypoint here", SlotBrushes[i], () => SetSlot(slot, _menuWorld));
         }
 
-        var anySet = _config.Waypoints.Any(w => w is not null);
-        if (anySet)
+        var setCount = _config.Waypoints.Count(w => w is not null);
+        if (setCount > 0)
         {
             AddMenuSeparator();
             for (var i = 0; i < SlotNames.Length; i++)
@@ -445,9 +460,11 @@ public partial class MinimapWindow : OverlayWindowBase
                 var slot = i;
                 AddMenuItem($"Clear {SlotNames[i].ToLowerInvariant()}", null, () => SetSlot(slot, null));
             }
+            if (setCount > 1) AddMenuItem("Clear all waypoints", null, ClearAllSlots);
         }
 
         AddMenuSeparator();
+        AddMenuItem("Copy this spot", null, CopySpot);
         AddMenuItem("Copy my position", null, CopyPosition, enabled: _lastWorld is not null);
         var target = PasteTarget();
         AddMenuItem($"Paste waypoint → {SlotNames[target].ToLowerInvariant()}", SlotBrushes[target], PasteWaypoint,
@@ -486,6 +503,28 @@ public partial class MinimapWindow : OverlayWindowBase
         _config.Waypoints[slot] = world is { } w ? new WaypointSlot(w.X, w.Y) : null; // persisted with the next Save()
         UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
         UpdateFooter();
+    }
+
+    private void ClearAllSlots()
+    {
+        Array.Fill(_config.Waypoints, null);
+        UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
+        UpdateFooter();
+    }
+
+    /// <summary>"Meet here": the right-clicked point (or the marker under it) as a share code.</summary>
+    private void CopySpot()
+    {
+        if (_menuWorld is not { } spot) return;
+        try
+        {
+            Clipboard.SetText(ShareCode.Format(spot.X, spot.Y));
+            ShowNotice("spot copied");
+        }
+        catch
+        {
+            ShowNotice("couldn't reach the clipboard");
+        }
     }
 
     /// <summary>The first empty slot, else blue: what a paste replaces.</summary>
