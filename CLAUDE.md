@@ -353,10 +353,29 @@ references — keep it that way. Every overlay window derives from
   always shows the active view (+ zoom when centered).
   `MinimapYawOffsetDegrees` corrects arrow orientation (default 90 — verified
   in-game, Sep 2026). Shown/hidden via the control panel
-  (`MinimapEnabled`). Waypoint: right-click in edit
-  mode places/moves it (stored as world cm in config — persists), right-click
-  on the marker clears it; blue diamond, edge-clamped in the centered view,
-  distance appended to the footer (◆ 830m / ◆ 1.2km). Optional heatmap
+  (`MinimapEnabled`). Waypoints (v1.20): three slots
+  (`config.Waypoints`, blue/green/purple, world cm, persist — the pre-1.20
+  single `WaypointX/Y` migrates into blue in `OverlayConfig.Load`), each a
+  diamond in its colour, edge-clamped in the centered view. Set from the
+  edit-mode right-click **map menu** (`MapMenu`, a WPF Popup declared as
+  the window's Tag so it lives outside the layout — a popup is its own
+  HWND, so the minimap never changes size, which is the owner's rule for
+  every widget; items are built in code with the control panel's glow
+  look, `MenuButton`): "<Colour> waypoint here" ×3 first so placing stays
+  right-click + click on the point captured at open (`_menuWorld`), then
+  Clear per set slot, then share-a-spot: "Copy my position" (a
+  `ShareCode` on the clipboard) and "Paste waypoint → <slot>" (first empty
+  slot, else blue; enabled only when the clipboard holds a code). Owner
+  chose three coloured slots over typed names (a text box inside a game
+  overlay fights the game for focus). Clipboard calls are wrapped: it is
+  a shared resource another app can hold. The footer shows the NEAREST
+  set slot in its colour with the distance, plus "~N min" while the
+  closing speed toward it is ≥ 0.3 m/s (from `SpeedTracker`); a 3 s
+  `_notice` (copied / pasted / nothing to paste) replaces the line
+  briefly. Heading + speed pill (`MinimapSpeedEnabled`, default on):
+  bottom-right, the scale bar's twin — `Compass.Letter` of the arrow's
+  screen heading (body yaw + `MinimapYawOffsetDegrees`, so relative to
+  the dino's body, not the free-look camera) and km/h. Optional heatmap
   layer (`HeatmapEnabled`): the site's pre-rendered heatmap PNG (opaque —
   grayscale map, blobs and a player-count caption baked in) as a second
   Image sharing the map image's size and translate transform, blended at
@@ -374,7 +393,7 @@ references — keep it that way. Every overlay window derives from
   heatmap's baked caption owns the top-left; `UpdateScaleBar` runs from
   `ApplyViewMode` and `OnCalibrationChanged`, budget = 30% of the map
   width capped at 80 px. `ToFraction` is the one world→map-fraction
-  transform (arrow, waypoint, trail).
+  transform (arrow, waypoints, trail).
 - **BreadcrumbTrail.cs** — pure, tested path store in world cm: a point
   per poll once moved ≥ 5 m, expiry by age, reset on death/dino swap
   (identity / growth decrease, like the trackers) and on a jump no dino
@@ -385,6 +404,17 @@ references — keep it that way. Every overlay window derives from
   (not hide-all, which only hides) starts it over.
 - **ScaleBar.cs** — pure, tested: largest 1-2-5 × 10ⁿ metres fitting a
   pixel budget, + the "500 m" / "2 km" label.
+- **SpeedTracker.cs** — pure, tested: path length over a 15 s window of
+  positions → m/s (zig-zags count as path, not displacement), and
+  `ClosingMps(target)` — signed approach speed for the waypoint ETA. A
+  jump > 60 m/s or a gap longer than the window restarts it, so a respawn
+  or resumed idle polling never reads as a dash.
+- **Compass.cs** — eight-point letter for a screen heading (0 = north,
+  clockwise, matching the arrow's RotateTransform).
+- **ShareCode.cs** — the share-a-spot text: `pandora:<x>,<y>` in METRES
+  (short, no decimals), parsed forgivingly (prefix optional, may sit
+  inside a longer message, |value| ≤ 50 km). Pure, tested, invariant
+  culture both ways.
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
   ten ✓/✗ condition rows (texts baked in — the site bakes them into its
   frontend too, the API only returns flags) + a two-line footer (what the
@@ -443,7 +473,8 @@ references — keep it that way. Every overlay window derives from
   and reassign our own combos) and restores them in a finally on close.
   The Minimap section holds size, view mode, centered zoom, the trail
   length (radio buttons, not a ComboBox — stock ComboBox chrome is light
-  and ignores Background) and the scale-bar checkbox — NOT the
+  and ignores Background), the scale-bar checkbox and the heading/speed
+  checkbox — NOT the
   heatmap on/off (removed Sep 2026: something you flip is not a preference,
   see the surface rules under Conventions).
   Save writes config + Run key and sets Cookie/Hotkey/Minimap/Appearance

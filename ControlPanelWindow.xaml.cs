@@ -69,7 +69,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
     public void ApplySettingsFromConfig() => ApplyAppearance(_config);
 
     public void SetHotkeyLabel(string hotkey) =>
-        HintText.Text = $"drag panels to move · right-click map = waypoint · {hotkey} locks";
+        HintText.Text = $"drag panels to move · right-click map = waypoints · {hotkey} locks";
 
     protected override void OnEditModeChanged(bool editMode)
     {

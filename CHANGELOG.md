@@ -5,6 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Three waypoint slots on the minimap — blue, green, purple — set and
+  cleared from a new right-click menu in edit mode ("Blue waypoint here",
+  and so on; placing is still right-click then one click). The footer shows
+  the nearest one in its colour, and while you're heading for it, an ETA at
+  your current pace ("◆ 1.2 km · ~6 min"). Your existing waypoint becomes
+  the blue one.
+- Share a spot: "Copy my position" in the map menu puts a short code
+  (`pandora:62,-3168`) on the clipboard to send over voice or chat, and
+  "Paste waypoint" turns a received code into a waypoint (first empty
+  slot, else blue). A snapshot of a position, nothing is tracked and
+  nothing goes to the site.
+- Heading and speed pill in the minimap's bottom-right corner: compass
+  heading and km/h from your last few positions. "Show heading and speed"
+  in Settings turns it off.
+
+### Changed
+
+- Right-clicking the minimap in edit mode opens the map menu instead of
+  placing the waypoint directly, and right-clicking a marker no longer
+  clears it — use the menu's Clear entries.
+
 ## [1.19.0] - 2026-09-24
 
 ### Added

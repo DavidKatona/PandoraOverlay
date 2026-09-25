@@ -310,6 +310,8 @@
             </StackPanel>
             <CheckBox x:Name="ScaleBarCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
                       Content="Show scale bar"/>
+            <CheckBox x:Name="SpeedCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Show heading and speed"/>
 
             <!-- ============================ Prime tracker ================== -->
             <TextBlock Style="{StaticResource SectionHeader}" Text="PRIME TRACKER"/>

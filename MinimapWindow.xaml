@@ -16,6 +16,44 @@
         MouseRightButtonDown="Window_MouseRightButtonDown"
         MouseWheel="Window_MouseWheel">
 
+    <Window.Resources>
+        <!-- Map menu entries: the control panel's glow-overlay look, left-aligned. -->
+        <Style x:Key="MenuButton" TargetType="Button">
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Margin" Value="0,0,0,1"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#C7D1DA"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="HoverGlow" Background="#2EFFFFFF" CornerRadius="2"
+                                    Visibility="Collapsed"/>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="HoverGlow" Property="Background" Value="#4DFFFFFF"/>
+                                <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#5E6B76"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Border x:Name="RootPanel"
             CornerRadius="10"
             Background="#CC10151B"
@@ -52,11 +90,19 @@
                               StrokeLineJoin="Round" Opacity="0.85"/>
                 </Canvas>
                 <Canvas>
-                    <Path x:Name="WaypointMark"
+                    <!-- Three waypoint slots: blue, green, purple (colours matched
+                         in the footer and the map menu). Positioned in code. -->
+                    <Path x:Name="WaypointBlue"
                           Data="M 0,-7 L 7,0 L 0,7 L -7,0 Z"
-                          Fill="#4FC3F7"
-                          Stroke="#990A1520"
-                          StrokeThickness="1.5"
+                          Fill="#4FC3F7" Stroke="#990A1520" StrokeThickness="1.5"
+                          Visibility="Collapsed"/>
+                    <Path x:Name="WaypointGreen"
+                          Data="M 0,-7 L 7,0 L 0,7 L -7,0 Z"
+                          Fill="#81C784" Stroke="#990A1520" StrokeThickness="1.5"
+                          Visibility="Collapsed"/>
+                    <Path x:Name="WaypointPurple"
+                          Data="M 0,-7 L 7,0 L 0,7 L -7,0 Z"
+                          Fill="#CE93D8" Stroke="#990A1520" StrokeThickness="1.5"
                           Visibility="Collapsed"/>
                     <Path x:Name="PlayerArrow"
                           Data="M 0,-8 L 6,7 L 0,3.5 L -6,7 Z"
@@ -82,12 +128,31 @@
                                 BorderBrush="#ECF2F8" BorderThickness="1.5,0,1.5,1.5"/>
                     </StackPanel>
                 </Border>
+                <!-- Heading + speed: bottom-right, the scale bar's twin. -->
+                <Border x:Name="SpeedPanel"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6"
+                        Background="#9910151B" CornerRadius="4" Padding="5,2"
+                        IsHitTestVisible="False" Visibility="Collapsed">
+                    <TextBlock x:Name="SpeedText" Foreground="#ECF2F8" FontSize="9"/>
+                </Border>
             </Grid>
 
-            <!-- Mode footer: which view is active (and the zoom, in centered mode) -->
+            <!-- Footer: view (+ zoom when centered) · nearest waypoint distance and ETA; built in code. -->
             <TextBlock x:Name="ModeFooter"
                        Foreground="#7B8790" FontSize="10" Margin="0,5,0,0"
                        HorizontalAlignment="Center"/>
         </StackPanel>
     </Border>
+
+    <!-- Edit-mode right-click menu on the map. A popup is its own window, so
+         the minimap's size never changes with it. Items are built in code. -->
+    <local:OverlayWindowBase.Tag>
+        <Popup x:Name="MapMenu" StaysOpen="False" AllowsTransparency="True"
+               Placement="MousePoint" PopupAnimation="Fade">
+            <Border Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
+                    CornerRadius="6" Padding="4" MinWidth="170">
+                <StackPanel x:Name="MapMenuItems"/>
+            </Border>
+        </Popup>
+    </local:OverlayWindowBase.Tag>
 </local:OverlayWindowBase>

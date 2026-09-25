@@ -14,6 +14,9 @@ namespace PandoraOverlay;
 /// and the plaintext field is blanked. Only your Windows account on this
 /// machine can decrypt the blob.
 /// </summary>
+/// <summary>One minimap waypoint slot, world coordinates in cm.</summary>
+public sealed record WaypointSlot(double X, double Y);
+
 public sealed class OverlayConfig
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
@@ -153,13 +156,22 @@ public sealed class OverlayConfig
     public MapCalibration? Calibration { get; set; }
 
     /// <summary>
-    /// Minimap waypoint in world coordinates (cm); null = none. Right-click
-    /// the minimap in edit mode to place/move it, right-click the marker to
-    /// clear it. Persists across restarts.
+    /// The pre-v1.20 single waypoint. Load() moves it into Waypoints[0]
+    /// (blue) and blanks it; kept only so older configs still parse.
     /// </summary>
     public double? WaypointX { get; set; }
 
     public double? WaypointY { get; set; }
+
+    /// <summary>
+    /// The three minimap waypoint slots — blue, green, purple — in world cm;
+    /// null = empty. Set from the map's right-click menu in edit mode (or
+    /// pasted from a share code). Always exactly three; persists.
+    /// </summary>
+    public WaypointSlot?[] Waypoints { get; set; } = new WaypointSlot?[3];
+
+    /// <summary>Show the heading + speed pill in the minimap's bottom-right corner. Checkbox in Settings.</summary>
+    public bool MinimapSpeedEnabled { get; set; } = true;
 
     /// <summary>Edit-mode control panel position; null until first moved (defaults to bottom-center).</summary>
     public double? ControlPanelX { get; set; }
@@ -284,6 +296,20 @@ public sealed class OverlayConfig
         }
 
         cfg.PrimeScale ??= cfg.UiScale;
+
+        // Waypoint slots: always three (a hand-edited array is padded or
+        // trimmed), and the pre-v1.20 single waypoint becomes the blue one.
+        if (cfg.Waypoints is not { Length: 3 })
+        {
+            var slots = new WaypointSlot?[3];
+            if (cfg.Waypoints is not null) Array.Copy(cfg.Waypoints, slots, Math.Min(3, cfg.Waypoints.Length));
+            cfg.Waypoints = slots;
+        }
+        if (cfg.WaypointX is { } wx && cfg.WaypointY is { } wy)
+        {
+            cfg.Waypoints[0] ??= new WaypointSlot(wx, wy);
+            cfg.WaypointX = cfg.WaypointY = null;
+        }
 
         cfg.Save();
         return cfg;

@@ -119,6 +119,7 @@ public partial class SettingsWindow : Window
         var trailRadio = config.MinimapTrailMinutes switch { <= 0 => TrailOff, <= 10 => Trail10, <= 30 => Trail30, _ => Trail60 };
         trailRadio.IsChecked = true;
         ScaleBarCheck.IsChecked = config.MinimapScaleBarEnabled;
+        SpeedCheck.IsChecked = config.MinimapSpeedEnabled;
 
         Validate();
     }
@@ -383,17 +384,20 @@ public partial class SettingsWindow : Window
         var mapSize = Math.Round(MapSizeSlider.Value);
         var trail = TrailOff.IsChecked == true ? 0 : Trail10.IsChecked == true ? 10 : Trail30.IsChecked == true ? 30 : 60;
         var scaleBar = ScaleBarCheck.IsChecked == true;
+        var speed = SpeedCheck.IsChecked == true;
         if (mode != _config.MinimapMode ||
             Math.Abs(zoom - _config.MinimapZoom) > 0.005 ||
             Math.Abs(mapSize - _config.MinimapSize) > 0.5 ||
             trail != _config.MinimapTrailMinutes ||
-            scaleBar != _config.MinimapScaleBarEnabled)
+            scaleBar != _config.MinimapScaleBarEnabled ||
+            speed != _config.MinimapSpeedEnabled)
         {
             _config.MinimapMode = mode;
             _config.MinimapZoom = zoom;
             _config.MinimapSize = mapSize;
             _config.MinimapTrailMinutes = trail;
             _config.MinimapScaleBarEnabled = scaleBar;
+            _config.MinimapSpeedEnabled = speed;
             MinimapChanged = true;
         }
 

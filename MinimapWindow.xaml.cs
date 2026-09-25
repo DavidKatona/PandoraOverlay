@@ -1,9 +1,12 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace PandoraOverlay;
 
@@ -13,10 +16,11 @@ namespace PandoraOverlay;
 ///  - "centered": the map is rendered at MinimapSize × zoom and pans under an
 ///    arrow fixed at the panel centre. No pan clamping — near coasts the view
 ///    simply runs into the map image's own ocean border.
-/// A personal waypoint (right-click in edit mode: place/move; right-click the
-/// marker: clear) is stored in world coordinates, drawn as a blue diamond
-/// (edge-clamped in the centered view when off-screen), with the distance in
-/// the footer. An optional heatmap layer (HeatmapEnabled) blends the site's
+/// Three waypoint slots (blue, green, purple — set, cleared, copied and pasted
+/// from the edit-mode right-click menu) are stored in world coordinates and
+/// drawn as diamonds (edge-clamped in the centered view when off-screen), the
+/// nearest one's distance and ETA in the footer; a heading + speed pill sits
+/// bottom-right. An optional heatmap layer (HeatmapEnabled) blends the site's
 /// pre-rendered activity image over the map, delivered by PollService's slow
 /// timer. A breadcrumb trail (MinimapTrailMinutes) draws the recent path and
 /// a scale bar (MinimapScaleBarEnabled) sits bottom-left — both computed
@@ -32,7 +36,6 @@ public partial class MinimapWindow : OverlayWindowBase
     private const double MinMapSize = 160;
     private const double MaxMapSize = 400;
     private const double WaypointMargin = 8; // edge-clamp inset for the off-screen indicator
-    private const double ClearRadius = 12;   // right-click this close to the marker removes it
     private const double MaxScaleBarPixels = 80; // the bar takes ≤ 30% of the map's width, and never more than this
 
     private readonly OverlayConfig _config;
@@ -41,7 +44,24 @@ public partial class MinimapWindow : OverlayWindowBase
     private readonly RotateTransform _arrowRotate = new();
     private readonly TranslateTransform _arrowTranslate = new();
     private readonly TranslateTransform _mapTranslate = new();
-    private readonly TranslateTransform _waypointTranslate = new();
+
+    // ---- Waypoint slots, heading/speed, map menu ----------------------------
+    private static readonly Brush[] SlotBrushes =
+    {
+        new SolidColorBrush(Color.FromRgb(0x4F, 0xC3, 0xF7)), // blue
+        new SolidColorBrush(Color.FromRgb(0x81, 0xC7, 0x84)), // green
+        new SolidColorBrush(Color.FromRgb(0xCE, 0x93, 0xD8))  // purple
+    };
+    private static readonly string[] SlotNames = { "Blue", "Green", "Purple" };
+    private const double MinClosingMps = 0.3;  // slower than this toward a waypoint = no ETA worth showing
+    private static readonly TimeSpan NoticeHold = TimeSpan.FromSeconds(3);
+
+    private readonly System.Windows.Shapes.Path[] _marks;
+    private readonly TranslateTransform[] _markTranslate = { new(), new(), new() };
+    private readonly SpeedTracker _speed = new();
+    private readonly DispatcherTimer _noticeTimer;
+    private (double X, double Y)? _menuWorld; // the map point under the cursor when the menu opened
+    private string? _notice;                  // a brief footer message (copied / pasted / nothing to paste)
     private bool _centered;
     private double _zoom;
     private bool _hasFix;                                 // false → next render snaps instead of gliding
@@ -78,7 +98,15 @@ public partial class MinimapWindow : OverlayWindowBase
         {
             Children = { _arrowRotate, _arrowTranslate }
         };
-        WaypointMark.RenderTransform = _waypointTranslate;
+        _marks = new[] { WaypointBlue, WaypointGreen, WaypointPurple };
+        for (var i = 0; i < _marks.Length; i++) _marks[i].RenderTransform = _markTranslate[i];
+        _noticeTimer = new DispatcherTimer { Interval = NoticeHold };
+        _noticeTimer.Tick += (_, _) =>
+        {
+            _noticeTimer.Stop();
+            _notice = null;
+            UpdateFooter();
+        };
 
         ApplyViewMode();
 
@@ -139,6 +167,7 @@ public partial class MinimapWindow : OverlayWindowBase
         if (TrailKeep <= TimeSpan.Zero) _trail.Reset(); // switched off: forget the path, not just hide it
         ApplyAppearance(_config);
         ApplyViewMode();
+        UpdateSpeedPill();
     }
 
     /// <summary>Fresh heatmap bytes from PollService's slow timer; null hides the layer.</summary>
@@ -205,8 +234,11 @@ public partial class MinimapWindow : OverlayWindowBase
         _arrowTranslate.BeginAnimation(TranslateTransform.YProperty, null);
         _mapTranslate.BeginAnimation(TranslateTransform.XProperty, null);
         _mapTranslate.BeginAnimation(TranslateTransform.YProperty, null);
-        _waypointTranslate.BeginAnimation(TranslateTransform.XProperty, null);
-        _waypointTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+        foreach (var t in _markTranslate)
+        {
+            t.BeginAnimation(TranslateTransform.XProperty, null);
+            t.BeginAnimation(TranslateTransform.YProperty, null);
+        }
         _arrowRotate.BeginAnimation(RotateTransform.AngleProperty, null);
     }
 
@@ -220,6 +252,8 @@ public partial class MinimapWindow : OverlayWindowBase
             _hasFix = false;
             _lastFix = null;
             _lastWorld = null;
+            _speed.Reset();
+            UpdateSpeedPill();
             PlayerArrow.Visibility = Visibility.Collapsed;
             MapStatus.Text = cal is null ? "waiting for map calibration…" : "not in-game";
             MapStatus.Visibility = Visibility.Visible;
@@ -230,11 +264,13 @@ public partial class MinimapWindow : OverlayWindowBase
 
         var p = result.Player;
         _lastWorld = (p.X, p.Y);
+        _speed.Add(p.X, p.Y); // before the footer renders: the ETA reads it
         var (fx, fy) = ToFraction(cal, p.X, p.Y);
         _lastFix = (fx, fy, p.Yaw + _config.MinimapYawOffsetDegrees);
         if (TrailKeep > TimeSpan.Zero) _trail.Add(p, TrailKeep);
         RenderTrail();
         RenderLastFix();
+        UpdateSpeedPill();
     }
 
     /// <summary>World cm → map fractions (0–1, y flipped) — mirrors the live-map frontend, pinOffset included.</summary>
@@ -353,58 +389,174 @@ public partial class MinimapWindow : OverlayWindowBase
         UpdateFooter();
     }
 
-    // ---- Waypoint -----------------------------------------------------------
+    // ---- Map menu (edit mode, right-click) ------------------------------------
     private void Window_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (!EditMode || _poll.Calibration is not { } cal) return;
         var pos = e.GetPosition(MapHost);
         var size = MapHost.Width;
-        if (pos.X < 0 || pos.Y < 0 || pos.X > size || pos.Y > size) return; // banner/footer, not the map
+        if (pos.X < 0 || pos.Y < 0 || pos.X > size || pos.Y > size) return; // footer, not the map
 
-        // Right-click on (or near) the existing marker clears it.
-        if (WaypointMark.Visibility == Visibility.Visible &&
-            Math.Abs(pos.X - _waypointTranslate.X) < ClearRadius &&
-            Math.Abs(pos.Y - _waypointTranslate.Y) < ClearRadius)
+        // Inverse of the calibration transform: panel point → map fraction → world cm.
+        double fx, fy;
+        if (_centered)
         {
-            _config.WaypointX = _config.WaypointY = null;
+            var mapSize = size * _zoom;
+            fx = (pos.X - _mapTranslate.X) / mapSize;
+            fy = (pos.Y - _mapTranslate.Y) / mapSize;
         }
         else
         {
-            double fx, fy;
-            if (_centered)
-            {
-                var mapSize = size * _zoom;
-                fx = (pos.X - _mapTranslate.X) / mapSize;
-                fy = (pos.Y - _mapTranslate.Y) / mapSize;
-            }
-            else
-            {
-                fx = pos.X / size;
-                fy = pos.Y / size;
-            }
-            fx = Math.Clamp(fx, 0, 1);
-            fy = Math.Clamp(fy, 0, 1);
-
-            // Inverse of the calibration transform: map fraction → world cm.
-            _config.WaypointX = (fx * cal.MapSize - cal.OffsetX - cal.PinOffsetX) / cal.ScaleX;
-            _config.WaypointY = ((1 - fy) * cal.MapSize - cal.OffsetY - cal.PinOffsetY) / cal.ScaleY;
+            fx = pos.X / size;
+            fy = pos.Y / size;
         }
+        fx = Math.Clamp(fx, 0, 1);
+        fy = Math.Clamp(fy, 0, 1);
+        _menuWorld = ((fx * cal.MapSize - cal.OffsetX - cal.PinOffsetX) / cal.ScaleX,
+                      ((1 - fy) * cal.MapSize - cal.OffsetY - cal.PinOffsetY) / cal.ScaleY);
 
-        UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
-        UpdateFooter();
+        BuildMapMenu();
+        MapMenu.IsOpen = true;
         e.Handled = true;
     }
 
-    /// <summary>The waypoint's map fractions (0–1), or null when unset/no calibration.</summary>
-    private (double Fx, double Fy)? WaypointFraction()
+    /// <summary>
+    /// Rebuilds the menu for the current state: a "here" entry per slot first
+    /// (so placing stays right-click + click), Clear for the set ones, then
+    /// share-a-spot. Paste goes to the first empty slot, else blue — the
+    /// entry says which.
+    /// </summary>
+    private void BuildMapMenu()
     {
-        if (_config.WaypointX is not { } wx || _config.WaypointY is not { } wy ||
-            _poll.Calibration is not { } cal)
+        MapMenuItems.Children.Clear();
+        for (var i = 0; i < SlotNames.Length; i++)
         {
-            return null;
+            var slot = i;
+            AddMenuItem($"{SlotNames[i]} waypoint here", SlotBrushes[i], () => SetSlot(slot, _menuWorld));
         }
-        return ToFraction(cal, wx, wy);
+
+        var anySet = _config.Waypoints.Any(w => w is not null);
+        if (anySet)
+        {
+            AddMenuSeparator();
+            for (var i = 0; i < SlotNames.Length; i++)
+            {
+                if (_config.Waypoints[i] is null) continue;
+                var slot = i;
+                AddMenuItem($"Clear {SlotNames[i].ToLowerInvariant()}", null, () => SetSlot(slot, null));
+            }
+        }
+
+        AddMenuSeparator();
+        AddMenuItem("Copy my position", null, CopyPosition, enabled: _lastWorld is not null);
+        var target = PasteTarget();
+        AddMenuItem($"Paste waypoint → {SlotNames[target].ToLowerInvariant()}", SlotBrushes[target], PasteWaypoint,
+                    enabled: ClipboardHasCode());
     }
+
+    private void AddMenuItem(string text, Brush? dot, Action onClick, bool enabled = true)
+    {
+        var content = new StackPanel { Orientation = Orientation.Horizontal };
+        if (dot is not null)
+        {
+            content.Children.Add(new System.Windows.Shapes.Ellipse
+            {
+                Width = 8, Height = 8, Fill = dot, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center
+            });
+        }
+        content.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center });
+
+        var button = new Button { Content = content, Style = (Style)FindResource("MenuButton"), IsEnabled = enabled };
+        button.Click += (_, _) =>
+        {
+            MapMenu.IsOpen = false;
+            onClick();
+        };
+        MapMenuItems.Children.Add(button);
+    }
+
+    private void AddMenuSeparator() =>
+        MapMenuItems.Children.Add(new Border
+        {
+            Height = 1, Background = BorderLocked, Margin = new Thickness(4, 3, 4, 3)
+        });
+
+    private void SetSlot(int slot, (double X, double Y)? world)
+    {
+        _config.Waypoints[slot] = world is { } w ? new WaypointSlot(w.X, w.Y) : null; // persisted with the next Save()
+        UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
+        UpdateFooter();
+    }
+
+    /// <summary>The first empty slot, else blue: what a paste replaces.</summary>
+    private int PasteTarget()
+    {
+        var empty = Array.FindIndex(_config.Waypoints, w => w is null);
+        return empty < 0 ? 0 : empty;
+    }
+
+    private static bool ClipboardHasCode()
+    {
+        try
+        {
+            return Clipboard.ContainsText() && ShareCode.TryParse(Clipboard.GetText(), out _, out _);
+        }
+        catch
+        {
+            return false; // the clipboard is a shared resource; another app can hold it briefly
+        }
+    }
+
+    private void CopyPosition()
+    {
+        if (_lastWorld is not { } p) return;
+        try
+        {
+            Clipboard.SetText(ShareCode.Format(p.X, p.Y));
+            ShowNotice("position copied");
+        }
+        catch
+        {
+            ShowNotice("couldn't reach the clipboard");
+        }
+    }
+
+    private void PasteWaypoint()
+    {
+        string text;
+        try
+        {
+            text = Clipboard.GetText();
+        }
+        catch
+        {
+            ShowNotice("couldn't reach the clipboard");
+            return;
+        }
+        if (!ShareCode.TryParse(text, out var x, out var y))
+        {
+            ShowNotice("no position in the clipboard");
+            return;
+        }
+        var slot = PasteTarget();
+        SetSlot(slot, (x, y));
+        ShowNotice($"waypoint pasted → {SlotNames[slot].ToLowerInvariant()}");
+    }
+
+    /// <summary>A short footer message in place of the usual line; the next poll or the timer restores it.</summary>
+    private void ShowNotice(string text)
+    {
+        _notice = text;
+        _noticeTimer.Stop();
+        _noticeTimer.Start();
+        UpdateFooter();
+    }
+
+    // ---- Waypoints ----------------------------------------------------------
+
+    /// <summary>A slot's map fractions (0–1), or null when empty / no calibration.</summary>
+    private (double Fx, double Fy)? SlotFraction(int slot) =>
+        _config.Waypoints[slot] is { } w && _poll.Calibration is { } cal ? ToFraction(cal, w.X, w.Y) : null;
 
     /// <summary>
     /// Positions the marker for the given map translation (targets during a
@@ -413,51 +565,103 @@ public partial class MinimapWindow : OverlayWindowBase
     /// </summary>
     private void UpdateWaypointVisual(double mapTx, double mapTy, TimeSpan? glide)
     {
-        if (WaypointFraction() is not { } f)
-        {
-            WaypointMark.Visibility = Visibility.Collapsed;
-            return;
-        }
-
         var size = MapHost.Width;
-        double x, y;
-        if (_centered)
+        for (var i = 0; i < _marks.Length; i++)
         {
-            var mapSize = size * _zoom;
-            x = Math.Clamp(f.Fx * mapSize + mapTx, WaypointMargin, size - WaypointMargin);
-            y = Math.Clamp(f.Fy * mapSize + mapTy, WaypointMargin, size - WaypointMargin);
-        }
-        else
-        {
-            x = f.Fx * size;
-            y = f.Fy * size;
-        }
+            if (SlotFraction(i) is not { } f)
+            {
+                _marks[i].Visibility = Visibility.Collapsed;
+                continue;
+            }
 
-        WaypointMark.Visibility = Visibility.Visible;
-        if (glide is { } d)
-        {
-            Animate(_waypointTranslate, TranslateTransform.XProperty, x, d);
-            Animate(_waypointTranslate, TranslateTransform.YProperty, y, d);
-        }
-        else
-        {
-            _waypointTranslate.BeginAnimation(TranslateTransform.XProperty, null);
-            _waypointTranslate.BeginAnimation(TranslateTransform.YProperty, null);
-            _waypointTranslate.X = x;
-            _waypointTranslate.Y = y;
+            double x, y;
+            if (_centered)
+            {
+                var mapSize = size * _zoom;
+                x = Math.Clamp(f.Fx * mapSize + mapTx, WaypointMargin, size - WaypointMargin);
+                y = Math.Clamp(f.Fy * mapSize + mapTy, WaypointMargin, size - WaypointMargin);
+            }
+            else
+            {
+                x = f.Fx * size;
+                y = f.Fy * size;
+            }
+
+            _marks[i].Visibility = Visibility.Visible;
+            var t = _markTranslate[i];
+            if (glide is { } d)
+            {
+                Animate(t, TranslateTransform.XProperty, x, d);
+                Animate(t, TranslateTransform.YProperty, y, d);
+            }
+            else
+            {
+                t.BeginAnimation(TranslateTransform.XProperty, null);
+                t.BeginAnimation(TranslateTransform.YProperty, null);
+                t.X = x;
+                t.Y = y;
+            }
         }
     }
 
-    /// <summary>View mode (+ zoom when centered), plus waypoint distance when both ends are known.</summary>
+    /// <summary>The nearest set waypoint to the player: slot index and metres.</summary>
+    private (int Slot, double Meters)? NearestWaypoint()
+    {
+        if (_lastWorld is not { } p) return null;
+        (int Slot, double Meters)? best = null;
+        for (var i = 0; i < _config.Waypoints.Length; i++)
+        {
+            if (_config.Waypoints[i] is not { } w) continue;
+            var meters = Math.Sqrt(Math.Pow(w.X - p.X, 2) + Math.Pow(w.Y - p.Y, 2)) / 100;
+            if (best is null || meters < best.Value.Meters) best = (i, meters);
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// View mode (+ zoom when centered), then the nearest waypoint in its
+    /// colour with the distance and, while actually closing on it, the ETA
+    /// at the current pace. A notice (copied / pasted) replaces the line
+    /// briefly.
+    /// </summary>
     private void UpdateFooter()
     {
-        var text = _centered ? $"centered · {_zoom:0.##}×" : "island view";
-        if (_config.WaypointX is { } wx && _config.WaypointY is { } wy && _lastWorld is { } p)
+        ModeFooter.Inlines.Clear();
+        if (_notice is not null)
         {
-            var meters = Math.Sqrt(Math.Pow(wx - p.X, 2) + Math.Pow(wy - p.Y, 2)) / 100;
-            text += meters >= 1000 ? $" · ◆ {meters / 1000:0.0}km" : $" · ◆ {meters:0}m";
+            ModeFooter.Inlines.Add(_notice);
+            return;
         }
-        ModeFooter.Text = text;
+
+        ModeFooter.Inlines.Add(_centered ? $"centered · {_zoom:0.##}×" : "island view");
+        if (NearestWaypoint() is not { } near || _config.Waypoints[near.Slot] is not { } w) return;
+
+        ModeFooter.Inlines.Add(" · ");
+        ModeFooter.Inlines.Add(new Run("◆") { Foreground = SlotBrushes[near.Slot] });
+        var text = near.Meters >= 1000 ? $" {near.Meters / 1000:0.0} km" : $" {near.Meters:0} m";
+        if (_speed.ClosingMps(w.X, w.Y) is { } closing && closing >= MinClosingMps)
+        {
+            text += $" · ~{FormatEta(TimeSpan.FromSeconds(near.Meters / closing))}";
+        }
+        ModeFooter.Inlines.Add(text);
+    }
+
+    private static string FormatEta(TimeSpan eta) =>
+        eta.TotalMinutes < 1 ? "<1 min"
+        : eta.TotalHours < 1 ? $"{eta.TotalMinutes:0} min"
+        : $"{(int)eta.TotalHours} h {eta.Minutes:00} min";
+
+    /// <summary>Bottom-right pill: compass letter from the arrow's heading, and km/h once the speed is known.</summary>
+    private void UpdateSpeedPill()
+    {
+        if (!_config.MinimapSpeedEnabled || _lastFix is not { } fix)
+        {
+            SpeedPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+        var heading = Compass.Letter(fix.Yaw);
+        SpeedText.Text = _speed.SpeedMps is { } mps ? $"{heading} · {mps * 3.6:0} km/h" : heading;
+        SpeedPanel.Visibility = Visibility.Visible;
     }
 
     private void AnimateYaw(double yaw, TimeSpan duration)
