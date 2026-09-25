@@ -871,16 +871,19 @@ public partial class MinimapWindow : OverlayWindowBase
             return;
         }
 
+        // The diamond AND the name in the waypoint's colour, then a separator
+        // before the distance: "Waypoint 6 150 m" read as one number.
         ModeFooter.Inlines.Add(" · ");
-        ModeFooter.Inlines.Add(new Run("◆") { Foreground = PaletteBrushes[WaypointPalette.Wrap(subject.Colour)] });
-        var text = " " + Short(subject.Name);
-        if (meters is { } m)
+        ModeFooter.Inlines.Add(new Run("◆ " + Short(subject.Name))
         {
-            text += m >= 1000 ? $" {m / 1000:0.0} km" : $" {m:0} m";
-            if (_speed.ClosingMps(subject.X, subject.Y) is { } closing && closing >= MinClosingMps)
-            {
-                text += $" · ~{FormatEta(TimeSpan.FromSeconds(m / closing))}";
-            }
+            Foreground = PaletteBrushes[WaypointPalette.Wrap(subject.Colour)]
+        });
+        if (meters is not { } m) return;
+
+        var text = m >= 1000 ? $" · {m / 1000:0.0} km" : $" · {m:0} m";
+        if (_speed.ClosingMps(subject.X, subject.Y) is { } closing && closing >= MinClosingMps)
+        {
+            text += $" · ~{FormatEta(TimeSpan.FromSeconds(m / closing))}";
         }
         ModeFooter.Inlines.Add(text);
     }
