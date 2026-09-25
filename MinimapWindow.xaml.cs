@@ -391,7 +391,14 @@ public partial class MinimapWindow : OverlayWindowBase
     }
 
     // ---- Map menu (edit mode, right-click) ------------------------------------
-    private void Window_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+
+    /// <summary>
+    /// Opens on the button RELEASE, like a Windows context menu: opened on
+    /// the press, the popup's own "click outside closes me" logic took the
+    /// matching release as that outside click, so the menu only survived if
+    /// the button was held until the cursor reached it.
+    /// </summary>
+    private void Window_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (!EditMode || _poll.Calibration is not { } cal) return;
         var pos = e.GetPosition(MapHost);

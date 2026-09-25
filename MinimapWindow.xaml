@@ -13,7 +13,7 @@
         SizeToContent="WidthAndHeight"
         FontFamily="Segoe UI"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
-        MouseRightButtonDown="Window_MouseRightButtonDown"
+        MouseRightButtonUp="Window_MouseRightButtonUp"
         MouseWheel="Window_MouseWheel">
 
     <Window.Resources>

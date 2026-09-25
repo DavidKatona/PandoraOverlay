@@ -361,7 +361,10 @@ references — keep it that way. Every overlay window derives from
   the window's Tag so it lives outside the layout — a popup is its own
   HWND, so the minimap never changes size, which is the owner's rule for
   every widget; items are built in code with the control panel's glow
-  look, `MenuButton`): "<Colour> waypoint here" ×3 first so placing stays
+  look, `MenuButton`; opened on the right-button RELEASE, not the press —
+  opened on the press, StaysOpen=false took the matching release as an
+  outside click and the menu had to be held open until the cursor reached
+  it): "<Colour> waypoint here" ×3 first so placing stays
   right-click + click on the point captured at open (`_menuWorld` —
   snapped to a marker within `SnapRadius`, so a right-click ON a waypoint
   means that waypoint exactly), then Clear per set slot (+ "Clear all"
