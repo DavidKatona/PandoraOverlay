@@ -369,7 +369,14 @@ references — keep it that way. Every overlay window derives from
   panel is focused on open for that) or an entry closes it. A 400 ms
   "swallow the dismissing click" rule was tried and REJECTED (Sep 25
   2026): whether a right-click closed or moved the menu depended on how
-  long the button was held — don't reintroduce timing rules here):
+  long the button was held — don't reintroduce timing rules here.
+  `PopupAnimation="None"` on purpose: Fade flickered on open (traced by
+  elimination, Sep 25 2026 — the Escape focus was cleared first). KNOWN
+  AND ACCEPTED (owner's call, Sep 25 2026): a left click on a widget that
+  closes the menu also reaches that widget's `DragIfEditing`, so the snap
+  guides flash and a moving hand can nudge the widget a pixel; a
+  swallow-the-closing-press flag in OverlayWindowBase was designed and
+  declined as not worth the coupling — don't add it unasked):
   "<Colour> waypoint here" ×3 first so placing stays
   right-click + click on the point captured at open (`_menuWorld` —
   snapped to a marker within `SnapRadius`, so a right-click ON a waypoint

@@ -148,7 +148,7 @@
          the minimap's size never changes with it. Items are built in code. -->
     <local:OverlayWindowBase.Tag>
         <Popup x:Name="MapMenu" StaysOpen="False" AllowsTransparency="True"
-               Placement="MousePoint" PopupAnimation="Fade">
+               Placement="MousePoint" PopupAnimation="None">
             <Border x:Name="MapMenuPanel" Focusable="True" PreviewKeyDown="MapMenu_PreviewKeyDown"
                     Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
                     CornerRadius="6" Padding="4" MinWidth="170">
