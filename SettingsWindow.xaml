@@ -46,6 +46,37 @@
             </Setter>
         </Style>
 
+        <!-- Same reason as SaveButtonStyle, in red: "Delete all" is disabled
+             while the library is empty, and stock chrome paints that near-white. -->
+        <Style x:Key="DangerButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#552B2B"/>
+            <Setter Property="Foreground" Value="#FFDDDD"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="2"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#6E3838"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Background" Value="#2A2022"/>
+                                <Setter Property="Foreground" Value="#6E5A5A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Left-hand navigation: the control panel's glow look, left-aligned;
              the selected page's button is recoloured in code. -->
         <Style x:Key="NavButton" TargetType="Button">
@@ -452,7 +483,7 @@
             </ScrollViewer>
             <DockPanel Margin="0,8,0,0">
                 <Button x:Name="DeleteAllButton" DockPanel.Dock="Right" Content="Delete all" Click="DeleteAll_Click"
-                        Padding="10,4" FontSize="11" Background="#552B2B" Foreground="#FFDDDD" BorderThickness="0"/>
+                        Style="{StaticResource DangerButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="Right-click the minimap in edit mode to add a waypoint where you click. Click a dot to change its colour."
                            Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>

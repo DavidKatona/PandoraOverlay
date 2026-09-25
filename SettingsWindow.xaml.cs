@@ -237,8 +237,7 @@ public partial class SettingsWindow : Window
             var delete = new Button
             {
                 Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
-                Background = new SolidColorBrush(Color.FromRgb(0x55, 0x2B, 0x2B)),
-                Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xDD, 0xDD)), BorderThickness = new Thickness(0),
+                Style = (Style)FindResource("DangerButtonStyle"),
                 HorizontalAlignment = HorizontalAlignment.Right, ToolTip = "Delete"
             };
             delete.Click += (_, _) =>
