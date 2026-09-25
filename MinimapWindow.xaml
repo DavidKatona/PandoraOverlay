@@ -149,7 +149,8 @@
     <local:OverlayWindowBase.Tag>
         <Popup x:Name="MapMenu" StaysOpen="False" AllowsTransparency="True"
                Placement="MousePoint" PopupAnimation="Fade">
-            <Border Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
+            <Border x:Name="MapMenuPanel" Focusable="True" PreviewKeyDown="MapMenu_PreviewKeyDown"
+                    Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
                     CornerRadius="6" Padding="4" MinWidth="170">
                 <StackPanel x:Name="MapMenuItems"/>
             </Border>
