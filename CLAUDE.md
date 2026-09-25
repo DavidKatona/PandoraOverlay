@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.20.1 is built, working, and approved by the server's
+and settings window. **v1.21.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -593,7 +593,9 @@ cooldown-end blink — verified in-game), v1.20.0 (three coloured waypoint
 slots via the edit-mode map menu, share-a-spot codes, heading + speed
 pill, nearest-waypoint ETA; the single waypoint migrated to blue —
 verified in-game), v1.20.1 (waypoint diamonds 14 → 10 px — three at the
-old size crowded the arrow; owner's call).
+old size crowded the arrow; owner's call), v1.21.0 (Settings left-hand
+nav, one page at a time — the base for the waypoint library's page;
+verified in-game).
 
 Later/maybe: friends markers (needs permission first), zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
@@ -659,7 +661,7 @@ re-propose.
 - Keep files well under ~500 lines; current style is regions + XML doc comments.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.20.1.
+  minor, fixes bump patch. Current: 1.21.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
