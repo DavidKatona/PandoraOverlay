@@ -51,8 +51,8 @@
         <Style x:Key="DangerButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#552B2B"/>
             <Setter Property="Foreground" Value="#FFDDDD"/>
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="14,5"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
