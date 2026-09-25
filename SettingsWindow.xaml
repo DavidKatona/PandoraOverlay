@@ -7,7 +7,7 @@
         Background="Transparent"
         WindowStartupLocation="CenterScreen"
         SizeToContent="Height"
-        Width="500"
+        Width="660"
         ResizeMode="NoResize"
         FontFamily="Segoe UI"
         ShowInTaskbar="True">
@@ -46,11 +46,42 @@
             </Setter>
         </Style>
 
-        <Style x:Key="SectionHeader" TargetType="TextBlock">
+        <!-- Left-hand navigation: the control panel's glow look, left-aligned;
+             the selected page's button is recoloured in code. -->
+        <Style x:Key="NavButton" TargetType="Button">
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#C7D1DA"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}" CornerRadius="3"/>
+                            <Border x:Name="HoverGlow" Background="#2EFFFFFF" CornerRadius="3"
+                                    Visibility="Collapsed"/>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PageTitle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#9AA7B0"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Margin" Value="0,16,0,6"/>
+            <Setter Property="Margin" Value="0,4,0,10"/>
         </Style>
 
         <Style x:Key="FieldLabel" TargetType="TextBlock">
@@ -60,7 +91,7 @@
         </Style>
 
         <!-- Slider rows share one label width so every slider in the dialog
-             starts on the same x, whichever section it sits in. -->
+             starts on the same x, whichever page it sits on. -->
         <Style x:Key="SliderLabel" TargetType="TextBlock" BasedOn="{StaticResource FieldLabel}">
             <Setter Property="Width" Value="140"/>
         </Style>
@@ -109,13 +140,11 @@
 
     <Border CornerRadius="10" Background="#F210151B" BorderBrush="#33FFFFFF"
             BorderThickness="1" Padding="16,12">
-        <!-- Title and buttons stay put; the sections scroll if the dialog is
-             taller than the screen allows (MaxHeight is set in code). -->
         <DockPanel>
 
             <!-- Title bar (draggable) -->
             <DockPanel DockPanel.Dock="Top" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
-                       Margin="0,0,0,4" Background="Transparent">
+                       Margin="0,0,0,8" Background="Transparent">
                 <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Cancel_Click"
                         Width="22" Height="22" Padding="0"
                         Background="#552B2B" Foreground="#FFDDDD"
@@ -127,7 +156,7 @@
 
             <!-- Buttons -->
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
-                        HorizontalAlignment="Right" Margin="0,18,0,0">
+                        HorizontalAlignment="Right" Margin="0,14,0,0">
                 <Button Content="Cancel" Click="Cancel_Click"
                         Padding="14,5" Margin="0,0,8,0" FontSize="12"
                         Background="#2A3038" Foreground="#C7D1DA" BorderThickness="0"/>
@@ -135,11 +164,31 @@
                         Style="{StaticResource SaveButtonStyle}"/>
             </StackPanel>
 
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel>
+            <!-- Nav on the left, one page on the right. Pages that aren't
+                 selected are Hidden (not Collapsed) so the grid keeps the
+                 tallest page's height and the dialog never jumps between pages. -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel x:Name="Nav" Margin="0,0,12,0">
+                    <Button Content="Account" Tag="Account" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Controls" Tag="Controls" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="General" Tag="General" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Stats panel" Tag="Stats" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Minimap" Tag="Minimap" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Prime tracker" Tag="Prime" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                </StackPanel>
+
+                <Border Grid.Column="1" BorderBrush="#33FFFFFF" BorderThickness="1,0,0,0" Padding="16,0,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <Grid x:Name="Pages">
 
             <!-- ============================ Account ======================== -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="ACCOUNT" Margin="0,6,0,6"/>
+            <StackPanel Tag="Account">
+            <TextBlock Style="{StaticResource PageTitle}" Text="ACCOUNT"/>
 
             <TextBlock x:Name="CookieStatus" FontSize="12" TextWrapping="Wrap"/>
 
@@ -183,9 +232,11 @@
             <TextBlock x:Name="HintText" Visibility="Collapsed"
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
                        Margin="0,6,0,0"/>
+            </StackPanel>
 
             <!-- ============================ Controls ======================= -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="CONTROLS"/>
+            <StackPanel Tag="Controls" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="CONTROLS"/>
 
             <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Edit mode:" Width="150"/>
@@ -226,10 +277,12 @@
                        Text="Click a box, then press the combination you want."
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
                        Margin="0,6,0,0"/>
+            </StackPanel>
 
             <!-- ============================ General ======================== -->
-            <!-- App-wide only. Anything about one widget goes in that widget's section. -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="GENERAL"/>
+            <!-- App-wide only. Anything about one widget goes on that widget's page. -->
+            <StackPanel Tag="General" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="GENERAL"/>
 
             <CheckBox x:Name="StartupCheck" Style="{StaticResource Check}" Content="Start with Windows"/>
             <CheckBox x:Name="HideNotInGameCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
@@ -252,9 +305,11 @@
                         IsEnabled="{Binding IsChecked, ElementName=FadeCheck}"
                         ValueChanged="FadeSlider_ValueChanged"/>
             </DockPanel>
+            </StackPanel>
 
             <!-- ============================ Stats panel ==================== -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="STATS PANEL"/>
+            <StackPanel Tag="Stats" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="STATS PANEL"/>
 
             <DockPanel>
                 <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
@@ -270,9 +325,11 @@
                       Content="Chime when hunger or thirst drops under 20%"/>
             <CheckBox x:Name="GrowthChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Chime at growth milestones (25 / 50 / 75 / 100%)"/>
+            </StackPanel>
 
             <!-- ============================ Minimap ======================== -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="MINIMAP"/>
+            <StackPanel Tag="Minimap" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="MINIMAP"/>
 
             <DockPanel>
                 <TextBlock Style="{StaticResource SliderLabel}" Text="Size:"/>
@@ -312,9 +369,11 @@
                       Content="Show scale bar"/>
             <CheckBox x:Name="SpeedCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Show heading and speed"/>
+            </StackPanel>
 
             <!-- ============================ Prime tracker ================== -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="PRIME TRACKER"/>
+            <StackPanel Tag="Prime" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="PRIME TRACKER"/>
 
             <DockPanel>
                 <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
@@ -324,9 +383,12 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="PrimeScaleSlider_ValueChanged"/>
             </DockPanel>
-
             </StackPanel>
-            </ScrollViewer>
+
+                    </Grid>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
         </DockPanel>
     </Border>
 </Window>

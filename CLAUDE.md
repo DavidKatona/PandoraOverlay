@@ -468,19 +468,26 @@ references — keep it that way. Every overlay window derives from
   fades again. Deliberately not lit for as long as the cue stays amber:
   a permanently lit widget would defeat the fade. Calm at launch — the
   cached result is old news.
-- **SettingsWindow.xaml(.cs)** — sectioned settings dialog: Account /
-  Controls / General (APP-WIDE ONLY) / Stats panel / Minimap / Prime
-  tracker — widget sections in the control panel's order, each holding
-  that widget's Scale-or-Size slider and its own options; a new widget
-  adds a section (regrouped Sep 24 2026, "option A", after the dialog hit
-  ~850 px with General as a grab bag; a left-nav "option B" is the plan
-  if it outgrows a screen again). Single column, no tabs — deliberate,
-  avoids theming stock TabControl chrome. Title and buttons are docked
-  outside a ScrollViewer and `MaxHeight` = 92% of the work area, so a
-  small screen scrolls the sections instead of losing the buttons. Slider
-  rows share a 140 px label width (`SliderLabel`) so every slider starts
-  on the same x; a checkbox that owns a slider sits on the slider's row
-  ("Fade idle panels to [slider]", slider IsEnabled bound to the box).
+- **SettingsWindow.xaml(.cs)** — paged settings dialog: a left-hand nav
+  of our own glow-style buttons (`NavButton`; the selected one is
+  recoloured in code by `SetPage`) and ONE page visible at a time on the
+  right — Account / Controls / General (APP-WIDE ONLY) / Stats panel /
+  Minimap / Prime tracker, widget pages in the control panel's order,
+  each holding that widget's Scale-or-Size slider and its own options; a
+  new widget (or the coming Waypoints library) adds a nav entry + page.
+  History: regrouped by widget Sep 24 2026 ("option A"), then the nav
+  ("option B") Sep 25 2026 as the foundation for the waypoint library's
+  list page. Not the stock TabControl — deliberate, its light chrome
+  doesn't theme. Pages live in one Grid; unselected pages are HIDDEN,
+  not Collapsed, so the grid keeps the tallest page's height and the
+  dialog never jumps between pages; `_lastPage` (static, session-only)
+  reopens on the page you were on, first run forces Account. Title and
+  buttons are docked outside the page ScrollViewer and `MaxHeight` = 92%
+  of the work area, so a small screen scrolls a page instead of losing
+  the buttons. Slider rows share a 140 px label width (`SliderLabel`) so
+  every slider starts on the same x; a checkbox that owns a slider sits
+  on the slider's row ("Fade idle panels to [slider]", slider IsEnabled
+  bound to the box).
   Cookie box is a replace-inbox: empty = keep the
   current cookie; once a cookie is stored the box is folded behind a
   "▸ Replace cookie…" link (`CookiePanel`; folding it clears the box so a

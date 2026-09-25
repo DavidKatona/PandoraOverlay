@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Settings has pages now: Account, Controls, General, Stats panel, Minimap
+  and Prime tracker sit in a list on the left, and one page shows at a
+  time on the right. The dialog is wider and about half as tall, and it
+  keeps one height across pages. It reopens on the page you last used
+  (first run still starts on Account). No setting moved or changed meaning.
+
 ## [1.20.1] - 2026-09-25
 
 ### Changed

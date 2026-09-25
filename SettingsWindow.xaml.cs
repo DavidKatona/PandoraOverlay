@@ -25,6 +25,12 @@ public partial class SettingsWindow : Window
     private static readonly Brush HintGood = new SolidColorBrush(Color.FromRgb(0x7C, 0xC8, 0x84));
     private static readonly Brush HintWarn = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));
     private static readonly Brush HintBad = new SolidColorBrush(Color.FromRgb(0xFF, 0x8A, 0x80));
+    private static readonly Brush NavSelected = new SolidColorBrush(Color.FromRgb(0x2A, 0x30, 0x38));
+    private static readonly Brush NavSelectedText = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8));
+    private static readonly Brush NavText = new SolidColorBrush(Color.FromRgb(0xC7, 0xD1, 0xDA));
+
+    /// <summary>The page shown last, so reopening the dialog lands where you were (session-only; first run forces Account).</summary>
+    private static string _lastPage = "Account";
 
     private sealed class HotkeyEntry
     {
@@ -122,6 +128,30 @@ public partial class SettingsWindow : Window
         SpeedCheck.IsChecked = config.MinimapSpeedEnabled;
 
         Validate();
+        SetPage(_firstRun ? "Account" : _lastPage);
+    }
+
+    // ---- Navigation ---------------------------------------------------------
+    private void Nav_Click(object sender, RoutedEventArgs e) => SetPage((string)((Button)sender).Tag);
+
+    /// <summary>
+    /// Shows one page and highlights its nav button. Unselected pages are
+    /// Hidden rather than Collapsed so the page grid keeps the tallest
+    /// page's height and the dialog never jumps between pages.
+    /// </summary>
+    private void SetPage(string key)
+    {
+        _lastPage = key;
+        foreach (var button in Nav.Children.OfType<Button>())
+        {
+            var selected = (string)button.Tag == key;
+            button.Background = selected ? NavSelected : Brushes.Transparent;
+            button.Foreground = selected ? NavSelectedText : NavText;
+        }
+        foreach (var page in Pages.Children.OfType<FrameworkElement>())
+        {
+            page.Visibility = (string)page.Tag == key ? Visibility.Visible : Visibility.Hidden;
+        }
     }
 
     // ---- Window chrome ----------------------------------------------------
