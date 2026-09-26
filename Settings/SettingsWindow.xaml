@@ -579,7 +579,10 @@
                 <TextBlock Grid.Column="3" Text="Track" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
                 <TextBlock Grid.Column="4" Text="Delete" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
             </Grid>
-            <ScrollViewer Height="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!-- The bar is always reserved: the column labels above sit outside the
+                 scroll area, and an Auto bar shifted every column by 8 px whenever
+                 the list was short enough not to scroll. -->
+            <ScrollViewer Height="260" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
                 <ScrollViewer.Resources>
                     <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
                 </ScrollViewer.Resources>
