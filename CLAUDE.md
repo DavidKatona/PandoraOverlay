@@ -507,8 +507,14 @@ Every overlay window derives from `OverlayWindowBase`.
   a caption band `BuildGroupBand` on the rows' own five-column grid with
   the group checkbox in the Show column — ticked / empty / mixed square —
   and a ✕ in the delete column for a pack, then zebra-striped rows
-  `BuildWaypointRow`); the top column labels carry a 7 px side margin to
-  line up with the cards' border + padding. Three loose Show all / Hide
+  `BuildWaypointRow`); the top column labels (Colour / Name / Show /
+  Track / Delete) carry a 7 px side margin to line up with the cards'
+  border + padding. A row's Show click calls back into its band so the
+  group checkbox tracks all / none / mixed live (it only refreshed on
+  rebuild at first — reported as a bug). The colour disc sits in the
+  same 15 px dark well as the Check template's box; the per-row delete
+  is a NeutralButtonStyle button with a soft red glyph, while the pack
+  delete and Delete all stay red (they remove many at once). Three loose Show all / Hide
   all / Delete pack buttons, then bare caption rows, were tried first and
   the controls "floated" (owner, Sep 26 2026). The `Check` and `Radio`
   styles are our own dark templates for the same reason — stock white
