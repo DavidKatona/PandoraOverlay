@@ -104,6 +104,20 @@ public partial class SettingsWindow
     /// shows all, the next hides all) and, for a pack, a ✕ in the delete
     /// column. Three loose buttons were tried first and looked bolted on.
     /// </summary>
+    /// <summary>
+    /// Keeps the column labels exactly as wide as the list's content: the
+    /// header sits outside the scroll area, so it can't share the layout,
+    /// and a guessed scrollbar width was wrong both with and without a bar.
+    /// Measured instead: the bar's space is the difference between the
+    /// viewer's width and its viewport; 6 px is the rows' right margin, 7 px
+    /// each side is the cards' border + padding.
+    /// </summary>
+    private void AlignWaypointHeader()
+    {
+        var bar = Math.Max(0, WaypointList.ActualWidth - WaypointList.ViewportWidth);
+        WaypointHeader.Margin = new Thickness(7, 0, 7 + 6 + bar, 4);
+    }
+
     /// <summary>True = every member shown, false = none, null = mixed (the checkbox draws a square).</summary>
     private static bool? GroupState(List<Waypoint> members)
     {

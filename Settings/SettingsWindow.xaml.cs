@@ -136,6 +136,8 @@ public partial class SettingsWindow : Window
 
         // Waypoints
         BuildWaypointRows();
+        WaypointList.ScrollChanged += (_, _) => AlignWaypointHeader(); // fires when the extent/viewport changes, i.e. when the bar comes or goes
+        WaypointList.SizeChanged += (_, _) => AlignWaypointHeader();
 
         Validate();
         SetPage(_firstRun ? "Account" : _lastPage);
