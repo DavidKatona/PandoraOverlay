@@ -65,39 +65,66 @@ public partial class SettingsWindow
         }
     }
 
-    /// <summary>A caption row; for a pack it carries Show all / Hide all / Delete pack.</summary>
+    /// <summary>
+    /// A caption row that acts on its group, laid out on the same grid as
+    /// the rows so its controls sit in the columns they govern: a checkbox
+    /// in the Show column (ticked = all shown, empty = none, a square =
+    /// mixed; a click shows all, the next hides all) and, for a pack, a ✕
+    /// in the delete column. Three loose buttons were tried first and looked
+    /// bolted on.
+    /// </summary>
     private void AddGroupCaption(string text, string? pack)
     {
-        var header = new DockPanel { Margin = new Thickness(0, WaypointRows.Children.Count == 0 ? 0 : 8, 6, 4) };
-        if (pack is not null)
-        {
-            var actions = new StackPanel { Orientation = Orientation.Horizontal };
-            actions.Children.Add(SmallButton("Show all", "NeutralButtonStyle", () => SetPackVisible(pack, true)));
-            actions.Children.Add(SmallButton("Hide all", "NeutralButtonStyle", () => SetPackVisible(pack, false)));
-            actions.Children.Add(SmallButton("Delete pack", "DangerButtonStyle", () => DeletePack(pack)));
-            DockPanel.SetDock(actions, Dock.Right);
-            header.Children.Add(actions);
-        }
-        header.Children.Add(new TextBlock
+        var members = _draft.Where(w => w.Pack == pack).ToList();
+        var row = NewRowGrid(topMargin: WaypointRows.Children.Count == 0 ? 0 : 8);
+
+        var caption = new TextBlock
         {
             Text = text.ToUpperInvariant(), Foreground = HintNeutral, FontSize = 10,
             FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center
-        });
-        WaypointRows.Children.Add(header);
-    }
-
-    private Button SmallButton(string text, string style, Action onClick)
-    {
-        var button = new Button
-        {
-            Content = text, Style = (Style)FindResource(style), FontSize = 10,
-            Padding = new Thickness(7, 2, 7, 2), Margin = new Thickness(6, 0, 0, 0)
         };
-        button.Click += (_, _) => onClick();
-        return button;
+        Grid.SetColumn(caption, 1);
+        row.Children.Add(caption);
+
+        var shown = members.Count(w => w.Visible);
+        var all = new CheckBox
+        {
+            Style = (Style)FindResource("Check"), HorizontalAlignment = HorizontalAlignment.Center,
+            IsChecked = shown == members.Count ? true : shown == 0 ? false : null, // null draws the "mixed" square
+            ToolTip = pack is null ? "Show or hide all of your waypoints" : "Show or hide the whole pack"
+        };
+        all.Click += (_, _) => SetGroupVisible(pack, all.IsChecked == true); // mixed → click → checked → show all
+        Grid.SetColumn(all, 2);
+        row.Children.Add(all);
+
+        if (pack is not null)
+        {
+            var delete = new Button
+            {
+                Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
+                Style = (Style)FindResource("DangerButtonStyle"),
+                HorizontalAlignment = HorizontalAlignment.Right, ToolTip = "Delete this pack"
+            };
+            delete.Click += (_, _) => DeletePack(pack);
+            Grid.SetColumn(delete, 4);
+            row.Children.Add(delete);
+        }
+        WaypointRows.Children.Add(row);
     }
 
-    private void SetPackVisible(string pack, bool visible)
+    /// <summary>The five-column grid every list row and caption shares: dot | name | Show | Track | delete.</summary>
+    private static Grid NewRowGrid(double topMargin = 0)
+    {
+        var row = new Grid { Margin = new Thickness(0, topMargin, 0, 4) };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+        return row;
+    }
+
+    private void SetGroupVisible(string? pack, bool visible)
     {
         foreach (var w in _draft.Where(w => w.Pack == pack)) w.Visible = visible;
         _waypointsDirty = true;
@@ -117,12 +144,7 @@ public partial class SettingsWindow
     {
         foreach (var wp in items)
         {
-            var row = new Grid { Margin = new Thickness(0, 0, 0, 4) };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+            var row = NewRowGrid();
 
             var dot = new Ellipse
             {
