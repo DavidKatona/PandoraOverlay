@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.23.0] - 2026-09-26
 
 ### Added
 
@@ -20,10 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Settings polish: every control in the dialog now has its own dark look —
+  checkboxes, radios, text boxes, scrollbars and the remaining buttons
+  (Cancel and the close button no longer go bright on hover). The
+  Waypoints list draws each group as a card with a caption band and
+  striped rows, every column has a header (Colour, Name, Show, Track,
+  Delete), the group checkbox follows the rows live, and the list keeps
+  one width whether or not it scrolls.
 - Source files are grouped into feature folders (Core, Shell, Stats,
-  Minimap, Waypoints, Prime, Settings) and the two largest windows are
-  split into partial-class files by concern. No behaviour change; nothing
-  moves for users.
+  Minimap, Waypoints, Prime, Settings) and the largest windows are split
+  into partial-class files by concern. No behaviour change; nothing moves
+  for users.
 
 ## [1.22.0] - 2026-09-25
 
