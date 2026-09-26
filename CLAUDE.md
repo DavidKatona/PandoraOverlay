@@ -519,7 +519,17 @@ Every overlay window derives from `OverlayWindowBase`.
   the controls "floated" (owner, Sep 26 2026). The `Check` and `Radio`
   styles are our own dark templates for the same reason — stock white
   glyphs float on this surface; a content-less box drops its label gap,
-  IsChecked = null draws the mixed square.
+  IsChecked = null draws the mixed square. Text boxes likewise:
+  `TextBoxStyle` (dark well, 2 px corners, hover lightens the border,
+  focus turns it the text colour, our own caret + selection brush — the
+  stock template flashed Windows blue on hover/focus/selection) with
+  `NameBox`, `HotkeyBox` and the cookie box derived from it
+  (`VerticalContentAlignment` drives the content host: Center for
+  single-line boxes, Top for the wrapping cookie box). An implicit
+  ScrollBar style applies `DarkScrollBar` to every bar in the dialog.
+  Rule: NO stock chrome anywhere in this dialog — every control type
+  used here has its own template (buttons, checks, radios, text boxes,
+  scrollbars); a new control kind gets one before it ships.
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
   ten ✓/✗ condition rows (texts baked in — the site bakes them into its
   frontend too, the API only returns flags) + a two-line footer (what the

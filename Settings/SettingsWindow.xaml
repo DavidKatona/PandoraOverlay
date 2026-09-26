@@ -258,13 +258,50 @@
         </Style>
 
         <!-- Waypoint name box: the hotkey box's look, but editable. -->
-        <Style x:Key="NameBox" TargetType="TextBox">
+        <!-- Text boxes: the same dark well as the checkboxes. Stock chrome
+             squares the corners and flashes Windows blue on hover, focus and
+             selection — exactly when the eye is on the box. Hover lightens
+             the border, focus turns it the text colour. -->
+        <Style x:Key="TextBoxStyle" TargetType="TextBox">
             <Setter Property="Background" Value="#1A2129"/>
             <Setter Property="Foreground" Value="#ECF2F8"/>
-            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#5E6B76"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="5,2"/>
             <Setter Property="FontSize" Value="12"/>
+            <Setter Property="CaretBrush" Value="#ECF2F8"/>
+            <Setter Property="SelectionBrush" Value="#3A5A78"/>
+            <Setter Property="SelectionOpacity" Value="0.7"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="2">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                          Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#9AA7B0"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#ECF2F8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="NameBox" TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}">
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="MaxLength" Value="32"/>
         </Style>
@@ -306,18 +343,16 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="HotkeyBox" TargetType="TextBox">
+        <!-- Every scrollbar in the dialog (page, list, the cookie box's inner one) takes the dark look. -->
+        <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
+
+        <Style x:Key="HotkeyBox" TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}">
             <Setter Property="Width" Value="150"/>
             <Setter Property="Margin" Value="10,0,0,0"/>
             <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="CaretBrush" Value="Transparent"/>
-            <Setter Property="Background" Value="#1A2129"/>
-            <Setter Property="Foreground" Value="#ECF2F8"/>
-            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
-            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="6,3"/>
-            <Setter Property="FontSize" Value="12"/>
             <Setter Property="TextAlignment" Value="Center"/>
         </Style>
     </Window.Resources>
@@ -402,12 +437,12 @@
                 <TextBlock Text="Paste a cookie value to set or replace it:"
                            Foreground="#9AA7B0" FontSize="11" Margin="0,10,0,4"/>
                 <TextBox x:Name="CookieBox"
+                         Style="{StaticResource TextBoxStyle}"
                          Height="52"
                          TextWrapping="Wrap"
                          AcceptsReturn="False"
                          VerticalScrollBarVisibility="Auto"
-                         Background="#1A2129" Foreground="#ECF2F8"
-                         BorderBrush="#33FFFFFF" BorderThickness="1"
+                         VerticalContentAlignment="Top"
                          Padding="6" FontSize="11" FontFamily="Consolas"
                          TextChanged="CookieBox_TextChanged"/>
             </StackPanel>
