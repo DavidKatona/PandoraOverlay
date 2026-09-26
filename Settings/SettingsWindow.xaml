@@ -166,16 +166,89 @@
             <Setter Property="Width" Value="46"/>
         </Style>
 
+        <!-- Dark checkbox and radio: the stock white glyphs float on this
+             surface. A content-less box (the list rows) drops the label gap.
+             IsChecked = null draws the "mixed" square (group checkboxes). -->
         <Style x:Key="Check" TargetType="CheckBox">
             <Setter Property="Foreground" Value="#C7D1DA"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Border x:Name="Box" Width="15" Height="15" CornerRadius="2"
+                                    Background="#1A2129" BorderBrush="#5E6B76" BorderThickness="1"
+                                    VerticalAlignment="Center">
+                                <Grid>
+                                    <Path x:Name="Tick" Data="M 3,7.5 L 6,10.5 L 11,4" Stroke="#ECF2F8"
+                                          StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round" Visibility="Collapsed"/>
+                                    <Rectangle x:Name="Mixed" Width="7" Height="7" Fill="#ECF2F8" Visibility="Collapsed"/>
+                                </Grid>
+                            </Border>
+                            <ContentPresenter x:Name="Label" Margin="7,0,0,0" VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Tick" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#9AA7B0"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="{x:Null}">
+                                <Setter TargetName="Mixed" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#9AA7B0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="#242C36"/>
+                            </Trigger>
+                            <Trigger Property="Content" Value="{x:Null}">
+                                <Setter TargetName="Label" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="Radio" TargetType="RadioButton">
             <Setter Property="Foreground" Value="#C7D1DA"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Grid Width="15" Height="15" VerticalAlignment="Center">
+                                <Ellipse x:Name="Ring" Fill="#1A2129" Stroke="#5E6B76" StrokeThickness="1"/>
+                                <Ellipse x:Name="Dot" Width="7" Height="7" Fill="#ECF2F8" Visibility="Collapsed"/>
+                            </Grid>
+                            <ContentPresenter x:Name="Label" Margin="7,0,0,0" VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="Ring" Property="Stroke" Value="#9AA7B0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Ring" Property="Fill" Value="#242C36"/>
+                            </Trigger>
+                            <Trigger Property="Content" Value="{x:Null}">
+                                <Setter TargetName="Label" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="Link" TargetType="TextBlock">
@@ -491,7 +564,8 @@
                            Foreground="#7B8790" FontSize="11" VerticalAlignment="Center"/>
                 <TextBlock Style="{StaticResource PageTitle}" Text="WAYPOINTS" Margin="0"/>
             </DockPanel>
-            <Grid Margin="0,0,14,4">
+            <!-- The column labels; 7 px each side matches the cards' border + padding below. -->
+            <Grid Margin="7,0,21,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="26"/>
                     <ColumnDefinition Width="*"/>

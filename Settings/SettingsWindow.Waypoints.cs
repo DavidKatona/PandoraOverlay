@@ -54,29 +54,55 @@ public partial class SettingsWindow
             return;
         }
 
-        var own = _draft.Where(w => w.Pack is null).ToList();
-        var packs = _draft.Where(w => w.Pack is not null).Select(w => w.Pack!).Distinct().ToList();
-        if (packs.Count > 0 && own.Count > 0) AddGroupCaption("Your waypoints", pack: null);
-        AddWaypointRows(own);
-        foreach (var pack in packs)
+        AddGroupCard("Your waypoints", pack: null);
+        foreach (var pack in _draft.Where(w => w.Pack is not null).Select(w => w.Pack!).Distinct())
         {
-            AddGroupCaption(pack, pack);
-            AddWaypointRows(_draft.Where(w => w.Pack == pack));
+            AddGroupCard(pack, pack);
         }
     }
 
+    private static readonly Brush CardBorder = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
+    private static readonly Brush CardSurface = new SolidColorBrush(Color.FromRgb(0x16, 0x1C, 0x23));
+    private static readonly Brush BandSurface = new SolidColorBrush(Color.FromRgb(0x1F, 0x26, 0x2E));
+    private static readonly Brush RowStripe = new SolidColorBrush(Color.FromArgb(0x0A, 0xFF, 0xFF, 0xFF));
+
     /// <summary>
-    /// A caption row that acts on its group, laid out on the same grid as
-    /// the rows so its controls sit in the columns they govern: a checkbox
-    /// in the Show column (ticked = all shown, empty = none, a square =
-    /// mixed; a click shows all, the next hides all) and, for a pack, a ✕
-    /// in the delete column. Three loose buttons were tried first and looked
-    /// bolted on.
+    /// One group as a card: a bordered surface holding a caption band and
+    /// zebra-striped rows, so every checkbox, radio and ✕ sits on a visible
+    /// strip that runs from its name, and the group's own controls have a
+    /// home. Stock white glyphs on bare page were tried first and floated.
     /// </summary>
-    private void AddGroupCaption(string text, string? pack)
+    private void AddGroupCard(string title, string? pack)
     {
         var members = _draft.Where(w => w.Pack == pack).ToList();
-        var row = NewRowGrid(topMargin: WaypointRows.Children.Count == 0 ? 0 : 8);
+        if (members.Count == 0) return;
+
+        var body = new StackPanel();
+        body.Children.Add(BuildGroupBand(title, pack, members));
+        var stripe = false;
+        foreach (var wp in members)
+        {
+            body.Children.Add(BuildWaypointRow(wp, stripe));
+            stripe = !stripe;
+        }
+        WaypointRows.Children.Add(new Border
+        {
+            Child = body, CornerRadius = new CornerRadius(4), BorderBrush = CardBorder, BorderThickness = new Thickness(1),
+            Background = CardSurface, Padding = new Thickness(6, 6, 6, 4), Margin = new Thickness(0, 0, 0, 8)
+        });
+    }
+
+    /// <summary>
+    /// The card's caption band, laid out on the same grid as the rows so its
+    /// controls sit in the columns they govern: a checkbox in the Show
+    /// column (ticked = all shown, empty = none, a square = mixed; a click
+    /// shows all, the next hides all) and, for a pack, a ✕ in the delete
+    /// column. Three loose buttons were tried first and looked bolted on.
+    /// </summary>
+    private Border BuildGroupBand(string text, string? pack, List<Waypoint> members)
+    {
+        var row = NewRowGrid();
+        row.Margin = new Thickness(0);
 
         var caption = new TextBlock
         {
@@ -109,7 +135,11 @@ public partial class SettingsWindow
             Grid.SetColumn(delete, 4);
             row.Children.Add(delete);
         }
-        WaypointRows.Children.Add(row);
+        return new Border
+        {
+            Child = row, Background = BandSurface, CornerRadius = new CornerRadius(3),
+            Padding = new Thickness(0, 3, 0, 3), Margin = new Thickness(0, 0, 0, 4)
+        };
     }
 
     /// <summary>The five-column grid every list row and caption shares: dot | name | Show | Track | delete.</summary>
@@ -140,85 +170,85 @@ public partial class SettingsWindow
         BuildWaypointRows();
     }
 
-    private void AddWaypointRows(IEnumerable<Waypoint> items)
+    /// <summary>One list row; alternate rows carry a faint stripe so the controls read as part of the row.</summary>
+    private Grid BuildWaypointRow(Waypoint wp, bool stripe)
     {
-        foreach (var wp in items)
+        var row = NewRowGrid();
+        row.Margin = new Thickness(0, 1, 0, 1);
+        row.Background = stripe ? RowStripe : Brushes.Transparent;
+
+        var dot = new Ellipse
         {
-            var row = NewRowGrid();
+            Width = 12, Height = 12, Fill = PaletteBrushes[WaypointPalette.Wrap(wp.Colour)],
+            Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left,
+            ToolTip = $"{WaypointPalette.Colours[WaypointPalette.Wrap(wp.Colour)].Name} — click to change"
+        };
+        dot.MouseLeftButtonDown += (_, _) =>
+        {
+            wp.Colour = WaypointPalette.Wrap(wp.Colour + 1);
+            dot.Fill = PaletteBrushes[wp.Colour];
+            dot.ToolTip = $"{WaypointPalette.Colours[wp.Colour].Name} — click to change";
+            _waypointsDirty = true;
+        };
+        row.Children.Add(dot);
 
-            var dot = new Ellipse
-            {
-                Width = 12, Height = 12, Fill = PaletteBrushes[WaypointPalette.Wrap(wp.Colour)],
-                Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left,
-                ToolTip = $"{WaypointPalette.Colours[WaypointPalette.Wrap(wp.Colour)].Name} — click to change"
-            };
-            dot.MouseLeftButtonDown += (_, _) =>
-            {
-                wp.Colour = WaypointPalette.Wrap(wp.Colour + 1);
-                dot.Fill = PaletteBrushes[wp.Colour];
-                dot.ToolTip = $"{WaypointPalette.Colours[wp.Colour].Name} — click to change";
-                _waypointsDirty = true;
-            };
-            row.Children.Add(dot);
+        var name = new TextBox { Text = wp.Name, Style = (Style)FindResource("NameBox"), Margin = new Thickness(0, 0, 8, 0) };
+        name.TextChanged += (_, _) =>
+        {
+            wp.Name = name.Text;
+            _waypointsDirty = true;
+        };
+        Grid.SetColumn(name, 1);
+        row.Children.Add(name);
 
-            var name = new TextBox { Text = wp.Name, Style = (Style)FindResource("NameBox"), Margin = new Thickness(0, 0, 8, 0) };
-            name.TextChanged += (_, _) =>
-            {
-                wp.Name = name.Text;
-                _waypointsDirty = true;
-            };
-            Grid.SetColumn(name, 1);
-            row.Children.Add(name);
+        var show = new CheckBox { IsChecked = wp.Visible, Style = (Style)FindResource("Check"), HorizontalAlignment = HorizontalAlignment.Center };
+        show.Click += (_, _) =>
+        {
+            wp.Visible = show.IsChecked == true;
+            _waypointsDirty = true;
+        };
+        Grid.SetColumn(show, 2);
+        row.Children.Add(show);
 
-            var show = new CheckBox { IsChecked = wp.Visible, Style = (Style)FindResource("Check"), HorizontalAlignment = HorizontalAlignment.Center };
-            show.Click += (_, _) =>
+        var track = new RadioButton
+        {
+            GroupName = "TrackWaypoint", IsChecked = wp.Id == _draftTracked,
+            Style = (Style)FindResource("Radio"), HorizontalAlignment = HorizontalAlignment.Center
+        };
+        track.Click += (_, _) =>
+        {
+            // A radio can't be un-clicked, so clicking the tracked one untracks.
+            if (_draftTracked == wp.Id)
             {
-                wp.Visible = show.IsChecked == true;
-                _waypointsDirty = true;
-            };
-            Grid.SetColumn(show, 2);
-            row.Children.Add(show);
+                _draftTracked = null;
+                track.IsChecked = false;
+            }
+            else
+            {
+                _draftTracked = wp.Id;
+            }
+            _waypointsDirty = true;
+        };
+        Grid.SetColumn(track, 3);
+        row.Children.Add(track);
 
-            var track = new RadioButton
-            {
-                GroupName = "TrackWaypoint", IsChecked = wp.Id == _draftTracked,
-                Style = (Style)FindResource("Radio"), HorizontalAlignment = HorizontalAlignment.Center
-            };
-            track.Click += (_, _) =>
-            {
-                // A radio can't be un-clicked, so clicking the tracked one untracks.
-                if (_draftTracked == wp.Id)
-                {
-                    _draftTracked = null;
-                    track.IsChecked = false;
-                }
-                else
-                {
-                    _draftTracked = wp.Id;
-                }
-                _waypointsDirty = true;
-            };
-            Grid.SetColumn(track, 3);
-            row.Children.Add(track);
+        var delete = new Button
+        {
+            Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
+            Style = (Style)FindResource("DangerButtonStyle"),
+            HorizontalAlignment = HorizontalAlignment.Right, ToolTip = "Delete"
+        };
+        delete.Click += (_, _) =>
+        {
+            _draft.Remove(wp);
+            if (_draftTracked == wp.Id) _draftTracked = null;
+            _waypointsDirty = true;
+            BuildWaypointRows();
+        };
+        Grid.SetColumn(delete, 4);
+        row.Children.Add(delete);
 
-            var delete = new Button
-            {
-                Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
-                Style = (Style)FindResource("DangerButtonStyle"),
-                HorizontalAlignment = HorizontalAlignment.Right, ToolTip = "Delete"
-            };
-            delete.Click += (_, _) =>
-            {
-                _draft.Remove(wp);
-                if (_draftTracked == wp.Id) _draftTracked = null;
-                _waypointsDirty = true;
-                BuildWaypointRows();
-            };
-            Grid.SetColumn(delete, 4);
-            row.Children.Add(delete);
-
-            WaypointRows.Children.Add(row);
-        }
+        return row;
     }
 
     // ---- Packs: import / export ------------------------------------------------

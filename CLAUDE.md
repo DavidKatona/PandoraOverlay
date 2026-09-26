@@ -502,12 +502,18 @@ Every overlay window derives from `OverlayWindowBase`.
   HIDDEN and tagged with the pack name (owner's decision: imports must not
   bury a map). The Settings page owns the file dialogs
   (`Microsoft.Win32.OpenFileDialog`/`SaveFileDialog`, filter `*.json`),
-  reports the outcome in `WaypointStatus`, groups rows by pack under
-  caption rows that act through the grid's own columns (a group checkbox
-  in the Show column — ticked / empty / mixed square — and a ✕ in the
-  delete column for a pack; three loose Show all / Hide all / Delete
-  pack buttons were tried and looked bolted on), and nothing persists
-  until Save.
+  reports the outcome in `WaypointStatus`, and nothing persists until
+  Save. The list is one CARD per group (`AddGroupCard`: bordered surface,
+  a caption band `BuildGroupBand` on the rows' own five-column grid with
+  the group checkbox in the Show column — ticked / empty / mixed square —
+  and a ✕ in the delete column for a pack, then zebra-striped rows
+  `BuildWaypointRow`); the top column labels carry a 7 px side margin to
+  line up with the cards' border + padding. Three loose Show all / Hide
+  all / Delete pack buttons, then bare caption rows, were tried first and
+  the controls "floated" (owner, Sep 26 2026). The `Check` and `Radio`
+  styles are our own dark templates for the same reason — stock white
+  glyphs float on this surface; a content-less box drops its label gap,
+  IsChecked = null draws the mixed square.
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
   ten ✓/✗ condition rows (texts baked in — the site bakes them into its
   frontend too, the API only returns flags) + a two-line footer (what the
