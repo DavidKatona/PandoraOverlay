@@ -133,8 +133,9 @@ earn sub-namespaces; `.editorconfig` silences IDE0130). The SDK-style csproj
 globs subfolders, so moving a file needs no project edit; pack URIs point at
 `Assets/`, which didn't move. Big windows are PARTIAL CLASSES split by
 concern, the way WPF already splits them from their generated `.g.cs`:
-`MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`) and
-`MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`). Same class, same
+`MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`),
+`MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`) and
+`SettingsWindow.xaml.cs` (+ `.Waypoints.cs`). Same class, same
 fields, no behaviour change — a reading aid, not decoupling; the pure
 helper classes are the real decoupling. Keep each part under ~500 lines;
 when one outgrows that, cut another `Window.Topic.cs`, don't extract a
@@ -490,8 +491,19 @@ Every overlay window derives from `OverlayWindowBase`.
   gate (drops off-island entries, fixes empty/duplicate ids, caps). Pure
   and tested; nothing throws. Tracking state (`config.TrackedWaypointId`)
   and the draw policy (`config.WaypointVisibility`) are config, not
-  library. Phase 3 (export/import + packs) is next; the `Pack` field is
-  already there.
+  library.
+- **WaypointPacks.cs** — pure, tested export/import (v1.23, phase 3):
+  `Export` writes the library's JSON shape plus a `Name` (ids KEPT so a
+  re-import is recognised, per-entry `Pack` cleared, `Visible` true — the
+  receiver's view is theirs); `Parse` reads a pack or a plain library file
+  through `WaypointLibrary.FromJson`'s gate, falling back to the file's
+  base name; `Merge` into the Settings draft skips entries present by id
+  or by the same name within 20 m, stops at the cap, and adds the rest
+  HIDDEN and tagged with the pack name (owner's decision: imports must not
+  bury a map). The Settings page owns the file dialogs
+  (`Microsoft.Win32.OpenFileDialog`/`SaveFileDialog`, filter `*.json`),
+  reports the outcome in `WaypointStatus`, groups rows by pack with Show
+  all / Hide all / Delete pack captions, and nothing persists until Save.
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
   ten ✓/✗ condition rows (texts baked in — the site bakes them into its
   frontend too, the API only returns flags) + a two-line footer (what the
@@ -538,8 +550,9 @@ Every overlay window derives from `OverlayWindowBase`.
   radio can't be un-clicked), ✕ delete, "N / 256" count, "Delete all"
   armed by a first click ("Really delete all?") instead of a modal box.
   The list scrolls in a fixed 260 px viewer with `DarkScrollBar` (a
-  track + thumb template; the stock scrollbar is light). Import/Export
-  land here in phase 3. The Minimap page also holds the
+  track + thumb template; the stock scrollbar is light). Import… /
+  Export… (`NeutralButtonStyle`, same explicit disabled look) sit beside
+  Delete all; see WaypointPacks. The Minimap page also holds the
   `WaypointVisibility` radios (All / Tracked only / Nearest 10). Not the stock TabControl — deliberate, its light chrome
   doesn't theme. Pages live in one Grid; unselected pages are HIDDEN,
   not Collapsed, so the grid keeps the tallest page's height and the

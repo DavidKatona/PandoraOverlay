@@ -46,6 +46,37 @@
             </Setter>
         </Style>
 
+        <!-- Neutral action button (Import/Export, pack Show/Hide all) with the
+             same explicit disabled look. -->
+        <Style x:Key="NeutralButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#2A3038"/>
+            <Setter Property="Foreground" Value="#C7D1DA"/>
+            <Setter Property="Padding" Value="14,5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="2"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#3A4250"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Background" Value="#1E242B"/>
+                                <Setter Property="Foreground" Value="#5E6B76"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Same reason as SaveButtonStyle, in red: "Delete all" is disabled
              while the library is empty, and stock chrome paints that near-white. -->
         <Style x:Key="DangerButtonStyle" TargetType="Button">
@@ -481,10 +512,18 @@
                 </ScrollViewer.Resources>
                 <StackPanel x:Name="WaypointRows" Margin="0,0,6,0"/>
             </ScrollViewer>
+            <TextBlock x:Name="WaypointStatus" Foreground="#9AA7B0" FontSize="11" TextWrapping="Wrap"
+                       Margin="0,6,0,0" Visibility="Collapsed"/>
             <DockPanel Margin="0,8,0,0">
-                <Button x:Name="DeleteAllButton" DockPanel.Dock="Right" Content="Delete all" Click="DeleteAll_Click"
-                        Style="{StaticResource DangerButtonStyle}" VerticalAlignment="Center"/>
-                <TextBlock Text="Right-click the minimap in edit mode to add a waypoint where you click. Click a dot to change its colour."
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="ImportButton" Content="Import…" Click="Import_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button x:Name="ExportButton" Content="Export…" Click="Export_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button x:Name="DeleteAllButton" Content="Delete all" Click="DeleteAll_Click"
+                            Style="{StaticResource DangerButtonStyle}"/>
+                </StackPanel>
+                <TextBlock Text="Right-click the map in edit mode to add one; click a dot to recolour."
                            Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
             </StackPanel>
