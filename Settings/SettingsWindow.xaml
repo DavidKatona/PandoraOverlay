@@ -567,15 +567,17 @@
             <!-- The column labels; 7 px each side matches the cards' border + padding below. -->
             <Grid Margin="7,0,21,4">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="26"/>
+                    <ColumnDefinition Width="46"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="52"/>
                     <ColumnDefinition Width="52"/>
-                    <ColumnDefinition Width="26"/>
+                    <ColumnDefinition Width="46"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="1" Text="Name" Foreground="#7B8790" FontSize="10"/>
+                <TextBlock Grid.Column="0" Text="Colour" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="Name" Foreground="#7B8790" FontSize="10" Margin="8,0,0,0"/>
                 <TextBlock Grid.Column="2" Text="Show" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
                 <TextBlock Grid.Column="3" Text="Track" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="4" Text="Delete" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
             </Grid>
             <ScrollViewer Height="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <ScrollViewer.Resources>

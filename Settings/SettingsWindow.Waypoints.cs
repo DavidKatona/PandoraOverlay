@@ -65,6 +65,9 @@ public partial class SettingsWindow
     private static readonly Brush CardSurface = new SolidColorBrush(Color.FromRgb(0x16, 0x1C, 0x23));
     private static readonly Brush BandSurface = new SolidColorBrush(Color.FromRgb(0x1F, 0x26, 0x2E));
     private static readonly Brush RowStripe = new SolidColorBrush(Color.FromArgb(0x0A, 0xFF, 0xFF, 0xFF));
+    private static readonly Brush WellSurface = new SolidColorBrush(Color.FromRgb(0x1A, 0x21, 0x29));   // matches the Check template's box
+    private static readonly Brush WellBorder = new SolidColorBrush(Color.FromRgb(0x5E, 0x6B, 0x76));
+    private static readonly Brush RowDeleteGlyph = new SolidColorBrush(Color.FromRgb(0xFF, 0xB4, 0xAE));
 
     /// <summary>
     /// One group as a card: a bordered surface holding a caption band and
@@ -78,11 +81,13 @@ public partial class SettingsWindow
         if (members.Count == 0) return;
 
         var body = new StackPanel();
-        body.Children.Add(BuildGroupBand(title, pack, members));
+        var (band, groupCheck) = BuildGroupBand(title, pack, members);
+        body.Children.Add(band);
         var stripe = false;
         foreach (var wp in members)
         {
-            body.Children.Add(BuildWaypointRow(wp, stripe));
+            // A row's Show click must reach the band: the group box shows all / none / mixed live.
+            body.Children.Add(BuildWaypointRow(wp, stripe, () => groupCheck.IsChecked = GroupState(members)));
             stripe = !stripe;
         }
         WaypointRows.Children.Add(new Border
@@ -99,7 +104,14 @@ public partial class SettingsWindow
     /// shows all, the next hides all) and, for a pack, a ✕ in the delete
     /// column. Three loose buttons were tried first and looked bolted on.
     /// </summary>
-    private Border BuildGroupBand(string text, string? pack, List<Waypoint> members)
+    /// <summary>True = every member shown, false = none, null = mixed (the checkbox draws a square).</summary>
+    private static bool? GroupState(List<Waypoint> members)
+    {
+        var shown = members.Count(w => w.Visible);
+        return shown == members.Count ? true : shown == 0 ? false : null;
+    }
+
+    private (Border Band, CheckBox GroupCheck) BuildGroupBand(string text, string? pack, List<Waypoint> members)
     {
         var row = NewRowGrid();
         row.Margin = new Thickness(0);
@@ -112,11 +124,10 @@ public partial class SettingsWindow
         Grid.SetColumn(caption, 1);
         row.Children.Add(caption);
 
-        var shown = members.Count(w => w.Visible);
         var all = new CheckBox
         {
             Style = (Style)FindResource("Check"), HorizontalAlignment = HorizontalAlignment.Center,
-            IsChecked = shown == members.Count ? true : shown == 0 ? false : null, // null draws the "mixed" square
+            IsChecked = GroupState(members),
             ToolTip = pack is null ? "Show or hide all of your waypoints" : "Show or hide the whole pack"
         };
         all.Click += (_, _) => SetGroupVisible(pack, all.IsChecked == true); // mixed → click → checked → show all
@@ -129,28 +140,29 @@ public partial class SettingsWindow
             {
                 Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
                 Style = (Style)FindResource("DangerButtonStyle"),
-                HorizontalAlignment = HorizontalAlignment.Right, ToolTip = "Delete this pack"
+                HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Delete this pack"
             };
             delete.Click += (_, _) => DeletePack(pack);
             Grid.SetColumn(delete, 4);
             row.Children.Add(delete);
         }
-        return new Border
+        var band = new Border
         {
             Child = row, Background = BandSurface, CornerRadius = new CornerRadius(3),
             Padding = new Thickness(0, 3, 0, 3), Margin = new Thickness(0, 0, 0, 4)
         };
+        return (band, all);
     }
 
     /// <summary>The five-column grid every list row and caption shares: dot | name | Show | Track | delete.</summary>
     private static Grid NewRowGrid(double topMargin = 0)
     {
         var row = new Grid { Margin = new Thickness(0, topMargin, 0, 4) };
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
         return row;
     }
 
@@ -171,28 +183,32 @@ public partial class SettingsWindow
     }
 
     /// <summary>One list row; alternate rows carry a faint stripe so the controls read as part of the row.</summary>
-    private Grid BuildWaypointRow(Waypoint wp, bool stripe)
+    private Grid BuildWaypointRow(Waypoint wp, bool stripe, Action onVisibilityChanged)
     {
         var row = NewRowGrid();
         row.Margin = new Thickness(0, 1, 0, 1);
         row.Background = stripe ? RowStripe : Brushes.Transparent;
 
-        var dot = new Ellipse
+        // The colour disc sits in the same 15 px dark well as the checkboxes,
+        // so it reads as a control in the table rather than a loose dot.
+        var dot = new Ellipse { Width = 9, Height = 9, Fill = PaletteBrushes[WaypointPalette.Wrap(wp.Colour)] };
+        var well = new Border
         {
-            Width = 12, Height = 12, Fill = PaletteBrushes[WaypointPalette.Wrap(wp.Colour)],
-            Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left,
+            Child = dot, Width = 15, Height = 15, CornerRadius = new CornerRadius(2),
+            Background = WellSurface, BorderBrush = WellBorder, BorderThickness = new Thickness(1),
+            Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center,
             ToolTip = $"{WaypointPalette.Colours[WaypointPalette.Wrap(wp.Colour)].Name} — click to change"
         };
-        dot.MouseLeftButtonDown += (_, _) =>
+        well.MouseLeftButtonDown += (_, _) =>
         {
             wp.Colour = WaypointPalette.Wrap(wp.Colour + 1);
             dot.Fill = PaletteBrushes[wp.Colour];
-            dot.ToolTip = $"{WaypointPalette.Colours[wp.Colour].Name} — click to change";
+            well.ToolTip = $"{WaypointPalette.Colours[wp.Colour].Name} — click to change";
             _waypointsDirty = true;
         };
-        row.Children.Add(dot);
+        row.Children.Add(well);
 
-        var name = new TextBox { Text = wp.Name, Style = (Style)FindResource("NameBox"), Margin = new Thickness(0, 0, 8, 0) };
+        var name = new TextBox { Text = wp.Name, Style = (Style)FindResource("NameBox"), Margin = new Thickness(8, 0, 8, 0) };
         name.TextChanged += (_, _) =>
         {
             wp.Name = name.Text;
@@ -206,6 +222,7 @@ public partial class SettingsWindow
         {
             wp.Visible = show.IsChecked == true;
             _waypointsDirty = true;
+            onVisibilityChanged();
         };
         Grid.SetColumn(show, 2);
         row.Children.Add(show);
@@ -235,8 +252,10 @@ public partial class SettingsWindow
         var delete = new Button
         {
             Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
-            Style = (Style)FindResource("DangerButtonStyle"),
-            HorizontalAlignment = HorizontalAlignment.Right, ToolTip = "Delete"
+            // Grey button, soft red glyph: still "remove", but not the only alarm on every row.
+            // The band's pack delete and Delete all stay red — they remove many at once.
+            Style = (Style)FindResource("NeutralButtonStyle"), Foreground = RowDeleteGlyph,
+            HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Delete this waypoint"
         };
         delete.Click += (_, _) =>
         {
