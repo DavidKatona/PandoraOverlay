@@ -251,9 +251,8 @@
             <DockPanel DockPanel.Dock="Top" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
                        Margin="0,0,0,8" Background="Transparent">
                 <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Cancel_Click"
-                        Width="22" Height="22" Padding="0"
-                        Background="#552B2B" Foreground="#FFDDDD"
-                        BorderThickness="0" FontSize="10"/>
+                        Style="{StaticResource DangerButtonStyle}"
+                        Width="22" Height="22" Padding="0" FontSize="10"/>
                 <TextBlock Text="Pandora Overlay settings"
                            Foreground="#ECF2F8" FontSize="14" FontWeight="Bold"
                            VerticalAlignment="Center"/>
@@ -263,8 +262,7 @@
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                         HorizontalAlignment="Right" Margin="0,14,0,0">
                 <Button Content="Cancel" Click="Cancel_Click"
-                        Padding="14,5" Margin="0,0,8,0" FontSize="12"
-                        Background="#2A3038" Foreground="#C7D1DA" BorderThickness="0"/>
+                        Style="{StaticResource NeutralButtonStyle}" Margin="0,0,8,0"/>
                 <Button x:Name="SaveButton" Content="Save" Click="Save_Click"
                         Style="{StaticResource SaveButtonStyle}"/>
             </StackPanel>
@@ -299,9 +297,8 @@
             <TextBlock x:Name="CookieStatus" FontSize="12" TextWrapping="Wrap"/>
 
             <Button Content="Open live map in browser" Click="OpenMap_Click"
-                    HorizontalAlignment="Left" Margin="0,8,0,0" Padding="12,5"
-                    Background="#264A63" Foreground="#DCEBF7" BorderThickness="0"
-                    FontSize="12"/>
+                    Style="{StaticResource NeutralButtonStyle}"
+                    HorizontalAlignment="Left" Margin="0,8,0,0"/>
 
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock x:Name="HowToLink" Style="{StaticResource Link}"
