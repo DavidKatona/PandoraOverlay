@@ -23,3 +23,8 @@ dotnet_style_qualification_for_property = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion
 dotnet_style_qualification_for_event = false:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
+# Files are grouped by feature (Core/, Shell/, Stats/, Minimap/, Waypoints/, Prime/,
+# Settings/) but keep the one flat PandoraOverlay namespace on purpose - see CLAUDE.md.
+[*.cs]
+dotnet_style_namespace_match_folder = false
+dotnet_diagnostic.IDE0130.severity = none

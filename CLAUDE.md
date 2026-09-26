@@ -108,6 +108,38 @@ is bundled as `Assets/map.png` (WPF Resource).
   repo root, so the test subtree is `Compile Remove`d from it.
 - `config.json` is created next to the exe on first run.
 
+## Layout (Sep 26 2026)
+
+Files are grouped BY FEATURE, not by layer — every feature here is a widget
+plus its pure helpers plus a Settings page, so that is how the folders cut:
+
+- `Core/` — zero-WPF plumbing: PandoraClient, PollService, OverlayConfig,
+  HotkeySpec, StartupRegistration, UpdateChecker.
+- `Shell/` — what every widget stands on: OverlayWindowBase, SnapResolver,
+  SnapGuideWindow, ControlPanelWindow, TrayIcon, and MainWindow (the
+  orchestrator, which is also the stats panel — splitting the panel out
+  into its own window is a possible later refactor).
+- `Stats/` — GrowthTracker, DrainTracker, StatsAttention, LowStatAlert,
+  GrowthMilestones.
+- `Minimap/` — MinimapWindow, BreadcrumbTrail, ScaleBar, SpeedTracker, Compass.
+- `Waypoints/` — WaypointLibrary, ShareCode (phase 3 export/import lands here).
+- `Prime/` — PrimeWindow. `Settings/` — SettingsWindow.
+- `Assets/` unchanged; `App.xaml` (StartupUri now `Shell/MainWindow.xaml`),
+  csproj, sln and the docs stay at the root. `PandoraOverlay.Tests/` mirrors
+  the folders.
+
+The namespace stays ONE flat `PandoraOverlay` on purpose (35 files don't
+earn sub-namespaces; `.editorconfig` silences IDE0130). The SDK-style csproj
+globs subfolders, so moving a file needs no project edit; pack URIs point at
+`Assets/`, which didn't move. Big windows are PARTIAL CLASSES split by
+concern, the way WPF already splits them from their generated `.g.cs`:
+`MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`) and
+`MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`). Same class, same
+fields, no behaviour change — a reading aid, not decoupling; the pure
+helper classes are the real decoupling. Keep each part under ~500 lines;
+when one outgrows that, cut another `Window.Topic.cs`, don't extract a
+"manager" class by reflex.
+
 ## Architecture
 
 Dependency rule: `MainWindow` → { `PollService`, `OverlayConfig`,
@@ -692,7 +724,9 @@ re-propose.
   display scaling already does it, two multiplying sliders confuse, and
   scaling everything at once breaks docked/snapped layouts).
 - Fail soft: config/crypto/HTTP errors degrade to a UI state, never crash.
-- Keep files well under ~500 lines; current style is regions + XML doc comments.
+- Keep files well under ~500 lines; current style is regions + XML doc
+  comments. A window that outgrows it gets another partial-class part
+  (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
   minor, fixes bump patch. Current: 1.22.0.
