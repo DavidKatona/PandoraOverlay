@@ -298,6 +298,12 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <!-- Nothing to scroll: keep the space, hide the bar. -->
+                <DataTrigger Binding="{Binding Maximum, RelativeSource={RelativeSource Self}}" Value="0">
+                    <Setter Property="Opacity" Value="0"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="HotkeyBox" TargetType="TextBox">
@@ -579,9 +585,11 @@
                 <TextBlock Grid.Column="3" Text="Track" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
                 <TextBlock Grid.Column="4" Text="Delete" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
             </Grid>
-            <!-- The labels above live outside the scroll area, so the code keeps
-                 the header exactly as wide as the list viewport (AlignWaypointHeader). -->
-            <ScrollViewer x:Name="WaypointList" Height="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <!-- The bar's space is always reserved so the cards keep one width; the
+                 bar itself fades out when there is nothing to scroll (DarkScrollBar).
+                 The labels above live outside the scroll area, so the code keeps the
+                 header exactly as wide as the list viewport (AlignWaypointHeader). -->
+            <ScrollViewer x:Name="WaypointList" Height="260" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
                 <ScrollViewer.Resources>
                     <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
                 </ScrollViewer.Resources>
