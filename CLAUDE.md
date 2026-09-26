@@ -502,8 +502,12 @@ Every overlay window derives from `OverlayWindowBase`.
   HIDDEN and tagged with the pack name (owner's decision: imports must not
   bury a map). The Settings page owns the file dialogs
   (`Microsoft.Win32.OpenFileDialog`/`SaveFileDialog`, filter `*.json`),
-  reports the outcome in `WaypointStatus`, groups rows by pack with Show
-  all / Hide all / Delete pack captions, and nothing persists until Save.
+  reports the outcome in `WaypointStatus`, groups rows by pack under
+  caption rows that act through the grid's own columns (a group checkbox
+  in the Show column — ticked / empty / mixed square — and a ✕ in the
+  delete column for a pack; three loose Show all / Hide all / Delete
+  pack buttons were tried and looked bolted on), and nothing persists
+  until Save.
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
   ten ✓/✗ condition rows (texts baked in — the site bakes them into its
   frontend too, the API only returns flags) + a two-line footer (what the

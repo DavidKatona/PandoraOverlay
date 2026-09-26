@@ -12,8 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Waypoint packs: Settings → Waypoints → Export… writes your library to a
   JSON file named after the file you choose; Import… merges one in.
   Waypoints you already have (same id, or the same name within 20 m) are
-  skipped, the rest arrive hidden under the pack's own heading with Show
-  all, Hide all and Delete pack, and nothing persists until you Save. Made
+  skipped, the rest arrive hidden under the pack's own heading, whose Show
+  checkbox shows or hides the whole pack and whose ✕ deletes it, and
+  nothing persists until you Save. Made
   for sharing landmarks, sanctuaries, patrol and migration zones or AI
   spots between players.
 
