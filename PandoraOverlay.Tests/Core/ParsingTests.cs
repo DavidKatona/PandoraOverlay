@@ -140,3 +140,64 @@ public class UpdateCheckerTests
     public void ComparesReleaseTagsAgainstCurrentVersion(string tag, string current, bool expected) =>
         Assert.Equal(expected, UpdateChecker.IsNewer(tag, Version.Parse(current)));
 }
+
+public class FriendsParsingTests
+{
+    private static IReadOnlyList<FriendState>? Parse(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return PandoraClient.ParseFriends(doc.RootElement);
+    }
+
+    [Fact]
+    public void ReadsTheRosterWithPresenceFlags()
+    {
+        var friends = Parse("""
+            {"success":true,"friends":[
+              {"steamId":"1","name":"Ann","inGame":true,"hideLocation":false,"dino":"Deinosuchus","gender":"Female",
+               "growth":0.42,"health":0.9,"stamina":1,"hunger":0.5,"thirst":0.6,"yaw":-90.5,
+               "headFractured":false,"bodyFractured":false,"legsFractured":true,"x":6167.09,"y":-316782.07},
+              {"steamId":"2","name":"Bob","inGame":false,"hideLocation":false,"x":null,"y":null},
+              {"steamId":"3","name":"Cy","inGame":true,"hideLocation":true,"x":1,"y":2}
+            ]}
+            """);
+
+        Assert.NotNull(friends);
+        Assert.Equal(3, friends!.Count);
+        var ann = friends[0];
+        Assert.True(ann.OnMap);
+        Assert.Equal("Deinosuchus", ann.Dino);
+        Assert.Equal(0.42, ann.Growth);
+        Assert.Equal(-90.5, ann.Yaw);
+        Assert.True(ann.LegsFractured);
+        Assert.Equal(6167.09, ann.X);
+        Assert.False(friends[1].OnMap);   // not in game, no coordinates
+        Assert.Null(friends[1].X);
+        Assert.False(friends[2].OnMap);   // hidden location wins over the coordinates
+        Assert.True(friends[2].InGame);
+    }
+
+    [Fact]
+    public void ToleratesMissingFieldsAndDropsBadEntries()
+    {
+        var friends = Parse("""{"success":true,"friends":[{"steamId":"1"},{"name":"no id"},"junk",{"steamId":"2","x":"far"}]}""");
+        Assert.NotNull(friends);
+        var ids = friends!.Select(f => f.SteamId).ToArray();
+        Assert.Equal(new[] { "1" }, ids); // "no id" and "junk" dropped; the unparseable x drops that entry too
+        Assert.False(friends[0].InGame);
+    }
+
+    [Fact]
+    public void EmptyOrMissingListIsAnEmptyRoster()
+    {
+        Assert.Empty(Parse("""{"success":true,"friends":[]}""")!);
+        Assert.Empty(Parse("""{"success":true}""")!);
+    }
+
+    [Fact]
+    public void DeclinedIsNull()
+    {
+        Assert.Null(Parse("""{"success":false,"error":"no_steam_link"}"""));
+        Assert.Null(Parse("""[1,2,3]"""));
+    }
+}

@@ -397,6 +397,7 @@
                     <Button Content="Stats panel" Tag="Stats" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Minimap" Tag="Minimap" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Prime tracker" Tag="Prime" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Friends" Tag="Friends" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Waypoints" Tag="Waypoints" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                 </StackPanel>
 
@@ -657,6 +658,69 @@
                         SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="PrimeScaleSlider_ValueChanged"/>
+            </DockPanel>
+            </StackPanel>
+
+            <!-- ============================ Friends ======================== -->
+            <!-- The widget's own options, then your side of the roster: the
+                 roster itself is the site's (managed there), the nickname,
+                 colour, map and feed choices are yours and edited on a draft. -->
+            <StackPanel Tag="Friends" Visibility="Hidden">
+            <DockPanel Margin="0,4,0,8">
+                <TextBlock x:Name="FriendCount" DockPanel.Dock="Right"
+                           Foreground="#7B8790" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Style="{StaticResource PageTitle}" Text="FRIENDS" Margin="0"/>
+            </DockPanel>
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="FriendsScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider x:Name="FriendsScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="FriendsScaleSlider_ValueChanged"/>
+            </DockPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Feed lines:"/>
+                <RadioButton x:Name="FriendRows3" Style="{StaticResource Radio}" Content="3"
+                             GroupName="FriendRows" Margin="14,0,0,0"/>
+                <RadioButton x:Name="FriendRows5" Style="{StaticResource Radio}" Content="5"
+                             GroupName="FriendRows" Margin="14,0,0,0"/>
+                <RadioButton x:Name="FriendRows8" Style="{StaticResource Radio}" Content="8"
+                             GroupName="FriendRows" Margin="14,0,0,0"/>
+            </StackPanel>
+            <CheckBox x:Name="FriendsMapCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
+                      Content="Show friends on the minimap"/>
+            <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Chime when a friend spawns in"/>
+
+            <!-- The column labels; the side margins are set in code to match the card below. -->
+            <Grid x:Name="FriendHeader" Margin="7,14,13,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="46"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="78"/>
+                    <ColumnDefinition Width="46"/>
+                    <ColumnDefinition Width="46"/>
+                    <ColumnDefinition Width="46"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Colour" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="Name" Foreground="#7B8790" FontSize="10" Margin="8,0,0,0"/>
+                <TextBlock Grid.Column="2" Text="Last seen" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="3" Text="Map" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="4" Text="Feed" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="5" Text="Track" Foreground="#7B8790" FontSize="10" HorizontalAlignment="Center"/>
+            </Grid>
+            <ScrollViewer x:Name="FriendList" Height="200" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
+                </ScrollViewer.Resources>
+                <StackPanel x:Name="FriendRows" Margin="0,0,6,0"/>
+            </ScrollViewer>
+            <DockPanel Margin="0,8,0,0">
+                <Button DockPanel.Dock="Right" Content="Manage on islapandora.eu" Click="ManageFriends_Click"
+                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
+                <TextBlock Text="Names and colours here stay on this PC. Adding, removing and hiding your location happen on the website."
+                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
             </StackPanel>
 

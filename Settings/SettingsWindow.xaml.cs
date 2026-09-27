@@ -67,13 +67,20 @@ public partial class SettingsWindow : Window
     /// <summary>True after Save when a scale, the background opacity or the time-left checkbox differ (ApplyAppearance needed).</summary>
     public bool AppearanceChanged { get; private set; }
 
-    public SettingsWindow(OverlayConfig config, WaypointLibrary library)
+    /// <summary>True after Save when the friends feed rows, the minimap layer, a friend's preferences or the tracked friend differ.</summary>
+    public bool FriendsChanged { get; private set; }
+
+    public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, IReadOnlyList<FriendState>? roster)
     {
         InitializeComponent();
         _config = config;
         _library = library;
         _draft = library.Clone();
         _draftTracked = config.TrackedWaypointId;
+        _book = book;
+        _roster = roster;
+        _friendDraft = book.Clone();
+        _draftTrackedFriend = config.TrackedFriendSteamId;
         _firstRun = string.IsNullOrWhiteSpace(config.GetCookie());
 
         // Account
@@ -138,6 +145,16 @@ public partial class SettingsWindow : Window
         BuildWaypointRows();
         WaypointList.ScrollChanged += (_, _) => AlignWaypointHeader(); // fires when the extent/viewport changes, i.e. when the bar comes or goes
         WaypointList.SizeChanged += (_, _) => AlignWaypointHeader();
+
+        // Friends
+        FriendsScaleSlider.Value = Math.Clamp(config.FriendsScale ?? config.PrimeScale ?? config.UiScale, FriendsScaleSlider.Minimum, FriendsScaleSlider.Maximum);
+        var rowsRadio = config.FriendsRows switch { <= 3 => FriendRows3, <= 5 => FriendRows5, _ => FriendRows8 };
+        rowsRadio.IsChecked = true;
+        FriendsMapCheck.IsChecked = config.FriendsOnMinimap;
+        FriendsChimeCheck.IsChecked = config.FriendsChimeEnabled;
+        BuildFriendRows();
+        FriendList.ScrollChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
+        FriendList.SizeChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
 
         Validate();
         SetPage(_firstRun ? "Account" : _lastPage);
@@ -401,12 +418,14 @@ public partial class SettingsWindow : Window
 
         var scale = Math.Round(ScaleSlider.Value, 2);
         var primeScale = Math.Round(PrimeScaleSlider.Value, 2);
+        var friendsScale = Math.Round(FriendsScaleSlider.Value, 2);
         var bgOpacity = Math.Round(OpacitySlider.Value, 2);
         var timeLeft = TimeLeftCheck.IsChecked == true;
         var fade = FadeCheck.IsChecked == true;
         var fadeOpacity = Math.Round(FadeSlider.Value, 2);
         if (Math.Abs(scale - _config.UiScale) > 0.001 ||
             Math.Abs(primeScale - (_config.PrimeScale ?? _config.UiScale)) > 0.001 ||
+            Math.Abs(friendsScale - (_config.FriendsScale ?? _config.PrimeScale ?? _config.UiScale)) > 0.001 ||
             Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001 ||
             timeLeft != _config.StatTimeLeftEnabled ||
             fade != _config.FadeEnabled ||
@@ -414,6 +433,7 @@ public partial class SettingsWindow : Window
         {
             _config.UiScale = scale;
             _config.PrimeScale = primeScale;
+            _config.FriendsScale = friendsScale;
             _config.BackgroundOpacity = bgOpacity;
             _config.StatTimeLeftEnabled = timeLeft;
             _config.FadeEnabled = fade;
@@ -451,6 +471,18 @@ public partial class SettingsWindow : Window
             _config.TrackedWaypointId = _draftTracked;
             _library.ReplaceWith(_draft); // raises Changed: the minimap redraws, MainWindow saves the file
             MinimapChanged = true;
+        }
+
+        var friendRows = FriendRows3.IsChecked == true ? 3 : FriendRows8.IsChecked == true ? 8 : 5;
+        var friendsOnMap = FriendsMapCheck.IsChecked == true;
+        _config.FriendsChimeEnabled = FriendsChimeCheck.IsChecked == true; // the widget reads it live, no flag needed
+        if (friendRows != _config.FriendsRows || friendsOnMap != _config.FriendsOnMinimap || _friendsDirty)
+        {
+            _config.FriendsRows = friendRows;
+            _config.FriendsOnMinimap = friendsOnMap;
+            _config.TrackedFriendSteamId = _draftTrackedFriend;
+            if (_friendsDirty) _book.ApplyPrefs(_friendDraft); // raises Changed: the minimap redraws, MainWindow saves the file
+            FriendsChanged = true;
         }
 
         _config.Save();

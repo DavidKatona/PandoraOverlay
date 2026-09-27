@@ -96,6 +96,9 @@
                          a ringed diamond. Shapes are created in code from the
                          library; the layer sits under the arrow on purpose. -->
                     <Canvas x:Name="MarkerLayer"/>
+                    <!-- In-game friends as smaller arrows in their colours, above
+                         the waypoints and under your own arrow (MinimapWindow.Friends.cs). -->
+                    <Canvas x:Name="FriendLayer"/>
                     <Path x:Name="PlayerArrow"
                           Data="M 0,-8 L 6,7 L 0,3.5 L -6,7 Z"
                           Fill="#FFC864"

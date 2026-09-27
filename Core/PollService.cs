@@ -9,8 +9,10 @@ namespace PandoraOverlay;
 /// adaptive, and only ever downwards: the configured interval applies while
 /// in-game, and the poll idles while nobody is spawned (menus, restarts, the
 /// game closed) or the connection keeps failing. A second, slower timer
-/// refetches the minimap's heatmap layer while it is enabled. Runs entirely
-/// on the UI thread via DispatcherTimer, so subscribers may touch UI directly.
+/// refetches the minimap's heatmap layer while it is enabled, and the friends
+/// roster rides every second in-game poll while a friends surface is shown.
+/// Runs entirely on the UI thread via DispatcherTimer, so subscribers may
+/// touch UI directly.
 /// </summary>
 public sealed class PollService : IDisposable
 {
@@ -51,6 +53,19 @@ public sealed class PollService : IDisposable
     /// </summary>
     private static readonly TimeSpan PrimeRetryGuard = TimeSpan.FromSeconds(15);
 
+    /// <summary>
+    /// The friends roster rides every Nth in-game poll (every 2nd at the
+    /// default 3 s = 6 s, under the live-map page's own 5 s) and every idle
+    /// poll (15 s / 60 s — friends matter while you sit in the menu). It is
+    /// only ever fetched right after a successful mylocation poll, so it
+    /// can never outrun constraint #3, and only while a friends surface is
+    /// shown (see FriendsWanted).
+    /// </summary>
+    private const int FriendsEveryNthPoll = 2;
+
+    /// <summary>Consecutive friends misses before the layers are told to clear — one blip keeps the last roster.</summary>
+    private const int FriendMissesBeforeClear = 2;
+
     private readonly OverlayConfig _config;
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _heatmapTimer;
@@ -62,8 +77,13 @@ public sealed class PollService : IDisposable
     private bool _calibrationRequested;
     private bool _inGame;
     private string? _dino;
+    private string? _steamId; // yours, once seen; the friends roster may include you
     private int _failStreak;
+    private int _pollsSinceFriends;
+    private int _friendMisses;
+    private bool _friendsDue;   // a hot trigger arrived while busy or too soon: fetch on the next poll
     private DateTime _lastPollUtc;
+    private DateTime _lastFriendsUtc;
     private DateTime _lastLiveUtc = DateTime.UtcNow;
 
     /// <summary>Current gap between polls: the configured one in-game, longer while idling.</summary>
@@ -84,6 +104,17 @@ public sealed class PollService : IDisposable
 
     /// <summary>Fresh heatmap PNG bytes, or null (disabled / off / fetch failed) → hide the layer.</summary>
     public event Action<byte[]?>? HeatmapChanged;
+
+    /// <summary>
+    /// The friends roster after each fetch (you filtered out), or null when
+    /// no friends surface is shown or the fetch keeps failing → clear the
+    /// layers. Raised after SnapshotReceived, so consumers know your own
+    /// position first.
+    /// </summary>
+    public event Action<IReadOnlyList<FriendState>?>? FriendsChanged;
+
+    /// <summary>The last roster delivered (null = none / cleared), so a window created mid-session can render at once.</summary>
+    public IReadOnlyList<FriendState>? Friends { get; private set; }
 
     /// <summary>Raised right before a prime check request actually goes out (not for locally answered ones).</summary>
     public event Action? PrimeCheckStarted;
@@ -153,9 +184,11 @@ public sealed class PollService : IDisposable
             var result = await _client.FetchAsync();
             _inGame = result.InGame && result.Player is not null;
             _dino = result.Player?.Dino;
+            _steamId = result.Player?.SteamId ?? _steamId;
             _failStreak = 0;
             ApplyPacing(); // before the event, so subscribers read the cadence this snapshot set
             SnapshotReceived?.Invoke(result);
+            await MaybeFetchFriendsAsync();
         }
         catch (Exception ex)
         {
@@ -167,6 +200,85 @@ public sealed class PollService : IDisposable
         {
             _busy = false;
         }
+    }
+
+    // ---- Friends ---------------------------------------------------------------
+
+    /// <summary>A friends surface is on screen: the widget, or the minimap with its friend arrows.</summary>
+    private bool FriendsWanted => _config.FriendsEnabled || (_config.MinimapEnabled && _config.FriendsOnMinimap);
+
+    /// <summary>The cadence rule, pure for the tests: every idle poll, else every Nth.</summary>
+    internal static bool FriendsDue(int pollsSinceFriends, bool idling, bool hotTrigger) =>
+        hotTrigger || idling || pollsSinceFriends >= FriendsEveryNthPoll;
+
+    /// <summary>Runs after each successful poll, inside the busy guard: fetches the roster when it is due.</summary>
+    private async Task MaybeFetchFriendsAsync()
+    {
+        if (!FriendsWanted)
+        {
+            ClearFriends();
+            return;
+        }
+        _pollsSinceFriends++;
+        if (!FriendsDue(_pollsSinceFriends, IsIdling, _friendsDue)) return;
+        await FetchFriendsAsync();
+    }
+
+    /// <summary>
+    /// The hot-apply path (widget shown, settings saved, minimap re-shown):
+    /// fetch now if the last roster is older than one poll interval, else
+    /// mark it due for the next poll — showing and hiding the widget in a
+    /// hurry must not turn into a request per click. Off → clears at once.
+    /// </summary>
+    public async Task RefreshFriendsAsync()
+    {
+        if (!FriendsWanted)
+        {
+            ClearFriends();
+            return;
+        }
+        _friendsDue = true;
+        // Not yet polling (startup, no cookie), mid-poll, too soon, or the
+        // connection is failing: the next successful poll picks the flag up.
+        if (!_timer.IsEnabled || _busy || DateTime.UtcNow - _lastFriendsUtc < _activeInterval || _failStreak > 0) return;
+        _busy = true;
+        try
+        {
+            await FetchFriendsAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task FetchFriendsAsync()
+    {
+        _pollsSinceFriends = 0;
+        _friendsDue = false;
+        _lastFriendsUtc = DateTime.UtcNow;
+        try
+        {
+            var roster = await _client.FetchFriendsAsync();
+            if (roster is null) throw new InvalidOperationException("server declined");
+            _friendMisses = 0;
+            Friends = _steamId is null ? roster : roster.Where(f => f.SteamId != _steamId).ToList();
+            FriendsChanged?.Invoke(Friends);
+        }
+        catch
+        {
+            // One miss keeps the last roster on screen; a run of them clears it
+            // so nobody navigates by a stale arrow. The next due poll retries.
+            if (++_friendMisses >= FriendMissesBeforeClear) ClearFriends();
+        }
+    }
+
+    private void ClearFriends()
+    {
+        _pollsSinceFriends = 0;
+        if (Friends is null) return;
+        Friends = null;
+        FriendsChanged?.Invoke(null);
     }
 
     /// <summary>

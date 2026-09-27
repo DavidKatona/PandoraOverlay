@@ -132,6 +132,9 @@ public partial class MinimapWindow
     /// </summary>
     private void UpdateWaypointVisual(double mapTx, double mapTy, TimeSpan? glide)
     {
+        _mapTargetX = mapTx; // the friend layer places against the same targets, now and when its roster changes
+        _mapTargetY = mapTy;
+        UpdateFriendVisual(mapTx, mapTy, glide);
         if (_poll.Calibration is not { } cal) return;
         var size = MapHost.Width;
         foreach (var m in _markers.Values)
@@ -208,6 +211,17 @@ public partial class MinimapWindow
 
         ModeFooter.Inlines.Add(_centered ? $"centered · {_zoom:0.##}×" : "island view");
 
+        // A friend first: the one under the cursor, else the tracked one while
+        // they are on the map. Navigation only — name, distance, ETA — never
+        // their stats; that line has one job.
+        if ((_hoverFriend ?? TrackedFriend) is { X: { } fx, Y: { } fy } friend)
+        {
+            ModeFooter.Inlines.Add(" · ");
+            ModeFooter.Inlines.Add(new Run("▲ " + Short(FriendName(friend))) { Foreground = FriendBrush(friend) });
+            if (_lastWorld is { } me) AppendDistance(fx, fy, WaypointLibrary.Distance(fx, fy, me.X, me.Y) / 100);
+            return;
+        }
+
         Waypoint subject;
         double? meters;
         if (_hover is { } h)
@@ -233,11 +247,16 @@ public partial class MinimapWindow
             Foreground = PaletteBrushes[WaypointPalette.Wrap(subject.Colour)]
         });
         if (meters is not { } m) return;
+        AppendDistance(subject.X, subject.Y, m);
+    }
 
-        var text = m >= 1000 ? $" · {m / 1000:0.0} km" : $" · {m:0} m";
-        if (_speed.ClosingMps(subject.X, subject.Y) is { } closing && closing >= MinClosingMps)
+    /// <summary>" · 150 m" (or km) and, while actually closing on the point, " · ~4 min" at the current pace.</summary>
+    private void AppendDistance(double targetX, double targetY, double meters)
+    {
+        var text = meters >= 1000 ? $" · {meters / 1000:0.0} km" : $" · {meters:0} m";
+        if (_speed.ClosingMps(targetX, targetY) is { } closing && closing >= MinClosingMps)
         {
-            text += $" · ~{FormatEta(TimeSpan.FromSeconds(m / closing))}";
+            text += $" · ~{FormatEta(TimeSpan.FromSeconds(meters / closing))}";
         }
         ModeFooter.Inlines.Add(text);
     }

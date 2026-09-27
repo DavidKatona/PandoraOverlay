@@ -115,6 +115,14 @@
 
                 <Border Style="{StaticResource GroupSeparator}"/>
 
+                <StackPanel>
+                    <TextBlock Style="{StaticResource GroupCaption}" Text="FRIENDS"/>
+                    <Button Content="Show/hide" Click="Friends_Click"
+                            Style="{StaticResource PanelButton}" Margin="0"/>
+                </StackPanel>
+
+                <Border Style="{StaticResource GroupSeparator}"/>
+
                 <!-- Overlay-session controls -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
                     <Button Content="Lock" Click="Lock_Click"

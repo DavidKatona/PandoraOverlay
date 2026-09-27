@@ -1,0 +1,40 @@
+<local:OverlayWindowBase x:Class="PandoraOverlay.FriendsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PandoraOverlay"
+        Title="Pandora Friends"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        FontFamily="Segoe UI"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Border x:Name="RootPanel"
+            CornerRadius="10"
+            Background="#CC10151B"
+            BorderBrush="#33FFFFFF"
+            BorderThickness="1"
+            Padding="12,10">
+        <!-- Fixed width + a fixed number of one-line slots: the widget keeps
+             one size in every state, like the other panels. -->
+        <StackPanel Width="250">
+
+            <!-- Header: title + "3 of 7 in game" -->
+            <DockPanel Margin="0,0,0,7">
+                <TextBlock x:Name="CountText" DockPanel.Dock="Right"
+                           Foreground="#9AA7B0" FontSize="12"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="Friends"
+                           Foreground="#ECF2F8" FontSize="14" FontWeight="Bold"/>
+            </DockPanel>
+
+            <!-- Event lines, newest at the top; built in code-behind -->
+            <StackPanel x:Name="Lines"/>
+        </StackPanel>
+    </Border>
+</local:OverlayWindowBase>

@@ -17,7 +17,7 @@ It is **fully external**: the only thing it ever does is replay the same authent
 - [Requirements](#requirements)
 - [Build](#build)
 - [First-run setup](#first-run-setup)
-- [Usage](#usage) — [Basics](#basics) · [Tray icon & settings](#tray-icon--settings) · [Stats panel](#stats-panel) · [Minimap](#minimap) · [Prime tracker](#prime-tracker)
+- [Usage](#usage) — [Basics](#basics) · [Tray icon & settings](#tray-icon--settings) · [Stats panel](#stats-panel) · [Minimap](#minimap) · [Waypoints](#waypoints) · [Prime tracker](#prime-tracker) · [Friends](#friends)
 - [Configuration (config.json)](#configuration-configjson)
 - [Troubleshooting](#troubleshooting)
 - [Fair-play notes](#fair-play-notes)
@@ -63,7 +63,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Basics
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
-- The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with its buttons in one row, grouped by widget: **Settings**, then **Stats** (Show/hide), **Minimap** (Show/hide, Map view, Heatmap) and **Prime** (Show/hide, Check), and finally **Lock** and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
+- The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with its buttons in one row, grouped by widget: **Settings**, then **Stats** (Show/hide), **Minimap** (Show/hide, Map view, Heatmap), **Prime** (Show/hide, Check) and **Friends** (Show/hide), and finally **Lock** and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
 
   ![The edit-mode control panel: Settings, then the Stats, Minimap and Prime button groups under small captions, Lock and Exit, and the hint line underneath](docs/control-panel.png)
 
@@ -75,7 +75,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade), then one page per widget — Stats panel, Minimap, Prime tracker — each with its own Scale or Size slider, so you can size each one independently.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade), then one page per widget — Stats panel, Minimap, Prime tracker, Friends — each with its own Scale or Size slider, so you can size each one independently, and Waypoints.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -104,6 +104,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - A **scale bar** in the bottom-left corner shows a round real-world distance ("500 m", "2 km") for the current view and zoom. Untick "Show scale bar" in Settings to remove it.
 - **Waypoints** are drawn on the map as small dots in their colours; the one you're **tracking** is a ringed diamond, and in the centered view it sticks to the panel edge pointing the way when off-screen. The footer follows it by name with the distance and, while you're actually heading for it, an ETA at your current pace ("◆ Nest 1.2 km · ~6 min"); with nothing tracked it follows the nearest one. See **Waypoints** below.
 - A **heading and speed** pill in the bottom-right corner shows your compass heading and km/h, measured from your last few positions. Untick "Show heading and speed" in Settings to remove it.
+- **Friends** who are in game and sharing their location appear as smaller arrows in their own colours, turning with their heading. See **Friends** below.
 - **Activity heatmap** (optional, off by default): press **Ctrl+F6** any time, or the control panel's **Heatmap** button, to overlay the server's live heatmap — the same image the website shows, complete with its player-count and timestamp caption — at the website's own 55% blend, in both views. It refreshes every minute while the minimap is visible; the image is public, so your login cookie is never sent for it. Expect the map colors to mute a little while it's on, and if the server disables the heatmap the layer quietly disappears until it returns.
 
 ### Waypoints
@@ -124,6 +125,15 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - It never checks by itself. Press **Ctrl+F8** any time (rebindable in Settings), or **Check** in the control panel's Prime group. The server enforces a cooldown between checks — 5 minutes normally, shorter with some supporter ranks — so after each check the overlay asks the server for *your* cooldown, counts it down in the widget, and remembers it across restarts. A click during the cooldown sends nothing. You need to be spawned in for a check to work.
 - The last result stays on screen with the time it was taken and the dino it was taken as, and it survives restarts. If you have switched dino since, that line turns amber as a reminder that the list is about your previous one. After a check, conditions that changed since the previous result stand out — a newly met one in bright text, a lost one in amber — until the next check. When the cooldown runs out, the footer blinks briefly.
 - Hide or show the widget with **Show/hide** in the control panel's Prime group. Its size has its own Scale slider in Settings → Prime tracker (75–150%).
+
+### Friends
+
+- The **Friends widget** (a fourth panel, docked under the Prime tracker by default) is an activity feed for the friends you have on islapandora.eu: its header says how many you have and how many are in game, and each line below reports something that just happened — a friend spawned in ("spawned as Deinosuchus 42%"), left the game, started a fresh dino of the same species, switched dino, reached a growth stage, took a fracture, came within 200 m of you, or joined or left your list. New lines arrive at the top, fade as they age, and disappear after ten minutes; when nothing recent happened the first line simply names who is in game. The widget keeps one size: pick 3, 5 or 8 lines in Settings → Friends.
+- Several friends leaving at once (a server restart) become one line, and "left the game" is worded neutrally on purpose — from outside, a logout, a restart and a death look the same.
+- On the **minimap**, friends who are in game appear as smaller arrows in their own colours. Right-click one in edit mode to **Track** them (a ring on their arrow, and the footer shows their name, distance and ETA — the same way it follows a tracked waypoint) or to drop a **Waypoint at** their position. In edit mode, hovering a friend's arrow names them in the footer.
+- **Settings → Friends** lists everyone on your friends list, in-game friends first: click the colour to change it (each friend gets a stable default colour), type a **nickname** that only you see, untick **Map** to keep a friend off the minimap or **Feed** to mute their lines, and pick **Track**. The "Last seen" column shows when the overlay last saw them in game and, on hover, as what. Your choices live in `friends.json` next to the app; adding, removing or blocking friends, and hiding your own location, are done on the website ("Manage on islapandora.eu" opens the page).
+- Privacy works the way the website's does: a friend who turned on "hide my location" is counted as in game but never drawn, and you appear to your friends exactly as you do on their live map. The overlay only ever reads the friends list; it never sends friend requests or changes any setting there.
+- Cost: while the widget is shown or the minimap draws friends, the friends list is fetched every second update while you play (every 6 seconds at the default pace) and once per idle check while you aren't spawned — less often than the website's own live map does. Hide the widget and untick "Show friends on the minimap" to send no friends requests at all. An optional chime (off by default) plays when a friend spawns in.
 
 ## Configuration (`config.json`)
 
@@ -148,6 +158,12 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `HeatmapEnabled` | Overlay the server's live activity heatmap on the minimap (refreshed every minute; public image, no cookie sent). Toggled with the heatmap hotkey or the control panel's Heatmap button. Default `false`. |
 | `PrimeEnabled` / `PrimeX` / `PrimeY` | Show the Prime tracker widget, and its position (empty until first placed: left screen edge, vertically centered). |
 | `Prime` / `PrimeCooldownUntilUtc` | The last Prime check result (status, ten condition flags, time, dino) and when the server will accept the next check, kept so the widget is right after a restart. Managed by the app. |
+| `FriendsEnabled` / `FriendsX` / `FriendsY` | Show the Friends widget, and its position (empty until first placed: right under the Prime tracker). |
+| `FriendsScale` | Friends widget scale, 0.75–1.5. Slider in Settings; starts out equal to `PrimeScale`. |
+| `FriendsRows` | Feed lines the Friends widget reserves: 3, 5 or 8 (default 5). Radio buttons in Settings → Friends. |
+| `FriendsOnMinimap` | Draw in-game friends on the minimap. Checkbox in Settings → Friends. Default `true`. |
+| `FriendsChimeEnabled` | Play the Windows "Exclamation" sound when a friend spawns in. Checkbox in Settings → Friends. Default `false`. |
+| `TrackedFriendSteamId` | The friend the minimap follows (ring, edge indicator, footer); empty = none. Set from the map menu or Settings → Friends. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
 | `TrackedWaypointId` | The library waypoint the footer follows and the ring marks; `null` = follow the nearest visible one. Set from the map menu or Settings → Waypoints. |
 | `WaypointVisibility` | Which waypoints the minimap draws: `all` (default), `tracked` or `nearest` (the ten closest). Radio buttons in Settings → Minimap. |
@@ -159,7 +175,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `LowStatChimeEnabled` / `GrowthChimeEnabled` | Play the Windows "Exclamation" sound when hunger or thirst drops under 20%, and at the 25/50/75/100% growth stages. Checkboxes in Settings → Stats panel. Both default `false`. |
 | `FadeEnabled` / `FadeIdleOpacity` | Attention fade for the stats panel and Prime tracker, and the opacity they rest at while nothing needs attention (0.2–0.8, default 0.4). Checkbox + slider in Settings. Default off. |
 
-Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file. The waypoint library itself lives in `waypoints.json` next to the app (a `Waypoints` array of `{Id, Name, X, Y, Colour, Visible, Pack}`): user content, kept apart from settings and the cookie, and the file that will be exported and imported.
+Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file. The waypoint library itself lives in `waypoints.json` next to the app (a `Waypoints` array of `{Id, Name, X, Y, Colour, Visible, Pack}`): user content, kept apart from settings and the cookie, and the file that is exported and imported. Your side of the friends list lives in `friends.json` the same way (a `Friends` array of `{SteamId, Name, Nickname, Colour, ShowOnMap, Notify, LastDino, LastGrowth, LastSeenUtc}`); the list itself comes from the website on every fetch, this file only holds your names, colours and choices for each friend plus when they were last seen.
 
 ## Troubleshooting
 
@@ -171,14 +187,13 @@ Most of these are editable from the Settings window; `UserAgent`, `PollIntervalS
 
 ## Fair-play notes
 
-- The overlay only shows **your own** dino — the same data Isla Pandora already displays to you in a browser tab. It cannot see other players (except the site's own friends feature, not used yet).
+- The overlay shows **your own** dino and, since the friends update, the friends the website already shows you on its live map — the same data Isla Pandora displays to you in a browser tab, nothing else. It cannot see other players, and a friend who hides their location on the site is never drawn. Adding, removing and blocking friends stays on the website; the overlay only reads the list.
 - It polls at the same rate as the website itself while you play, slows right down while you aren't spawned in, and respects their rate limit.
 - This consumes Isla Pandora's private, login-gated API. Be a good citizen: ask their admins whether they're okay with a personal overlay client, and stop using it if they say no.
 
 ## Roadmap
 
-- Friends markers from the `friends` endpoint *(needs a green light from the site dev first)*.
-- Zone overlays (sanctuaries, patrol zones, migrations) *(same — ask first)*.
+- Zone overlays (sanctuaries, patrol zones, migrations) *(needs a green light from the site dev first)*.
 
 ## License
 

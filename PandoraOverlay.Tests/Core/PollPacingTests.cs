@@ -38,3 +38,26 @@ public class PollPacingTests
         Assert.Equal(verySlow, PollService.NextInterval(verySlow, live: false, TimeSpan.FromMinutes(30)));
     }
 }
+
+public class FriendsCadenceTests
+{
+    [Fact]
+    public void FriendsRideEverySecondLivePoll()
+    {
+        Assert.False(PollService.FriendsDue(1, idling: false, hotTrigger: false));
+        Assert.True(PollService.FriendsDue(2, idling: false, hotTrigger: false));
+        Assert.True(PollService.FriendsDue(7, idling: false, hotTrigger: false));
+    }
+
+    [Fact]
+    public void FriendsRideEveryIdlePoll()
+    {
+        Assert.True(PollService.FriendsDue(1, idling: true, hotTrigger: false));
+    }
+
+    [Fact]
+    public void AHotTriggerMakesTheNextPollFetch()
+    {
+        Assert.True(PollService.FriendsDue(0, idling: false, hotTrigger: true));
+    }
+}

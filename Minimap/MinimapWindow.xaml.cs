@@ -22,9 +22,12 @@ namespace PandoraOverlay;
 /// small dots in each entry's colour, the tracked one as a ringed diamond
 /// (edge-clamped in the centered view when off-screen), with the tracked —
 /// else nearest — one's name, distance and ETA in the footer; a
-/// WaypointVisibility policy keeps a big library readable. The edit-mode
-/// right-click menu adds, tracks, copies and removes waypoints and carries
-/// share-a-spot; a heading + speed pill sits bottom-right. An optional heatmap
+/// WaypointVisibility policy keeps a big library readable. In-game friends
+/// (PollService's roster, FriendBook colours) are smaller arrows above the
+/// waypoints; the tracked friend wears a ring and takes the footer first
+/// (MinimapWindow.Friends.cs). The edit-mode right-click menu adds, tracks,
+/// copies and removes waypoints, tracks friends, and carries share-a-spot; a
+/// heading + speed pill sits bottom-right. An optional heatmap
 /// layer (HeatmapEnabled) blends the site's pre-rendered activity image over
 /// the map, delivered by PollService's slow timer. A breadcrumb trail
 /// (MinimapTrailMinutes) draws the recent path and a scale bar
@@ -47,6 +50,7 @@ public partial class MinimapWindow : OverlayWindowBase
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
     private readonly WaypointLibrary _library;
+    private readonly FriendBook _book;
     private readonly BreadcrumbTrail _trail = new();
     private readonly RotateTransform _arrowRotate = new();
     private readonly TranslateTransform _arrowTranslate = new();
@@ -87,13 +91,14 @@ public partial class MinimapWindow : OverlayWindowBase
     private (double Fx, double Fy, double Yaw)? _lastFix; // map fractions (0–1) + screen yaw
     private (double X, double Y)? _lastWorld;             // player world position (cm), for waypoint distance
 
-    public MinimapWindow(OverlayConfig config, PollService poll, WaypointLibrary library)
+    public MinimapWindow(OverlayConfig config, PollService poll, WaypointLibrary library, FriendBook book)
     {
         InitializeComponent();
 
         _config = config;
         _poll = poll;
         _library = library;
+        _book = book;
         _centered = string.Equals(config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
         _zoom = Math.Clamp(config.MinimapZoom, MinZoom, MaxZoom);
 
@@ -127,27 +132,34 @@ public partial class MinimapWindow : OverlayWindowBase
         };
 
         RebuildMarkers();
+        _friends = poll.Friends; // shown mid-session: start from the current roster
+        RebuildFriendMarkers();
         ApplyViewMode();
 
         _poll.SnapshotReceived += OnSnapshot;
         _poll.CalibrationChanged += OnCalibrationChanged;
         _poll.HeatmapChanged += OnHeatmap;
+        _poll.FriendsChanged += OnFriends;
         _library.Changed += OnLibraryChanged;
+        _book.Changed += OnBookChanged;
         Closed += (_, _) =>
         {
             _poll.SnapshotReceived -= OnSnapshot;
             _poll.CalibrationChanged -= OnCalibrationChanged;
             _poll.HeatmapChanged -= OnHeatmap;
+            _poll.FriendsChanged -= OnFriends;
             _library.Changed -= OnLibraryChanged;
+            _book.Changed -= OnBookChanged;
         };
     }
 
     protected override void OnEditModeChanged(bool editMode)
     {
         RootPanel.BorderBrush = editMode ? BorderEdit : BorderLocked;
-        if (!editMode && _hover is not null)
+        if (!editMode && (_hover is not null || _hoverFriend is not null))
         {
             _hover = null;
+            _hoverFriend = null;
             UpdateFooter();
         }
     }
@@ -194,6 +206,7 @@ public partial class MinimapWindow : OverlayWindowBase
         if (TrailKeep <= TimeSpan.Zero) _trail.Reset(); // switched off: forget the path, not just hide it
         ApplyAppearance(_config);
         RebuildMarkers(); // policy or tracked waypoint may have changed
+        RebuildFriendMarkers(); // the friends layer, or a friend's map visibility / colour, may have too
         ApplyViewMode();
         UpdateSpeedPill();
     }
@@ -267,6 +280,7 @@ public partial class MinimapWindow : OverlayWindowBase
             m.Translate.BeginAnimation(TranslateTransform.XProperty, null);
             m.Translate.BeginAnimation(TranslateTransform.YProperty, null);
         }
+        ClearFriendAnimations();
         _arrowRotate.BeginAnimation(RotateTransform.AngleProperty, null);
     }
 

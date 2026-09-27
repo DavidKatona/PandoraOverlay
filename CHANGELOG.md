@@ -5,6 +5,34 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Friends, with the site dev's approval: friends who are in game and
+  sharing their location appear on the minimap as smaller arrows in their
+  own colours, turning with their heading. Right-click one in edit mode to
+  track them (ring, edge indicator in the centered view, name · distance ·
+  ETA in the footer, like a tracked waypoint) or to drop a waypoint where
+  they stand.
+- The Friends widget, a fourth panel docked under the Prime tracker: how
+  many friends you have and how many are in game, over a feed of what just
+  happened — spawned in, left the game, started a fresh dino, switched
+  dino, reached a growth stage, took a fracture, came within 200 m, joined
+  or left your list. Newest at the top, fading with age, gone after ten
+  minutes; with nothing recent it names who is in game. Fixed at 3, 5 or 8
+  lines (Settings → Friends), so it never changes size. Optional chime
+  when a friend spawns in (off by default).
+- Settings → Friends: every friend on your list with a stable colour you
+  can change, a nickname only you see, Map and Feed switches per friend,
+  Track, and when the overlay last saw them in game. Kept in
+  `friends.json` next to the app. Adding, removing and blocking friends
+  stay on the website, which the page links to.
+- The friends list is fetched every second update while you play and
+  once per idle check otherwise, only while the widget is shown or the
+  minimap draws friends. The overlay only reads the list; it never
+  changes anything on the site.
+
 ## [1.23.0] - 2026-09-26
 
 ### Added

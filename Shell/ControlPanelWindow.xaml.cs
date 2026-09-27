@@ -22,6 +22,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
     private readonly Action _toggleHeatmap;
     private readonly Action _togglePrime;
     private readonly Action _checkPrime;
+    private readonly Action _toggleFriends;
     private readonly Action _lockOverlay;
     private readonly Action _exit;
 
@@ -29,7 +30,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
 
     public ControlPanelWindow(OverlayConfig config, Action openSettings, Action toggleStats,
                               Action toggleMinimap, Action toggleMinimapView, Action toggleHeatmap,
-                              Action togglePrime, Action checkPrime,
+                              Action togglePrime, Action checkPrime, Action toggleFriends,
                               Action lockOverlay, Action exit)
     {
         InitializeComponent();
@@ -42,6 +43,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
         _toggleHeatmap = toggleHeatmap;
         _togglePrime = togglePrime;
         _checkPrime = checkPrime;
+        _toggleFriends = toggleFriends;
         _lockOverlay = lockOverlay;
         _exit = exit;
 
@@ -92,6 +94,8 @@ public partial class ControlPanelWindow : OverlayWindowBase
     private void Prime_Click(object sender, RoutedEventArgs e) => _togglePrime();
 
     private void CheckPrime_Click(object sender, RoutedEventArgs e) => _checkPrime();
+
+    private void Friends_Click(object sender, RoutedEventArgs e) => _toggleFriends();
 
     private void Lock_Click(object sender, RoutedEventArgs e) => _lockOverlay();
 

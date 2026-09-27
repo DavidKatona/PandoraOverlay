@@ -25,10 +25,12 @@ public sealed class GrowthMilestones
     }
 
     /// <summary>The milestone (25/50/75/100) crossed by this sample, or null.</summary>
-    public int? Update(PlayerState p)
+    public int? Update(PlayerState p) => Update($"{p.SteamId}|{p.Dino}|{p.Gender}", p.Growth);
+
+    /// <summary>The same rule for any life identified by a string — the friends feed runs one per friend.</summary>
+    public int? Update(string identity, double growth)
     {
-        var identity = $"{p.SteamId}|{p.Dino}|{p.Gender}";
-        if (identity != _identity || (_last is { } l && p.Growth < l - 0.001))
+        if (identity != _identity || (_last is { } l && growth < l - 0.001))
         {
             _identity = identity;
             _last = null;
@@ -39,10 +41,19 @@ public sealed class GrowthMilestones
         {
             foreach (var (threshold, percent) in Lines)
             {
-                if (prev < threshold && p.Growth >= threshold) crossed = percent;
+                if (prev < threshold && growth >= threshold) crossed = percent;
             }
         }
-        _last = p.Growth;
+        _last = growth;
         return crossed;
     }
+
+    /// <summary>"a juvenile", "a subadult", "an adult", "fully grown" — the stage a milestone marks.</summary>
+    public static string StageName(int percent) => percent switch
+    {
+        25 => "a juvenile",
+        50 => "a subadult",
+        75 => "an adult",
+        _ => "fully grown"
+    };
 }

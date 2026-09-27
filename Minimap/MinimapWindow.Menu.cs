@@ -57,10 +57,13 @@ public partial class MinimapWindow
         _menuWorld = ((fx * cal.MapSize - cal.OffsetX - cal.PinOffsetX) / cal.ScaleX,
                       ((1 - fy) * cal.MapSize - cal.OffsetY - cal.PinOffsetY) / cal.ScaleY);
 
-        // On or near a marker, the spot IS that waypoint — the menu gains its
-        // own entries, and "Copy this spot" shares it exactly, no aiming.
-        _menuHit = HitTest(pos);
-        if (_menuHit is { } hit) _menuWorld = (hit.X, hit.Y);
+        // On or near a marker, the spot IS that waypoint (or friend — they sit
+        // above the waypoints, so they win) — the menu gains its own entries,
+        // and "Copy this spot" shares it exactly, no aiming.
+        _menuFriend = FriendHitTest(pos);
+        _menuHit = _menuFriend is null ? HitTest(pos) : null;
+        if (_menuFriend is { X: { } fx0, Y: { } fy0 }) _menuWorld = (fx0, fy0);
+        else if (_menuHit is { } hit) _menuWorld = (hit.X, hit.Y);
 
         BuildMapMenu();
         MapMenu.IsOpen = true;
@@ -81,16 +84,20 @@ public partial class MinimapWindow
     private void Window_MouseMove(object sender, MouseEventArgs e)
     {
         if (!EditMode) return;
-        var hit = HitTest(e.GetPosition(MapHost));
-        if (ReferenceEquals(hit, _hover)) return;
+        var pos = e.GetPosition(MapHost);
+        var friend = FriendHitTest(pos);
+        var hit = friend is null ? HitTest(pos) : null;
+        if (ReferenceEquals(hit, _hover) && ReferenceEquals(friend, _hoverFriend)) return;
         _hover = hit;
+        _hoverFriend = friend;
         UpdateFooter();
     }
 
     private void Window_MouseLeave(object sender, MouseEventArgs e)
     {
-        if (_hover is null) return;
+        if (_hover is null && _hoverFriend is null) return;
         _hover = null;
+        _hoverFriend = null;
         UpdateFooter();
     }
 
@@ -114,7 +121,8 @@ public partial class MinimapWindow
     }
 
     /// <summary>
-    /// Rebuilds the menu for the current state. On a marker: track / copy /
+    /// Rebuilds the menu for the current state. On a friend: track them, or
+    /// drop a waypoint where they stand. On a marker: track / copy /
     /// remove that waypoint first. Always: "Waypoint here" (one click, the
     /// new one is auto-named and tracked), then share-a-spot: the clicked
     /// spot ("meet here"), my position ("come to me"), and Paste, which
@@ -124,6 +132,16 @@ public partial class MinimapWindow
     {
         MapMenuItems.Children.Clear();
         var full = _library.IsFull;
+
+        if (_menuFriend is { SteamId: { } friendId } friend)
+        {
+            var brush = FriendBrush(friend);
+            var name = Short(FriendName(friend));
+            var tracked = friendId == _config.TrackedFriendSteamId;
+            AddMenuItem(tracked ? $"Untrack {name}" : $"Track {name}", brush, () => SetTrackedFriend(tracked ? null : friendId));
+            AddMenuItem($"Waypoint at {name}", brush, () => AddWaypointAtFriend(friend), enabled: !full);
+            AddMenuSeparator();
+        }
 
         if (_menuHit is { } hit)
         {

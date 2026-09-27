@@ -26,6 +26,37 @@ public sealed record PlayerState(
 public sealed record MyLocationResponse(bool InGame, PlayerState? Player);
 
 /// <summary>
+/// One friend as returned by /api/map/friends (approved by the site dev,
+/// relayed Sep 27 2026): the same player record the site shows for you,
+/// plus the presence flags. Coordinates are nullable — the site itself
+/// checks them for null before drawing. A friend who turned on "hide my
+/// location" arrives with HideLocation and is never drawn, whatever the
+/// coordinates say; the server decides consent, not the overlay.
+/// </summary>
+public sealed record FriendState(
+    string? SteamId,
+    string? Name,
+    string? Dino,
+    string? Gender,
+    double Growth,
+    double Health,
+    double Stamina,
+    double Hunger,
+    double Thirst,
+    double Yaw,
+    bool HeadFractured,
+    bool BodyFractured,
+    bool LegsFractured,
+    double? X,
+    double? Y,
+    bool InGame,
+    bool HideLocation)
+{
+    /// <summary>Drawn on the map only when in game, sharing their location and with a position — the live-map page's own rule.</summary>
+    public bool OnMap => InGame && !HideLocation && X is not null && Y is not null;
+}
+
+/// <summary>
 /// World→map transform constants served by /api/map/calibration — the same
 /// values the live-map frontend feeds its marker-placement function:
 ///   left fraction = (OffsetX + x·ScaleX + PinOffsetX) / MapSize
@@ -69,6 +100,7 @@ public sealed class PandoraClient : IDisposable
     private const string HeatmapImageEndpoint = "https://islapandora.eu/map/heatmap-live.png";
     private const string PrimeCheckEndpoint = "https://islapandora.eu/api/prime/check";
     private const string PrimeCooldownEndpoint = "https://islapandora.eu/api/prime/cooldown";
+    private const string FriendsEndpoint = "https://islapandora.eu/api/map/friends";
     private const double MaxPrimeCooldownMs = 3_600_000; // sanity clamp on server-reported waits
 
     private static readonly JsonSerializerOptions JsonOpts = new()
@@ -293,6 +325,60 @@ public sealed class PandoraClient : IDisposable
             ? r.GetDouble()
             : 0;
         return TimeSpan.FromMilliseconds(Math.Clamp(ms, 0, MaxPrimeCooldownMs));
+    }
+
+    /// <summary>
+    /// Fetches the friends roster (approved Sep 2026) — the same authenticated,
+    /// empty-bodied POST the live-map page sends alongside every mylocation
+    /// poll. PollService paces it (every second in-game poll, each idle one)
+    /// and only while a friends surface is shown; nothing else may call it.
+    /// Read-only: friend management (requests, blocks, the privacy toggles)
+    /// stays on the website and is never called from here. Null when the
+    /// server declines (success:false) — the caller treats it as a miss.
+    /// </summary>
+    public async Task<IReadOnlyList<FriendState>?> FetchFriendsAsync(CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, FriendsEndpoint)
+        {
+            Content = new ByteArrayContent(Array.Empty<byte>())
+        };
+        request.Headers.TryAddWithoutValidation("Cookie", _cookie);
+
+        using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+        UpdateRollingCookie(response);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+        return ParseFriends(doc.RootElement);
+    }
+
+    /// <summary>
+    /// {success, friends:[...]} → the roster; entries without a steamId are
+    /// dropped, a missing or non-array friends field reads as an empty roster,
+    /// success:false as null.
+    /// </summary>
+    internal static IReadOnlyList<FriendState>? ParseFriends(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !IsTruthy(root, "success")) return null;
+
+        var friends = new List<FriendState>();
+        if (!root.TryGetProperty("friends", out var list) || list.ValueKind != JsonValueKind.Array) return friends;
+        foreach (var item in list.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object) continue;
+            FriendState? friend;
+            try
+            {
+                friend = item.Deserialize<FriendState>(JsonOpts);
+            }
+            catch (JsonException)
+            {
+                continue; // one malformed entry must not cost the whole roster
+            }
+            if (friend is not null && !string.IsNullOrWhiteSpace(friend.SteamId)) friends.Add(friend);
+        }
+        return friends;
     }
 
     private static bool IsTruthy(JsonElement obj, string name) =>

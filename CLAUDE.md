@@ -29,9 +29,18 @@ web dev.**
    to a minute; `prime/cooldown` is called exactly once after each
    SUCCESSFUL check, because the success response carries no cooldown and
    its length varies per account — supporter ranks shorten it, so assuming
-   the website button's hardcoded 5 min over-blocks ranked players). The
-   `friends` endpoint and
-   the zone overlays are NOT cleared for use (see Permissions). The
+   the website button's hardcoded 5 min over-blocks ranked players), and
+   the friends roster `POST /api/map/friends` (approved, relayed by the
+   owner Sep 27 2026; cookie-authed, empty body, the same call the
+   live-map page sends alongside EVERY mylocation poll at 5 s — ours
+   rides every SECOND in-game poll (6 s at the default cadence) and every
+   idle poll, only right after a successful `mylocation` poll and only
+   while a friends surface is shown: the Friends widget or the minimap
+   with its friend arrows; both off = zero friends requests. READ-ONLY:
+   the friends page's management calls — `/api/friends/data`, requests,
+   accept/decline, block, `/api/preferences/*` toggles — are writes or
+   roster admin and are NEVER called; friends are managed on the website).
+   The zone overlays are NOT cleared for use (see Permissions). The
    launch-time update check calls the GitHub releases API — not an
    islapandora endpoint, so it sits outside this constraint.
 3. **Poll interval >= 2 s** (default 3 s, matching the website's own cadence).
@@ -56,7 +65,13 @@ web dev.**
   endpoint) on the minimap.
 - Approved Sep 19 2026 (relayed by the owner): the **Prime tracker** —
   rebuilding the live-map page's "Prime Check" box as an overlay widget.
-- **NOT approved:** using the `friends` endpoint or the zone overlay images
+- Approved Sep 27 2026 (relayed by the owner): **friends** — the
+  `/api/map/friends` roster the live-map page polls, for friend arrows on
+  the minimap and the Friends widget. Consent stays the server's: a friend
+  who enabled "hide my location" arrives flagged `hideLocation` and is never
+  drawn. Nicknames/colours are local (the site's nicknames are
+  browser-localStorage too, no API).
+- **NOT approved:** the zone overlay images
   (the live-map bundles patrols / sanctuaries / migrations / salt rocks as
   static PNGs) — ask him first. A read-only API
   token feature was pitched to him; if it ships, auth migration happens inside
@@ -122,7 +137,8 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
 - `Stats/` — GrowthTracker, DrainTracker, StatsAttention, LowStatAlert,
   GrowthMilestones.
 - `Minimap/` — MinimapWindow, BreadcrumbTrail, ScaleBar, SpeedTracker, Compass.
-- `Waypoints/` — WaypointLibrary, ShareCode (phase 3 export/import lands here).
+- `Waypoints/` — WaypointLibrary, WaypointPacks, ShareCode.
+- `Friends/` — FriendsWindow, FriendBook (+ FriendColour), FriendFeed.
 - `Prime/` — PrimeWindow. `Settings/` — SettingsWindow.
 - `Assets/` unchanged; `App.xaml` (StartupUri now `Shell/MainWindow.xaml`),
   csproj, sln and the docs stay at the root. `PandoraOverlay.Tests/` mirrors
@@ -134,8 +150,8 @@ globs subfolders, so moving a file needs no project edit; pack URIs point at
 `Assets/`, which didn't move. Big windows are PARTIAL CLASSES split by
 concern, the way WPF already splits them from their generated `.g.cs`:
 `MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`),
-`MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`) and
-`SettingsWindow.xaml.cs` (+ `.Waypoints.cs`). Same class, same
+`MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`) and
+`SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`). Same class, same
 fields, no behaviour change — a reading aid, not decoupling; the pure
 helper classes are the real decoupling. Keep each part under ~500 lines;
 when one outgrows that, cut another `Window.Topic.cs`, don't extract a
@@ -182,7 +198,24 @@ Every overlay window derives from `OverlayWindowBase`.
   a 15 s floor/retry guard means the check can never be mashed. Raises
   `PrimeCheckStarted` / `PrimeChecked(PrimeCheckResult)` — the latter only
   after the cooldown is known, so the widget's countdown starts right —
-  and caches an Ok snapshot into `config.Prime`.
+  and caches an Ok snapshot into `config.Prime`. Friends (Sep 27 2026):
+  `MaybeFetchFriendsAsync` runs at the END of every successful poll,
+  inside the same busy guard, and fetches the roster when the pure, tested
+  `FriendsDue(pollsSinceFriends, idling, hotTrigger)` says so — every
+  `FriendsEveryNthPoll` (2) live polls, every idle poll, or once after a
+  hot trigger; gated on `FriendsWanted` (`FriendsEnabled`, or
+  `MinimapEnabled && FriendsOnMinimap`). Raises
+  `FriendsChanged(IReadOnlyList<FriendState>?)` AFTER `SnapshotReceived`
+  (consumers know your position first) with YOU filtered out by steamId;
+  `Friends` keeps the last roster so a window created mid-session renders
+  at once. One miss keeps the last roster, two clear it (null) so nobody
+  navigates by a stale arrow; the gate turning off clears at once.
+  `RefreshFriendsAsync` is the hot-apply path (widget shown, minimap
+  shown, settings saved): fetches now only if the timer runs, nothing is
+  in flight, the connection is healthy and the last roster is older than
+  one poll interval — else it just marks the next poll due, so toggling
+  the widget can't become a request per click. A failed `mylocation`
+  poll never triggers a friends fetch.
 - **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
   toolwindow styles via SetWindowLongPtr, x64), `EditMode` state, shared
   edit-border brushes, `ApplyAppearance` (UI scale as a LayoutTransform +
@@ -222,7 +255,7 @@ Every overlay window derives from `OverlayWindowBase`.
   appears with edit mode, hides on lock; ONE row grouped by widget (owner's
   call, Sep 2026 — a two-row layout was tried and rejected): Settings |
   STATS: Show/hide | MINIMAP: Show/hide, Map view, Heatmap | PRIME:
-  Show/hide, Check | Lock / Exit — small captions over each group keep
+  Show/hide, Check | FRIENDS: Show/hide | Lock / Exit — small captions over each group keep
   labels short, and a new widget adds a group, not loose buttons; + the hint
   line (hotkey label follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
   permanently interactive while visible, `IsSnapTarget` false, first show
@@ -253,6 +286,12 @@ Every overlay window derives from `OverlayWindowBase`.
   `FetchPrimeCooldownAsync` / `ParsePrimeCooldown` read the account's
   remaining cooldown (success without a positive `remainingMs` = none
   running, like the frontend; anything unusable = null → caller falls back).
+  `FetchFriendsAsync` / `ParseFriends` (pure + tested) read the friends
+  roster into `FriendState` records — your own player record's fields plus
+  `InGame`, `HideLocation` and NULLABLE `X`/`Y` (the site null-checks them
+  too); `OnMap` = in game && !hideLocation && both coordinates, the site's
+  own draw rule. Entries without a steamId or unparseable are dropped, a
+  missing list is an empty roster, `success:false` is null (a miss).
 - **GrowthTracker.cs** — pure class fed from the snapshot stream: 15-min
   sliding window of (time, growth) samples → slope → in-game ETA to full
   growth. Needs a ≥5-min baseline before showing anything; a full baseline
@@ -311,9 +350,16 @@ Every overlay window derives from `OverlayWindowBase`.
   the WaypointLibrary (loaded at startup; `MigrateWaypointSlots` turns
   v1.20's three config slots into Blue/Green/Purple entries once and
   blanks them; saved on every `Changed`, not just on exit — it is user
-  content), and the minimap + prime windows' lifetimes (both follow edit mode and
-  hide-all; `CheckPrime` un-hides and shows the prime widget first, then
-  fires the one user-triggered check). Five global hotkeys (RegisterHotKey +
+  content), the FriendBook (loaded at startup; `Sync`ed from every roster
+  BEFORE the windows see it, since MainWindow subscribes to
+  `FriendsChanged` first; saved on `Changed` and flushed in `PersistState`
+  for the silent last-seen facts), and the minimap + prime + friends
+  windows' lifetimes (all follow edit mode and hide-all; `CheckPrime`
+  un-hides and shows the prime widget first, then fires the one
+  user-triggered check; `ShowFriends` runs after `ShowPrime` at startup
+  and hands the new widget a suggested spot right under the Prime
+  tracker; every friends show/hide calls `RefreshFriendsAsync` so the
+  fetch gate follows the surfaces). Five global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
   (`Hotkey`, Ctrl+F7) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
@@ -456,7 +502,28 @@ Every overlay window derives from `OverlayWindowBase`.
   heatmap's baked caption owns the top-left; `UpdateScaleBar` runs from
   `ApplyViewMode` and `OnCalibrationChanged`, budget = 30% of the map
   width capped at 80 px. `ToFraction` is the one world→map-fraction
-  transform (arrow, waypoints, trail).
+  transform (arrow, waypoints, trail, friends). Friends
+  (`MinimapWindow.Friends.cs`, Sep 27 2026): the roster from
+  `FriendsChanged` drawn into `FriendLayer` (a Canvas between the waypoint
+  markers and your arrow) as arrows at three quarters of yours, rotated
+  by their yaw + `MinimapYawOffsetDegrees`, in `FriendBook.ColourOf`; the
+  drawn set = `OnMap` && `ShowsOnMap` && `FriendsOnMinimap`. The tracked
+  friend (`config.TrackedFriendSteamId`) wears the 16 px ring and
+  edge-clamps in the centered view like the tracked waypoint.
+  `UpdateWaypointVisual` records the map translate TARGETS
+  (`_mapTargetX/Y`) and calls `UpdateFriendVisual` with the same glide,
+  so friends pan with the map; a new roster glides each arrow to its new
+  spot over 0.9 × the poll interval (first placement snaps; a rebuild
+  copies the old marker's transform so nothing jumps). Friends stay drawn
+  while YOU are not in game — their positions are still true. Footer
+  priority: hovered friend, else tracked friend while on the map, else the
+  waypoint logic; a friend line is "▲ name · 340 m · ~2 min" in their
+  colour — navigation only, never stats (`AppendDistance` is shared with
+  the waypoint line). Right-click on a friend arrow: "Track/Untrack
+  <name>", "Waypoint at <name>" (a library waypoint in their name and
+  colour where they stand), then the usual entries with "Copy this spot"
+  sharing their exact position; `FriendHitTest` runs before `HitTest`
+  since friends sit above waypoints.
 - **BreadcrumbTrail.cs** — pure, tested path store in world cm: a point
   per poll once moved ≥ 5 m, expiry by age, reset on death/dino swap
   (identity / growth decrease, like the trackers) and on a jump no dino
@@ -530,6 +597,62 @@ Every overlay window derives from `OverlayWindowBase`.
   Rule: NO stock chrome anywhere in this dialog — every control type
   used here has its own template (buttons, checks, radios, text boxes,
   scrollbars); a new control kind gets one before it ships.
+- **FriendBook.cs** — `FriendEntry` (steamId, the site's `Name` as last
+  seen, local `Nickname` ≤ 32, `Colour` override or null, `ShowOnMap`,
+  `Notify`, `LastDino`/`LastGrowth`/`LastSeenUtc`), `FriendColour.Default`
+  (FNV-1a of the steamId into the waypoint palette MINUS orange — your
+  arrow — and white — the outline; stable per friend across sessions and
+  machines, unlike the site's roster-order colours; a collision between
+  two friends is accepted, the feed names them and the colour can be
+  overridden) and the book: `friends.json` next to config.json — USER
+  CONTENT like the waypoint library. `Sync(roster, now)` mirrors the
+  site's membership (adds unknowns, DROPS friends no longer on the roster
+  with their prefs — you unfriended them there), follows renames, and
+  refreshes the last-seen facts for in-game friends; it raises `Changed`
+  (→ MainWindow saves) ONLY for membership/name changes, never per fetch.
+  `ApplyPrefs(draft)` copies nickname/colour/map/feed onto live entries by
+  steamId — never membership, so a stale Settings draft can't resurrect a
+  dropped friend. `DisplayName` = nickname → site name → fallback.
+  Pure, tested, nothing throws.
+- **FriendFeed.cs** — pure, tested: the Friends widget's engine. Diffs
+  each roster against the previous one (by steamId; self already filtered
+  by PollService) into `FeedLine`s, newest first, cap 50, expiry 10 min
+  (`Expire`, `AgeOpacity` 1 → 0.35). Kinds: Roster (first sight seeds ONE
+  "In game: a (Deino), b (Cera) and n more" line, so the widget never
+  starts blank; new friend / unfriended), Spawned ("x spawned as Deino
+  42%"), NewLife (same species, growth LOWER than their last in-game
+  state: "started a fresh Deino" — a fact, never "died"), Left (neutral
+  "is no longer in game": logout, restart and death look alike from
+  outside; several in one fetch coalesce into one line), DinoChanged,
+  Growth (one `GrowthMilestones` per friend, `StageName`), Fracture (each
+  flag's false→true), Nearby (< 200 m, re-armed > 300 m, needs your
+  position and their shared location). Growth and proximity run for
+  EVERY in-game friend — muted (`notify` false) friends produce no lines
+  but keep their baselines, and a friend already beside you at launch or
+  spawning next to you is primed, not announced one fetch later (that was
+  a bug caught by the tests). `ResetBaseline` after a cleared roster
+  makes its return seed again instead of reporting everyone as new.
+- **FriendsWindow.xaml(.cs)** — the fourth widget: header ("Friends" +
+  "3 of 7 in game", "—" until the first roster) over `FriendsRows` (3–8,
+  default 5) fixed 16 px one-line slots, 250 px wide like the Prime
+  tracker — one size in every state; the feed fills from the top, a
+  coloured ● (the friend's book colour) leads lines about one friend,
+  fractures read amber, opacity = `AgeOpacity`, a 20 s timer ages/expires
+  them while any exist. Slot 0 with no lines = the quiet line: "In game:
+  a, b", "nobody in game right now", "add friends on islapandora.eu",
+  "waiting for the friends list…" or "friends unavailable · retrying"
+  (roster cleared — the baseline is reset, lines kept). Owner's design
+  (Sep 27 2026): an activity feed, NOT a row-per-friend list — rows
+  would resize with the roster, and the arrows already say who is where;
+  the tracked friend's stats live nowhere on the overlay (a footer stats
+  line was proposed and REJECTED: the footer is navigation only). Takes
+  part in the fade (`Fades => true`): a new line lights it 30 s, calm at
+  launch; the opt-in chime plays for Spawned/NewLife lines. Derives
+  OverlayWindowBase; own `FriendsScale` (seeded from `PrimeScale`),
+  `FriendsEnabled` (default ON — unlike Prime it costs requests, see
+  constraint #2), `FriendsX/Y` nullable; first show = the `suggested`
+  point under the Prime tracker (MainWindow computes it), else left edge
+  centred; keeps `_me` from `SnapshotReceived` for the proximity rule.
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
   ten ✓/✗ condition rows (texts baked in — the site bakes them into its
   frontend too, the API only returns flags) + a two-line footer (what the
@@ -564,9 +687,25 @@ Every overlay window derives from `OverlayWindowBase`.
   of our own glow-style buttons (`NavButton`; the selected one is
   recoloured in code by `SetPage`) and ONE page visible at a time on the
   right — Account / Controls / General (APP-WIDE ONLY) / Stats panel /
-  Minimap / Prime tracker, widget pages in the control panel's order,
-  each holding that widget's Scale-or-Size slider and its own options; a
-  new widget (or the coming Waypoints library) adds a nav entry + page.
+  Minimap / Prime tracker / Friends / Waypoints, widget pages in the
+  control panel's order, each holding that widget's Scale-or-Size slider
+  and its own options; a new widget adds a nav entry + page. Friends
+  page (`SettingsWindow.Friends.cs`, Sep 27 2026): the widget's Scale,
+  "Feed lines" radios 3/5/8 (`FriendsRows` — the ONLY thing that ever
+  resizes the widget, and it happens in a dialog), "Show friends on the
+  minimap" (`FriendsOnMinimap`), the spawn chime (`FriendsChimeEnabled`,
+  read live), then ONE card of rows from a DRAFT of the FriendBook
+  (`_book.Clone()`), in-game first then by name: colour well (cycles;
+  overrides the hashed default), a `NameBox` showing the name you see
+  (typing sets a nickname, clearing it or typing the site's name drops
+  it), a "Last seen" cell (green "in game" from the roster passed in at
+  open, else "2 h ago" from `LastSeenUtc`, tooltip = last dino/growth),
+  Map and Feed checkboxes, Track radio (click again untracks). Save
+  commits via `ApplyPrefs` (preferences only — membership is the
+  roster's) + `TrackedFriendSteamId` and sets `FriendsChanged`. No add /
+  remove: a "Manage on islapandora.eu" button opens the site's friends
+  page; the overlay never calls the management endpoints. The header
+  alignment trick is shared (`AlignHeader(header, list, top)`).
   History: regrouped by widget Sep 24 2026 ("option A"), then the nav
   ("option B") Sep 25 2026 as the foundation for the waypoint library's
   list page. Waypoints page (v1.22): rows built in code from a DRAFT
@@ -706,7 +845,16 @@ grouped by feature + partial-class splits; Settings polish — own
 templates for buttons, checks, radios, text boxes and scrollbars, group
 cards with striped rows, measured header alignment — verified in-game).
 
-Later/maybe: friends markers (needs permission first), zone overlays
+Built Sep 27 2026, awaiting in-game verification: **friends** (approved
+Sep 27) — friend arrows on the minimap (FriendBook colours, tracked
+friend ringed + edge-clamped + first claim on the footer, edit-mode menu
+Track / Waypoint at), the Friends widget as an activity FEED (spawned /
+left / fresh life / dino change / growth stage / fracture / nearby /
+roster changes; fixed 3/5/8 lines, age fade, 10 min expiry), a Settings
+Friends page (nickname, colour, map, feed, track per friend; manage on
+the site), `friends.json`, the roster on every 2nd in-game poll.
+
+Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
 sanctuaries, migrations, salt rocks), official token auth (the nudge went
 out with the heatmap ask ~Sep 14 2026; the heatmap got its yes Sep 15,
@@ -761,7 +909,7 @@ re-propose.
   **hotkey** instead of a tray line (the heatmap and Check Prime did).
 - Every distinct widget gets its OWN size slider in Settings (owner's rule,
   Sep 2026): stats panel `UiScale`, minimap `MinimapSize`, prime tracker
-  `PrimeScale` — a new widget ships with one, seeded so an update never
+  `PrimeScale`, friends `FriendsScale` — a new widget ships with one, seeded so an update never
   resizes anything (override `AppearanceScale`). Sliders are independent:
   no global scale multiplier on top (considered and dropped — Windows
   display scaling already does it, two multiplying sliders confuse, and

@@ -219,6 +219,53 @@ public sealed class OverlayConfig
     /// </summary>
     public DateTime? PrimeCooldownUntilUtc { get; set; }
 
+    // ---- Friends (approved Sep 27 2026) -----------------------------------
+
+    /// <summary>
+    /// Show the Friends widget (toggled from the control panel). On by
+    /// default like the Prime tracker; unlike it, a shown widget costs a
+    /// friends request every second in-game poll (see PollService).
+    /// </summary>
+    public bool FriendsEnabled { get; set; } = true;
+
+    /// <summary>Friends widget position; null until first moved (defaults to just under the Prime tracker).</summary>
+    public double? FriendsX { get; set; }
+
+    public double? FriendsY { get; set; }
+
+    /// <summary>
+    /// Friends widget scale, clamped 0.75–1.5 — every widget has its own size
+    /// control. Null in configs written before it existed: Load() seeds it
+    /// from PrimeScale, the widget it docks under.
+    /// </summary>
+    public double? FriendsScale { get; set; }
+
+    /// <summary>
+    /// Event lines the Friends widget reserves (3 / 5 / 8 in Settings; clamped
+    /// 3–8). A fixed number, so the widget keeps one size however busy the
+    /// evening gets — changing it in the dialog is the only thing that ever
+    /// resizes it.
+    /// </summary>
+    public int FriendsRows { get; set; } = 5;
+
+    /// <summary>
+    /// Draw in-game friends as small arrows on the minimap. Checkbox on the
+    /// Friends page. Untick this AND hide the widget to send no friends
+    /// requests at all.
+    /// </summary>
+    public bool FriendsOnMinimap { get; set; } = true;
+
+    /// <summary>Play the Windows "Exclamation" sound when a friend spawns in. Off by default.</summary>
+    public bool FriendsChimeEnabled { get; set; }
+
+    /// <summary>
+    /// The friend the minimap follows (ring on their arrow, edge-clamped in
+    /// the centered view, first claim on the footer) — by steamId, null =
+    /// none. Session-ish state like TrackedWaypointId, so it lives here, not
+    /// in friends.json.
+    /// </summary>
+    public string? TrackedFriendSteamId { get; set; }
+
     // ---- Appearance -------------------------------------------------------
 
     /// <summary>
@@ -312,6 +359,8 @@ public sealed class OverlayConfig
         }
 
         cfg.PrimeScale ??= cfg.UiScale;
+        cfg.FriendsScale ??= cfg.PrimeScale;
+        cfg.FriendsRows = Math.Clamp(cfg.FriendsRows, 3, 8);
 
         // Waypoint slots: always three (a hand-edited array is padded or
         // trimmed), and the pre-v1.20 single waypoint becomes the blue one.

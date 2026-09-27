@@ -8,9 +8,10 @@ using System.Windows.Media.Animation;
 namespace PandoraOverlay;
 
 /// <summary>
-/// The stats panel and the app's orchestrator: owns the config and the shared
-/// PollService, registers the global hotkeys, and manages the minimap
-/// window's lifetime. Window-style interop lives in OverlayWindowBase.
+/// The stats panel and the app's orchestrator: owns the config, the shared
+/// PollService, the waypoint library and the friend book, registers the
+/// global hotkeys, and manages the other widgets' lifetimes. Window-style
+/// interop lives in OverlayWindowBase.
 /// </summary>
 public partial class MainWindow : OverlayWindowBase
 {
@@ -33,6 +34,7 @@ public partial class MainWindow : OverlayWindowBase
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
     private readonly WaypointLibrary _library;
+    private readonly FriendBook _book;
     private readonly TrayIcon _tray;
     private readonly GrowthTracker _growth = new();
     private readonly DrainTracker _hungerDrain = new(p => p.Hunger);
@@ -40,6 +42,7 @@ public partial class MainWindow : OverlayWindowBase
     private readonly StatsAttention _attention = new();
     private MinimapWindow? _minimap;
     private PrimeWindow? _prime;
+    private FriendsWindow? _friends;
     private ControlPanelWindow? _controlPanel;
     private HotkeySpec _hotkey;
     private HotkeySpec _hotkeyHide;
@@ -59,6 +62,8 @@ public partial class MainWindow : OverlayWindowBase
         _library = WaypointLibrary.Load();
         MigrateWaypointSlots();
         _library.Changed += () => _library.Save(); // user content: saved on every change, not just on exit
+        _book = FriendBook.Load();
+        _book.Changed += () => _book.Save(); // membership + preferences; the per-fetch last-seen facts are flushed on exit
         Left = _config.WindowX;
         Top = _config.WindowY;
         _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
@@ -73,6 +78,12 @@ public partial class MainWindow : OverlayWindowBase
         _poll = new PollService(_config);
         _poll.SnapshotReceived += OnSnapshot;
         _poll.PollFailed += OnPollFailed;
+        _poll.FriendsChanged += roster =>
+        {
+            // The book mirrors the roster before the windows render it, so
+            // new friends already have their colour and name on first sight.
+            if (roster is not null) _book.Sync(roster, DateTime.UtcNow);
+        };
 
         _tray = new TrayIcon(
             toggleEditMode: ToggleEditMode,
@@ -87,6 +98,7 @@ public partial class MainWindow : OverlayWindowBase
             if (!_config.StatsEnabled) Hide();
             if (_config.MinimapEnabled) ShowMinimap();
             if (_config.PrimeEnabled) ShowPrime();
+            if (_config.FriendsEnabled) ShowFriends(); // after Prime: its first placement docks under it
 
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
             {
@@ -105,6 +117,7 @@ public partial class MainWindow : OverlayWindowBase
             _poll.Dispose();
             _minimap?.Close();
             _prime?.Close();
+            _friends?.Close();
             _controlPanel?.Close();
         };
     }
@@ -124,7 +137,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
         try
         {
-            var dialog = new SettingsWindow(_config, _library) { Topmost = true };
+            var dialog = new SettingsWindow(_config, _library, _book, _poll.Friends) { Topmost = true };
             var saved = dialog.ShowDialog() == true;
 
             if (!saved)
@@ -139,7 +152,7 @@ public partial class MainWindow : OverlayWindowBase
                 SetAttention(true);
                 _poll.RebuildClient();
             }
-            if (dialog.MinimapChanged || dialog.AppearanceChanged) _minimap?.ApplySettings();
+            if (dialog.MinimapChanged || dialog.AppearanceChanged || dialog.FriendsChanged) _minimap?.ApplySettings();
             if (dialog.AppearanceChanged)
             {
                 ApplyAppearance(_config);
@@ -147,6 +160,8 @@ public partial class MainWindow : OverlayWindowBase
                 _prime?.ApplySettingsFromConfig();
                 _controlPanel?.ApplySettingsFromConfig();
             }
+            if (dialog.AppearanceChanged || dialog.FriendsChanged) _friends?.ApplySettingsFromConfig();
+            if (dialog.FriendsChanged) _ = _poll.RefreshFriendsAsync(); // the layer may have been switched on or off
             if (_autoHidden && !_config.HideWhenNotInGame) RevealAutoHidden(); // switched off while hidden by it
         }
         finally
@@ -211,6 +226,12 @@ public partial class MainWindow : OverlayWindowBase
             _config.PrimeX = _prime.Left;
             _config.PrimeY = _prime.Top;
         }
+        if (_friends is not null)
+        {
+            _config.FriendsX = _friends.Left;
+            _config.FriendsY = _friends.Top;
+        }
+        _book.Save(); // flushes the last-seen facts Sync updates silently
         if (_controlPanel is not null)
         {
             _config.ControlPanelX = _controlPanel.Left;

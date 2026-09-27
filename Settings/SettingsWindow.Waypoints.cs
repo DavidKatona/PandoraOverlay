@@ -112,10 +112,13 @@ public partial class SettingsWindow
     /// viewer's width and its viewport; 6 px is the rows' right margin, 7 px
     /// each side is the cards' border + padding.
     /// </summary>
-    private void AlignWaypointHeader()
+    private void AlignWaypointHeader() => AlignHeader(WaypointHeader, WaypointList, top: 0);
+
+    /// <summary>The same measured alignment for any column header sitting over one of the list viewers (the Friends page shares it).</summary>
+    private static void AlignHeader(Grid header, ScrollViewer list, double top)
     {
-        var bar = Math.Max(0, WaypointList.ActualWidth - WaypointList.ViewportWidth);
-        WaypointHeader.Margin = new Thickness(7, 0, 7 + 6 + bar, 4);
+        var bar = Math.Max(0, list.ActualWidth - list.ViewportWidth);
+        header.Margin = new Thickness(7, top, 7 + 6 + bar, 4);
     }
 
     /// <summary>True = every member shown, false = none, null = mixed (the checkbox draws a square).</summary>

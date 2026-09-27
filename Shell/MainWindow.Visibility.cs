@@ -59,6 +59,7 @@ public partial class MainWindow
         {
             _config.MinimapEnabled = false;
             _minimap.Close();
+            _ = _poll.RefreshFriendsAsync(); // stops the friends fetch if the widget is hidden too
         }
     }
 
@@ -66,12 +67,13 @@ public partial class MainWindow
     {
         if (_minimap is null)
         {
-            _minimap = new MinimapWindow(_config, _poll, _library);
+            _minimap = new MinimapWindow(_config, _poll, _library, _book);
             _minimap.Closed += (_, _) => _minimap = null;
             _minimap.Show();
         }
         _config.MinimapEnabled = true;
         _ = _poll.RefreshHeatmapAsync(); // a fresh window starts without the layer
+        _ = _poll.RefreshFriendsAsync(); // and the friend arrows may have been off with it
         if (EditMode) _minimap.SetEditMode(true);
     }
 
@@ -100,6 +102,40 @@ public partial class MainWindow
         }
         _config.PrimeEnabled = true;
         if (EditMode) _prime.SetEditMode(true);
+    }
+
+    private void ToggleFriends()
+    {
+        if (_friends is null)
+        {
+            ShowFriends();
+        }
+        else
+        {
+            _config.FriendsEnabled = false;
+            _config.FriendsX = _friends.Left; // a hidden widget comes back where it was
+            _config.FriendsY = _friends.Top;
+            _friends.Close();
+            _ = _poll.RefreshFriendsAsync(); // stops the friends fetch unless the minimap still draws them
+        }
+    }
+
+    private void ShowFriends()
+    {
+        if (_friends is null)
+        {
+            // First placement: right under the Prime tracker, so the left
+            // column reads top to bottom; the window clamps itself on screen.
+            Point? suggested = _prime is { IsVisible: true } p
+                ? new Point(p.Left, p.Top + p.ActualHeight + 8)
+                : null;
+            _friends = new FriendsWindow(_config, _poll, _book, suggested);
+            _friends.Closed += (_, _) => _friends = null;
+            _friends.Show();
+        }
+        _config.FriendsEnabled = true;
+        _ = _poll.RefreshFriendsAsync(); // the widget wants a roster
+        if (EditMode) _friends.SetEditMode(true);
     }
 
     /// <summary>
@@ -145,6 +181,7 @@ public partial class MainWindow
         Hide();
         _minimap?.Hide();
         _prime?.Hide();
+        _friends?.Hide();
     }
 
     private void ShowWindows()
@@ -152,6 +189,7 @@ public partial class MainWindow
         if (_config.StatsEnabled) Show(); // a deliberately hidden stats panel stays hidden
         _minimap?.Show();
         _prime?.Show();
+        _friends?.Show();
     }
 
     /// <summary>
@@ -204,6 +242,7 @@ public partial class MainWindow
         SetEditMode(on);
         _minimap?.SetEditMode(on);
         _prime?.SetEditMode(on);
+        _friends?.SetEditMode(on);
 
         if (on)
         {
@@ -231,6 +270,7 @@ public partial class MainWindow
                 toggleHeatmap: ToggleHeatmap,
                 togglePrime: TogglePrime,
                 checkPrime: CheckPrime,
+                toggleFriends: ToggleFriends,
                 lockOverlay: ToggleEditMode,
                 exit: () => Application.Current.Shutdown());
         }
