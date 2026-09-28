@@ -155,10 +155,10 @@ public partial class SettingsWindow : Window
         rowsRadio.IsChecked = true;
         (config.ActivityIncludeMine ? ActivityFriendsAndMe : ActivityFriendsOnly).IsChecked = true;
         ActivityDamageCheck.IsChecked = config.ActivityDamageLines;
-        FriendsChimeCheck.IsChecked = config.FriendsChimeEnabled;
 
         // Friends
         FriendsMapCheck.IsChecked = config.FriendsOnMinimap;
+        FriendsChimeCheck.IsChecked = config.FriendsChimeEnabled;
         BuildFriendRows();
         FriendList.ScrollChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
         FriendList.SizeChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
@@ -482,8 +482,8 @@ public partial class SettingsWindow : Window
 
         var activityRows = ActivityRows3.IsChecked == true ? 3 : ActivityRows8.IsChecked == true ? 8 : 5;
         var includeMine = ActivityFriendsAndMe.IsChecked == true;
-        _config.FriendsChimeEnabled = FriendsChimeCheck.IsChecked == true; // read live by the widget, no flag needed
-        _config.ActivityDamageLines = ActivityDamageCheck.IsChecked == true; // read live by MainWindow
+        _config.ActivityDamageLines = ActivityDamageCheck.IsChecked == true; // read live by MainWindow, no flag needed
+        _config.FriendsChimeEnabled = FriendsChimeCheck.IsChecked == true;  // likewise
         if (activityRows != _config.ActivityRows || includeMine != _config.ActivityIncludeMine)
         {
             _config.ActivityRows = activityRows;

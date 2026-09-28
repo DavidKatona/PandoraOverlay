@@ -363,7 +363,8 @@ Every overlay window derives from `OverlayWindowBase`.
   posts the feed's diff lines, `OnSnapshot` posts `SelfActivity.Update`'s
   spawn/fracture/damage lines and keeps `_me` for the proximity rule,
   `UpdateUi` posts the growth-stage and low-stat lines beside the blink
-  and chime they already had, and `PrimeChecked` posts the Prime diff
+  and chime they already had, `OnFriendsRoster` also plays the opt-in
+  friend-spawn chime, and `PrimeChecked` posts the Prime diff
   against `_primeBefore` snapshotted on `PrimeCheckStarted`; every own
   line goes through `PostMine`, which honours `ActivityIncludeMine`), and
   the minimap + prime + activity windows' lifetimes (all follow edit mode
@@ -685,9 +686,12 @@ Every overlay window derives from `OverlayWindowBase`.
   the roster, and the arrows already say who is where; the tracked
   friend's stats live nowhere on the overlay (a footer stats line was
   proposed and REJECTED: the footer is navigation only). Takes part in
-  the fade (`Fades => true`): `Posted` lights it 30 s, calm when opened;
-  the opt-in `FriendsChimeEnabled` plays for a FRIEND's Spawned/NewLife
-  line only. Derives OverlayWindowBase; own `ActivityScale` (seeded from
+  the fade (`Fades => true`): `Posted` lights it 30 s, calm when opened.
+  No sounds here: the friend-spawn chime (`FriendsChimeEnabled`) is
+  MainWindow's, decided in `OnFriendsRoster` like the stats chimes, so it
+  plays with the widget hidden (owner, Sep 28 2026: a friends alert is
+  not a widget option — it sits on the Friends page, not Activity).
+  Derives OverlayWindowBase; own `ActivityScale` (seeded from
   `PrimeScale`), `ActivityEnabled` (default ON — unlike Prime it costs
   requests, see constraint #2), `ActivityX/Y` nullable; first show = the
   `suggested` point under the Prime tracker (MainWindow computes it),
@@ -733,12 +737,12 @@ Every overlay window derives from `OverlayWindowBase`.
   Activity page (Sep 28 2026, in the main file like Prime's): Scale,
   "Feed lines" radios 3/5/8 (`ActivityRows` — the ONLY thing that ever
   resizes the widget, and it happens in a dialog), "Show: Friends only /
-  Friends and me" (`ActivityIncludeMine`), the damage-lines checkbox
-  (`ActivityDamageLines`, read live) and the friend-spawn chime
-  (`FriendsChimeEnabled`, read live); rows or the Show choice set
+  Friends and me" (`ActivityIncludeMine`) and the damage-lines checkbox
+  (`ActivityDamageLines`, read live); rows or the Show choice set
   `ActivityChanged`. Friends page (`SettingsWindow.Friends.cs`, Sep 27
-  2026): "Show friends on the minimap" (`FriendsOnMinimap`), then ONE
-  card of rows from a DRAFT of the FriendBook
+  2026): "Show friends on the minimap" (`FriendsOnMinimap`), the
+  friend-spawn chime (`FriendsChimeEnabled`, read live by MainWindow),
+  then ONE card of rows from a DRAFT of the FriendBook
   (`_book.Clone()`), in-game first then by name: colour well (cycles;
   overrides the hashed default), a `NameBox` showing the name you see
   (typing sets a nickname, clearing it or typing the site's name drops

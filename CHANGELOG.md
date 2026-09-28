@@ -25,13 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   taken is an optional extra line (off by default). Its header shows how
   many friends you have and how many are in game; with nothing recent the
   first line names who is on. Fixed at 3, 5 or 8 lines (Settings →
-  Activity), so it never changes size. Optional chime when a friend
-  spawns in (off by default).
+  Activity), so it never changes size.
 - Settings → Friends: every friend on your list with a stable colour you
   can change, a nickname only you see, Map and Feed switches per friend,
   Track, and when the overlay last saw them in game. Kept in
   `friends.json` next to the app. Adding, removing and blocking friends
-  stay on the website, which the page links to.
+  stay on the website, which the page links to. An optional chime when a
+  friend spawns in (off by default).
 - The friends list is fetched every second update while you play and
   once per idle check otherwise, only while the widget is shown or the
   minimap draws friends. The overlay only reads the list; it never

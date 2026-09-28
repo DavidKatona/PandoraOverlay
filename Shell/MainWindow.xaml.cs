@@ -276,7 +276,11 @@ public partial class MainWindow : OverlayWindowBase
         }
         var now = DateTime.UtcNow;
         _book.Sync(roster, now);
-        _log.Post(_feed.Update(roster, _me, (id, site) => _book.DisplayName(id, site), _book.Notifies, now));
+        var fresh = _feed.Update(roster, _me, (id, site) => _book.DisplayName(id, site), _book.Notifies, now);
+        _log.Post(fresh);
+        // The friend-spawn chime is decided here, like the stats chimes, so it
+        // plays whether or not the Activity widget is on screen.
+        if (_config.FriendsChimeEnabled && fresh.Any(l => l.Kind is FeedKind.Spawned or FeedKind.NewLife)) Chime();
     }
 
     /// <summary>Your own events go to the log only when the feed is set to include them.</summary>

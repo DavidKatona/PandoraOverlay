@@ -16,8 +16,9 @@ namespace PandoraOverlay;
 /// Prime check, damage), newest at the top, fading with age. Every other
 /// cue on the overlay is momentary; this is the one you can read late. With
 /// no recent lines the first slot names who is in game, so it is never
-/// blank. A pure renderer: MainWindow owns the log and the feed and posts
-/// into them, so the history survives the widget being hidden. Display-only
+/// blank. A pure renderer: MainWindow owns the log and the feed, posts
+/// into them and plays the chimes, so the history — and the friend-spawn
+/// chime — survive the widget being hidden. Display-only
 /// and click-through when locked. First show docks under the Prime tracker
 /// (left column); the position persists via config.
 /// </summary>
@@ -153,12 +154,11 @@ public partial class ActivityWindow : OverlayWindowBase
     /// <summary>The roster changed (or was cleared): the header's counts and the quiet line follow.</summary>
     private void OnFriends(IReadOnlyList<FriendState>? roster) => Render();
 
-    /// <summary>New lines landed in the log: show them, light the widget, and chime for a friend spawning in if asked.</summary>
+    /// <summary>New lines landed in the log: show them and light the widget. (The friend-spawn chime is MainWindow's, like the stats chimes — it must not depend on this widget being shown.)</summary>
     private void OnPosted(IReadOnlyList<FeedLine> fresh)
     {
         Render();
         Wake();
-        if (_config.FriendsChimeEnabled && fresh.Any(l => !l.Mine && l.Kind is FeedKind.Spawned or FeedKind.NewLife)) Chime();
     }
 
     private void Wake()
@@ -211,18 +211,5 @@ public partial class ActivityWindow : OverlayWindowBase
         if (_feed.Total == 0) return "no recent activity";
         if (_feed.InGame == 0) return "no friends in game right now";
         return "In game: " + string.Join(", ", _feed.InGameNames);
-    }
-
-    /// <summary>The Windows "Exclamation" sound, like the stats panel's chimes.</summary>
-    private static void Chime()
-    {
-        try
-        {
-            System.Media.SystemSounds.Exclamation.Play();
-        }
-        catch
-        {
-            // No sound device / scheme: silence is the right fallback.
-        }
     }
 }

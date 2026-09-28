@@ -692,8 +692,6 @@
             </StackPanel>
             <CheckBox x:Name="ActivityDamageCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
                       Content="Add a line when I take damage (at most one per half minute)"/>
-            <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Chime when a friend spawns in"/>
             <TextBlock Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
                        Text="The feed keeps the last ten minutes: friends spawning in or leaving, fresh dinos, growth stages, fractures, a friend coming near — and, with 'Friends and me', your own spawns, stages, low hunger or thirst, fractures and Prime check results."/>
             </StackPanel>
@@ -710,6 +708,8 @@
             </DockPanel>
             <CheckBox x:Name="FriendsMapCheck" Style="{StaticResource Check}"
                       Content="Show friends on the minimap"/>
+            <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Chime when a friend spawns in"/>
 
             <!-- The column labels; the side margins are set in code to match the card below. -->
             <Grid x:Name="FriendHeader" Margin="7,14,13,4">
