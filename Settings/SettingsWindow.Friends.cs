@@ -38,7 +38,7 @@ public partial class SettingsWindow
             FriendRows.Children.Add(new TextBlock
             {
                 Text = _roster is null
-                    ? "The friends list loads once the overlay is connected and a friends widget or the minimap's friend arrows are on."
+                    ? "The friends list loads once the overlay is connected and the Activity widget or the minimap's friend arrows are on."
                     : "No friends yet — add them on islapandora.eu.",
                 Foreground = HintNeutral, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0)
             });
@@ -174,7 +174,7 @@ public partial class SettingsWindow
         var feed = new CheckBox
         {
             IsChecked = entry.Notify, Style = (Style)FindResource("Check"), HorizontalAlignment = HorizontalAlignment.Center,
-            ToolTip = "Post their spawns, exits and other events to the Friends widget"
+            ToolTip = "Post their spawns, exits and other events to the Activity feed"
         };
         feed.Click += (_, _) =>
         {
@@ -219,9 +219,9 @@ public partial class SettingsWindow
         return $"{(int)span.TotalDays} d ago";
     }
 
-    private void FriendsScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void ActivityScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (FriendsScaleLabel != null) FriendsScaleLabel.Text = $"{e.NewValue:0%}";
+        if (ActivityScaleLabel != null) ActivityScaleLabel.Text = $"{e.NewValue:0%}";
     }
 
     /// <summary>Friend management is the website's: requests, blocks and the privacy toggles are never called from the overlay.</summary>

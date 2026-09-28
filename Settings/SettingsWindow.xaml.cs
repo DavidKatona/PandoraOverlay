@@ -67,8 +67,11 @@ public partial class SettingsWindow : Window
     /// <summary>True after Save when a scale, the background opacity or the time-left checkbox differ (ApplyAppearance needed).</summary>
     public bool AppearanceChanged { get; private set; }
 
-    /// <summary>True after Save when the friends feed rows, the minimap layer, a friend's preferences or the tracked friend differ.</summary>
+    /// <summary>True after Save when the minimap's friend layer, a friend's preferences or the tracked friend differ.</summary>
     public bool FriendsChanged { get; private set; }
+
+    /// <summary>True after Save when the Activity widget's rows or its feed choices differ.</summary>
+    public bool ActivityChanged { get; private set; }
 
     public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, IReadOnlyList<FriendState>? roster)
     {
@@ -146,12 +149,16 @@ public partial class SettingsWindow : Window
         WaypointList.ScrollChanged += (_, _) => AlignWaypointHeader(); // fires when the extent/viewport changes, i.e. when the bar comes or goes
         WaypointList.SizeChanged += (_, _) => AlignWaypointHeader();
 
-        // Friends
-        FriendsScaleSlider.Value = Math.Clamp(config.FriendsScale ?? config.PrimeScale ?? config.UiScale, FriendsScaleSlider.Minimum, FriendsScaleSlider.Maximum);
-        var rowsRadio = config.FriendsRows switch { <= 3 => FriendRows3, <= 5 => FriendRows5, _ => FriendRows8 };
+        // Activity
+        ActivityScaleSlider.Value = Math.Clamp(config.ActivityScale ?? config.PrimeScale ?? config.UiScale, ActivityScaleSlider.Minimum, ActivityScaleSlider.Maximum);
+        var rowsRadio = config.ActivityRows switch { <= 3 => ActivityRows3, <= 5 => ActivityRows5, _ => ActivityRows8 };
         rowsRadio.IsChecked = true;
-        FriendsMapCheck.IsChecked = config.FriendsOnMinimap;
+        (config.ActivityIncludeMine ? ActivityFriendsAndMe : ActivityFriendsOnly).IsChecked = true;
+        ActivityDamageCheck.IsChecked = config.ActivityDamageLines;
         FriendsChimeCheck.IsChecked = config.FriendsChimeEnabled;
+
+        // Friends
+        FriendsMapCheck.IsChecked = config.FriendsOnMinimap;
         BuildFriendRows();
         FriendList.ScrollChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
         FriendList.SizeChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
@@ -418,14 +425,14 @@ public partial class SettingsWindow : Window
 
         var scale = Math.Round(ScaleSlider.Value, 2);
         var primeScale = Math.Round(PrimeScaleSlider.Value, 2);
-        var friendsScale = Math.Round(FriendsScaleSlider.Value, 2);
+        var activityScale = Math.Round(ActivityScaleSlider.Value, 2);
         var bgOpacity = Math.Round(OpacitySlider.Value, 2);
         var timeLeft = TimeLeftCheck.IsChecked == true;
         var fade = FadeCheck.IsChecked == true;
         var fadeOpacity = Math.Round(FadeSlider.Value, 2);
         if (Math.Abs(scale - _config.UiScale) > 0.001 ||
             Math.Abs(primeScale - (_config.PrimeScale ?? _config.UiScale)) > 0.001 ||
-            Math.Abs(friendsScale - (_config.FriendsScale ?? _config.PrimeScale ?? _config.UiScale)) > 0.001 ||
+            Math.Abs(activityScale - (_config.ActivityScale ?? _config.PrimeScale ?? _config.UiScale)) > 0.001 ||
             Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001 ||
             timeLeft != _config.StatTimeLeftEnabled ||
             fade != _config.FadeEnabled ||
@@ -433,7 +440,7 @@ public partial class SettingsWindow : Window
         {
             _config.UiScale = scale;
             _config.PrimeScale = primeScale;
-            _config.FriendsScale = friendsScale;
+            _config.ActivityScale = activityScale;
             _config.BackgroundOpacity = bgOpacity;
             _config.StatTimeLeftEnabled = timeLeft;
             _config.FadeEnabled = fade;
@@ -473,12 +480,20 @@ public partial class SettingsWindow : Window
             MinimapChanged = true;
         }
 
-        var friendRows = FriendRows3.IsChecked == true ? 3 : FriendRows8.IsChecked == true ? 8 : 5;
-        var friendsOnMap = FriendsMapCheck.IsChecked == true;
-        _config.FriendsChimeEnabled = FriendsChimeCheck.IsChecked == true; // the widget reads it live, no flag needed
-        if (friendRows != _config.FriendsRows || friendsOnMap != _config.FriendsOnMinimap || _friendsDirty)
+        var activityRows = ActivityRows3.IsChecked == true ? 3 : ActivityRows8.IsChecked == true ? 8 : 5;
+        var includeMine = ActivityFriendsAndMe.IsChecked == true;
+        _config.FriendsChimeEnabled = FriendsChimeCheck.IsChecked == true; // read live by the widget, no flag needed
+        _config.ActivityDamageLines = ActivityDamageCheck.IsChecked == true; // read live by MainWindow
+        if (activityRows != _config.ActivityRows || includeMine != _config.ActivityIncludeMine)
         {
-            _config.FriendsRows = friendRows;
+            _config.ActivityRows = activityRows;
+            _config.ActivityIncludeMine = includeMine;
+            ActivityChanged = true;
+        }
+
+        var friendsOnMap = FriendsMapCheck.IsChecked == true;
+        if (friendsOnMap != _config.FriendsOnMinimap || _friendsDirty)
+        {
             _config.FriendsOnMinimap = friendsOnMap;
             _config.TrackedFriendSteamId = _draftTrackedFriend;
             if (_friendsDirty) _book.ApplyPrefs(_friendDraft); // raises Changed: the minimap redraws, MainWindow saves the file

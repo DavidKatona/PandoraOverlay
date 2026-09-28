@@ -26,7 +26,7 @@ public sealed class FriendEntry
     /// <summary>Draw their arrow on the minimap (when they are in game and share their location).</summary>
     public bool ShowOnMap { get; set; } = true;
 
-    /// <summary>Post their events to the Friends widget's feed.</summary>
+    /// <summary>Post their events to the Activity feed.</summary>
     public bool Notify { get; set; } = true;
 
     public string? LastDino { get; set; }

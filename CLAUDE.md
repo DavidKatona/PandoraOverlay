@@ -35,7 +35,7 @@ web dev.**
    live-map page sends alongside EVERY mylocation poll at 5 s — ours
    rides every SECOND in-game poll (6 s at the default cadence) and every
    idle poll, only right after a successful `mylocation` poll and only
-   while a friends surface is shown: the Friends widget or the minimap
+   while a friends surface is shown: the Activity widget or the minimap
    with its friend arrows; both off = zero friends requests. READ-ONLY:
    the friends page's management calls — `/api/friends/data`, requests,
    accept/decline, block, `/api/preferences/*` toggles — are writes or
@@ -67,7 +67,7 @@ web dev.**
   rebuilding the live-map page's "Prime Check" box as an overlay widget.
 - Approved Sep 27 2026 (relayed by the owner): **friends** — the
   `/api/map/friends` roster the live-map page polls, for friend arrows on
-  the minimap and the Friends widget. Consent stays the server's: a friend
+  the minimap and the Activity widget's feed. Consent stays the server's: a friend
   who enabled "hide my location" arrives flagged `hideLocation` and is never
   drawn. Nicknames/colours are local (the site's nicknames are
   browser-localStorage too, no API).
@@ -138,8 +138,10 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   GrowthMilestones.
 - `Minimap/` — MinimapWindow, BreadcrumbTrail, ScaleBar, SpeedTracker, Compass.
 - `Waypoints/` — WaypointLibrary, WaypointPacks, ShareCode.
-- `Friends/` — FriendsWindow, FriendBook (+ FriendColour), FriendFeed.
-- `Prime/` — PrimeWindow. `Settings/` — SettingsWindow.
+- `Friends/` — FriendBook (+ FriendColour), FriendFeed.
+- `Activity/` — ActivityWindow, ActivityLog, SelfActivity (the widget is
+  the feed of everyone's events; the friends folder holds the friend half).
+- `Prime/` — PrimeWindow, PrimeConditions. `Settings/` — SettingsWindow.
 - `Assets/` unchanged; `App.xaml` (StartupUri now `Shell/MainWindow.xaml`),
   csproj, sln and the docs stay at the root. `PandoraOverlay.Tests/` mirrors
   the folders.
@@ -203,7 +205,7 @@ Every overlay window derives from `OverlayWindowBase`.
   inside the same busy guard, and fetches the roster when the pure, tested
   `FriendsDue(pollsSinceFriends, idling, hotTrigger)` says so — every
   `FriendsEveryNthPoll` (2) live polls, every idle poll, or once after a
-  hot trigger; gated on `FriendsWanted` (`FriendsEnabled`, or
+  hot trigger; gated on `FriendsWanted` (`ActivityEnabled`, or
   `MinimapEnabled && FriendsOnMinimap`). Raises
   `FriendsChanged(IReadOnlyList<FriendState>?)` AFTER `SnapshotReceived`
   (consumers know your position first) with YOU filtered out by steamId;
@@ -255,7 +257,7 @@ Every overlay window derives from `OverlayWindowBase`.
   appears with edit mode, hides on lock; ONE row grouped by widget (owner's
   call, Sep 2026 — a two-row layout was tried and rejected): Settings |
   STATS: Show/hide | MINIMAP: Show/hide, Map view, Heatmap | PRIME:
-  Show/hide, Check | FRIENDS: Show/hide | Lock / Exit — small captions over each group keep
+  Show/hide, Check | ACTIVITY: Show/hide | Lock / Exit — small captions over each group keep
   labels short, and a new widget adds a group, not loose buttons; + the hint
   line (hotkey label follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
   permanently interactive while visible, `IsSnapTarget` false, first show
@@ -335,7 +337,9 @@ Every overlay window derives from `OverlayWindowBase`.
   missed the first), and re-arms only above 30% so a stat at the line
   can't chime per poll; a new life starts armed. The sound is the Windows
   "Exclamation" scheme sound (`MainWindow.Chime`, no bundled audio —
-  owner's call, a custom sound only if users ask).
+  owner's call, a custom sound only if users ask). `HungerFired` /
+  `ThirstFired` say which stat the last Update fired for, so the Activity
+  feed can name it.
 - **GrowthMilestones.cs** — pure, tested: reports the stage line crossed
   by a sample (25 juvenile / 50 subadult / 75 adult / 100 elder, the last
   at GrowthTracker's 0.9995 full line); the first sample of a life is only
@@ -351,15 +355,23 @@ Every overlay window derives from `OverlayWindowBase`.
   v1.20's three config slots into Blue/Green/Purple entries once and
   blanks them; saved on every `Changed`, not just on exit — it is user
   content), the FriendBook (loaded at startup; `Sync`ed from every roster
-  BEFORE the windows see it, since MainWindow subscribes to
-  `FriendsChanged` first; saved on `Changed` and flushed in `PersistState`
-  for the silent last-seen facts), and the minimap + prime + friends
-  windows' lifetimes (all follow edit mode and hide-all; `CheckPrime`
-  un-hides and shows the prime widget first, then fires the one
-  user-triggered check; `ShowFriends` runs after `ShowPrime` at startup
-  and hands the new widget a suggested spot right under the Prime
-  tracker; every friends show/hide calls `RefreshFriendsAsync` so the
-  fetch gate follows the surfaces). Five global hotkeys (RegisterHotKey +
+  in `OnFriendsRoster` BEFORE the windows see it, since MainWindow
+  subscribes to `FriendsChanged` first; saved on `Changed` and flushed in
+  `PersistState` for the silent last-seen facts), the ActivityLog + the
+  FriendFeed + SelfActivity (MainWindow, not the widget, owns them so the
+  last ten minutes survive the widget being hidden: `OnFriendsRoster`
+  posts the feed's diff lines, `OnSnapshot` posts `SelfActivity.Update`'s
+  spawn/fracture/damage lines and keeps `_me` for the proximity rule,
+  `UpdateUi` posts the growth-stage and low-stat lines beside the blink
+  and chime they already had, and `PrimeChecked` posts the Prime diff
+  against `_primeBefore` snapshotted on `PrimeCheckStarted`; every own
+  line goes through `PostMine`, which honours `ActivityIncludeMine`), and
+  the minimap + prime + activity windows' lifetimes (all follow edit mode
+  and hide-all; `CheckPrime` un-hides and shows the prime widget first,
+  then fires the one user-triggered check; `ShowActivity` runs after
+  `ShowPrime` at startup and hands the new widget a suggested spot right
+  under the Prime tracker; every activity show/hide calls
+  `RefreshFriendsAsync` so the fetch gate follows the surfaces). Five global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
   (`Hotkey`, Ctrl+F7) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
@@ -614,10 +626,11 @@ Every overlay window derives from `OverlayWindowBase`.
   steamId — never membership, so a stale Settings draft can't resurrect a
   dropped friend. `DisplayName` = nickname → site name → fallback.
   Pure, tested, nothing throws.
-- **FriendFeed.cs** — pure, tested: the Friends widget's engine. Diffs
-  each roster against the previous one (by steamId; self already filtered
-  by PollService) into `FeedLine`s, newest first, cap 50, expiry 10 min
-  (`Expire`, `AgeOpacity` 1 → 0.35). Kinds: Roster (first sight seeds ONE
+- **FriendFeed.cs** — pure, tested: the friends half of the Activity feed.
+  Diffs each roster against the previous one (by steamId; self already
+  filtered by PollService) into `FeedLine`s for the ActivityLog, and holds
+  the header's facts (`Total`, `InGame`, `InGameNames`, `HasRoster`).
+  Kinds: Roster (first sight seeds ONE
   "In game: a (Deino), b (Cera) and n more" line, so the widget never
   starts blank; new friend / unfriended), Spawned ("x spawned as Deino
   42%"), NewLife (same species, growth LOWER than their last in-game
@@ -632,30 +645,57 @@ Every overlay window derives from `OverlayWindowBase`.
   spawning next to you is primed, not announced one fetch later (that was
   a bug caught by the tests). `ResetBaseline` after a cleared roster
   makes its return seed again instead of reporting everyone as new.
-- **FriendsWindow.xaml(.cs)** — the fourth widget: header ("Friends" +
-  "3 of 7 in game", "—" until the first roster) over `FriendsRows` (3–8,
-  default 5) fixed 16 px one-line slots, 250 px wide like the Prime
-  tracker — one size in every state; the feed fills from the top, a
-  coloured ● (the friend's book colour) leads lines about one friend,
-  fractures read amber, opacity = `AgeOpacity`, a 20 s timer ages/expires
-  them while any exist. Slot 0 with no lines = the quiet line: "In game:
-  a, b", "nobody in game right now", "add friends on islapandora.eu",
-  "waiting for the friends list…" or "friends unavailable · retrying"
-  (roster cleared — the baseline is reset, lines kept). Owner's design
-  (Sep 27 2026): an activity feed, NOT a row-per-friend list — rows
-  would resize with the roster, and the arrows already say who is where;
-  the tracked friend's stats live nowhere on the overlay (a footer stats
-  line was proposed and REJECTED: the footer is navigation only). Takes
-  part in the fade (`Fades => true`): a new line lights it 30 s, calm at
-  launch; the opt-in chime plays for Spawned/NewLife lines. Derives
-  OverlayWindowBase; own `FriendsScale` (seeded from `PrimeScale`),
-  `FriendsEnabled` (default ON — unlike Prime it costs requests, see
-  constraint #2), `FriendsX/Y` nullable; first show = the `suggested`
-  point under the Prime tracker (MainWindow computes it), else left edge
-  centred; keeps `_me` from `SnapshotReceived` for the proximity rule.
+- **ActivityLog.cs** — pure, tested: `FeedKind` (Roster / Spawned / Left
+  / NewLife / DinoChanged / Growth / Fracture / Nearby / LowStat / Damage
+  / Prime), `FeedLine` (time, text, a friend's `SteamId` or `Mine`) and
+  the store: `Post` (one line or a batch keeping its order, newest first,
+  cap 50) raises `Posted(batch)` for the widget; `Expire` drops lines
+  older than 10 min; `AgeOpacity` 1 → 0.35. Owned by MainWindow.
+- **SelfActivity.cs** — pure, tested: YOUR events for the feed. `Update`
+  per poll: spawned ("You spawned as Deino 42%") or a fresh life (same
+  species, growth lower than your last in-game state — a fact, never
+  "died"), fractures taken, and — only with `ActivityDamageLines` — "Took
+  damage · HP 62%" for a drop ≥ 5% at most once per 30 s (the fade's
+  0.005 cue is far too fine for a line). The first poll of a session is a
+  baseline (in game at launch ≠ spawned); a new life compares nothing.
+  Builders for the rules MainWindow already runs: `GrowthLine(percent)`
+  ("You are now a subadult"), `LowStatLine(stat, DrainTracker.Label)`
+  ("Hunger under 20% · ~40m left"), `PrimeLines(before, fresh)` — the
+  CHANGE, one line per flipped condition ("Prime · now met: <text>" /
+  "lost: <text>", texts from `PrimeConditions`), else one summary "Prime
+  check · 6/10 · ready / not ready / Prime Elder". Owner's call (Sep 28
+  2026): the widget became a general activity feed because friend-only
+  lines at a two-friend scale left it empty; own events turn the
+  overlay's momentary cues (blink, chime, status line) into a readable
+  last-ten-minutes; waypoint edits, heatmap toggles and connection blips
+  are deliberately NOT posted (chores, not gameplay).
+- **ActivityWindow.xaml(.cs)** — the fourth widget: header ("Activity" +
+  "3 of 7 friends in game", "—" until the first roster) over
+  `ActivityRows` (3–8, default 5) fixed 16 px one-line slots, 250 px wide
+  like the Prime tracker — one size in every state; a pure renderer of
+  MainWindow's ActivityLog: newest at the top, an orange ● (your arrow's
+  colour) leads your lines, a book-coloured ● a friend's, none a roster
+  line; Fracture/LowStat/Damage read amber; opacity = `AgeOpacity`;
+  `Render` expires first (a window re-shown after a long hide must not
+  show dead lines) and a 20 s timer re-renders while lines exist. Slot 0
+  with no lines = the quiet line: "In game: a, b", "no friends in game
+  right now", "no recent activity", "waiting for the friends list…" or
+  "friends unavailable · retrying" (roster cleared). Owner's design (Sep
+  27 2026): a feed, NOT a row-per-friend list — rows would resize with
+  the roster, and the arrows already say who is where; the tracked
+  friend's stats live nowhere on the overlay (a footer stats line was
+  proposed and REJECTED: the footer is navigation only). Takes part in
+  the fade (`Fades => true`): `Posted` lights it 30 s, calm when opened;
+  the opt-in `FriendsChimeEnabled` plays for a FRIEND's Spawned/NewLife
+  line only. Derives OverlayWindowBase; own `ActivityScale` (seeded from
+  `PrimeScale`), `ActivityEnabled` (default ON — unlike Prime it costs
+  requests, see constraint #2), `ActivityX/Y` nullable; first show = the
+  `suggested` point under the Prime tracker (MainWindow computes it),
+  else left edge centred.
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
-  ten ✓/✗ condition rows (texts baked in — the site bakes them into its
-  frontend too, the API only returns flags) + a two-line footer (what the
+  ten ✓/✗ condition rows (texts baked into `PrimeConditions`, shared with
+  the Activity feed — the site bakes them into its frontend too, the API
+  only returns flags) + a two-line footer (what the
   rows reflect: time and dino, amber once the live dino differs; then
   checking / sticky notice / live cooldown countdown — its 1 s timer only
   runs while cooling down). Display-only and click-through when locked;
@@ -687,14 +727,18 @@ Every overlay window derives from `OverlayWindowBase`.
   of our own glow-style buttons (`NavButton`; the selected one is
   recoloured in code by `SetPage`) and ONE page visible at a time on the
   right — Account / Controls / General (APP-WIDE ONLY) / Stats panel /
-  Minimap / Prime tracker / Friends / Waypoints, widget pages in the
-  control panel's order, each holding that widget's Scale-or-Size slider
-  and its own options; a new widget adds a nav entry + page. Friends
-  page (`SettingsWindow.Friends.cs`, Sep 27 2026): the widget's Scale,
-  "Feed lines" radios 3/5/8 (`FriendsRows` — the ONLY thing that ever
-  resizes the widget, and it happens in a dialog), "Show friends on the
-  minimap" (`FriendsOnMinimap`), the spawn chime (`FriendsChimeEnabled`,
-  read live), then ONE card of rows from a DRAFT of the FriendBook
+  Minimap / Prime tracker / Activity / Friends / Waypoints, widget pages
+  in the control panel's order, each holding that widget's Scale-or-Size
+  slider and its own options; a new widget adds a nav entry + page.
+  Activity page (Sep 28 2026, in the main file like Prime's): Scale,
+  "Feed lines" radios 3/5/8 (`ActivityRows` — the ONLY thing that ever
+  resizes the widget, and it happens in a dialog), "Show: Friends only /
+  Friends and me" (`ActivityIncludeMine`), the damage-lines checkbox
+  (`ActivityDamageLines`, read live) and the friend-spawn chime
+  (`FriendsChimeEnabled`, read live); rows or the Show choice set
+  `ActivityChanged`. Friends page (`SettingsWindow.Friends.cs`, Sep 27
+  2026): "Show friends on the minimap" (`FriendsOnMinimap`), then ONE
+  card of rows from a DRAFT of the FriendBook
   (`_book.Clone()`), in-game first then by name: colour well (cycles;
   overrides the hashed default), a `NameBox` showing the name you see
   (typing sets a nickname, clearing it or typing the site's name drops
@@ -848,11 +892,16 @@ cards with striped rows, measured header alignment — verified in-game).
 Built Sep 27 2026, awaiting in-game verification: **friends** (approved
 Sep 27) — friend arrows on the minimap (FriendBook colours, tracked
 friend ringed + edge-clamped + first claim on the footer, edit-mode menu
-Track / Waypoint at), the Friends widget as an activity FEED (spawned /
-left / fresh life / dino change / growth stage / fracture / nearby /
-roster changes; fixed 3/5/8 lines, age fade, 10 min expiry), a Settings
-Friends page (nickname, colour, map, feed, track per friend; manage on
-the site), `friends.json`, the roster on every 2nd in-game poll.
+Track / Waypoint at), the Activity widget — an activity FEED of your
+friends' events (spawned / left / fresh life / dino change / growth stage
+/ fracture / nearby / roster changes) and, by default, your own (spawned
+/ fresh life / growth stage / low stat / fracture / Prime check diff;
+damage opt-in), fixed 3/5/8 lines, age fade, 10 min expiry — a Settings
+Activity page and a Friends page (nickname, colour, map, feed, track per
+friend; manage on the site), `friends.json`, the roster on every 2nd
+in-game poll. Sep 28: the widget went from friends-only to the general
+feed before release (owner: two friends left it empty), renamed while
+its config keys were still free.
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
@@ -909,7 +958,7 @@ re-propose.
   **hotkey** instead of a tray line (the heatmap and Check Prime did).
 - Every distinct widget gets its OWN size slider in Settings (owner's rule,
   Sep 2026): stats panel `UiScale`, minimap `MinimapSize`, prime tracker
-  `PrimeScale`, friends `FriendsScale` — a new widget ships with one, seeded so an update never
+  `PrimeScale`, activity `ActivityScale` — a new widget ships with one, seeded so an update never
   resizes anything (override `AppearanceScale`). Sliders are independent:
   no global scale multiplier on top (considered and dropped — Windows
   display scaling already does it, two multiplying sliders confuse, and

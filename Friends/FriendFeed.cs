@@ -1,27 +1,20 @@
 namespace PandoraOverlay;
 
-public enum FeedKind { Roster, Spawned, Left, NewLife, DinoChanged, Growth, Fracture, Nearby }
-
-/// <summary>One feed line: when, what, and whose (null for roster-wide lines).</summary>
-public sealed record FeedLine(DateTime AtUtc, string Text, string? SteamId, FeedKind Kind);
-
 /// <summary>
-/// The Friends widget's engine — pure and tested: diffs each friends roster
-/// against the previous one and turns what changed into short lines, newest
-/// first. A friend spawned in (or started a fresh dino of the same species —
-/// growth lower than last seen, a fact, not a death claim), left the game
-/// (neutral wording: logout, restart and death all look the same from
-/// outside; several at once become one line), changed dino, crossed a
-/// growth stage, took a fracture, came within a couple of hundred metres,
-/// joined or left the roster. Friends muted in the FriendBook produce no
-/// lines but are tracked all the same, so unmuting later starts from the
-/// truth. Lines expire after ten minutes; the window renders age as
-/// opacity. Nothing here knows about WPF.
+/// The friends half of the Activity feed — pure and tested: diffs each
+/// friends roster against the previous one and turns what changed into
+/// short lines for the ActivityLog. A friend spawned in (or started a fresh
+/// dino of the same species — growth lower than last seen, a fact, not a
+/// death claim), left the game (neutral wording: logout, restart and death
+/// all look the same from outside; several at once become one line),
+/// changed dino, crossed a growth stage, took a fracture, came within a
+/// couple of hundred metres, joined or left the roster. Friends muted in
+/// the FriendBook produce no lines but are tracked all the same, so
+/// unmuting later starts from the truth. Also the roster facts the
+/// widget's header shows. Nothing here knows about WPF.
 /// </summary>
 public sealed class FriendFeed
 {
-    public const int Capacity = 50;
-    public static readonly TimeSpan Expiry = TimeSpan.FromMinutes(10);
     private const double NearMeters = 200;   // "is nearby" once inside this…
     private const double FarMeters = 300;    // …re-armed once outside this, so a friend at the line can't spam
     private const int NamesInRosterLine = 3;
@@ -33,10 +26,9 @@ public sealed class FriendFeed
     /// <summary>Names of the friends in game right now (display names) — the quiet-state line.</summary>
     public IReadOnlyList<string> InGameNames => _inGameNames;
 
-    /// <summary>Lines, newest first, unexpired.</summary>
-    public IReadOnlyList<FeedLine> Lines => _lines;
+    /// <summary>True once a roster has been seen this session.</summary>
+    public bool HasRoster => _last is not null;
 
-    private readonly List<FeedLine> _lines = new();
     private readonly List<string> _inGameNames = new();
     private Dictionary<string, FriendState>? _last;                 // the previous roster, by steamId; null before the first
     private readonly Dictionary<string, FriendState> _lastLive = new(); // each friend's last IN-GAME state (dino/growth for the fresh-life rule)
@@ -52,8 +44,8 @@ public sealed class FriendFeed
 
     /// <summary>
     /// Feeds one roster (self already filtered out by PollService). Returns
-    /// the lines this roster produced, oldest first, so the caller can chime
-    /// or wake on them; they are also prepended to Lines.
+    /// the lines this roster produced, oldest first, for the caller to post
+    /// to the ActivityLog.
     /// </summary>
     public IReadOnlyList<FeedLine> Update(IReadOnlyList<FriendState> roster, PlayerState? me,
                                           Func<string, string?, string> nameOf, Func<string, bool> notify, DateTime now)
@@ -156,21 +148,7 @@ public sealed class FriendFeed
             _near.Remove(id);
         }
         _last = current;
-
-        // Newest first; the batch keeps its own order within the update.
-        for (var i = fresh.Count - 1; i >= 0; i--) _lines.Insert(0, fresh[i]);
-        if (_lines.Count > Capacity) _lines.RemoveRange(Capacity, _lines.Count - Capacity);
         return fresh;
-    }
-
-    /// <summary>Drops lines older than Expiry; true when something was removed.</summary>
-    public bool Expire(DateTime now) => _lines.RemoveAll(l => now - l.AtUtc >= Expiry) > 0;
-
-    /// <summary>1 for a fresh line, easing to 0.35 as it approaches expiry — the window's per-line opacity.</summary>
-    public static double AgeOpacity(FeedLine line, DateTime now)
-    {
-        var age = Math.Clamp((now - line.AtUtc).TotalSeconds / Expiry.TotalSeconds, 0, 1);
-        return 1 - 0.65 * age;
     }
 
     // ---- Line builders ---------------------------------------------------------

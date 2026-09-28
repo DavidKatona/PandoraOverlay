@@ -27,6 +27,11 @@ public sealed class LowStatAlert
     private string? _identity;
     private double _lastGrowth;
 
+    /// <summary>Which stat(s) the last Update fired for — the Activity feed names them.</summary>
+    public bool HungerFired { get; private set; }
+
+    public bool ThirstFired { get; private set; }
+
     public void Reset()
     {
         _identity = null;
@@ -44,15 +49,18 @@ public sealed class LowStatAlert
         _lastGrowth = p.Growth;
 
         var chime = false;
-        foreach (var s in _stats)
+        HungerFired = ThirstFired = false;
+        for (var i = 0; i < _stats.Length; i++)
         {
+            var s = _stats[i];
             var value = s.Read(p);
+            var fired = false;
             if (!s.Below)
             {
                 if (value >= Threshold) continue;
                 s.Below = true;
                 s.NextRepeat = now + Repeat;
-                chime = true;
+                fired = true;
             }
             else if (value >= Rearm)
             {
@@ -61,8 +69,11 @@ public sealed class LowStatAlert
             else if (now >= s.NextRepeat)
             {
                 s.NextRepeat = now + Repeat;
-                chime = true;
+                fired = true;
             }
+            if (!fired) continue;
+            chime = true;
+            if (i == 0) HungerFired = true; else ThirstFired = true;
         }
         return chime;
     }

@@ -219,39 +219,52 @@ public sealed class OverlayConfig
     /// </summary>
     public DateTime? PrimeCooldownUntilUtc { get; set; }
 
-    // ---- Friends (approved Sep 27 2026) -----------------------------------
+    // ---- Activity feed + friends (approved Sep 27 2026) -------------------
 
     /// <summary>
-    /// Show the Friends widget (toggled from the control panel). On by
+    /// Show the Activity widget (toggled from the control panel). On by
     /// default like the Prime tracker; unlike it, a shown widget costs a
     /// friends request every second in-game poll (see PollService).
     /// </summary>
-    public bool FriendsEnabled { get; set; } = true;
+    public bool ActivityEnabled { get; set; } = true;
 
-    /// <summary>Friends widget position; null until first moved (defaults to just under the Prime tracker).</summary>
-    public double? FriendsX { get; set; }
+    /// <summary>Activity widget position; null until first moved (defaults to just under the Prime tracker).</summary>
+    public double? ActivityX { get; set; }
 
-    public double? FriendsY { get; set; }
+    public double? ActivityY { get; set; }
 
     /// <summary>
-    /// Friends widget scale, clamped 0.75–1.5 — every widget has its own size
+    /// Activity widget scale, clamped 0.75–1.5 — every widget has its own size
     /// control. Null in configs written before it existed: Load() seeds it
     /// from PrimeScale, the widget it docks under.
     /// </summary>
-    public double? FriendsScale { get; set; }
+    public double? ActivityScale { get; set; }
 
     /// <summary>
-    /// Event lines the Friends widget reserves (3 / 5 / 8 in Settings; clamped
+    /// Feed lines the Activity widget reserves (3 / 5 / 8 in Settings; clamped
     /// 3–8). A fixed number, so the widget keeps one size however busy the
     /// evening gets — changing it in the dialog is the only thing that ever
     /// resizes it.
     /// </summary>
-    public int FriendsRows { get; set; } = 5;
+    public int ActivityRows { get; set; } = 5;
+
+    /// <summary>
+    /// Post your own events (spawned, fresh life, growth stage, low stat,
+    /// fracture, Prime check) to the feed alongside your friends'. Radio on
+    /// the Activity page; off = friends only.
+    /// </summary>
+    public bool ActivityIncludeMine { get; set; } = true;
+
+    /// <summary>
+    /// Also post "Took damage · HP 62%" lines (a drop of 5% or more, at most
+    /// one per half minute). Off by default — a long fight fills the feed.
+    /// </summary>
+    public bool ActivityDamageLines { get; set; }
 
     /// <summary>
     /// Draw in-game friends as small arrows on the minimap. Checkbox on the
-    /// Friends page. Untick this AND hide the widget to send no friends
-    /// requests at all.
+    /// Friends page. Untick this AND hide the Activity widget to send no
+    /// friends requests at all.
     /// </summary>
     public bool FriendsOnMinimap { get; set; } = true;
 
@@ -359,8 +372,8 @@ public sealed class OverlayConfig
         }
 
         cfg.PrimeScale ??= cfg.UiScale;
-        cfg.FriendsScale ??= cfg.PrimeScale;
-        cfg.FriendsRows = Math.Clamp(cfg.FriendsRows, 3, 8);
+        cfg.ActivityScale ??= cfg.PrimeScale;
+        cfg.ActivityRows = Math.Clamp(cfg.ActivityRows, 3, 8);
 
         // Waypoint slots: always three (a hand-edited array is padded or
         // trimmed), and the pre-v1.20 single waypoint becomes the blue one.

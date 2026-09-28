@@ -9,7 +9,8 @@ namespace PandoraOverlay;
 
 /// <summary>
 /// The stats panel and the app's orchestrator: owns the config, the shared
-/// PollService, the waypoint library and the friend book, registers the
+/// PollService, the waypoint library, the friend book and the activity log
+/// (posting your own and your friends' events into it), registers the
 /// global hotkeys, and manages the other widgets' lifetimes. Window-style
 /// interop lives in OverlayWindowBase.
 /// </summary>
@@ -40,9 +41,14 @@ public partial class MainWindow : OverlayWindowBase
     private readonly DrainTracker _hungerDrain = new(p => p.Hunger);
     private readonly DrainTracker _thirstDrain = new(p => p.Thirst);
     private readonly StatsAttention _attention = new();
+    private readonly FriendFeed _feed = new();
+    private readonly ActivityLog _log = new();
+    private readonly SelfActivity _self = new();
+    private PlayerState? _me;          // your last in-game state, for the feed's proximity rule
+    private PrimeSnapshot? _primeBefore; // the Prime result on screen when the current check started
     private MinimapWindow? _minimap;
     private PrimeWindow? _prime;
-    private FriendsWindow? _friends;
+    private ActivityWindow? _activity;
     private ControlPanelWindow? _controlPanel;
     private HotkeySpec _hotkey;
     private HotkeySpec _hotkeyHide;
@@ -78,11 +84,14 @@ public partial class MainWindow : OverlayWindowBase
         _poll = new PollService(_config);
         _poll.SnapshotReceived += OnSnapshot;
         _poll.PollFailed += OnPollFailed;
-        _poll.FriendsChanged += roster =>
+        _poll.FriendsChanged += OnFriendsRoster;
+        _poll.PrimeCheckStarted += () => _primeBefore = _config.Prime; // PollService swaps in the new result before PrimeChecked
+        _poll.PrimeChecked += result =>
         {
-            // The book mirrors the roster before the windows render it, so
-            // new friends already have their colour and name on first sight.
-            if (roster is not null) _book.Sync(roster, DateTime.UtcNow);
+            if (result.Outcome == PrimeCheckOutcome.Ok && result.Snapshot is { } fresh)
+            {
+                PostMine(SelfActivity.PrimeLines(_primeBefore, fresh, DateTime.UtcNow));
+            }
         };
 
         _tray = new TrayIcon(
@@ -98,7 +107,7 @@ public partial class MainWindow : OverlayWindowBase
             if (!_config.StatsEnabled) Hide();
             if (_config.MinimapEnabled) ShowMinimap();
             if (_config.PrimeEnabled) ShowPrime();
-            if (_config.FriendsEnabled) ShowFriends(); // after Prime: its first placement docks under it
+            if (_config.ActivityEnabled) ShowActivity(); // after Prime: its first placement docks under it
 
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
             {
@@ -117,7 +126,7 @@ public partial class MainWindow : OverlayWindowBase
             _poll.Dispose();
             _minimap?.Close();
             _prime?.Close();
-            _friends?.Close();
+            _activity?.Close();
             _controlPanel?.Close();
         };
     }
@@ -160,8 +169,8 @@ public partial class MainWindow : OverlayWindowBase
                 _prime?.ApplySettingsFromConfig();
                 _controlPanel?.ApplySettingsFromConfig();
             }
-            if (dialog.AppearanceChanged || dialog.FriendsChanged) _friends?.ApplySettingsFromConfig();
-            if (dialog.FriendsChanged) _ = _poll.RefreshFriendsAsync(); // the layer may have been switched on or off
+            if (dialog.AppearanceChanged || dialog.ActivityChanged || dialog.FriendsChanged) _activity?.ApplySettingsFromConfig();
+            if (dialog.FriendsChanged) _ = _poll.RefreshFriendsAsync(); // the minimap layer may have been switched on or off
             if (_autoHidden && !_config.HideWhenNotInGame) RevealAutoHidden(); // switched off while hidden by it
         }
         finally
@@ -226,10 +235,10 @@ public partial class MainWindow : OverlayWindowBase
             _config.PrimeX = _prime.Left;
             _config.PrimeY = _prime.Top;
         }
-        if (_friends is not null)
+        if (_activity is not null)
         {
-            _config.FriendsX = _friends.Left;
-            _config.FriendsY = _friends.Top;
+            _config.ActivityX = _activity.Left;
+            _config.ActivityY = _activity.Top;
         }
         _book.Save(); // flushes the last-seen facts Sync updates silently
         if (_controlPanel is not null)
@@ -252,9 +261,40 @@ public partial class MainWindow : OverlayWindowBase
         SetAttention(true); // a broken connection is worth eyes
     }
 
+    /// <summary>
+    /// The friends roster, right after your own snapshot: the book mirrors it
+    /// first (so new friends have their colour and name on first sight), then
+    /// the feed diffs it and its lines go to the log. Null = cleared: the
+    /// feed forgets its baseline so the roster's return seeds again.
+    /// </summary>
+    private void OnFriendsRoster(IReadOnlyList<FriendState>? roster)
+    {
+        if (roster is null)
+        {
+            _feed.ResetBaseline();
+            return;
+        }
+        var now = DateTime.UtcNow;
+        _book.Sync(roster, now);
+        _log.Post(_feed.Update(roster, _me, (id, site) => _book.DisplayName(id, site), _book.Notifies, now));
+    }
+
+    /// <summary>Your own events go to the log only when the feed is set to include them.</summary>
+    private void PostMine(IReadOnlyList<FeedLine> lines)
+    {
+        if (_config.ActivityIncludeMine) _log.Post(lines);
+    }
+
+    private void PostMine(FeedLine line)
+    {
+        if (_config.ActivityIncludeMine) _log.Post(line);
+    }
+
     private void OnSnapshot(MyLocationResponse result)
     {
+        _me = result.InGame ? result.Player : null;
         UpdateUi(result);
+        PostMine(_self.Update(result, _config.ActivityDamageLines, DateTime.UtcNow));
         UpdateAutoHide(result.InGame && result.Player is not null);
         _tray.SetStatus(result.InGame && result.Player is { } p
             ? $"Pandora Overlay — {p.Dino} · HP {p.Health * 100:0}% · Growth {p.Growth * 100:0.#}%"
@@ -334,14 +374,22 @@ public partial class MainWindow : OverlayWindowBase
         _thirstDrain.Add(p);
         RenderTimeLeft();
 
-        // Alerts: the rules are pure and always run; the sounds are opt-in.
-        if (_milestones.Update(p) is not null)
+        // Alerts: the rules are pure and always run; the sounds are opt-in,
+        // and each moment also becomes a line in the Activity feed.
+        var now = DateTime.UtcNow;
+        if (_milestones.Update(p) is { } stage)
         {
             PulseBriefly(GrowthText, HeaderPulse); // a stage reached is always worth a blink
             _attention.NoteEvent();
             if (_config.GrowthChimeEnabled) Chime();
+            PostMine(SelfActivity.GrowthLine(stage, now));
         }
-        if (_lowStat.Update(p) && _config.LowStatChimeEnabled) Chime();
+        if (_lowStat.Update(p))
+        {
+            if (_config.LowStatChimeEnabled) Chime();
+            if (_lowStat.HungerFired) PostMine(SelfActivity.LowStatLine("Hunger", _hungerDrain.Label, now));
+            if (_lowStat.ThirstFired) PostMine(SelfActivity.LowStatLine("Thirst", _thirstDrain.Label, now));
+        }
 
         SetAttention(_attention.Update(p, _hungerDrain.TimeLeft, _thirstDrain.TimeLeft));
 

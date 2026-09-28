@@ -36,27 +36,28 @@ public class FriendFeedTests
     {
         var feed = new FriendFeed();
         Assert.Empty(Feed(feed, T0, Me(), F("a", inGame: false)));
-        Assert.Empty(feed.Lines);
+        Assert.True(feed.HasRoster);
         Assert.Equal(1, feed.Total);
         Assert.Equal(0, feed.InGame);
     }
 
     [Fact]
-    public void SpawnAndLeaveAreReportedNewestFirst()
+    public void SpawnAndLeaveAreReported()
     {
         var feed = new FriendFeed();
+        Assert.False(feed.HasRoster);
         Feed(feed, T0, Me(), F("a", inGame: false));
+        Assert.True(feed.HasRoster);
 
         var spawned = Assert.Single(Feed(feed, T0.AddSeconds(6), Me(), F("a", growth: 0.42)));
         Assert.Equal(FeedKind.Spawned, spawned.Kind);
         Assert.Equal("player-a spawned as Deinosuchus 42%", spawned.Text);
         Assert.Equal("a", spawned.SteamId);
+        Assert.False(spawned.Mine);
 
         var left = Assert.Single(Feed(feed, T0.AddSeconds(12), Me(), F("a", inGame: false)));
         Assert.Equal(FeedKind.Left, left.Kind);
         Assert.Equal("player-a is no longer in game", left.Text);
-
-        Assert.Equal(new[] { left, spawned }, feed.Lines); // newest first
     }
 
     [Fact]
@@ -195,19 +196,6 @@ public class FriendFeedTests
     }
 
     [Fact]
-    public void LinesExpireAndFadeWithAge()
-    {
-        var feed = new FriendFeed();
-        Feed(feed, T0, Me(), F("a"));
-        var line = feed.Lines[0];
-        Assert.Equal(1.0, FriendFeed.AgeOpacity(line, T0), 3);
-        Assert.Equal(0.675, FriendFeed.AgeOpacity(line, T0.AddMinutes(5)), 3);
-        Assert.False(feed.Expire(T0.AddMinutes(9)));
-        Assert.True(feed.Expire(T0.AddMinutes(10)));
-        Assert.Empty(feed.Lines);
-    }
-
-    [Fact]
     public void ResetBaselineSeedsAgainInsteadOfReportingEveryoneAsNew()
     {
         var feed = new FriendFeed();
@@ -218,15 +206,4 @@ public class FriendFeedTests
         Assert.StartsWith("In game:", line.Text);
     }
 
-    [Fact]
-    public void KeepsAtMostFiftyLines()
-    {
-        var feed = new FriendFeed();
-        Feed(feed, T0, Me(), F("a", inGame: false));
-        for (var i = 1; i <= 60; i++)
-        {
-            Feed(feed, T0.AddSeconds(i * 6), Me(), F("a", inGame: i % 2 == 1));
-        }
-        Assert.Equal(FriendFeed.Capacity, feed.Lines.Count);
-    }
 }

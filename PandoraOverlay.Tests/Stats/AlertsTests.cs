@@ -121,3 +121,28 @@ public class GrowthMilestonesTests
         Assert.Null(m.Update(Player(0.80, dino: "Deinosuchus")));
     }
 }
+
+public class LowStatAlertFiredFlagsTests
+{
+    private static readonly DateTime T0 = new(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+
+    private static PlayerState Player(double hunger = 1, double thirst = 1) =>
+        new("765611", "Tester", "Pteranodon", "Male", 0.5, 1, 1, hunger, thirst, 0, false, false, false, 0, 0, 0);
+
+    [Fact]
+    public void NamesTheStatThatFired()
+    {
+        var a = new LowStatAlert();
+        Assert.True(a.Update(Player(hunger: 0.19), T0));
+        Assert.True(a.HungerFired);
+        Assert.False(a.ThirstFired);
+
+        Assert.True(a.Update(Player(hunger: 0.19, thirst: 0.19), T0.AddSeconds(3)));
+        Assert.False(a.HungerFired); // already reported, not due for a repeat
+        Assert.True(a.ThirstFired);
+
+        Assert.False(a.Update(Player(hunger: 0.19, thirst: 0.19), T0.AddSeconds(6)));
+        Assert.False(a.HungerFired);
+        Assert.False(a.ThirstFired);
+    }
+}

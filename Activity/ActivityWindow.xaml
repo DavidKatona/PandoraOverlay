@@ -1,8 +1,8 @@
-<local:OverlayWindowBase x:Class="PandoraOverlay.FriendsWindow"
+<local:OverlayWindowBase x:Class="PandoraOverlay.ActivityWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:PandoraOverlay"
-        Title="Pandora Friends"
+        Title="Pandora Activity"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -24,16 +24,16 @@
              one size in every state, like the other panels. -->
         <StackPanel Width="250">
 
-            <!-- Header: title + "3 of 7 in game" -->
+            <!-- Header: title + "3 of 7 friends in game" -->
             <DockPanel Margin="0,0,0,7">
                 <TextBlock x:Name="CountText" DockPanel.Dock="Right"
                            Foreground="#9AA7B0" FontSize="12"
                            VerticalAlignment="Center"/>
-                <TextBlock Text="Friends"
+                <TextBlock Text="Activity"
                            Foreground="#ECF2F8" FontSize="14" FontWeight="Bold"/>
             </DockPanel>
 
-            <!-- Event lines, newest at the top; built in code-behind -->
+            <!-- Feed lines, newest at the top; built in code-behind -->
             <StackPanel x:Name="Lines"/>
         </StackPanel>
     </Border>

@@ -116,8 +116,8 @@
                 <Border Style="{StaticResource GroupSeparator}"/>
 
                 <StackPanel>
-                    <TextBlock Style="{StaticResource GroupCaption}" Text="FRIENDS"/>
-                    <Button Content="Show/hide" Click="Friends_Click"
+                    <TextBlock Style="{StaticResource GroupCaption}" Text="ACTIVITY"/>
+                    <Button Content="Show/hide" Click="Activity_Click"
                             Style="{StaticResource PanelButton}" Margin="0"/>
                 </StackPanel>
 

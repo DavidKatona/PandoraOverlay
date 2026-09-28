@@ -8,18 +8,20 @@ using System.Windows.Threading;
 namespace PandoraOverlay;
 
 /// <summary>
-/// The Friends widget: a header with how many friends you have and how many
-/// are in game, over a fixed number of one-line slots carrying the friends
-/// feed — who spawned, left, changed dino, reached a stage, took a fracture,
-/// came near — newest at the top, fading with age and gone after ten
-/// minutes (FriendFeed). Who is on and where lives on the minimap; this
-/// widget says what changed while you were watching the game. With no
-/// recent lines the first slot names who is in game, so it is never blank.
-/// Display-only and click-through when locked; a pure consumer of
-/// PollService's roster stream. First show docks under the Prime tracker
+/// The Activity widget: a header with how many friends you have and how many
+/// are in game, over a fixed number of one-line slots showing the last ten
+/// minutes of the ActivityLog — your friends' events (FriendFeed: spawned,
+/// left, changed dino, reached a stage, took a fracture, came near) and
+/// your own (SelfActivity: spawned, fresh life, stage, low stat, fracture,
+/// Prime check, damage), newest at the top, fading with age. Every other
+/// cue on the overlay is momentary; this is the one you can read late. With
+/// no recent lines the first slot names who is in game, so it is never
+/// blank. A pure renderer: MainWindow owns the log and the feed and posts
+/// into them, so the history survives the widget being hidden. Display-only
+/// and click-through when locked. First show docks under the Prime tracker
 /// (left column); the position persists via config.
 /// </summary>
-public partial class FriendsWindow : OverlayWindowBase
+public partial class ActivityWindow : OverlayWindowBase
 {
     private const double EdgeInset = 16;
     private const double LineHeight = 16;
@@ -29,6 +31,7 @@ public partial class FriendsWindow : OverlayWindowBase
     private static readonly Brush Dim = new SolidColorBrush(Color.FromRgb(0x7B, 0x87, 0x90));
     private static readonly Brush Text = new SolidColorBrush(Color.FromRgb(0xC7, 0xD1, 0xDA));
     private static readonly Brush Warn = new SolidColorBrush(Color.FromRgb(0xFF, 0xB3, 0x00));
+    private static readonly Brush Self = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64)); // your arrow's orange: you, everywhere on the overlay
     private static readonly Brush[] PaletteBrushes = WaypointPalette.Colours
         .Select(c => { var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(c.Hex)); b.Freeze(); return (Brush)b; })
         .ToArray();
@@ -36,25 +39,25 @@ public partial class FriendsWindow : OverlayWindowBase
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
     private readonly FriendBook _book;
-    private readonly FriendFeed _feed = new();
+    private readonly FriendFeed _feed;
+    private readonly ActivityLog _log;
     private readonly DispatcherTimer _expiryTimer;    // ages the lines; runs only while there are lines
     private readonly DispatcherTimer _attentionTimer; // one-shot: lets a woken widget fade again
     private readonly List<TextBlock> _slots = new();
-    private PlayerState? _me;
-    private bool _hasRoster;   // at least one roster has arrived this session
-    private bool _unavailable; // the roster fetch keeps failing
 
-    public FriendsWindow(OverlayConfig config, PollService poll, FriendBook book, Point? suggested)
+    public ActivityWindow(OverlayConfig config, PollService poll, FriendBook book, FriendFeed feed, ActivityLog log, Point? suggested)
     {
         InitializeComponent();
 
         _config = config;
         _poll = poll;
         _book = book;
+        _feed = feed;
+        _log = log;
         ApplyAppearance(config);
         BuildSlots();
 
-        if (config.FriendsX is { } x && config.FriendsY is { } y)
+        if (config.ActivityX is { } x && config.ActivityY is { } y)
         {
             Left = x;
             Top = y;
@@ -70,11 +73,7 @@ public partial class FriendsWindow : OverlayWindowBase
         }
 
         _expiryTimer = new DispatcherTimer { Interval = ExpiryTick };
-        _expiryTimer.Tick += (_, _) =>
-        {
-            _feed.Expire(DateTime.UtcNow);
-            Render();
-        };
+        _expiryTimer.Tick += (_, _) => Render();
         _attentionTimer = new DispatcherTimer { Interval = AttentionHold };
         _attentionTimer.Tick += (_, _) =>
         {
@@ -84,24 +83,25 @@ public partial class FriendsWindow : OverlayWindowBase
 
         _poll.SnapshotReceived += OnSnapshot;
         _poll.FriendsChanged += OnFriends;
+        _log.Posted += OnPosted;
         Closed += (_, _) =>
         {
             _expiryTimer.Stop();
             _attentionTimer.Stop();
             _poll.SnapshotReceived -= OnSnapshot;
             _poll.FriendsChanged -= OnFriends;
+            _log.Posted -= OnPosted;
         };
 
-        if (_poll.Friends is { } roster) OnFriends(roster); // shown mid-session: start from the current roster
         Render();
-        SetAttention(false); // nothing has happened yet
+        SetAttention(false); // whatever is in the log is old news to a window that just opened
     }
 
     /// <summary>The widget takes part in the attention fade: a new line lights it for a while.</summary>
     protected override bool Fades => true;
 
     /// <summary>Its own size control, like every widget; seeded from the Prime tracker it docks under.</summary>
-    protected override double AppearanceScale(OverlayConfig config) => config.FriendsScale ?? config.PrimeScale ?? config.UiScale;
+    protected override double AppearanceScale(OverlayConfig config) => config.ActivityScale ?? config.PrimeScale ?? config.UiScale;
 
     /// <summary>Reapplies scale/opacity and the slot count after a settings save.</summary>
     public void ApplySettingsFromConfig()
@@ -111,7 +111,7 @@ public partial class FriendsWindow : OverlayWindowBase
         Render();
     }
 
-    private int Rows => Math.Clamp(_config.FriendsRows, 3, 8);
+    private int Rows => Math.Clamp(_config.ActivityRows, 3, 8);
 
     private void BuildSlots()
     {
@@ -144,37 +144,21 @@ public partial class FriendsWindow : OverlayWindowBase
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);
 
-    // ---- Poll stream ---------------------------------------------------------
+    // ---- Streams ---------------------------------------------------------------
     private void OnSnapshot(MyLocationResponse result)
     {
         if (!EditMode && !Topmost) Topmost = true;
-        _me = result.InGame ? result.Player : null;
     }
 
-    private void OnFriends(IReadOnlyList<FriendState>? roster)
+    /// <summary>The roster changed (or was cleared): the header's counts and the quiet line follow.</summary>
+    private void OnFriends(IReadOnlyList<FriendState>? roster) => Render();
+
+    /// <summary>New lines landed in the log: show them, light the widget, and chime for a friend spawning in if asked.</summary>
+    private void OnPosted(IReadOnlyList<FeedLine> fresh)
     {
-        if (roster is null)
-        {
-            // Cleared: the fetch keeps failing (or no surface wants it — then
-            // we are hidden anyway). Keep the lines, drop the baseline so the
-            // roster's return seeds again instead of reporting everyone as new.
-            _unavailable = true;
-            _feed.ResetBaseline();
-            Render();
-            return;
-        }
-        _unavailable = false;
-        _hasRoster = true;
-
-        var fresh = _feed.Update(roster, _me,
-            nameOf: (id, siteName) => _book.DisplayName(id, siteName),
-            notify: _book.Notifies,
-            DateTime.UtcNow);
         Render();
-        if (fresh.Count == 0) return;
-
         Wake();
-        if (_config.FriendsChimeEnabled && fresh.Any(l => l.Kind is FeedKind.Spawned or FeedKind.NewLife)) Chime();
+        if (_config.FriendsChimeEnabled && fresh.Any(l => !l.Mine && l.Kind is FeedKind.Spawned or FeedKind.NewLife)) Chime();
     }
 
     private void Wake()
@@ -187,12 +171,14 @@ public partial class FriendsWindow : OverlayWindowBase
     // ---- Rendering -----------------------------------------------------------
     private void Render()
     {
-        CountText.Text = !_hasRoster ? "—"
-            : _feed.Total == 0 ? "no friends yet"
-            : $"{_feed.InGame} of {_feed.Total} in game";
-
         var now = DateTime.UtcNow;
-        var lines = _feed.Lines;
+        _log.Expire(now); // a window shown after a long hide must not display lines that should be gone
+
+        CountText.Text = !_feed.HasRoster ? "—"
+            : _feed.Total == 0 ? "no friends yet"
+            : $"{_feed.InGame} of {_feed.Total} friends in game";
+
+        var lines = _log.Lines;
         if (lines.Count > 0 && !_expiryTimer.IsEnabled) _expiryTimer.Start();
         else if (lines.Count == 0 && _expiryTimer.IsEnabled) _expiryTimer.Stop();
 
@@ -204,12 +190,11 @@ public partial class FriendsWindow : OverlayWindowBase
             if (i < lines.Count)
             {
                 var line = lines[i];
-                if (line.SteamId is { } id)
-                {
-                    slot.Inlines.Add(new Run("● ") { Foreground = PaletteBrushes[_book.ColourOf(id)] });
-                }
-                slot.Inlines.Add(new Run(line.Text) { Foreground = line.Kind == FeedKind.Fracture ? Warn : Text });
-                slot.Opacity = FriendFeed.AgeOpacity(line, now);
+                if (line.Mine) slot.Inlines.Add(new Run("● ") { Foreground = Self });
+                else if (line.SteamId is { } id) slot.Inlines.Add(new Run("● ") { Foreground = PaletteBrushes[_book.ColourOf(id)] });
+                var warn = line.Kind is FeedKind.Fracture or FeedKind.LowStat or FeedKind.Damage;
+                slot.Inlines.Add(new Run(line.Text) { Foreground = warn ? Warn : Text });
+                slot.Opacity = ActivityLog.AgeOpacity(line, now);
             }
             else if (i == 0)
             {
@@ -221,10 +206,10 @@ public partial class FriendsWindow : OverlayWindowBase
     /// <summary>What the first slot says when nothing recent happened: who is on, or why nothing shows.</summary>
     private string QuietLine()
     {
-        if (_unavailable) return "friends unavailable · retrying";
-        if (!_hasRoster) return "waiting for the friends list…";
-        if (_feed.Total == 0) return "add friends on islapandora.eu";
-        if (_feed.InGame == 0) return "nobody in game right now";
+        if (_feed.HasRoster && _poll.Friends is null) return "friends unavailable · retrying";
+        if (!_feed.HasRoster) return "waiting for the friends list…";
+        if (_feed.Total == 0) return "no recent activity";
+        if (_feed.InGame == 0) return "no friends in game right now";
         return "In game: " + string.Join(", ", _feed.InGameNames);
     }
 

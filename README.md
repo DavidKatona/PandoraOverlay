@@ -17,7 +17,7 @@ It is **fully external**: the only thing it ever does is replay the same authent
 - [Requirements](#requirements)
 - [Build](#build)
 - [First-run setup](#first-run-setup)
-- [Usage](#usage) — [Basics](#basics) · [Tray icon & settings](#tray-icon--settings) · [Stats panel](#stats-panel) · [Minimap](#minimap) · [Waypoints](#waypoints) · [Prime tracker](#prime-tracker) · [Friends](#friends)
+- [Usage](#usage) — [Basics](#basics) · [Tray icon & settings](#tray-icon--settings) · [Stats panel](#stats-panel) · [Minimap](#minimap) · [Waypoints](#waypoints) · [Prime tracker](#prime-tracker) · [Activity feed](#activity-feed) · [Friends](#friends)
 - [Configuration (config.json)](#configuration-configjson)
 - [Troubleshooting](#troubleshooting)
 - [Fair-play notes](#fair-play-notes)
@@ -63,7 +63,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Basics
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
-- The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with its buttons in one row, grouped by widget: **Settings**, then **Stats** (Show/hide), **Minimap** (Show/hide, Map view, Heatmap), **Prime** (Show/hide, Check) and **Friends** (Show/hide), and finally **Lock** and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
+- The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with its buttons in one row, grouped by widget: **Settings**, then **Stats** (Show/hide), **Minimap** (Show/hide, Map view, Heatmap), **Prime** (Show/hide, Check) and **Activity** (Show/hide), and finally **Lock** and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
 
   ![The edit-mode control panel: Settings, then the Stats, Minimap and Prime button groups under small captions, Lock and Exit, and the hint line underneath](docs/control-panel.png)
 
@@ -75,7 +75,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade), then one page per widget — Stats panel, Minimap, Prime tracker, Friends — each with its own Scale or Size slider, so you can size each one independently, and Waypoints.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale or Size slider, so you can size each one independently, and finally Friends and Waypoints.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -126,14 +126,19 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - The last result stays on screen with the time it was taken and the dino it was taken as, and it survives restarts. If you have switched dino since, that line turns amber as a reminder that the list is about your previous one. After a check, conditions that changed since the previous result stand out — a newly met one in bright text, a lost one in amber — until the next check. When the cooldown runs out, the footer blinks briefly.
 - Hide or show the widget with **Show/hide** in the control panel's Prime group. Its size has its own Scale slider in Settings → Prime tracker (75–150%).
 
+### Activity feed
+
+- The **Activity widget** (a fourth panel, docked under the Prime tracker by default) is a feed of the last ten minutes: each line reports something that just happened, newest at the top, fading as it ages. Every other cue on the overlay is momentary — the growth readout blinks, a chime plays once — so this is the one you can read after a fight or when you come back to the keyboard. Its header also says how many friends you have and how many are in game.
+- **Your friends' events:** a friend spawned in ("spawned as Deinosuchus 42%"), left the game, started a fresh dino of the same species, switched dino, reached a growth stage, took a fracture, came within 200 m of you, or joined or left your list. Several friends leaving at once (a server restart) become one line, and "left the game" is worded neutrally on purpose — from outside, a logout, a restart and a death look the same.
+- **Your own events** (on by default; Settings → Activity → "Friends only" turns them off): you spawned in or started a fresh dino, reached a growth stage, dropped under 20% hunger or thirst (with the time left), took a fracture, and each Prime check as what *changed* — "Prime · now met: Visit 2 Migration zones" — or a one-line summary when nothing did. An optional line for damage taken (a drop of 5% or more, at most one per half minute) is off by default, since a long fight would fill the feed.
+- Your lines carry an orange dot (your arrow's colour), a friend's their own colour. When nothing recent happened the first line names who is in game. The widget keeps one size: pick 3, 5 or 8 lines in Settings → Activity, which also has its Scale slider and the optional chime when a friend spawns in.
+
 ### Friends
 
-- The **Friends widget** (a fourth panel, docked under the Prime tracker by default) is an activity feed for the friends you have on islapandora.eu: its header says how many you have and how many are in game, and each line below reports something that just happened — a friend spawned in ("spawned as Deinosuchus 42%"), left the game, started a fresh dino of the same species, switched dino, reached a growth stage, took a fracture, came within 200 m of you, or joined or left your list. New lines arrive at the top, fade as they age, and disappear after ten minutes; when nothing recent happened the first line simply names who is in game. The widget keeps one size: pick 3, 5 or 8 lines in Settings → Friends.
-- Several friends leaving at once (a server restart) become one line, and "left the game" is worded neutrally on purpose — from outside, a logout, a restart and a death look the same.
 - On the **minimap**, friends who are in game appear as smaller arrows in their own colours. Right-click one in edit mode to **Track** them (a ring on their arrow, and the footer shows their name, distance and ETA — the same way it follows a tracked waypoint) or to drop a **Waypoint at** their position. In edit mode, hovering a friend's arrow names them in the footer.
 - **Settings → Friends** lists everyone on your friends list, in-game friends first: click the colour to change it (each friend gets a stable default colour), type a **nickname** that only you see, untick **Map** to keep a friend off the minimap or **Feed** to mute their lines, and pick **Track**. The "Last seen" column shows when the overlay last saw them in game and, on hover, as what. Your choices live in `friends.json` next to the app; adding, removing or blocking friends, and hiding your own location, are done on the website ("Manage on islapandora.eu" opens the page).
 - Privacy works the way the website's does: a friend who turned on "hide my location" is counted as in game but never drawn, and you appear to your friends exactly as you do on their live map. The overlay only ever reads the friends list; it never sends friend requests or changes any setting there.
-- Cost: while the widget is shown or the minimap draws friends, the friends list is fetched every second update while you play (every 6 seconds at the default pace) and once per idle check while you aren't spawned — less often than the website's own live map does. Hide the widget and untick "Show friends on the minimap" to send no friends requests at all. An optional chime (off by default) plays when a friend spawns in.
+- Cost: while the Activity widget is shown or the minimap draws friends, the friends list is fetched every second update while you play (every 6 seconds at the default pace) and once per idle check while you aren't spawned — less often than the website's own live map does. Hide the widget and untick "Show friends on the minimap" to send no friends requests at all.
 
 ## Configuration (`config.json`)
 
@@ -158,11 +163,13 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `HeatmapEnabled` | Overlay the server's live activity heatmap on the minimap (refreshed every minute; public image, no cookie sent). Toggled with the heatmap hotkey or the control panel's Heatmap button. Default `false`. |
 | `PrimeEnabled` / `PrimeX` / `PrimeY` | Show the Prime tracker widget, and its position (empty until first placed: left screen edge, vertically centered). |
 | `Prime` / `PrimeCooldownUntilUtc` | The last Prime check result (status, ten condition flags, time, dino) and when the server will accept the next check, kept so the widget is right after a restart. Managed by the app. |
-| `FriendsEnabled` / `FriendsX` / `FriendsY` | Show the Friends widget, and its position (empty until first placed: right under the Prime tracker). |
-| `FriendsScale` | Friends widget scale, 0.75–1.5. Slider in Settings; starts out equal to `PrimeScale`. |
-| `FriendsRows` | Feed lines the Friends widget reserves: 3, 5 or 8 (default 5). Radio buttons in Settings → Friends. |
+| `ActivityEnabled` / `ActivityX` / `ActivityY` | Show the Activity widget, and its position (empty until first placed: right under the Prime tracker). |
+| `ActivityScale` | Activity widget scale, 0.75–1.5. Slider in Settings; starts out equal to `PrimeScale`. |
+| `ActivityRows` | Feed lines the Activity widget reserves: 3, 5 or 8 (default 5). Radio buttons in Settings → Activity. |
+| `ActivityIncludeMine` | Post your own events (spawns, growth stages, low stats, fractures, Prime checks) to the feed, not only your friends'. Radio in Settings → Activity. Default `true`. |
+| `ActivityDamageLines` | Also post a line when you take damage (5% or more, at most one per half minute). Checkbox in Settings → Activity. Default `false`. |
 | `FriendsOnMinimap` | Draw in-game friends on the minimap. Checkbox in Settings → Friends. Default `true`. |
-| `FriendsChimeEnabled` | Play the Windows "Exclamation" sound when a friend spawns in. Checkbox in Settings → Friends. Default `false`. |
+| `FriendsChimeEnabled` | Play the Windows "Exclamation" sound when a friend spawns in. Checkbox in Settings → Activity. Default `false`. |
 | `TrackedFriendSteamId` | The friend the minimap follows (ring, edge indicator, footer); empty = none. Set from the map menu or Settings → Friends. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
 | `TrackedWaypointId` | The library waypoint the footer follows and the ring marks; `null` = follow the nearest visible one. Set from the map menu or Settings → Waypoints. |

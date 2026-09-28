@@ -13,28 +13,16 @@ namespace PandoraOverlay;
 /// through PollService (user-clicked only, never polled, server cooldown
 /// honored); this window just renders the last result, which is cached in
 /// config so it survives restarts, and a live cooldown countdown. The
-/// condition texts are baked in because the site bakes them into its frontend
-/// too — the API only returns flags. First show docks to the left screen
+/// condition texts (PrimeConditions) are baked in because the site bakes
+/// them into its frontend too — the API only returns flags. First show docks to the left screen
 /// edge, vertically centered; the position persists via config.
 /// </summary>
 public partial class PrimeWindow : OverlayWindowBase
 {
     private const double EdgeInset = 16; // matches SnapResolver's comfort inset
-    private const int NeededForPrime = 5;
+    private const int NeededForPrime = PrimeConditions.NeededForPrime;
 
-    private static readonly string[] ConditionTexts =
-    {
-        "Visit a Sanctuary as a juvenile",
-        "Get nested in",
-        "Get perfect diet (1% of each)",
-        "Visit Mass Migration zone",
-        "Visit 2 Migration zones",
-        "Visit 4 Patrol zones",
-        "Never be Infertile",
-        "Never get Muscle spasms",
-        "Raise children to Subadult",
-        "Be a Hypsi, Troodon, Beipi, Dryo or Deino"
-    };
+    private static readonly string[] ConditionTexts = PrimeConditions.Texts; // shared with the Activity feed's "now met / lost" lines
 
     private static readonly Brush MetIcon = new SolidColorBrush(Color.FromRgb(0x7C, 0xC8, 0x84));
     private static readonly Brush MetText = new SolidColorBrush(Color.FromRgb(0xC7, 0xD1, 0xDA));

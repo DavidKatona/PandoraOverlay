@@ -397,6 +397,7 @@
                     <Button Content="Stats panel" Tag="Stats" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Minimap" Tag="Minimap" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Prime tracker" Tag="Prime" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Activity" Tag="Activity" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Friends" Tag="Friends" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Waypoints" Tag="Waypoints" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                 </StackPanel>
@@ -661,37 +662,54 @@
             </DockPanel>
             </StackPanel>
 
+            <!-- ============================ Activity ======================= -->
+            <StackPanel Tag="Activity" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="ACTIVITY"/>
+
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="ActivityScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider x:Name="ActivityScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="ActivityScaleSlider_ValueChanged"/>
+            </DockPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Feed lines:"/>
+                <RadioButton x:Name="ActivityRows3" Style="{StaticResource Radio}" Content="3"
+                             GroupName="ActivityRows" Margin="14,0,0,0"/>
+                <RadioButton x:Name="ActivityRows5" Style="{StaticResource Radio}" Content="5"
+                             GroupName="ActivityRows" Margin="14,0,0,0"/>
+                <RadioButton x:Name="ActivityRows8" Style="{StaticResource Radio}" Content="8"
+                             GroupName="ActivityRows" Margin="14,0,0,0"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Show:"/>
+                <RadioButton x:Name="ActivityFriendsOnly" Style="{StaticResource Radio}" Content="Friends only"
+                             GroupName="ActivityWho" Margin="14,0,0,0"/>
+                <RadioButton x:Name="ActivityFriendsAndMe" Style="{StaticResource Radio}" Content="Friends and me"
+                             GroupName="ActivityWho" Margin="14,0,0,0"/>
+            </StackPanel>
+            <CheckBox x:Name="ActivityDamageCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
+                      Content="Add a line when I take damage (at most one per half minute)"/>
+            <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Chime when a friend spawns in"/>
+            <TextBlock Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
+                       Text="The feed keeps the last ten minutes: friends spawning in or leaving, fresh dinos, growth stages, fractures, a friend coming near — and, with 'Friends and me', your own spawns, stages, low hunger or thirst, fractures and Prime check results."/>
+            </StackPanel>
+
             <!-- ============================ Friends ======================== -->
-            <!-- The widget's own options, then your side of the roster: the
-                 roster itself is the site's (managed there), the nickname,
-                 colour, map and feed choices are yours and edited on a draft. -->
+            <!-- Your side of the roster: the roster itself is the site's
+                 (managed there), the nickname, colour, map and feed choices
+                 are yours and edited on a draft. -->
             <StackPanel Tag="Friends" Visibility="Hidden">
             <DockPanel Margin="0,4,0,8">
                 <TextBlock x:Name="FriendCount" DockPanel.Dock="Right"
                            Foreground="#7B8790" FontSize="11" VerticalAlignment="Center"/>
                 <TextBlock Style="{StaticResource PageTitle}" Text="FRIENDS" Margin="0"/>
             </DockPanel>
-            <DockPanel>
-                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
-                <TextBlock x:Name="FriendsScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
-                <Slider x:Name="FriendsScaleSlider" Minimum="0.75" Maximum="1.5"
-                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
-                        VerticalAlignment="Center" Margin="10,0,6,0"
-                        ValueChanged="FriendsScaleSlider_ValueChanged"/>
-            </DockPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Feed lines:"/>
-                <RadioButton x:Name="FriendRows3" Style="{StaticResource Radio}" Content="3"
-                             GroupName="FriendRows" Margin="14,0,0,0"/>
-                <RadioButton x:Name="FriendRows5" Style="{StaticResource Radio}" Content="5"
-                             GroupName="FriendRows" Margin="14,0,0,0"/>
-                <RadioButton x:Name="FriendRows8" Style="{StaticResource Radio}" Content="8"
-                             GroupName="FriendRows" Margin="14,0,0,0"/>
-            </StackPanel>
-            <CheckBox x:Name="FriendsMapCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
+            <CheckBox x:Name="FriendsMapCheck" Style="{StaticResource Check}"
                       Content="Show friends on the minimap"/>
-            <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Chime when a friend spawns in"/>
 
             <!-- The column labels; the side margins are set in code to match the card below. -->
             <Grid x:Name="FriendHeader" Margin="7,14,13,4">
