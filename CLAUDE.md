@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.23.0 is built, working, and approved by the server's
+and settings window. **v1.24.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -899,21 +899,20 @@ page, the visibility policy, named share codes; the v1.20 slots migrated
 duplicate skipping and hidden arrival, per-pack captions; source files
 grouped by feature + partial-class splits; Settings polish — own
 templates for buttons, checks, radios, text boxes and scrollbars, group
-cards with striped rows, measured header alignment — verified in-game).
-
-Built Sep 27 2026, awaiting in-game verification: **friends** (approved
-Sep 27) — friend arrows on the minimap (FriendBook colours, tracked
-friend ringed + edge-clamped + first claim on the footer, edit-mode menu
-Track / Waypoint at), the Activity widget — an activity FEED of your
-friends' events (spawned / left / fresh life / dino change / growth stage
-/ fracture / nearby / roster changes) and, by default, your own (spawned
-/ fresh life / growth stage / low stat / fracture / Prime check diff;
-damage opt-in), fixed 3/5/8 lines, age fade, 10 min expiry — a Settings
-Activity page and a Friends page (nickname, colour, map, feed, track per
-friend; manage on the site), `friends.json`, the roster on every 2nd
-in-game poll. Sep 28: the widget went from friends-only to the general
-feed before release (owner: two friends left it empty), renamed while
-its config keys were still free.
+cards with striped rows, measured header alignment — verified in-game),
+v1.24.0 (Sep 28 — friends, approved Sep 27: friend arrows on the minimap
+in FriendBook colours, the tracked friend ringed + edge-clamped + first
+claim on the footer, edit-mode menu Track / Waypoint at; the Activity
+widget — a FEED of your own events (spawned / fresh life / growth stage /
+low stat / fracture / Prime check diff; damage opt-in) with your friends'
+as the default-on extra (spawned / left / fresh life / dino change /
+growth stage / fracture / nearby / roster changes), fixed 3/5/8 lines,
+age fade, 10 min expiry; a Settings Activity page and a Friends page
+(nickname, colour, map, feed, track per friend; manage on the site);
+`friends.json`; the roster on every 2nd in-game poll, only while a friends
+surface is on. Built as a friends-only widget Sep 27, turned into the
+general feed Sep 28 before release because two friends left it empty,
+renamed while its config keys were still free — verified in-game).
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
@@ -981,7 +980,7 @@ re-propose.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.23.0.
+  minor, fixes bump patch. Current: 1.24.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
