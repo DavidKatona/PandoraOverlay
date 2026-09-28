@@ -223,8 +223,9 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Show the Activity widget (toggled from the control panel). On by
-    /// default like the Prime tracker; unlike it, a shown widget costs a
-    /// friends request every second in-game poll (see PollService).
+    /// default like the Prime tracker; unlike it, a shown widget with
+    /// friends' events included costs a friends request every second
+    /// in-game poll (see PollService).
     /// </summary>
     public bool ActivityEnabled { get; set; } = true;
 
@@ -249,11 +250,13 @@ public sealed class OverlayConfig
     public int ActivityRows { get; set; } = 5;
 
     /// <summary>
-    /// Post your own events (spawned, fresh life, growth stage, low stat,
-    /// fracture, Prime check) to the feed alongside your friends'. Radio on
-    /// the Activity page; off = friends only.
+    /// Post your friends' events (spawned, left, fresh life, dino change,
+    /// growth stage, fracture, nearby, roster changes) to the feed beside
+    /// your own, which are always on — the feed is yours, friends are the
+    /// extra. Checkbox on the Activity page. Untick this AND the minimap's
+    /// friend arrows to send no friends requests at all (see PollService).
     /// </summary>
-    public bool ActivityIncludeMine { get; set; } = true;
+    public bool ActivityIncludeFriends { get; set; } = true;
 
     /// <summary>
     /// Also post "Took damage · HP 62%" lines (a drop of 5% or more, at most
@@ -263,8 +266,8 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Draw in-game friends as small arrows on the minimap. Checkbox on the
-    /// Friends page. Untick this AND hide the Activity widget to send no
-    /// friends requests at all.
+    /// Friends page. Untick this AND the feed's friends' events (or hide
+    /// the Activity widget) to send no friends requests at all.
     /// </summary>
     public bool FriendsOnMinimap { get; set; } = true;
 

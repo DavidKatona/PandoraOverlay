@@ -17,15 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   they stand.
 - The Activity widget, a fourth panel docked under the Prime tracker: a
   feed of the last ten minutes, newest at the top, fading with age. Your
-  friends' events — spawned in, left the game, started a fresh dino,
-  switched dino, reached a growth stage, took a fracture, came within
-  200 m, joined or left your list — and your own: spawned in or started a
-  fresh dino, reached a growth stage, hunger or thirst under 20% (with the
-  time left), a fracture, and each Prime check as what changed. Damage
-  taken is an optional extra line (off by default). Its header shows how
-  many friends you have and how many are in game; with nothing recent the
-  first line names who is on. Fixed at 3, 5 or 8 lines (Settings →
-  Activity), so it never changes size.
+  own events — spawned in or started a fresh dino, reached a growth stage,
+  hunger or thirst under 20% (with the time left), a fracture, and each
+  Prime check as what changed — and, included by default, your friends':
+  spawned in, left the game, started a fresh dino, switched dino, reached
+  a growth stage, took a fracture, came within 200 m, joined or left your
+  list. Damage taken is an optional extra line (off by default). With
+  friends included the header shows how many friends you have and how
+  many are in game, and with nothing recent the first line names who is
+  on. Fixed at 3, 5 or 8 lines (Settings → Activity), so it never changes
+  size.
 - Settings → Friends: every friend on your list with a stable colour you
   can change, a nickname only you see, Map and Feed switches per friend,
   Track, and when the overlay last saw them in game. Kept in

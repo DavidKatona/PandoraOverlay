@@ -90,7 +90,7 @@ public partial class MainWindow : OverlayWindowBase
         {
             if (result.Outcome == PrimeCheckOutcome.Ok && result.Snapshot is { } fresh)
             {
-                PostMine(SelfActivity.PrimeLines(_primeBefore, fresh, DateTime.UtcNow));
+                _log.Post(SelfActivity.PrimeLines(_primeBefore, fresh, DateTime.UtcNow));
             }
         };
 
@@ -264,8 +264,11 @@ public partial class MainWindow : OverlayWindowBase
     /// <summary>
     /// The friends roster, right after your own snapshot: the book mirrors it
     /// first (so new friends have their colour and name on first sight), then
-    /// the feed diffs it and its lines go to the log. Null = cleared: the
-    /// feed forgets its baseline so the roster's return seeds again.
+    /// the feed diffs it. Its lines go to the log while friends' events are
+    /// included (the roster may still arrive for the minimap's arrows; the
+    /// diff runs regardless so the baseline is right when they are switched
+    /// back on). Null = cleared: the feed forgets its baseline so the
+    /// roster's return seeds again.
     /// </summary>
     private void OnFriendsRoster(IReadOnlyList<FriendState>? roster)
     {
@@ -277,28 +280,17 @@ public partial class MainWindow : OverlayWindowBase
         var now = DateTime.UtcNow;
         _book.Sync(roster, now);
         var fresh = _feed.Update(roster, _me, (id, site) => _book.DisplayName(id, site), _book.Notifies, now);
-        _log.Post(fresh);
+        if (_config.ActivityIncludeFriends) _log.Post(fresh);
         // The friend-spawn chime is decided here, like the stats chimes, so it
         // plays whether or not the Activity widget is on screen.
         if (_config.FriendsChimeEnabled && fresh.Any(l => l.Kind is FeedKind.Spawned or FeedKind.NewLife)) Chime();
-    }
-
-    /// <summary>Your own events go to the log only when the feed is set to include them.</summary>
-    private void PostMine(IReadOnlyList<FeedLine> lines)
-    {
-        if (_config.ActivityIncludeMine) _log.Post(lines);
-    }
-
-    private void PostMine(FeedLine line)
-    {
-        if (_config.ActivityIncludeMine) _log.Post(line);
     }
 
     private void OnSnapshot(MyLocationResponse result)
     {
         _me = result.InGame ? result.Player : null;
         UpdateUi(result);
-        PostMine(_self.Update(result, _config.ActivityDamageLines, DateTime.UtcNow));
+        _log.Post(_self.Update(result, _config.ActivityDamageLines, DateTime.UtcNow));
         UpdateAutoHide(result.InGame && result.Player is not null);
         _tray.SetStatus(result.InGame && result.Player is { } p
             ? $"Pandora Overlay — {p.Dino} · HP {p.Health * 100:0}% · Growth {p.Growth * 100:0.#}%"
@@ -386,13 +378,13 @@ public partial class MainWindow : OverlayWindowBase
             PulseBriefly(GrowthText, HeaderPulse); // a stage reached is always worth a blink
             _attention.NoteEvent();
             if (_config.GrowthChimeEnabled) Chime();
-            PostMine(SelfActivity.GrowthLine(stage, now));
+            _log.Post(SelfActivity.GrowthLine(stage, now));
         }
         if (_lowStat.Update(p))
         {
             if (_config.LowStatChimeEnabled) Chime();
-            if (_lowStat.HungerFired) PostMine(SelfActivity.LowStatLine("Hunger", _hungerDrain.Label, now));
-            if (_lowStat.ThirstFired) PostMine(SelfActivity.LowStatLine("Thirst", _thirstDrain.Label, now));
+            if (_lowStat.HungerFired) _log.Post(SelfActivity.LowStatLine("Hunger", _hungerDrain.Label, now));
+            if (_lowStat.ThirstFired) _log.Post(SelfActivity.LowStatLine("Thirst", _thirstDrain.Label, now));
         }
 
         SetAttention(_attention.Update(p, _hungerDrain.TimeLeft, _thirstDrain.TimeLeft));

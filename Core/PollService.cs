@@ -204,8 +204,9 @@ public sealed class PollService : IDisposable
 
     // ---- Friends ---------------------------------------------------------------
 
-    /// <summary>A friends surface is on screen: the Activity widget, or the minimap with its friend arrows.</summary>
-    private bool FriendsWanted => _config.ActivityEnabled || (_config.MinimapEnabled && _config.FriendsOnMinimap);
+    /// <summary>A friends surface is on screen: the Activity widget with friends' events included, or the minimap with its friend arrows.</summary>
+    private bool FriendsWanted =>
+        (_config.ActivityEnabled && _config.ActivityIncludeFriends) || (_config.MinimapEnabled && _config.FriendsOnMinimap);
 
     /// <summary>The cadence rule, pure for the tests: every idle poll, else every Nth.</summary>
     internal static bool FriendsDue(int pollsSinceFriends, bool idling, bool hotTrigger) =>

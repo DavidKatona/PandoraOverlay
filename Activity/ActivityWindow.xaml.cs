@@ -8,12 +8,13 @@ using System.Windows.Threading;
 namespace PandoraOverlay;
 
 /// <summary>
-/// The Activity widget: a header with how many friends you have and how many
-/// are in game, over a fixed number of one-line slots showing the last ten
-/// minutes of the ActivityLog — your friends' events (FriendFeed: spawned,
-/// left, changed dino, reached a stage, took a fracture, came near) and
-/// your own (SelfActivity: spawned, fresh life, stage, low stat, fracture,
-/// Prime check, damage), newest at the top, fading with age. Every other
+/// The Activity widget: a header (plus, with friends' events included, how
+/// many friends you have and how many are in game) over a fixed number of
+/// one-line slots showing the last ten minutes of the ActivityLog — your
+/// own events (SelfActivity: spawned, fresh life, stage, low stat,
+/// fracture, Prime check, damage), always, and your friends' (FriendFeed:
+/// spawned, left, changed dino, reached a stage, took a fracture, came
+/// near) as the extra, newest at the top, fading with age. Every other
 /// cue on the overlay is momentary; this is the one you can read late. With
 /// no recent lines the first slot names who is in game, so it is never
 /// blank. A pure renderer: MainWindow owns the log and the feed, posts
@@ -174,7 +175,9 @@ public partial class ActivityWindow : OverlayWindowBase
         var now = DateTime.UtcNow;
         _log.Expire(now); // a window shown after a long hide must not display lines that should be gone
 
-        CountText.Text = !_feed.HasRoster ? "—"
+        // The friends count is part of the friends extra: without it the header is just the title.
+        CountText.Text = !_config.ActivityIncludeFriends ? ""
+            : !_feed.HasRoster ? "—"
             : _feed.Total == 0 ? "no friends yet"
             : $"{_feed.InGame} of {_feed.Total} friends in game";
 
@@ -206,6 +209,7 @@ public partial class ActivityWindow : OverlayWindowBase
     /// <summary>What the first slot says when nothing recent happened: who is on, or why nothing shows.</summary>
     private string QuietLine()
     {
+        if (!_config.ActivityIncludeFriends) return "no recent activity";
         if (_feed.HasRoster && _poll.Friends is null) return "friends unavailable · retrying";
         if (!_feed.HasRoster) return "waiting for the friends list…";
         if (_feed.Total == 0) return "no recent activity";

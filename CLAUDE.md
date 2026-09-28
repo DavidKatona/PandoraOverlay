@@ -205,8 +205,9 @@ Every overlay window derives from `OverlayWindowBase`.
   inside the same busy guard, and fetches the roster when the pure, tested
   `FriendsDue(pollsSinceFriends, idling, hotTrigger)` says so — every
   `FriendsEveryNthPoll` (2) live polls, every idle poll, or once after a
-  hot trigger; gated on `FriendsWanted` (`ActivityEnabled`, or
-  `MinimapEnabled && FriendsOnMinimap`). Raises
+  hot trigger; gated on `FriendsWanted` (`ActivityEnabled &&
+  ActivityIncludeFriends`, or `MinimapEnabled && FriendsOnMinimap` — a
+  solo player with both off sends no friends requests at all). Raises
   `FriendsChanged(IReadOnlyList<FriendState>?)` AFTER `SnapshotReceived`
   (consumers know your position first) with YOU filtered out by steamId;
   `Friends` keeps the last roster so a window created mid-session renders
@@ -366,7 +367,9 @@ Every overlay window derives from `OverlayWindowBase`.
   and chime they already had, `OnFriendsRoster` also plays the opt-in
   friend-spawn chime, and `PrimeChecked` posts the Prime diff
   against `_primeBefore` snapshotted on `PrimeCheckStarted`; every own
-  line goes through `PostMine`, which honours `ActivityIncludeMine`), and
+  line is always posted — the feed is yours; friend lines are posted
+  only while `ActivityIncludeFriends` is on, the diff running regardless
+  so the baseline is right when they are switched back on), and
   the minimap + prime + activity windows' lifetimes (all follow edit mode
   and hide-all; `CheckPrime` un-hides and shows the prime widget first,
   then fires the one user-triggered check; `ShowActivity` runs after
@@ -671,7 +674,8 @@ Every overlay window derives from `OverlayWindowBase`.
   last-ten-minutes; waypoint edits, heatmap toggles and connection blips
   are deliberately NOT posted (chores, not gameplay).
 - **ActivityWindow.xaml(.cs)** — the fourth widget: header ("Activity" +
-  "3 of 7 friends in game", "—" until the first roster) over
+  "3 of 7 friends in game", "—" until the first roster, blank with
+  friends' events off — the counts are part of the friends extra) over
   `ActivityRows` (3–8, default 5) fixed 16 px one-line slots, 250 px wide
   like the Prime tracker — one size in every state; a pure renderer of
   MainWindow's ActivityLog: newest at the top, an orange ● (your arrow's
@@ -680,8 +684,9 @@ Every overlay window derives from `OverlayWindowBase`.
   `Render` expires first (a window re-shown after a long hide must not
   show dead lines) and a 20 s timer re-renders while lines exist. Slot 0
   with no lines = the quiet line: "In game: a, b", "no friends in game
-  right now", "no recent activity", "waiting for the friends list…" or
-  "friends unavailable · retrying" (roster cleared). Owner's design (Sep
+  right now", "waiting for the friends list…" or "friends unavailable ·
+  retrying" (roster cleared) — or just "no recent activity" with friends'
+  events off or no friends. Owner's design (Sep
   27 2026): a feed, NOT a row-per-friend list — rows would resize with
   the roster, and the arrows already say who is where; the tracked
   friend's stats live nowhere on the overlay (a footer stats line was
@@ -736,9 +741,12 @@ Every overlay window derives from `OverlayWindowBase`.
   slider and its own options; a new widget adds a nav entry + page.
   Activity page (Sep 28 2026, in the main file like Prime's): Scale,
   "Feed lines" radios 3/5/8 (`ActivityRows` — the ONLY thing that ever
-  resizes the widget, and it happens in a dialog), "Show: Friends only /
-  Friends and me" (`ActivityIncludeMine`) and the damage-lines checkbox
-  (`ActivityDamageLines`, read live); rows or the Show choice set
+  resizes the widget, and it happens in a dialog), "Include friends'
+  events" (`ActivityIncludeFriends` — own events are ALWAYS on: the feed
+  is yours, friends are the extra; a "Friends only / Friends and me"
+  radio pair was shipped for a day and replaced Sep 28 2026 as a leftover
+  of the friends-first origin) and the damage-lines checkbox
+  (`ActivityDamageLines`, read live); rows or the friends checkbox set
   `ActivityChanged`. Friends page (`SettingsWindow.Friends.cs`, Sep 27
   2026): "Show friends on the minimap" (`FriendsOnMinimap`), the
   friend-spawn chime (`FriendsChimeEnabled`, read live by MainWindow),

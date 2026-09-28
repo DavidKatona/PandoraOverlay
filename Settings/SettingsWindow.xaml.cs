@@ -153,7 +153,7 @@ public partial class SettingsWindow : Window
         ActivityScaleSlider.Value = Math.Clamp(config.ActivityScale ?? config.PrimeScale ?? config.UiScale, ActivityScaleSlider.Minimum, ActivityScaleSlider.Maximum);
         var rowsRadio = config.ActivityRows switch { <= 3 => ActivityRows3, <= 5 => ActivityRows5, _ => ActivityRows8 };
         rowsRadio.IsChecked = true;
-        (config.ActivityIncludeMine ? ActivityFriendsAndMe : ActivityFriendsOnly).IsChecked = true;
+        ActivityFriendsCheck.IsChecked = config.ActivityIncludeFriends;
         ActivityDamageCheck.IsChecked = config.ActivityDamageLines;
 
         // Friends
@@ -481,13 +481,13 @@ public partial class SettingsWindow : Window
         }
 
         var activityRows = ActivityRows3.IsChecked == true ? 3 : ActivityRows8.IsChecked == true ? 8 : 5;
-        var includeMine = ActivityFriendsAndMe.IsChecked == true;
+        var includeFriends = ActivityFriendsCheck.IsChecked == true;
         _config.ActivityDamageLines = ActivityDamageCheck.IsChecked == true; // read live by MainWindow, no flag needed
         _config.FriendsChimeEnabled = FriendsChimeCheck.IsChecked == true;  // likewise
-        if (activityRows != _config.ActivityRows || includeMine != _config.ActivityIncludeMine)
+        if (activityRows != _config.ActivityRows || includeFriends != _config.ActivityIncludeFriends)
         {
             _config.ActivityRows = activityRows;
-            _config.ActivityIncludeMine = includeMine;
+            _config.ActivityIncludeFriends = includeFriends;
             ActivityChanged = true;
         }
 
