@@ -103,8 +103,13 @@ public partial class MinimapWindow : OverlayWindowBase
         _centered = string.Equals(config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
         _zoom = Math.Clamp(config.MinimapZoom, MinZoom, MaxZoom);
 
-        Left = config.MinimapX;
-        Top = config.MinimapY;
+        // MainWindow fills a missing position from the default layout before
+        // creating this window (top-right corner); a null here is a hand-edited config.
+        if (config.MinimapX is { } x && config.MinimapY is { } y)
+        {
+            Left = x;
+            Top = y;
+        }
         MapHost.Width = MapHost.Height = MapSize;
         ApplyAppearance(config);
 

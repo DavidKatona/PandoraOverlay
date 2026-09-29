@@ -73,6 +73,23 @@ public partial class SettingsWindow : Window
     /// <summary>True after Save when the Activity widget's feed choices differ.</summary>
     public bool ActivityChanged { get; private set; }
 
+    /// <summary>True after Save when the user pressed Reset positions (MainWindow re-places every widget; sizes untouched).</summary>
+    public bool PositionsReset { get; private set; }
+
+    private bool _resetPositionsArmed;
+
+    /// <summary>
+    /// Arms a positions reset that Save applies — nothing in this dialog acts
+    /// before Save, and Cancel drops it like everything else. Positions only:
+    /// scales are readability preferences with a slider each.
+    /// </summary>
+    private void ResetPositions_Click(object sender, RoutedEventArgs e)
+    {
+        _resetPositionsArmed = true;
+        ResetPositionsButton.Content = "Resets on Save";
+        ResetPositionsButton.IsEnabled = false;
+    }
+
     public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, IReadOnlyList<FriendState>? roster)
     {
         InitializeComponent();
@@ -495,6 +512,8 @@ public partial class SettingsWindow : Window
             if (_friendsDirty) _book.ApplyPrefs(_friendDraft); // raises Changed: the minimap redraws, MainWindow saves the file
             FriendsChanged = true;
         }
+
+        PositionsReset = _resetPositionsArmed;
 
         _config.Save();
         DialogResult = true;

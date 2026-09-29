@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A default layout for fresh installs: the Prime tracker in the top-left
+  corner with the Activity feed under it, the minimap in the top-right
+  corner with the stats panel under it. Existing layouts are untouched.
+- Settings → General → **Reset positions** puts every panel back in that
+  layout (applied on Save). Sizes are not changed.
+
 ### Changed
 
 - Every widget now sits on one of two fixed frames, all the same width:

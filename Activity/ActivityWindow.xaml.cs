@@ -21,8 +21,8 @@ namespace PandoraOverlay;
 /// blank. A pure renderer: MainWindow owns the log and the feed, posts
 /// into them and plays the chimes, so the history — and the friend-spawn
 /// chime — survive the widget being hidden. Display-only
-/// and click-through when locked. First show docks under the Prime tracker
-/// (left column); the position persists via config.
+/// and click-through when locked. Its first position comes from the default
+/// layout (under the Prime tracker, left column) and persists via config.
 /// </summary>
 public partial class ActivityWindow : OverlayWindowBase
 {
@@ -56,7 +56,7 @@ public partial class ActivityWindow : OverlayWindowBase
     private readonly DispatcherTimer _attentionTimer; // one-shot: lets a woken widget fade again
     private readonly List<TextBlock> _slots = new();
 
-    public ActivityWindow(OverlayConfig config, PollService poll, FriendBook book, FriendFeed feed, ActivityLog log, Point? suggested)
+    public ActivityWindow(OverlayConfig config, PollService poll, FriendBook book, FriendFeed feed, ActivityLog log)
     {
         InitializeComponent();
 
@@ -68,15 +68,12 @@ public partial class ActivityWindow : OverlayWindowBase
         ApplyAppearance(config);
         BuildSlots();
 
+        // MainWindow fills a missing position from the default layout before
+        // creating this window; the fallback only guards a hand-edited config.
         if (config.ActivityX is { } x && config.ActivityY is { } y)
         {
             Left = x;
             Top = y;
-        }
-        else if (suggested is { } s)
-        {
-            Left = s.X;
-            Top = s.Y; // Loaded's ClampIntoScreen pulls it back if the column runs off the bottom
         }
         else
         {

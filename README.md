@@ -63,6 +63,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Basics
 
 - The overlay starts **locked**: click-through, no focus stealing, invisible to Alt-Tab.
+- On a fresh install the panels come up in **two columns**: the Prime tracker in the top-left corner with the Activity feed under it, the minimap in the top-right corner with the stats panel under it. The minimap and Prime tracker are the same size, as are the stats panel and Activity feed, so the columns match. Drag anything anywhere afterwards; **Reset positions** in Settings → General puts them all back (sizes stay as you set them).
 - The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with its buttons in one row, grouped by widget: **Settings**, then **Stats** (Show/hide), **Minimap** (Show/hide, Map view, Heatmap), **Prime** (Show/hide, Check) and **Activity** (Show/hide), and finally **Lock** and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
 
   ![The edit-mode control panel: Settings, then the Stats, Minimap and Prime button groups under small captions, Lock and Exit, and the hint line underneath](docs/control-panel.png)
@@ -75,7 +76,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, and finally Friends and Waypoints.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, and finally Friends and Waypoints.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -150,12 +151,12 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `CookieProtected` | DPAPI-encrypted session cookie (base64). Managed by the app — don't edit, and it's useless off this machine/account. |
 | `UserAgent` | Sent with every request; keep it matching your real browser. |
 | `PollIntervalSeconds` | Default 3. Don't go below 2 — the site's own page polls at this pace and the API is rate-limited (300/window). This is the in-game pace; while you aren't spawned (or the connection keeps failing) the overlay slows itself to 15 s, then 60 s. |
-| `WindowX` / `WindowY` | Saved panel position. |
+| `WindowX` / `WindowY` | Saved stats panel position (empty until first placed: under the minimap in the default layout). |
 | `Hotkey` / `HotkeyHideAll` / `HotkeyMinimapView` / `HotkeyHeatmap` / `HotkeyPrimeCheck` | The five global hotkeys (edit mode `Ctrl+F7`, hide/show overlay `Ctrl+F4`, minimap view toggle `Ctrl+F5`, heatmap toggle `Ctrl+F6`, Check Prime `Ctrl+F8`); modifiers + one key. All rebindable in Settings. |
 | `StatsEnabled` | Show the stats panel (toggled from the control panel). |
 | `HideWhenNotInGame` | Hide every widget after ~30 s of not being spawned in, and show them again on the first in-game update. Checkbox in Settings. Default `false`. |
 | `MinimapEnabled` | Show the minimap window (toggled from the control panel). |
-| `MinimapX` / `MinimapY` | Minimap position. |
+| `MinimapX` / `MinimapY` | Minimap position (empty until first placed: top-right corner in the default layout). |
 | `MinimapScale` | Minimap scale, 0.75–1.5 (default 1 = a 284 px map). Slider in Settings → Minimap. Replaces the old pixel `MinimapSize`, which is converted once on first launch and then ignored. |
 | `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). Map view button / Ctrl+F5 toggles it. |
 | `MinimapZoom` | Centered-view magnification, clamped to 1.25–6 (default 5). Mouse wheel in edit mode adjusts it. |
@@ -164,9 +165,9 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `MinimapScaleBarEnabled` | Show the scale bar in the minimap's bottom-left corner. Checkbox in Settings. Default `true`. |
 | `MinimapSpeedEnabled` | Show the heading + speed pill in the minimap's bottom-right corner. Checkbox in Settings. Default `true`. |
 | `HeatmapEnabled` | Overlay the server's live activity heatmap on the minimap (refreshed every minute; public image, no cookie sent). Toggled with the heatmap hotkey or the control panel's Heatmap button. Default `false`. |
-| `PrimeEnabled` / `PrimeX` / `PrimeY` | Show the Prime tracker widget, and its position (empty until first placed: left screen edge, vertically centered). |
+| `PrimeEnabled` / `PrimeX` / `PrimeY` | Show the Prime tracker widget, and its position (empty until first placed: top-left corner in the default layout). |
 | `Prime` / `PrimeCooldownUntilUtc` | The last Prime check result (status, ten condition flags, time, dino) and when the server will accept the next check, kept so the widget is right after a restart. Managed by the app. |
-| `ActivityEnabled` / `ActivityX` / `ActivityY` | Show the Activity widget, and its position (empty until first placed: right under the Prime tracker). |
+| `ActivityEnabled` / `ActivityX` / `ActivityY` | Show the Activity widget, and its position (empty until first placed: under the Prime tracker in the default layout). |
 | `ActivityScale` | Activity widget scale, 0.75–1.5. Slider in Settings; starts out equal to `PrimeScale`. |
 | `ActivityIncludeFriends` | Post your friends' events to the feed beside your own (which are always on), and fetch the friends list for it while the widget is shown. Checkbox in Settings → Activity. Default `true`. |
 | `ActivityDamageLines` | Also post a line when you take damage (5% or more, at most one per half minute). Checkbox in Settings → Activity. Default `false`. |

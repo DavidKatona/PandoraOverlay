@@ -16,8 +16,9 @@ namespace PandoraOverlay;
 /// condition texts (PrimeConditions) are baked in because the site bakes
 /// them into its frontend too — the API only returns flags. Built on the
 /// LARGE frame (WidgetFrame) it shares with the minimap: the rows spread to
-/// fill it. First show docks to the left screen edge, vertically centered;
-/// the position persists via config.
+/// fill it. Its first position comes from the default layout (top-left
+/// corner; MainWindow fills it in before creating the window) and persists
+/// via config; the left-edge-centred fallback only guards a hand-edited one.
 /// </summary>
 public partial class PrimeWindow : OverlayWindowBase
 {

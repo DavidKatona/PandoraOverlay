@@ -524,6 +524,13 @@
                         IsEnabled="{Binding IsChecked, ElementName=FadeCheck}"
                         ValueChanged="FadeSlider_ValueChanged"/>
             </DockPanel>
+            <!-- Positions only: sizes are readability preferences with a slider each. -->
+            <DockPanel Margin="0,14,0,0">
+                <Button x:Name="ResetPositionsButton" DockPanel.Dock="Left" Content="Reset positions" Click="ResetPositions_Click"
+                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
+                <TextBlock Text="Puts every panel back in the default layout: Prime tracker and Activity feed top-left, minimap and stats panel top-right, control panel bottom-centre. Sizes stay as they are."
+                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </DockPanel>
             </StackPanel>
 
             <!-- ============================ Stats panel ==================== -->

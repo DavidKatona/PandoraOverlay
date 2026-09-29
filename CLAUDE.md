@@ -271,8 +271,19 @@ Every overlay window derives from `OverlayWindowBase`.
   `Inset` with Activity `Gap` 8 below; minimap top-right with the stats
   panel below, right edges aligned; sizes passed in are the windows'
   ACTUAL (scaled) sizes. Written preset-shaped so a second layout is one
-  more method (owner, Sep 29 2026: no presets yet). Wiring (nullable
-  positions, first-show placement, Reset positions) is phase 2 of 1.25.
+  more method (owner, Sep 29 2026: no presets yet). Wired through
+  `MainWindow.FillDefaultPositions`: at startup, BEFORE the other windows
+  are created, every null position (`WindowX/Y`, `MinimapX/Y`, `PrimeX/Y`,
+  `ActivityX/Y` — all nullable since v1.25; configs from before hold
+  numbers and are left alone) is filled INTO config from the frames × each
+  widget's scale, not from live windows, so a hidden widget leaves its
+  gap and the arrangement is the same whichever widgets are shown; the
+  windows then read config as always (their old first-show fallbacks
+  only guard a hand-edited config). `ResetPositions` (Settings → General
+  → "Reset positions", armed in the dialog and applied on Save like
+  everything else) nulls all six positions, refills them and moves the
+  live windows; the control panel goes back to bottom-centre
+  (`PlaceDefault`). Positions ONLY, never scales.
 - **SnapResolver.cs** — pure, tested snapping math: screen edges + 16px
   inset + peer edges, 12px threshold (threshold < inset on purpose, so the
   two magnets read as distinct stops), axes independent; leading- and
@@ -852,7 +863,8 @@ Every overlay window derives from `OverlayWindowBase`.
   with fallback / minimap ApplySettings / ApplyAppearance)
   — no restart, ever. General = Start with Windows, the not-in-game
   auto-hide checkbox (no flag: MainWindow reads it live), background
-  opacity (30–100%) and the fade row (20–80%); Stats panel = scale
+  opacity (30–100%), the fade row (20–80%) and "Reset positions" (v1.25:
+  arms `PositionsReset`, applied on Save — positions only); Stats panel = scale
   (75–150%), the hunger/thirst time-left checkbox and the two chime
   checkboxes (low stat / growth stages — no flag, MainWindow reads them
   live); Prime tracker = scale.
@@ -957,17 +969,18 @@ surface is on. Built as a friends-only widget Sep 27, turned into the
 general feed Sep 28 before release because two friends left it empty,
 renamed while its config keys were still free — verified in-game).
 
-IN PROGRESS (Sep 29 2026): **v1.25.0, the UI/layout release** — phase 1
-built: the two fixed frames (WidgetFrame; Prime = minimap, Activity =
-stats), the permanent fracture row, `MinimapScale` in percent with the
-pixel-size migration, the Activity rows setting dropped, and the pure
-`DefaultLayout` helper (preset-shaped, one "Columns" preset). Phase 2:
-nullable `WindowX/Y` + `MinimapX/Y`, first-show placement through
-DefaultLayout, a "Reset positions" button (positions ONLY — scales are
-readability preferences with a slider each) on Settings → General. No
-layout presets beyond the default for now. Then docs, CHANGELOG (the
-one-time resize in one paragraph), a Discord announcement for 1.24 + 1.25
-together; README screenshots after it lands.
+IN PROGRESS (Sep 29 2026): **v1.25.0, the UI/layout release** — built,
+awaiting in-game verification: the two fixed frames (WidgetFrame; Prime =
+minimap, Activity = stats), the permanent fracture row, `MinimapScale` in
+percent with the pixel-size migration, the Activity rows setting dropped
+(phase 1, sizes verified in-game); nullable `WindowX/Y` + `MinimapX/Y`,
+first-show placement through the pure `DefaultLayout` (one "Columns"
+preset, preset-shaped for later) via `FillDefaultPositions`, and the
+"Reset positions" button (positions ONLY — scales are readability
+preferences with a slider each) on Settings → General (phase 2). No
+layout presets beyond the default for now. Then the release pass on the
+owner's word, a Discord announcement for 1.24 + 1.25 together, and README
+screenshots after it lands.
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,

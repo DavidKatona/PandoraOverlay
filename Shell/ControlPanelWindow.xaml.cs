@@ -60,6 +60,9 @@ public partial class ControlPanelWindow : OverlayWindowBase
         }
     }
 
+    /// <summary>Bottom-centre of the current screen — the first-show spot, and where Reset positions puts it back.</summary>
+    public void PlaceDefault() => PlaceBottomCenter();
+
     private void PlaceBottomCenter()
     {
         var bounds = GetScreenBoundsDips();

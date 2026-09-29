@@ -124,12 +124,7 @@ public partial class MainWindow
     {
         if (_activity is null)
         {
-            // First placement: right under the Prime tracker, so the left
-            // column reads top to bottom; the window clamps itself on screen.
-            Point? suggested = _prime is { IsVisible: true } p
-                ? new Point(p.Left, p.Top + p.ActualHeight + 8)
-                : null;
-            _activity = new ActivityWindow(_config, _poll, _book, _feed, _log, suggested);
+            _activity = new ActivityWindow(_config, _poll, _book, _feed, _log);
             _activity.Closed += (_, _) => _activity = null;
             _activity.Show();
         }

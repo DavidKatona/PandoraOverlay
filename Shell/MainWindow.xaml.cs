@@ -77,8 +77,11 @@ public partial class MainWindow : OverlayWindowBase
         _library.Changed += () => _library.Save(); // user content: saved on every change, not just on exit
         _book = FriendBook.Load();
         _book.Changed += () => _book.Save(); // membership + preferences; the per-fetch last-seen facts are flushed on exit
-        Left = _config.WindowX;
-        Top = _config.WindowY;
+        if (_config.WindowX is { } wx && _config.WindowY is { } wy)
+        {
+            Left = wx;
+            Top = wy;
+        }
         _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
         _hotkeyHide = HotkeySpec.TryParse(_config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F4);
         _hotkeyView = HotkeySpec.TryParse(_config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F5);
@@ -111,10 +114,11 @@ public partial class MainWindow : OverlayWindowBase
         Loaded += (_, _) =>
         {
             _ = CheckForUpdateAsync();
+            FillDefaultPositions(); // before the other windows exist: they read their positions from config
             if (!_config.StatsEnabled) Hide();
             if (_config.MinimapEnabled) ShowMinimap();
             if (_config.PrimeEnabled) ShowPrime();
-            if (_config.ActivityEnabled) ShowActivity(); // after Prime: its first placement docks under it
+            if (_config.ActivityEnabled) ShowActivity();
 
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
             {
@@ -178,6 +182,7 @@ public partial class MainWindow : OverlayWindowBase
             }
             if (dialog.AppearanceChanged || dialog.ActivityChanged || dialog.FriendsChanged) _activity?.ApplySettingsFromConfig();
             if (dialog.FriendsChanged) _ = _poll.RefreshFriendsAsync(); // the minimap layer may have been switched on or off
+            if (dialog.PositionsReset) ResetPositions();
             if (_autoHidden && !_config.HideWhenNotInGame) RevealAutoHidden(); // switched off while hidden by it
         }
         finally
@@ -227,6 +232,64 @@ public partial class MainWindow : OverlayWindowBase
 
     /// <summary>The stats panel takes part in the attention fade; its verdict comes from StatsAttention.</summary>
     protected override bool Fades => true;
+
+    // ---- Default layout -------------------------------------------------------
+
+    /// <summary>
+    /// Gives every widget without a saved position its place in the
+    /// two-column default layout (DefaultLayout.Columns), computed from the
+    /// frames × each widget's scale — not from live windows, so a hidden
+    /// widget leaves its gap and the arrangement is the same whichever
+    /// widgets are shown. Writes the positions INTO config; the windows read
+    /// them as usual. Runs once at startup and after Reset positions.
+    /// </summary>
+    private void FillDefaultPositions()
+    {
+        var screen = GetScreenBoundsDips();
+        var p = DefaultLayout.Columns(screen,
+            prime: Frame(WidgetFrame.LargeHeight, _config.PrimeScale ?? _config.UiScale),
+            activity: Frame(WidgetFrame.SmallHeight, _config.ActivityScale ?? _config.PrimeScale ?? _config.UiScale),
+            minimap: Frame(WidgetFrame.LargeHeight, _config.MinimapScale ?? 1.0),
+            stats: Frame(WidgetFrame.SmallHeight, _config.UiScale));
+
+        if (_config.WindowX is null || _config.WindowY is null)
+        {
+            (_config.WindowX, _config.WindowY) = (p.Stats.X, p.Stats.Y);
+            Left = p.Stats.X;
+            Top = p.Stats.Y;
+        }
+        if (_config.MinimapX is null || _config.MinimapY is null) (_config.MinimapX, _config.MinimapY) = (p.Minimap.X, p.Minimap.Y);
+        if (_config.PrimeX is null || _config.PrimeY is null) (_config.PrimeX, _config.PrimeY) = (p.Prime.X, p.Prime.Y);
+        if (_config.ActivityX is null || _config.ActivityY is null) (_config.ActivityX, _config.ActivityY) = (p.Activity.X, p.Activity.Y);
+    }
+
+    private static Size Frame(double height, double scale)
+    {
+        var s = Math.Clamp(scale, 0.75, 1.5); // the same clamp ApplyAppearance uses
+        return new Size(WidgetFrame.Width * s, height * s);
+    }
+
+    /// <summary>
+    /// Settings → General → Reset positions: every widget back to the default
+    /// layout, live windows moved at once, hidden ones placed when next shown.
+    /// Positions ONLY — scales are readability preferences with a slider each
+    /// (owner's call, Sep 29 2026).
+    /// </summary>
+    private void ResetPositions()
+    {
+        _config.WindowX = _config.WindowY = null;
+        _config.MinimapX = _config.MinimapY = null;
+        _config.PrimeX = _config.PrimeY = null;
+        _config.ActivityX = _config.ActivityY = null;
+        _config.ControlPanelX = _config.ControlPanelY = null;
+        FillDefaultPositions();
+
+        if (_minimap is not null) (_minimap.Left, _minimap.Top) = (_config.MinimapX!.Value, _config.MinimapY!.Value);
+        if (_prime is not null) (_prime.Left, _prime.Top) = (_config.PrimeX!.Value, _config.PrimeY!.Value);
+        if (_activity is not null) (_activity.Left, _activity.Top) = (_config.ActivityX!.Value, _config.ActivityY!.Value);
+        _controlPanel?.PlaceDefault();
+        _config.Save();
+    }
 
     private void PersistState()
     {

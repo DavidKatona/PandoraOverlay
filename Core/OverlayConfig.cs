@@ -49,8 +49,14 @@ public sealed class OverlayConfig
     /// <summary>Seconds between polls. The site itself polls every few seconds; do not go below 2.</summary>
     public int PollIntervalSeconds { get; set; } = 3;
 
-    public double WindowX { get; set; } = 40;
-    public double WindowY { get; set; } = 40;
+    /// <summary>
+    /// Stats panel position; null until first placed. With no saved position
+    /// every widget lands in the two-column default layout (DefaultLayout,
+    /// v1.25) — configs from before then hold numbers and are left alone.
+    /// </summary>
+    public double? WindowX { get; set; }
+
+    public double? WindowY { get; set; }
 
     // ---- Controls ---------------------------------------------------------
 
@@ -115,8 +121,10 @@ public sealed class OverlayConfig
     /// </summary>
     public bool HeatmapEnabled { get; set; }
 
-    public double MinimapX { get; set; } = 300;
-    public double MinimapY { get; set; } = 40;
+    /// <summary>Minimap position; null until first placed (top-right corner in the default layout).</summary>
+    public double? MinimapX { get; set; }
+
+    public double? MinimapY { get; set; }
 
     /// <summary>
     /// LEGACY (pre-v1.25): the map's edge length in DIPs (160–400). Load()
@@ -211,7 +219,7 @@ public sealed class OverlayConfig
     /// <summary>Show the Prime tracker widget (toggled from the control panel or the tray menu).</summary>
     public bool PrimeEnabled { get; set; } = true;
 
-    /// <summary>Prime widget position; null until first moved (defaults to the left screen edge, vertically centered).</summary>
+    /// <summary>Prime widget position; null until first placed (top-left corner in the default layout).</summary>
     public double? PrimeX { get; set; }
 
     public double? PrimeY { get; set; }
@@ -241,7 +249,7 @@ public sealed class OverlayConfig
     /// </summary>
     public bool ActivityEnabled { get; set; } = true;
 
-    /// <summary>Activity widget position; null until first moved (defaults to just under the Prime tracker).</summary>
+    /// <summary>Activity widget position; null until first placed (under the Prime tracker in the default layout).</summary>
     public double? ActivityX { get; set; }
 
     public double? ActivityY { get; set; }
