@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.24.0 is built, working, and approved by the server's
+and settings window. **v1.25.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -972,20 +972,18 @@ age fade, 10 min expiry; a Settings Activity page and a Friends page
 `friends.json`; the roster on every 2nd in-game poll, only while a friends
 surface is on. Built as a friends-only widget Sep 27, turned into the
 general feed Sep 28 before release because two friends left it empty,
-renamed while its config keys were still free — verified in-game).
-
-IN PROGRESS (Sep 29 2026): **v1.25.0, the UI/layout release** — built,
-awaiting in-game verification: the two fixed frames (WidgetFrame; Prime =
-minimap, Activity = stats), the permanent fracture row, `MinimapScale` in
-percent with the pixel-size migration, the Activity rows setting dropped
-(phase 1, sizes verified in-game); nullable `WindowX/Y` + `MinimapX/Y`,
-first-show placement through the pure `DefaultLayout` (one "Columns"
-preset, preset-shaped for later) via `FillDefaultPositions`, and the
-"Reset positions" button (positions ONLY — scales are readability
-preferences with a slider each) on Settings → General (phase 2). No
-layout presets beyond the default for now. Then the release pass on the
-owner's word, a Discord announcement for 1.24 + 1.25 together, and README
-screenshots after it lands.
+renamed while its config keys were still free — verified in-game),
+v1.25.0 (Sep 29 — the UI/layout release: two fixed frames (WidgetFrame;
+Prime = minimap, Activity = stats, all 298 wide), the permanent fracture
+row, `MinimapScale` in percent with the pixel-size migration, the
+Activity rows setting dropped; nullable `WindowX/Y` + `MinimapX/Y`,
+first-show placement through the pure `DefaultLayout` ("Columns", under
+the game's top HUD strip, preset-shaped for later) via
+`FillDefaultPositions`, and "Reset positions" (positions ONLY) on
+Settings → General; the ONE accepted resize of existing widgets — verified
+in-game with both an existing and a fresh config). Still to do after it:
+a Discord announcement for 1.24 + 1.25 together, README screenshots. No
+layout presets beyond the default for now.
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
@@ -1054,7 +1052,7 @@ re-propose.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.24.0.
+  minor, fixes bump patch. Current: 1.25.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
