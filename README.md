@@ -147,6 +147,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Server rules
 
+![The Settings dialog on the Server rules page: the pack-limits card with Herbivore, Carnivore and Omnivore columns and "Deinosuchus 2" highlighted in orange, the start of the numbered rules below, the "copied 2026-09-29" stamp, and buttons to islapandora.eu/rules and the Discord](docs/server-rules.png)
+
 - **Settings → Server rules** (or the tray's **Server rules…**, which opens straight there) shows Isla Pandora's pack limits per species, with your current dino's limit highlighted, and the numbered server rules — so "can we run five Ceratos?" is answered without alt-tabbing.
 - It's a dated copy of the website's rules page, kept with the app; the page says when it was copied and links to the site and the Discord. As the website itself notes, the rules on the Discord have priority. The site has no rules API yet, so the copy is updated with the app; if one appears, the overlay will fetch it instead.
 
