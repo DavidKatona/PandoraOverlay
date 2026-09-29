@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Server rules: a new Settings page (also the tray's "Server rules…",
+  which opens straight there) with Isla Pandora's pack limits per
+  species, your current dino's limit highlighted, and the numbered server
+  rules. A dated copy of the website's rules page shipped with the app —
+  the site has no rules API — with links to the page and the Discord,
+  whose rules have priority.
+
 ## [1.25.0] - 2026-09-29
 
 ### Added

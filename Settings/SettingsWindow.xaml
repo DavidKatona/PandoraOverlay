@@ -400,6 +400,7 @@
                     <Button Content="Activity" Tag="Activity" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Friends" Tag="Friends" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Waypoints" Tag="Waypoints" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Server rules" Tag="Rules" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                 </StackPanel>
 
                 <Border Grid.Column="1" BorderBrush="#33FFFFFF" BorderThickness="1,0,0,0" Padding="16,0,0,0">
@@ -731,6 +732,35 @@
                 <Button DockPanel.Dock="Right" Content="Manage on islapandora.eu" Click="ManageFriends_Click"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="Names and colours here stay on this PC. Adding, removing and hiding your location happen on the website."
+                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            </DockPanel>
+            </StackPanel>
+
+            <!-- ============================ Server rules =================== -->
+            <!-- Reference, not preferences: the bundled copy of the site's rules
+                 page (ServerRules), pack limits first because "can we run five
+                 Ceratos?" is the in-game question; your species is highlighted. -->
+            <StackPanel Tag="Rules" Visibility="Hidden">
+            <DockPanel Margin="0,4,0,6">
+                <TextBlock x:Name="RulesStamp" DockPanel.Dock="Right"
+                           Foreground="#7B8790" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Style="{StaticResource PageTitle}" Text="SERVER RULES" Margin="0"/>
+            </DockPanel>
+            <TextBlock x:Name="RulesNote" Foreground="#9AA7B0" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <ScrollViewer x:Name="RulesList" Height="340" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
+                </ScrollViewer.Resources>
+                <StackPanel x:Name="RulesContent" Margin="0,0,6,0"/>
+            </ScrollViewer>
+            <DockPanel Margin="0,8,0,0">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="islapandora.eu/rules" Click="OpenRulesPage_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button Content="Discord" Click="OpenDiscord_Click"
+                            Style="{StaticResource NeutralButtonStyle}"/>
+                </StackPanel>
+                <TextBlock Text="A copy of the website's rules page, kept with the app. When in doubt, the Discord rules win."
                            Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
             </StackPanel>

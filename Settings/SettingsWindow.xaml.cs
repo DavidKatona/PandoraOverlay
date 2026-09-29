@@ -90,10 +90,14 @@ public partial class SettingsWindow : Window
         ResetPositionsButton.IsEnabled = false;
     }
 
-    public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, IReadOnlyList<FriendState>? roster)
+    /// <param name="currentDino">The live dino when the dialog opened (null if not in game) — the Rules page highlights its pack limit.</param>
+    /// <param name="page">A page to open on (the tray's "Server rules…" passes "Rules"); null = the page you were on last.</param>
+    public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, IReadOnlyList<FriendState>? roster,
+                          string? currentDino = null, string? page = null)
     {
         InitializeComponent();
         _config = config;
+        _currentDino = currentDino;
         _library = library;
         _draft = library.Clone();
         _draftTracked = config.TrackedWaypointId;
@@ -178,8 +182,11 @@ public partial class SettingsWindow : Window
         FriendList.ScrollChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
         FriendList.SizeChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
 
+        // Server rules (reference only, nothing to save)
+        BuildRulesPage();
+
         Validate();
-        SetPage(_firstRun ? "Account" : _lastPage);
+        SetPage(_firstRun ? "Account" : page ?? _lastPage);
     }
 
     // ---- Navigation ---------------------------------------------------------

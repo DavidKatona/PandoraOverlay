@@ -43,6 +43,11 @@
          URL is content-hashed so a runtime fetch would break on redeploys). -->
     <Resource Include="Assets\map.png" />
     <Resource Include="Assets\app.ico" />
+    <!-- The server rules seed: a dated copy of islapandora.eu/rules (the
+         site has no rules endpoint — its page bakes the text into its
+         bundle). An embedded resource, not a WPF Resource, so the loader
+         stays WPF-free and the tests can read the same file. -->
+    <EmbeddedResource Include="Assets\rules.json" LogicalName="rules.json" />
   </ItemGroup>
 
 </Project>

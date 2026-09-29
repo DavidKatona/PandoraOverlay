@@ -71,6 +71,16 @@ web dev.**
   who enabled "hide my location" arrives flagged `hideLocation` and is never
   drawn. Nicknames/colours are local (the site's nicknames are
   browser-localStorage too, no API).
+- Server rules (Sep 29 2026): the site has NO rules endpoint — `/rules`
+  is a client-rendered page whose 17 rules and pack-limit table are baked
+  into the frontend bundle (which itself says the Discord rules have
+  priority "due to the website requiring updates"). The overlay ships a
+  DATED COPY of that public page as `Assets/rules.json` and makes no
+  request for it; scraping the bundle at runtime was rejected (fragile
+  minified names, ~600 KB per launch, uncleared traffic). A `GET
+  /api/rules` ask to the dev is PENDING (the owner will ask); when it
+  exists it follows the calibration pattern (once per launch, cached,
+  the seed only a fresh install's first content).
 - **NOT approved:** the zone overlay images
   (the live-map bundles patrols / sanctuaries / migrations / salt rocks as
   static PNGs) — ask him first. A read-only API
@@ -142,7 +152,8 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
 - `Friends/` — FriendBook (+ FriendColour), FriendFeed.
 - `Activity/` — ActivityWindow, ActivityLog, SelfActivity (the widget is
   the feed of everyone's events; the friends folder holds the friend half).
-- `Prime/` — PrimeWindow, PrimeConditions. `Settings/` — SettingsWindow.
+- `Prime/` — PrimeWindow, PrimeConditions. `Rules/` — ServerRules (+
+  `Assets/rules.json`, the seed). `Settings/` — SettingsWindow.
 - `Assets/` unchanged; `App.xaml` (StartupUri now `Shell/MainWindow.xaml`),
   csproj, sln and the docs stay at the root. `PandoraOverlay.Tests/` mirrors
   the folders.
@@ -154,7 +165,7 @@ globs subfolders, so moving a file needs no project edit; pack URIs point at
 concern, the way WPF already splits them from their generated `.g.cs`:
 `MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`),
 `MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`) and
-`SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`). Same class, same
+`SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`). Same class, same
 fields, no behaviour change — a reading aid, not decoupling; the pure
 helper classes are the real decoupling. Keep each part under ~500 lines;
 when one outgrows that, cut another `Window.Topic.cs`, don't extract a
@@ -476,8 +487,10 @@ Every overlay window derives from `OverlayWindowBase`.
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
   always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
   Right-click menu, deliberately short = edit mode / hide-show overlay |
-  settings / exit (hotkey labels follow config) — no per-widget toggles,
-  and no Check Prime since v1.19 (it earned Ctrl+F8), see the surface
+  settings / server rules / exit (hotkey labels follow config) — no
+  per-widget toggles, and no Check Prime since v1.19 (it earned Ctrl+F8);
+  "Server rules…" (Sep 29 2026) is the one hotkey-less mid-game action
+  and opens Settings on the Rules page, see the surface
   rules under Conventions;
   double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
   127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
@@ -759,6 +772,16 @@ Every overlay window derives from `OverlayWindowBase`.
   requests, see constraint #2), `ActivityX/Y` nullable; first show = the
   `suggested` point under the Prime tracker (MainWindow computes it),
   else left edge centred.
+- **ServerRules.cs** — `RulesDocument` (Source, CopiedOn, Note,
+  PackLimits = categories of `PackLimit(Name, Limit)`, Rules; `LimitFor`
+  case-insensitive), `ServerRules.LoadBundled` (the `rules.json` embedded
+  resource — EmbeddedResource with a LogicalName, NOT a WPF Resource, so
+  the loader is WPF-free and the tests read the very file that ships) and
+  the pure, tolerant `Parse` (blank rules / empty categories dropped,
+  unusable → null). The seed was copied from the live bundle on Sep 29
+  2026 (identical to the Sep 15 copy); updating it = a release, until an
+  endpoint exists. Tests assert the bundled seed's shape (17 rules, 21
+  species in Herbivore/Carnivore/Omnivore).
 - **PrimeWindow.xaml(.cs)** — the Prime tracker widget: status header +
   ten ✓/✗ condition rows (texts baked into `PrimeConditions`, shared with
   the Activity feed — the site bakes them into its frontend too, the API
@@ -796,9 +819,19 @@ Every overlay window derives from `OverlayWindowBase`.
   of our own glow-style buttons (`NavButton`; the selected one is
   recoloured in code by `SetPage`) and ONE page visible at a time on the
   right — Account / Controls / General (APP-WIDE ONLY) / Stats panel /
-  Minimap / Prime tracker / Activity / Friends / Waypoints, widget pages
-  in the control panel's order, each holding that widget's Scale-or-Size
-  slider and its own options; a new widget adds a nav entry + page.
+  Minimap / Prime tracker / Activity / Friends / Waypoints / Server
+  rules, widget pages in the control panel's order, each holding that
+  widget's Scale-or-Size slider and its own options; a new widget adds a
+  nav entry + page. Server rules page (`SettingsWindow.Rules.cs`, Sep 29
+  2026): a REFERENCE page, nothing saved — the bundled RulesDocument
+  rendered as a pack-limits card (one column per diet category, category
+  names in diet colours, your live species — passed in as `currentDino`
+  — in orange with its limit named in the caption) and a rules card
+  (zebra rows, "01" numbers, wrapping text) in a 340 px `DarkScrollBar`
+  viewer; "copied <date>" stamp, the site's Discord-priority note, and
+  buttons to the page and the Discord. The ctor's `page` parameter opens
+  the dialog on a given page (the tray's "Server rules…"); first run
+  still forces Account.
   Activity page (Sep 28 2026, in the main file like Prime's): Scale,
   "Include friends'
   events" (`ActivityIncludeFriends` — own events are ALWAYS on: the feed
@@ -1034,8 +1067,8 @@ re-propose.
   **Tray** = only (1) lifelines that must work while locked, hidden or with
   dead hotkeys — edit mode, hide/show overlay, settings, exit; (2) alerts
   needing a persistent home — update, hotkey conflict; (3) mid-game actions
-  with no hotkey — currently none (Check Prime sat here until it earned
-  Ctrl+F8 in v1.19). The tray must never grow with the number
+  with no hotkey — "Server rules…" (Sep 29 2026; Check Prime sat here
+  until it earned Ctrl+F8 in v1.19). The tray must never grow with the number
   of widgets: no per-widget show/hide. A mid-game action used often earns a
   **hotkey** instead of a tray line (the heatmap and Check Prime did).
 - Every distinct widget gets its OWN size slider in Settings (owner's rule,

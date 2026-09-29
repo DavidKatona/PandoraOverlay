@@ -108,6 +108,7 @@ public partial class MainWindow : OverlayWindowBase
             toggleEditMode: ToggleEditMode,
             toggleOverlay: ToggleOverlayVisibility,
             openSettings: OpenSettings,
+            openRules: () => OpenSettingsOn("Rules"),
             exit: () => Application.Current.Shutdown());
         UpdateHotkeyTexts();
 
@@ -143,7 +144,10 @@ public partial class MainWindow : OverlayWindowBase
     }
 
     // ---- Settings flow ----------------------------------------------------
-    private void OpenSettings()
+    private void OpenSettings() => OpenSettingsOn(null);
+
+    /// <param name="page">A page to open on ("Rules" from the tray), or null for the one used last.</param>
+    private void OpenSettingsOn(string? page)
     {
         // Suspend the global hotkeys while the dialog is open: WM_HOTKEY is
         // system-level, so they would fire behind the modal dialog (Ctrl+F4
@@ -157,7 +161,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
         try
         {
-            var dialog = new SettingsWindow(_config, _library, _book, _poll.Friends) { Topmost = true };
+            var dialog = new SettingsWindow(_config, _library, _book, _poll.Friends, _me?.Dino, page) { Topmost = true };
             var saved = dialog.ShowDialog() == true;
 
             if (!saved)

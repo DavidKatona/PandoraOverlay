@@ -1,0 +1,62 @@
+{
+  "Source": "https://islapandora.eu/rules",
+  "CopiedOn": "2026-09-29",
+  "Note": "The rules on the Isla Pandora Discord have priority; this is the website's copy as of the date above.",
+  "PackLimits": [
+    {
+      "Category": "Herbivore",
+      "Species": [
+        { "Name": "Dryosaurus", "Limit": 10 },
+        { "Name": "Hypsilophodon", "Limit": 10 },
+        { "Name": "Kentrosaurus", "Limit": 5 },
+        { "Name": "Pachycephalosaurus", "Limit": 8 },
+        { "Name": "Tenontosaurus", "Limit": 8 },
+        { "Name": "Diabloceratops", "Limit": 6 },
+        { "Name": "Maiasaura", "Limit": 9 },
+        { "Name": "Stegosaurus", "Limit": 5 },
+        { "Name": "Triceratops", "Limit": 4 }
+      ]
+    },
+    {
+      "Category": "Carnivore",
+      "Species": [
+        { "Name": "Pteranodon", "Limit": 6 },
+        { "Name": "Troodon", "Limit": 10 },
+        { "Name": "Herrerasaurus", "Limit": 8 },
+        { "Name": "Omniraptor", "Limit": 8 },
+        { "Name": "Carnotaurus", "Limit": 3 },
+        { "Name": "Ceratosaurus", "Limit": 4 },
+        { "Name": "Dilophosaurus", "Limit": 4 },
+        { "Name": "Deinosuchus", "Limit": 2 },
+        { "Name": "Allosaurus", "Limit": 3 },
+        { "Name": "Tyrannosaurus", "Limit": 2 }
+      ]
+    },
+    {
+      "Category": "Omnivore",
+      "Species": [
+        { "Name": "Beipiaosaurus", "Limit": 12 },
+        { "Name": "Gallimimus", "Limit": 8 }
+      ]
+    }
+  ],
+  "Rules": [
+    "No overpacking, more info on species group sizes can be found below. As a hatchling (without first mutation) you are allowed to exceed the group limits, but not allowed to overpack in combat.",
+    "No mixpacking allowed between carnivores/herbivores/omnivores. Deinosuchus may tolerate other Deinosuchus, meaning they are allowed to share territories. Pre-meditated 3rd partying, and/or coordinated teamwork as carnivores (subtle overpacking) is considered a rulebreak.",
+    "Herbivores can stay in close vicinity of other herbivore species if they wish. Herbivore combat rules (except for Beipiaosaurus, Hypsilophodon and Dryosaurus) prohibit mixfighting, it is not allowed to defend other herbivore species. This includes using other herbivores as shields.",
+    "Herbivore vs Herbivore combat is not allowed. Unless both parties consent that they agree to fight by both announcing to do so in Global Chat. Note that Gallimimus and Beipiaosaurus are an omnivorous dinosaurs, and are not considered herbivores or carnivores.",
+    "Body denying and combat logging is not allowed. Meaning players who intentionally glitch, drown, suicide themselves, entomb or disconnect mid-fight and/or any other way to deny other players the body.",
+    "After disengaging in combat, bodycamping by herbivores is not allowed. Herbivores may not guard food, they may say their goodbyes, but after that they have to leave and let the carnivores they fought with eat. It is not allowed to camp near corpses just to kill other players who try to approach it.",
+    "It is not allowed to kill your group members. During in game player interaction, it is not allowed to be using friendly call (2-call) and/or friendly chat as trickery to group up/bait with the intention to kill another player of the same species.",
+    "Nesting inside or near sanctuaries is prohibited.",
+    "When nested in, it is not allowed to join in just to suicide or destroy other eggs and/or kill your siblings.",
+    "Requesting slays, heals or teleports is not allowed.",
+    "When using Global Chat we kindly ask our players to write in English when conversating with other players.",
+    "In Global Chat location sharing of other players is not allowed, sharing your own location is allowed. This rule still applies when you observe other players rule breaking. Alert an admin and we will TP to your location.",
+    "Advertising of other servers or services for promotional purposes is not allowed.",
+    "Before the server restart(s), exactly at the 2 minute mark, no combat engagement may start. During an ongoing combat situation this rule does not apply. Deinosuchus may still grab drinking players.",
+    "Cheating is not allowed. This means using various methods to create an advantage beyond normal gameplay, usually in order to make the game easier. This can also be realized by exploiting software bugs; this may or may not be considered cheating based on whether the bug is considered common knowledge.",
+    "Dinosaurs lost through rulebreaking and/or crashes, will only be compensated through the ticket procedure. Please note that proof/evidence of the incident is mandatory, we advice to use the in game F2 recording and or any other gameplay recording tool.",
+    "During Pandora events, temporary rules apply. We ask of our players to respect those so the event can take place. During Pandora nesting events/nesting areas are off limits, not allowed to camp/hunt near them."
+  ]
+}

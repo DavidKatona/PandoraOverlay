@@ -75,8 +75,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Tray icon & settings
 
-- A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, and finally Friends and Waypoints.
+- A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, Server rules, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints and Server rules.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -144,6 +144,11 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - **Settings → Friends** lists everyone on your friends list, in-game friends first: click the colour to change it (each friend gets a stable default colour), type a **nickname** that only you see, untick **Map** to keep a friend off the minimap or **Feed** to mute their lines, and pick **Track**. The "Last seen" column shows when the overlay last saw them in game and, on hover, as what. Your choices live in `friends.json` next to the app; adding, removing or blocking friends, and hiding your own location, are done on the website ("Manage on islapandora.eu" opens the page).
 - Privacy works the way the website's does: a friend who turned on "hide my location" is counted as in game but never drawn, and you appear to your friends exactly as you do on their live map. The overlay only ever reads the friends list; it never sends friend requests or changes any setting there.
 - Cost: while the Activity widget includes friends' events or the minimap draws friends, the friends list is fetched every second update while you play (every 6 seconds at the default pace) and once per idle check while you aren't spawned — less often than the website's own live map does. Untick "Include friends' events" and "Show friends on the minimap" to send no friends requests at all.
+
+### Server rules
+
+- **Settings → Server rules** (or the tray's **Server rules…**, which opens straight there) shows Isla Pandora's pack limits per species, with your current dino's limit highlighted, and the numbered server rules — so "can we run five Ceratos?" is answered without alt-tabbing.
+- It's a dated copy of the website's rules page, kept with the app; the page says when it was copied and links to the site and the Discord. As the website itself notes, the rules on the Discord have priority. The site has no rules API yet, so the copy is updated with the app; if one appears, the overlay will fetch it instead.
 
 ## Configuration (`config.json`)
 
