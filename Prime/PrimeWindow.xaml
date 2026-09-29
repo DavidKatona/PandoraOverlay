@@ -14,18 +14,21 @@
         FontFamily="Segoe UI"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
+    <!-- The LARGE frame (WidgetFrame), shared with the minimap: header on
+         top, the two-line footer at the bottom, the ten condition rows
+         share what is left — one size in every state. -->
     <Border x:Name="RootPanel"
+            Width="{x:Static local:WidgetFrame.Width}"
+            Height="{x:Static local:WidgetFrame.LargeHeight}"
             CornerRadius="10"
             Background="#CC10151B"
             BorderBrush="#33FFFFFF"
             BorderThickness="1"
             Padding="12,10">
-        <!-- Fixed width + a reserved two-line footer: the widget keeps one
-             size in every state, like the other panels. -->
-        <StackPanel Width="250">
+        <DockPanel>
 
             <!-- Header: title + overall status -->
-            <DockPanel Margin="0,0,0,7">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,7">
                 <TextBlock x:Name="StatusText" DockPanel.Dock="Right"
                            Foreground="#9AA7B0" FontSize="12"
                            VerticalAlignment="Center"/>
@@ -33,16 +36,18 @@
                            Foreground="#ECF2F8" FontSize="14" FontWeight="Bold"/>
             </DockPanel>
 
-            <!-- Ten condition rows, built in code-behind -->
-            <StackPanel x:Name="ConditionRows"/>
-
             <!-- Footer: what the rows reflect, then cooldown / notices -->
-            <TextBlock x:Name="InfoText"
-                       Foreground="#7B8790" FontSize="10" Margin="0,8,0,0"
-                       TextTrimming="CharacterEllipsis"/>
-            <TextBlock x:Name="NoticeText"
-                       Foreground="#7B8790" FontSize="10" Margin="0,2,0,0"
-                       TextTrimming="CharacterEllipsis"/>
-        </StackPanel>
+            <StackPanel DockPanel.Dock="Bottom">
+                <TextBlock x:Name="InfoText"
+                           Foreground="#7B8790" FontSize="10" Margin="0,8,0,0"
+                           TextTrimming="CharacterEllipsis"/>
+                <TextBlock x:Name="NoticeText"
+                           Foreground="#7B8790" FontSize="10" Margin="0,2,0,0"
+                           TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+
+            <!-- Ten condition rows, built in code-behind into equal-height rows -->
+            <Grid x:Name="ConditionRows"/>
+        </DockPanel>
     </Border>
 </local:OverlayWindowBase>

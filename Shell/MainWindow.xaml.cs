@@ -31,6 +31,13 @@ public partial class MainWindow : OverlayWindowBase
     private static readonly Brush TimeLeftOnFill = new SolidColorBrush(Color.FromRgb(0x10, 0x15, 0x1B)); // panel-glass dark, for a label inside the fill
     private const double TimeLeftGap = 5; // px between the fill's tip and its label
 
+    // Fracture badges: always drawn (the row is part of the fixed frame), lit
+    // only while that part is fractured — like the site's own fracture icons.
+    private static readonly Brush FracturedBadge = new SolidColorBrush(Color.FromArgb(0xB3, 0x40, 0x20, 0x20));
+    private static readonly Brush FracturedText = new SolidColorBrush(Color.FromRgb(0xFF, 0x8A, 0x80));
+    private static readonly Brush IntactBadge = new SolidColorBrush(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
+    private static readonly Brush IntactText = new SolidColorBrush(Color.FromRgb(0x4A, 0x55, 0x60));
+
     // ---- State ------------------------------------------------------------
     private readonly OverlayConfig _config;
     private readonly PollService _poll;
@@ -327,7 +334,7 @@ public partial class MainWindow : OverlayWindowBase
             SetPulse(HealthFill, false);
             SetPulse(HungerFill, false);
             SetPulse(ThirstFill, false);
-            FractureRow.Visibility = Visibility.Collapsed;
+            SetFractures(false, false, false);
             // Not in-game the poll idles; say so, or a slow reaction to a spawn reads as frozen.
             StatusText.Text = _poll.IsIdling
                 ? $"Connected · checking every {_poll.Interval.TotalSeconds:0}s · {DateTime.Now:HH:mm:ss}"
@@ -395,14 +402,23 @@ public partial class MainWindow : OverlayWindowBase
         SetPulse(HungerFill, p.Hunger < 0.25);
         SetPulse(ThirstFill, p.Thirst < 0.25);
 
-        FracHead.Visibility = p.HeadFractured ? Visibility.Visible : Visibility.Collapsed;
-        FracBody.Visibility = p.BodyFractured ? Visibility.Visible : Visibility.Collapsed;
-        FracLegs.Visibility = p.LegsFractured ? Visibility.Visible : Visibility.Collapsed;
-        FractureRow.Visibility = (p.HeadFractured || p.BodyFractured || p.LegsFractured)
-            ? Visibility.Visible
-            : Visibility.Collapsed;
+        SetFractures(p.HeadFractured, p.BodyFractured, p.LegsFractured);
 
         StatusText.Text = $"Live · updated {DateTime.Now:HH:mm:ss}";
+    }
+
+    /// <summary>The three badges are always there; a fractured part lights up, the rest stay dim. Never changes the panel's size.</summary>
+    private void SetFractures(bool head, bool body, bool legs)
+    {
+        SetBadge(FracHead, FracHeadText, head);
+        SetBadge(FracBody, FracBodyText, body);
+        SetBadge(FracLegs, FracLegsText, legs);
+    }
+
+    private static void SetBadge(Border badge, TextBlock text, bool fractured)
+    {
+        badge.Background = fractured ? FracturedBadge : IntactBadge;
+        text.Foreground = fractured ? FracturedText : IntactText;
     }
 
     /// <summary>The time-left labels on the hunger/thirst bars; the trackers run either way, so the Settings checkbox applies at once.</summary>

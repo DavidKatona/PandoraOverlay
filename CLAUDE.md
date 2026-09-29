@@ -130,7 +130,8 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
 
 - `Core/` — zero-WPF plumbing: PandoraClient, PollService, OverlayConfig,
   HotkeySpec, StartupRegistration, UpdateChecker.
-- `Shell/` — what every widget stands on: OverlayWindowBase, SnapResolver,
+- `Shell/` — what every widget stands on: OverlayWindowBase, WidgetFrame,
+  DefaultLayout, SnapResolver,
   SnapGuideWindow, ControlPanelWindow, TrayIcon, and MainWindow (the
   orchestrator, which is also the stats panel — splitting the panel out
   into its own window is a possible later refactor).
@@ -248,6 +249,30 @@ Every overlay window derives from `OverlayWindowBase`.
   total)` is the shared one-element blink (opacity 1→0.3 autoreverse,
   FillBehavior.Stop so the element ends exactly as it was) for the growth
   header at a milestone and the Prime footer at cooldown end.
+- **WidgetFrame.cs** — the two fixed frame sizes (v1.25, owner's design,
+  Sep 29 2026): every widget is `Width` 298 outer; the minimap and the
+  Prime tracker share `LargeHeight` 318 (set by the map: a 284 px square
+  = 298 − 6 px padding − 1 px border each side, plus its footer), the
+  stats panel and the Activity feed share `SmallHeight` 168 (set by the
+  stats panel with its fracture row permanent). Each window's root Border
+  takes them as its explicit size (`x:Static` in XAML) and the content
+  lays out INSIDE with DockPanel + stretching Grid rows — so "a widget
+  never changes size" is structural, and twins line up in the two-column
+  layout. Per-widget scale sliders multiply the whole frame. THE ONE-TIME
+  EXCEPTION to the never-resize rule, accepted by the owner: 1.25
+  resizes every existing widget once (Prime wider + taller, Activity
+  wider, stats taller by the fracture row, minimap to the nearest
+  percent); top-left anchored, the startup clamp handles overflow, tight
+  stacks may overlap a few px → the coming Reset positions button. Never
+  again.
+- **DefaultLayout.cs** — pure, tested: where widgets go with no saved
+  position. One preset, `Columns(screen, prime, activity, minimap,
+  stats)` → the four top-left points: Prime top-left at the 16 px
+  `Inset` with Activity `Gap` 8 below; minimap top-right with the stats
+  panel below, right edges aligned; sizes passed in are the windows'
+  ACTUAL (scaled) sizes. Written preset-shaped so a second layout is one
+  more method (owner, Sep 29 2026: no presets yet). Wiring (nullable
+  positions, first-show placement, Reset positions) is phase 2 of 1.25.
 - **SnapResolver.cs** — pure, tested snapping math: screen edges + 16px
   inset + peer edges, 12px threshold (threshold < inset on purpose, so the
   two magnets read as distinct stops), axes independent; leading- and
@@ -418,11 +443,18 @@ Every overlay window derives from `OverlayWindowBase`.
   and REJECTED in testing (Sep 24 2026): unlock + lock left the overlay
   refusing to hide, which read as a bug — don't reintroduce it. Tray
   tooltip reads "hidden until you spawn" meanwhile. Runtime-only, like
-  the manual hide. Minimap is sized natively (`MinimapSize`, Settings
-  slider 160–400, `AppearanceScale` override 1.0), the prime tracker by
-  `PrimeScale`, and `UiScale` scales only the stats + control panels. `UpdateUi` is a 3-state machine:
+  the manual hide. Every widget is scaled in percent through the same
+  LayoutTransform: `UiScale` (stats + control panel), `MinimapScale`
+  (v1.25 — the minimap was the one widget sized in pixels, `MinimapSize`
+  160–400, migrated by `OverlayConfig.MinimapScaleFromSize`),
+  `PrimeScale`, `ActivityScale`. The stats panel sits on the SMALL frame
+  (WidgetFrame): DockPanel with the header on top, the status line and
+  the fracture row docked at the bottom, the bars filling. `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
-  fracture badges toggle; health/hunger/thirst fills pulse below 25% — stamina
+  the three fracture badges are ALWAYS drawn — `SetFractures`: dim when
+  intact, lit when fractured, like the site's icons, so a fracture can
+  never resize the panel (v1.25; before, the row collapsed and the panel
+  grew on the first fracture); health/hunger/thirst fills pulse below 25% — stamina
   deliberately excluded, it drains by design). Fires one `UpdateChecker` call
   on Loaded, feeding the status line + tray.
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
@@ -442,7 +474,14 @@ Every overlay window derives from `OverlayWindowBase`.
   launch (the only non-islapandora network call); a newer tag surfaces via
   the status line (once) and the tray (for the session). Never re-checks,
   never pops anything up; offline/errors read as "no update".
-- **MinimapWindow.xaml(.cs)** — bundled island map + player arrow. World→pixel
+- **MinimapWindow.xaml(.cs)** — bundled island map + player arrow, on the
+  LARGE frame (WidgetFrame, v1.25): a Grid of the 284 px `MapSize` square
+  and the footer centred in the rest; sized by `MinimapScale` through the
+  same LayoutTransform as the other widgets (`AppearanceScale`), so the
+  footer, scale bar and speed pill scale with the map — before v1.25 it
+  was the one natively sized widget (`MinimapSize` px, migrated). All the
+  map math stays in nominal MapHost coordinates; `GetPosition(MapHost)`
+  already accounts for the transform. World→pixel
   per `MapCalibration` (with the Y flip); movement animates between polls
   (shortest-arc yaw; first fix / mode switch snaps). Two north-up views
   (`MinimapMode`): "island" (arrow translates over the fitted map) and
@@ -676,8 +715,11 @@ Every overlay window derives from `OverlayWindowBase`.
 - **ActivityWindow.xaml(.cs)** — the fourth widget: header ("Activity" +
   "3 of 7 friends in game", "—" until the first roster, blank with
   friends' events off — the counts are part of the friends extra) over
-  `ActivityRows` (3–8, default 5) fixed 16 px one-line slots, 250 px wide
-  like the Prime tracker — one size in every state; a pure renderer of
+  `FeedLines` (6) equal-height slots in a Grid filling the SMALL frame
+  (WidgetFrame) under the header — as many as fit at 100%; a 3/5/8
+  `ActivityRows` setting shipped in 1.24.0 and was dropped in 1.25
+  (owner's call: inside a fixed frame three lines floated and eight
+  didn't fit; the JSON key is simply ignored now); a pure renderer of
   MainWindow's ActivityLog: newest at the top, an orange ● (your arrow's
   colour) leads your lines, a book-coloured ● a friend's, none a roster
   line; Fracture/LowStat/Damage read amber; opacity = `AgeOpacity`;
@@ -716,8 +758,10 @@ Every overlay window derives from `OverlayWindowBase`.
   `RenderSnapshot` paints a newly met row bright/semibold and a lost one
   amber until the next check replaces the comparison; session-only. The
   cooldown reaching zero also `PulseBriefly`s the footer for those
-  without the fade. Fixed 250 px
-  content width and a reserved footer keep it one size in every state.
+  without the fade. Built on the LARGE frame (WidgetFrame, v1.25 — 250 px
+  content width before): DockPanel, header top, footer bottom, the ten
+  rows a Grid of equal star rows filling the middle, so it is one size
+  in every state and the minimap's twin.
   Derives OverlayWindowBase (drag/snap/clamp; sized by its own `PrimeScale`
   via the `AppearanceScale` override — seeded from `UiScale` in
   `OverlayConfig.Load` for configs that predate it); first
@@ -740,13 +784,12 @@ Every overlay window derives from `OverlayWindowBase`.
   in the control panel's order, each holding that widget's Scale-or-Size
   slider and its own options; a new widget adds a nav entry + page.
   Activity page (Sep 28 2026, in the main file like Prime's): Scale,
-  "Feed lines" radios 3/5/8 (`ActivityRows` — the ONLY thing that ever
-  resizes the widget, and it happens in a dialog), "Include friends'
+  "Include friends'
   events" (`ActivityIncludeFriends` — own events are ALWAYS on: the feed
   is yours, friends are the extra; a "Friends only / Friends and me"
   radio pair was shipped for a day and replaced Sep 28 2026 as a leftover
   of the friends-first origin) and the damage-lines checkbox
-  (`ActivityDamageLines`, read live); rows or the friends checkbox set
+  (`ActivityDamageLines`, read live); the friends checkbox sets
   `ActivityChanged`. Friends page (`SettingsWindow.Friends.cs`, Sep 27
   2026): "Show friends on the minimap" (`FriendsOnMinimap`), the
   friend-spawn chime (`FriendsChimeEnabled`, read live by MainWindow),
@@ -798,7 +841,7 @@ Every overlay window derives from `OverlayWindowBase`.
   registrations for the dialog's lifetime (WM_HOTKEY is system-level and
   would fire behind the modal dialog; suspension also lets the boxes see
   and reassign our own combos) and restores them in a finally on close.
-  The Minimap section holds size, view mode, centered zoom, the trail
+  The Minimap section holds scale (v1.25; size in px before), view mode, centered zoom, the trail
   length (radio buttons, not a ComboBox — stock ComboBox chrome is light
   and ignores Background), the scale-bar checkbox and the heading/speed
   checkbox — NOT the
@@ -914,6 +957,18 @@ surface is on. Built as a friends-only widget Sep 27, turned into the
 general feed Sep 28 before release because two friends left it empty,
 renamed while its config keys were still free — verified in-game).
 
+IN PROGRESS (Sep 29 2026): **v1.25.0, the UI/layout release** — phase 1
+built: the two fixed frames (WidgetFrame; Prime = minimap, Activity =
+stats), the permanent fracture row, `MinimapScale` in percent with the
+pixel-size migration, the Activity rows setting dropped, and the pure
+`DefaultLayout` helper (preset-shaped, one "Columns" preset). Phase 2:
+nullable `WindowX/Y` + `MinimapX/Y`, first-show placement through
+DefaultLayout, a "Reset positions" button (positions ONLY — scales are
+readability preferences with a slider each) on Settings → General. No
+layout presets beyond the default for now. Then docs, CHANGELOG (the
+one-time resize in one paragraph), a Discord announcement for 1.24 + 1.25
+together; README screenshots after it lands.
+
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
 sanctuaries, migrations, salt rocks), official token auth (the nudge went
@@ -968,7 +1023,8 @@ re-propose.
   of widgets: no per-widget show/hide. A mid-game action used often earns a
   **hotkey** instead of a tray line (the heatmap and Check Prime did).
 - Every distinct widget gets its OWN size slider in Settings (owner's rule,
-  Sep 2026): stats panel `UiScale`, minimap `MinimapSize`, prime tracker
+  Sep 2026): stats panel `UiScale`, minimap `MinimapScale` (percent since
+  v1.25, pixels before), prime tracker
   `PrimeScale`, activity `ActivityScale` — a new widget ships with one, seeded so an update never
   resizes anything (override `AppearanceScale`). Sliders are independent:
   no global scale multiplier on top (considered and dropped — Windows

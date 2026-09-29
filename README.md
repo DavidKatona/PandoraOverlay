@@ -75,7 +75,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale or Size slider, so you can size each one independently, and finally Friends and Waypoints.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, and finally Friends and Waypoints.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -84,7 +84,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 - The stats panel can be **hidden** entirely (control panel → Stats → Show/hide) — the app keeps running from the tray, and hotkeys and the minimap stay live. Its size is adjustable with the Scale slider in Settings → Stats panel.
 
-- The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint).
+- The health, hunger and thirst bars **pulse** when they drop below 25% (stamina doesn't — it drains by design every sprint). The three **fracture badges** (HEAD, BODY, LEGS) are always on the panel, dim until that part is actually fractured.
+- Every widget is one of **two sizes**: the minimap and the Prime tracker share one, the stats panel and the Activity feed the other, all the same width, and nothing on them can change their size while you play. That is what keeps docked layouts docked.
 - After about five minutes of play, the growth readout gains an **estimated time to full growth** ("Growth 41.6% · ~3h 10m"), measured from your current growth speed — it's in-game time, and it adapts to server growth events and buffs. If growth stalls while you're spawned, the readout turns amber and shows "paused".
 - The hunger and thirst bars show an **estimated time left** ("~40m") at the tip of the bar's fill once a stat has under about an hour to go, measured from how fast it is draining right now; it's back right after you eat or drink. It needs about three minutes of play first.
 - The growth readout **blinks for a few seconds when you reach a stage** — 25% juvenile, 50% subadult, 75% adult, 100% elder. Two optional **chimes** (Settings → Stats panel, both off by default) play the Windows "Exclamation" sound: one when hunger or thirst drops under 20% (repeated every five minutes while it stays there, re-armed once you've eaten or drunk), one at those growth stages. Made for AFK growing, where a slow stat is easy to miss while alt-tabbed.
@@ -131,7 +132,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - The **Activity widget** (a fourth panel, docked under the Prime tracker by default) is a feed of the last ten minutes: each line reports something that just happened, newest at the top, fading as it ages. Every other cue on the overlay is momentary — the growth readout blinks, a chime plays once — so this is the one you can read after a fight or when you come back to the keyboard. With friends' events included, its header also says how many friends you have and how many are in game.
 - **Your friends' events** (on by default): a friend spawned in ("spawned as Deinosuchus 42%"), left the game, started a fresh dino of the same species, switched dino, reached a growth stage, took a fracture, came within 200 m of you, or joined or left your list. Several friends leaving at once (a server restart) become one line, and "left the game" is worded neutrally on purpose — from outside, a logout, a restart and a death look the same.
 - **Your own events**, always: you spawned in or started a fresh dino, reached a growth stage, dropped under 20% hunger or thirst (with the time left), took a fracture, and each Prime check as what *changed* — "Prime · now met: Visit 2 Migration zones" — or a one-line summary when nothing did. An optional line for damage taken (a drop of 5% or more, at most one per half minute) is off by default, since a long fight would fill the feed. Friends' events are the extra: "Include friends' events" in Settings → Activity is on by default; untick it and the widget is your own log alone, and no friends list is fetched for it.
-- Your lines carry an orange dot (your arrow's colour), a friend's their own colour. When nothing recent happened the first line names who is in game. The widget keeps one size: pick 3, 5 or 8 lines in Settings → Activity, which also has its Scale slider.
+- Your lines carry an orange dot (your arrow's colour), a friend's their own colour. When nothing recent happened the first line names who is in game. The widget shows six lines and keeps one size; its Scale slider is in Settings → Activity.
 
 ### Friends
 
@@ -154,7 +155,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `StatsEnabled` | Show the stats panel (toggled from the control panel). |
 | `HideWhenNotInGame` | Hide every widget after ~30 s of not being spawned in, and show them again on the first in-game update. Checkbox in Settings. Default `false`. |
 | `MinimapEnabled` | Show the minimap window (toggled from the control panel). |
-| `MinimapX` / `MinimapY` / `MinimapSize` | Minimap position and edge length (size slider in Settings, 160–400). |
+| `MinimapX` / `MinimapY` | Minimap position. |
+| `MinimapScale` | Minimap scale, 0.75–1.5 (default 1 = a 284 px map). Slider in Settings → Minimap. Replaces the old pixel `MinimapSize`, which is converted once on first launch and then ignored. |
 | `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). Map view button / Ctrl+F5 toggles it. |
 | `MinimapZoom` | Centered-view magnification, clamped to 1.25–6 (default 5). Mouse wheel in edit mode adjusts it. |
 | `MinimapYawOffsetDegrees` | Rotation added to the raw yaw for the arrow. Default 90 matches the current map. |
@@ -166,7 +168,6 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `Prime` / `PrimeCooldownUntilUtc` | The last Prime check result (status, ten condition flags, time, dino) and when the server will accept the next check, kept so the widget is right after a restart. Managed by the app. |
 | `ActivityEnabled` / `ActivityX` / `ActivityY` | Show the Activity widget, and its position (empty until first placed: right under the Prime tracker). |
 | `ActivityScale` | Activity widget scale, 0.75–1.5. Slider in Settings; starts out equal to `PrimeScale`. |
-| `ActivityRows` | Feed lines the Activity widget reserves: 3, 5 or 8 (default 5). Radio buttons in Settings → Activity. |
 | `ActivityIncludeFriends` | Post your friends' events to the feed beside your own (which are always on), and fetch the friends list for it while the widget is shown. Checkbox in Settings → Activity. Default `true`. |
 | `ActivityDamageLines` | Also post a line when you take damage (5% or more, at most one per half minute). Checkbox in Settings → Activity. Default `false`. |
 | `FriendsOnMinimap` | Draw in-game friends on the minimap. Checkbox in Settings → Friends. Default `true`. |
@@ -176,7 +177,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `TrackedWaypointId` | The library waypoint the footer follows and the ring marks; `null` = follow the nearest visible one. Set from the map menu or Settings → Waypoints. |
 | `WaypointVisibility` | Which waypoints the minimap draws: `all` (default), `tracked` or `nearest` (the ten closest). Radio buttons in Settings → Minimap. |
 | `Waypoints` | Legacy: the 1.20 colour slots. Moved into `waypoints.json` on first launch and left empty. |
-| `UiScale` | Stats panel (and control panel) scale, 0.75–1.5 (default 1). Slider in Settings; the minimap sizes natively via `MinimapSize`. |
+| `UiScale` | Stats panel (and control panel) scale, 0.75–1.5 (default 1). Slider in Settings → Stats panel. |
 | `PrimeScale` | Prime tracker scale, 0.75–1.5. Slider in Settings; starts out equal to `UiScale`. |
 | `BackgroundOpacity` | Panel-glass opacity, 0.3–1 (default 0.8) — text stays crisp. Slider in Settings. |
 | `StatTimeLeftEnabled` | Show the estimated time left inside the hunger and thirst bars. Checkbox in Settings. Default `true`. |

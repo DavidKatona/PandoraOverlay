@@ -56,15 +56,24 @@
         </Style>
     </Window.Resources>
 
+    <!-- The LARGE frame (WidgetFrame), shared with the Prime tracker: the
+         284 px map square, then the footer centred in what is left. Sized
+         by MinimapScale like every other widget (a layout transform). -->
     <Border x:Name="RootPanel"
+            Width="{x:Static local:WidgetFrame.Width}"
+            Height="{x:Static local:WidgetFrame.LargeHeight}"
             CornerRadius="10"
             Background="#CC10151B"
             BorderBrush="#33FFFFFF"
             BorderThickness="1"
             Padding="6">
-        <StackPanel>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            <Grid x:Name="MapHost" Width="230" Height="230" ClipToBounds="True">
+            <Grid x:Name="MapHost" Width="284" Height="284" ClipToBounds="True">
                 <!-- Canvas host: measures the image with infinite space, so the
                      oversized centered-mode map never gets layout-clipped
                      (a grid slot would clip it BEFORE the pan transform). -->
@@ -133,10 +142,10 @@
             </Grid>
 
             <!-- Footer: view (+ zoom when centered) · nearest waypoint distance and ETA; built in code. -->
-            <TextBlock x:Name="ModeFooter"
-                       Foreground="#7B8790" FontSize="10" Margin="0,5,0,0"
-                       HorizontalAlignment="Center"/>
-        </StackPanel>
+            <TextBlock x:Name="ModeFooter" Grid.Row="1"
+                       Foreground="#7B8790" FontSize="10"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
     </Border>
 
     <!-- Edit-mode right-click menu on the map. A popup is its own window, so

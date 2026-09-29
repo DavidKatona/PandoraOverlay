@@ -5,6 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Every widget now sits on one of two fixed frames, all the same width:
+  the minimap and the Prime tracker share the large one, the stats panel
+  and the Activity feed the small one. Content lays out inside the frame,
+  so nothing can change a widget's size while you play — the stats
+  panel's fracture badges are now always shown (dim until a part is
+  fractured) instead of appearing as a new row.
+- The minimap is scaled in percent like every other widget (Settings →
+  Minimap → Scale, 75–150%) instead of a pixel size. Your old size is
+  converted once: 230 px, the previous default, becomes 81% of the new
+  284 px map.
+- The Activity feed shows six lines; the 3 / 5 / 8 choice is gone.
+- **This update resizes every widget once.** The Prime tracker grows to
+  match the minimap, the Activity feed grows to the shared width, the
+  stats panel grows by its fracture row, and the minimap moves to the
+  nearest percent of its old size. Widgets keep their top-left corner, so
+  they grow right and down; anything pushed off-screen is pulled back at
+  startup, and a stats panel snapped tight under the minimap will overlap
+  it by a few pixels until you move it. This will not happen again.
+
 ## [1.24.0] - 2026-09-28
 
 ### Added

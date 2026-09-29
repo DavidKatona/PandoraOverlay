@@ -61,7 +61,7 @@ public partial class SettingsWindow : Window
     /// <summary>True after Save when the hotkey differs (re-registration needed).</summary>
     public bool HotkeyChanged { get; private set; }
 
-    /// <summary>True after Save when minimap view/zoom/size, the trail length or the scale bar differ (ApplySettings needed).</summary>
+    /// <summary>True after Save when minimap view/zoom/scale, the trail length or the scale bar differ (ApplySettings needed).</summary>
     public bool MinimapChanged { get; private set; }
 
     /// <summary>True after Save when a scale, the background opacity or the time-left checkbox differ (ApplyAppearance needed).</summary>
@@ -70,7 +70,7 @@ public partial class SettingsWindow : Window
     /// <summary>True after Save when the minimap's friend layer, a friend's preferences or the tracked friend differ.</summary>
     public bool FriendsChanged { get; private set; }
 
-    /// <summary>True after Save when the Activity widget's rows or its feed choices differ.</summary>
+    /// <summary>True after Save when the Activity widget's feed choices differ.</summary>
     public bool ActivityChanged { get; private set; }
 
     public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, IReadOnlyList<FriendState>? roster)
@@ -135,7 +135,7 @@ public partial class SettingsWindow : Window
         ModeCentered.IsChecked = centered;
         ModeIsland.IsChecked = !centered;
         ZoomSlider.Value = Math.Clamp(config.MinimapZoom, ZoomSlider.Minimum, ZoomSlider.Maximum);
-        MapSizeSlider.Value = Math.Clamp(config.MinimapSize, MapSizeSlider.Minimum, MapSizeSlider.Maximum);
+        MinimapScaleSlider.Value = Math.Clamp(config.MinimapScale ?? 1.0, MinimapScaleSlider.Minimum, MinimapScaleSlider.Maximum);
         // A hand-edited in-between value shows as the next option up.
         var trailRadio = config.MinimapTrailMinutes switch { <= 0 => TrailOff, <= 10 => Trail10, <= 30 => Trail30, _ => Trail60 };
         trailRadio.IsChecked = true;
@@ -151,8 +151,6 @@ public partial class SettingsWindow : Window
 
         // Activity
         ActivityScaleSlider.Value = Math.Clamp(config.ActivityScale ?? config.PrimeScale ?? config.UiScale, ActivityScaleSlider.Minimum, ActivityScaleSlider.Maximum);
-        var rowsRadio = config.ActivityRows switch { <= 3 => ActivityRows3, <= 5 => ActivityRows5, _ => ActivityRows8 };
-        rowsRadio.IsChecked = true;
         ActivityFriendsCheck.IsChecked = config.ActivityIncludeFriends;
         ActivityDamageCheck.IsChecked = config.ActivityDamageLines;
 
@@ -392,9 +390,9 @@ public partial class SettingsWindow : Window
         if (ZoomLabel != null) ZoomLabel.Text = $"{e.NewValue:0.##}×";
     }
 
-    private void MapSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void MinimapScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (MapSizeLabel != null) MapSizeLabel.Text = $"{e.NewValue:0} px";
+        if (MinimapScaleLabel != null) MinimapScaleLabel.Text = $"{e.NewValue:0%}";
     }
 
     // ---- Save ---------------------------------------------------------------
@@ -450,14 +448,14 @@ public partial class SettingsWindow : Window
 
         var mode = ModeCentered.IsChecked == true ? "centered" : "island";
         var zoom = Math.Round(ZoomSlider.Value, 2);
-        var mapSize = Math.Round(MapSizeSlider.Value);
+        var mapScale = Math.Round(MinimapScaleSlider.Value, 2);
         var trail = TrailOff.IsChecked == true ? 0 : Trail10.IsChecked == true ? 10 : Trail30.IsChecked == true ? 30 : 60;
         var scaleBar = ScaleBarCheck.IsChecked == true;
         var speed = SpeedCheck.IsChecked == true;
         var visibility = WpTracked.IsChecked == true ? "tracked" : WpNearest.IsChecked == true ? "nearest" : "all";
         if (mode != _config.MinimapMode ||
             Math.Abs(zoom - _config.MinimapZoom) > 0.005 ||
-            Math.Abs(mapSize - _config.MinimapSize) > 0.5 ||
+            Math.Abs(mapScale - (_config.MinimapScale ?? 1.0)) > 0.001 ||
             trail != _config.MinimapTrailMinutes ||
             scaleBar != _config.MinimapScaleBarEnabled ||
             speed != _config.MinimapSpeedEnabled ||
@@ -465,7 +463,7 @@ public partial class SettingsWindow : Window
         {
             _config.MinimapMode = mode;
             _config.MinimapZoom = zoom;
-            _config.MinimapSize = mapSize;
+            _config.MinimapScale = mapScale;
             _config.MinimapTrailMinutes = trail;
             _config.MinimapScaleBarEnabled = scaleBar;
             _config.MinimapSpeedEnabled = speed;
@@ -480,13 +478,11 @@ public partial class SettingsWindow : Window
             MinimapChanged = true;
         }
 
-        var activityRows = ActivityRows3.IsChecked == true ? 3 : ActivityRows8.IsChecked == true ? 8 : 5;
         var includeFriends = ActivityFriendsCheck.IsChecked == true;
         _config.ActivityDamageLines = ActivityDamageCheck.IsChecked == true; // read live by MainWindow, no flag needed
         _config.FriendsChimeEnabled = FriendsChimeCheck.IsChecked == true;  // likewise
-        if (activityRows != _config.ActivityRows || includeFriends != _config.ActivityIncludeFriends)
+        if (includeFriends != _config.ActivityIncludeFriends)
         {
-            _config.ActivityRows = activityRows;
             _config.ActivityIncludeFriends = includeFriends;
             ActivityChanged = true;
         }

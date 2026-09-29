@@ -14,22 +14,48 @@
         FontFamily="Segoe UI"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
+    <!-- The SMALL frame (WidgetFrame): a fixed outer size the content lays out
+         inside, shared with the Activity feed. The status line docks to the
+         bottom, so any slack sits between the bars and the status. -->
     <Border x:Name="RootPanel"
+            Width="{x:Static local:WidgetFrame.Width}"
+            Height="{x:Static local:WidgetFrame.SmallHeight}"
             CornerRadius="10"
             Background="#CC10151B"
             BorderBrush="#33FFFFFF"
             BorderThickness="1"
             Padding="12,10">
-        <StackPanel>
+        <DockPanel>
 
             <!-- Header: dino + growth -->
-            <DockPanel Margin="0,0,0,8">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                 <TextBlock x:Name="GrowthText" DockPanel.Dock="Right"
                            Foreground="#9AA7B0" FontSize="12"
                            VerticalAlignment="Center"/>
                 <TextBlock x:Name="DinoText" Text="Connecting…"
                            Foreground="#ECF2F8" FontSize="14" FontWeight="Bold"/>
             </DockPanel>
+
+            <!-- Status line -->
+            <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom"
+                       Foreground="#7B8790" FontSize="10" Margin="0,8,0,0"/>
+
+            <!-- Fracture badges: ALWAYS present (dim when intact, lit when
+                 fractured), so a fracture can never resize the panel. -->
+            <StackPanel x:Name="FractureRow" DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,7,0,0">
+                <Border x:Name="FracHead" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                    <TextBlock x:Name="FracHeadText" Text="HEAD" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <Border x:Name="FracBody" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                    <TextBlock x:Name="FracBodyText" Text="BODY" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <Border x:Name="FracLegs" CornerRadius="4" Padding="6,2">
+                    <TextBlock x:Name="FracLegsText" Text="LEGS" FontSize="10" FontWeight="Bold"/>
+                </Border>
+            </StackPanel>
+
+            <!-- The four bars fill what is left -->
+            <StackPanel VerticalAlignment="Top">
 
             <!-- Health -->
             <Grid Margin="0,3,0,0">
@@ -104,26 +130,7 @@
                            TextAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
 
-            <!-- Fracture badges (only visible when fractured) -->
-            <StackPanel x:Name="FractureRow" Orientation="Horizontal" Margin="0,7,0,0"
-                        Visibility="Collapsed">
-                <Border x:Name="FracHead" Background="#B3402020" CornerRadius="4"
-                        Padding="6,2" Margin="0,0,6,0" Visibility="Collapsed">
-                    <TextBlock Text="HEAD" Foreground="#FF8A80" FontSize="10" FontWeight="Bold"/>
-                </Border>
-                <Border x:Name="FracBody" Background="#B3402020" CornerRadius="4"
-                        Padding="6,2" Margin="0,0,6,0" Visibility="Collapsed">
-                    <TextBlock Text="BODY" Foreground="#FF8A80" FontSize="10" FontWeight="Bold"/>
-                </Border>
-                <Border x:Name="FracLegs" Background="#B3402020" CornerRadius="4"
-                        Padding="6,2" Visibility="Collapsed">
-                    <TextBlock Text="LEGS" Foreground="#FF8A80" FontSize="10" FontWeight="Bold"/>
-                </Border>
             </StackPanel>
-
-            <!-- Status line -->
-            <TextBlock x:Name="StatusText"
-                       Foreground="#7B8790" FontSize="10" Margin="0,8,0,0"/>
-        </StackPanel>
+        </DockPanel>
     </Border>
 </local:OverlayWindowBase>

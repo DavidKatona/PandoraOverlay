@@ -15,7 +15,7 @@ namespace PandoraOverlay;
 /// <summary>
 /// Draggable minimap window with two north-up view modes:
 ///  - "island": the whole map fills the panel and the arrow moves over it;
-///  - "centered": the map is rendered at MinimapSize × zoom and pans under an
+///  - "centered": the map is rendered at MapSize × zoom and pans under an
 ///    arrow fixed at the panel centre. No pan clamping — near coasts the view
 ///    simply runs into the map image's own ocean border.
 /// The waypoint library (WaypointLibrary, up to 256 named places) is drawn as
@@ -41,8 +41,9 @@ public partial class MinimapWindow : OverlayWindowBase
 {
     private const double MinZoom = 1.25;
     private const double MaxZoom = 6;        // source map is 1000 px — the top of the range upscales slightly
-    private const double MinMapSize = 160;
-    private const double MaxMapSize = 400;
+
+    /// <summary>The map square at 100%: the frame's width minus the 6 px padding and 1 px border each side. MinimapScale multiplies the whole frame.</summary>
+    internal const double MapSize = WidgetFrame.Width - 14;
     private const double WaypointMargin = 8; // edge-clamp inset for the tracked marker's off-screen indicator
     private const double SnapRadius = 12;    // a click / hover this close to a marker means that waypoint
     private const double MaxScaleBarPixels = 80; // the bar takes ≤ 30% of the map's width, and never more than this
@@ -104,7 +105,7 @@ public partial class MinimapWindow : OverlayWindowBase
 
         Left = config.MinimapX;
         Top = config.MinimapY;
-        MapHost.Width = MapHost.Height = Math.Clamp(config.MinimapSize, MinMapSize, MaxMapSize);
+        MapHost.Width = MapHost.Height = MapSize;
         ApplyAppearance(config);
 
         // Bundled copy of the site's island map (Assets/map.png) — decoded at
@@ -193,15 +194,14 @@ public partial class MinimapWindow : OverlayWindowBase
         UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
     }
 
-    /// <summary>The minimap is sized natively (MinimapSize) — never scale-transformed.</summary>
-    protected override double AppearanceScale(OverlayConfig config) => 1.0;
+    /// <summary>Its own scale, like every widget (v1.25 — it was sized in pixels before; OverlayConfig.Load migrates that).</summary>
+    protected override double AppearanceScale(OverlayConfig config) => config.MinimapScale ?? 1.0;
 
-    /// <summary>Re-reads view mode, zoom, size, waypoint policy and appearance from config after the settings dialog saves.</summary>
+    /// <summary>Re-reads view mode, zoom, scale, waypoint policy and appearance from config after the settings dialog saves.</summary>
     public void ApplySettings()
     {
         _centered = string.Equals(_config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
         _zoom = Math.Clamp(_config.MinimapZoom, MinZoom, MaxZoom);
-        MapHost.Width = MapHost.Height = Math.Clamp(_config.MinimapSize, MinMapSize, MaxMapSize);
         if (!_config.HeatmapEnabled) OnHeatmap(null); // toggled off: clear immediately
         if (TrailKeep <= TimeSpan.Zero) _trail.Reset(); // switched off: forget the path, not just hide it
         ApplyAppearance(_config);

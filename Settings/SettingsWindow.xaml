@@ -551,12 +551,12 @@
             <TextBlock Style="{StaticResource PageTitle}" Text="MINIMAP"/>
 
             <DockPanel>
-                <TextBlock Style="{StaticResource SliderLabel}" Text="Size:"/>
-                <TextBlock x:Name="MapSizeLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
-                <Slider x:Name="MapSizeSlider" Minimum="160" Maximum="400"
-                        SmallChange="10" LargeChange="40" IsMoveToPointEnabled="True"
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="MinimapScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider x:Name="MinimapScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
                         VerticalAlignment="Center" Margin="10,0,6,0"
-                        ValueChanged="MapSizeSlider_ValueChanged"/>
+                        ValueChanged="MinimapScaleSlider_ValueChanged"/>
             </DockPanel>
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="View:"/>
@@ -674,15 +674,6 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="ActivityScaleSlider_ValueChanged"/>
             </DockPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Feed lines:"/>
-                <RadioButton x:Name="ActivityRows3" Style="{StaticResource Radio}" Content="3"
-                             GroupName="ActivityRows" Margin="14,0,0,0"/>
-                <RadioButton x:Name="ActivityRows5" Style="{StaticResource Radio}" Content="5"
-                             GroupName="ActivityRows" Margin="14,0,0,0"/>
-                <RadioButton x:Name="ActivityRows8" Style="{StaticResource Radio}" Content="8"
-                             GroupName="ActivityRows" Margin="14,0,0,0"/>
-            </StackPanel>
             <CheckBox x:Name="ActivityFriendsCheck" Style="{StaticResource Check}" Margin="0,10,0,0"
                       Content="Include friends' events"/>
             <CheckBox x:Name="ActivityDamageCheck" Style="{StaticResource Check}" Margin="0,6,0,0"

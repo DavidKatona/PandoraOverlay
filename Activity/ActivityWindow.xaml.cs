@@ -8,8 +8,9 @@ using System.Windows.Threading;
 namespace PandoraOverlay;
 
 /// <summary>
-/// The Activity widget: a header (plus, with friends' events included, how
-/// many friends you have and how many are in game) over a fixed number of
+/// The Activity widget, built on the SMALL frame (WidgetFrame) it shares with
+/// the stats panel: a header (plus, with friends' events included, how
+/// many friends you have and how many are in game) over FeedLines
 /// one-line slots showing the last ten minutes of the ActivityLog — your
 /// own events (SelfActivity: spawned, fresh life, stage, low stat,
 /// fracture, Prime check, damage), always, and your friends' (FriendFeed:
@@ -26,7 +27,15 @@ namespace PandoraOverlay;
 public partial class ActivityWindow : OverlayWindowBase
 {
     private const double EdgeInset = 16;
-    private const double LineHeight = 16;
+
+    /// <summary>
+    /// As many one-line slots as fit the SMALL frame under the header at
+    /// 100% (v1.25, owner's call — a 3/5/8 setting was dropped: inside a
+    /// fixed frame three lines floated and eight didn't fit). The Grid
+    /// shares the frame's remaining height between them.
+    /// </summary>
+    private const int FeedLines = 6;
+
     private static readonly TimeSpan AttentionHold = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan ExpiryTick = TimeSpan.FromSeconds(20);
 
@@ -105,28 +114,29 @@ public partial class ActivityWindow : OverlayWindowBase
     /// <summary>Its own size control, like every widget; seeded from the Prime tracker it docks under.</summary>
     protected override double AppearanceScale(OverlayConfig config) => config.ActivityScale ?? config.PrimeScale ?? config.UiScale;
 
-    /// <summary>Reapplies scale/opacity and the slot count after a settings save.</summary>
+    /// <summary>Reapplies scale/opacity and the feed choices after a settings save.</summary>
     public void ApplySettingsFromConfig()
     {
         ApplyAppearance(_config);
-        if (_slots.Count != Rows) BuildSlots();
         Render();
     }
 
-    private int Rows => Math.Clamp(_config.ActivityRows, 3, 8);
-
+    /// <summary>FeedLines equal-height rows sharing the frame under the header.</summary>
     private void BuildSlots()
     {
         Lines.Children.Clear();
+        Lines.RowDefinitions.Clear();
         _slots.Clear();
-        for (var i = 0; i < Rows; i++)
+        for (var i = 0; i < FeedLines; i++)
         {
+            Lines.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             var slot = new TextBlock
             {
-                Height = LineHeight, FontSize = 11, Foreground = Text,
+                FontSize = 11, Foreground = Text,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(0, i == 0 ? 0 : 2, 0, 0)
+                VerticalAlignment = VerticalAlignment.Center
             };
+            Grid.SetRow(slot, i);
             _slots.Add(slot);
             Lines.Children.Add(slot);
         }

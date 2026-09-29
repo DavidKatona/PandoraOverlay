@@ -14,8 +14,10 @@ namespace PandoraOverlay;
 /// honored); this window just renders the last result, which is cached in
 /// config so it survives restarts, and a live cooldown countdown. The
 /// condition texts (PrimeConditions) are baked in because the site bakes
-/// them into its frontend too — the API only returns flags. First show docks to the left screen
-/// edge, vertically centered; the position persists via config.
+/// them into its frontend too — the API only returns flags. Built on the
+/// LARGE frame (WidgetFrame) it shares with the minimap: the rows spread to
+/// fill it. First show docks to the left screen edge, vertically centered;
+/// the position persists via config.
 /// </summary>
 public partial class PrimeWindow : OverlayWindowBase
 {
@@ -113,21 +115,25 @@ public partial class PrimeWindow : OverlayWindowBase
         }
     }
 
+    /// <summary>Ten equal-height rows sharing the frame's middle — the frame sets the spacing, not the rows.</summary>
     private void BuildRows()
     {
         for (var i = 0; i < ConditionTexts.Length; i++)
         {
-            _icons[i] = new TextBlock { Width = 16, FontSize = 11, FontWeight = FontWeights.Bold };
+            ConditionRows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            _icons[i] = new TextBlock { Width = 16, FontSize = 11, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center };
             _labels[i] = new TextBlock
             {
                 Text = ConditionTexts[i],
                 FontSize = 11,
-                TextTrimming = TextTrimming.CharacterEllipsis
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center
             };
-            var row = new DockPanel { Margin = new Thickness(0, i == 0 ? 0 : 3, 0, 0) };
+            var row = new DockPanel { VerticalAlignment = VerticalAlignment.Center };
             DockPanel.SetDock(_icons[i], Dock.Left);
             row.Children.Add(_icons[i]);
             row.Children.Add(_labels[i]);
+            Grid.SetRow(row, i);
             ConditionRows.Children.Add(row);
         }
     }

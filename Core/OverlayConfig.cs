@@ -118,8 +118,20 @@ public sealed class OverlayConfig
     public double MinimapX { get; set; } = 300;
     public double MinimapY { get; set; } = 40;
 
-    /// <summary>Edge length of the square minimap, in DIPs. Slider in Settings (160–400).</summary>
+    /// <summary>
+    /// LEGACY (pre-v1.25): the map's edge length in DIPs (160–400). Load()
+    /// turns it into MinimapScale once (230 px, the old default, becomes
+    /// ~0.81 of the new 284 px map). Kept only so older configs migrate.
+    /// </summary>
     public double MinimapSize { get; set; } = 230;
+
+    /// <summary>
+    /// Minimap scale, clamped 0.75–1.5 — since v1.25 every widget is sized
+    /// in percent through the same layout transform, the minimap included
+    /// (before, it was the one widget sized in pixels). Null only in configs
+    /// written before it existed: Load() seeds it from MinimapSize.
+    /// </summary>
+    public double? MinimapScale { get; set; }
 
     /// <summary>
     /// Minimap view: "island" (whole map, the arrow moves) or "centered"
@@ -242,14 +254,6 @@ public sealed class OverlayConfig
     public double? ActivityScale { get; set; }
 
     /// <summary>
-    /// Feed lines the Activity widget reserves (3 / 5 / 8 in Settings; clamped
-    /// 3–8). A fixed number, so the widget keeps one size however busy the
-    /// evening gets — changing it in the dialog is the only thing that ever
-    /// resizes it.
-    /// </summary>
-    public int ActivityRows { get; set; } = 5;
-
-    /// <summary>
     /// Post your friends' events (spawned, left, fresh life, dino change,
     /// growth stage, fracture, nearby, roster changes) to the feed beside
     /// your own, which are always on — the feed is yours, friends are the
@@ -286,8 +290,8 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Stats panel (and control panel) scale, as a layout transform. Clamped
-    /// 0.75–1.5. The minimap is sized natively via MinimapSize instead, and
-    /// the prime tracker has its own PrimeScale.
+    /// 0.75–1.5. Every other widget has its own: MinimapScale, PrimeScale,
+    /// ActivityScale.
     /// </summary>
     public double UiScale { get; set; } = 1.0;
 
@@ -376,7 +380,7 @@ public sealed class OverlayConfig
 
         cfg.PrimeScale ??= cfg.UiScale;
         cfg.ActivityScale ??= cfg.PrimeScale;
-        cfg.ActivityRows = Math.Clamp(cfg.ActivityRows, 3, 8);
+        cfg.MinimapScale ??= MinimapScaleFromSize(cfg.MinimapSize);
 
         // Waypoint slots: always three (a hand-edited array is padded or
         // trimmed), and the pre-v1.20 single waypoint becomes the blue one.
@@ -394,6 +398,18 @@ public sealed class OverlayConfig
 
         cfg.Save();
         return cfg;
+    }
+
+    /// <summary>
+    /// The v1.25 migration from the pixel map size to a scale of the new
+    /// 284 px map, rounded to 2 decimals and clamped to the slider's range —
+    /// so an existing minimap keeps its size: 230 px → 0.81, 400 → 1.41; only
+    /// the old minimum clips (160 → 0.75 = 213 px).
+    /// </summary>
+    internal static double MinimapScaleFromSize(double px)
+    {
+        if (double.IsNaN(px) || px <= 0) return 1.0;
+        return Math.Clamp(Math.Round(px / 284, 2), 0.75, 1.5);
     }
 
     /// <summary>Decrypts and returns the stored cookie, or "" if none/undecryptable.</summary>
