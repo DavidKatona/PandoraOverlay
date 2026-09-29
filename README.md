@@ -13,16 +13,13 @@ It is **fully external**: the only thing it ever does is replay the same authent
 
 ## Contents
 
-- [Get it](#get-it)
-- [Requirements](#requirements)
-- [Build](#build)
-- [First-run setup](#first-run-setup)
-- [Usage](#usage) — [Basics](#basics) · [Tray icon & settings](#tray-icon--settings) · [Stats panel](#stats-panel) · [Minimap](#minimap) · [Waypoints](#waypoints) · [Prime tracker](#prime-tracker) · [Activity feed](#activity-feed) · [Friends](#friends)
-- [Configuration (config.json)](#configuration-configjson)
-- [Troubleshooting](#troubleshooting)
-- [Fair-play notes](#fair-play-notes)
-- [Roadmap](#roadmap)
-- [License](#license)
+- **Getting started:** [Get it](#get-it) · [Requirements](#requirements) · [Build](#build) · [First-run setup](#first-run-setup)
+- **[Usage](#usage)**
+  - [Basics](#basics) — edit mode, snapping, hotkeys, hiding
+  - [Tray icon & settings](#tray-icon--settings)
+  - Widgets: [Stats panel](#stats-panel) · [Minimap](#minimap) · [Prime tracker](#prime-tracker) · [Activity feed](#activity-feed)
+  - Features: [Waypoints](#waypoints) · [Friends](#friends) · [Server rules](#server-rules)
+- **Reference:** [Configuration (config.json)](#configuration-configjson) · [Troubleshooting](#troubleshooting) · [Fair-play notes](#fair-play-notes) · [Roadmap](#roadmap) · [License](#license)
 
 ## Get it
 
