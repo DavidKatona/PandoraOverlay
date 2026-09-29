@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.25.0 is built, working, and approved by the server's
+and settings window. **v1.26.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1014,9 +1014,14 @@ first-show placement through the pure `DefaultLayout` ("Columns", under
 the game's top HUD strip, preset-shaped for later) via
 `FillDefaultPositions`, and "Reset positions" (positions ONLY) on
 Settings → General; the ONE accepted resize of existing widgets — verified
-in-game with both an existing and a fresh config). Still to do after it:
-a Discord announcement for 1.24 + 1.25 together, README screenshots. No
-layout presets beyond the default for now.
+in-game with both an existing and a fresh config; README screenshots
+retaken on it), v1.26.0 (Sep 29 — Server rules: a Settings reference
+page and the tray's "Server rules…" showing the pack limits with the
+live species highlighted and the numbered rules, from a dated bundled
+copy of the site's page (`Assets/rules.json`, ServerRules) — the site
+has no rules endpoint; the `/api/rules` ask is pending on the owner's
+side — verified in-game). Still to do: a Discord announcement for
+1.24–1.26 together. No layout presets beyond the default for now.
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
@@ -1085,7 +1090,7 @@ re-propose.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.25.0.
+  minor, fixes bump patch. Current: 1.26.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
