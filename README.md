@@ -9,7 +9,7 @@ It is **fully external**: the only thing it ever does is replay the same authent
 [![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
 [![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
-![The overlay in-game, in edit mode: the Prime tracker docked left, the player-centered minimap and stats panel on the right, and the control panel bottom-center, over a Deinosuchus on a night-time riverbank](docs/screenshot.png)
+![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel top-right, and the control panel bottom-center, over a Deinosuchus in night-time grassland](docs/screenshot.png)
 
 ## Contents
 
@@ -66,7 +66,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - On a fresh install the panels come up in **two columns**, starting just under the game's own top HUD readouts: the Prime tracker at the top-left with the Activity feed under it, the minimap at the top-right with the stats panel under it. The minimap and Prime tracker are the same size, as are the stats panel and Activity feed, so the columns match. Drag anything anywhere afterwards; **Reset positions** in Settings → General puts them all back (sizes stay as you set them).
 - The edit-mode hotkey (**Ctrl+F7** by default) toggles **edit mode** — the panel borders turn orange, you can drag them anywhere, and a **control panel** appears (bottom-center by default, draggable like everything else) with its buttons in one row, grouped by widget: **Settings**, then **Stats** (Show/hide), **Minimap** (Show/hide, Map view, Heatmap), **Prime** (Show/hide, Check) and **Activity** (Show/hide), and finally **Lock** and **Exit**. The hotkey (or Lock) locks everything back. Positions are remembered, and the panels never change size or move between modes.
 
-  ![The edit-mode control panel: Settings, then the Stats, Minimap and Prime button groups under small captions, Lock and Exit, and the hint line underneath](docs/control-panel.png)
+  ![The edit-mode control panel: Settings, then the Stats, Minimap, Prime and Activity button groups under small captions, Lock and Exit, and the hint line underneath](docs/control-panel.png)
 
 - While dragging, panels **snap** to the screen edges, a small inset from them, and to each other — **guide lines** light up along whatever you snapped to (orange = screen, blue = the other panel). Hold **Alt** while dragging for pixel-perfect free placement.
 - You can't lose a panel off-screen: locking edit mode (or restarting the app) pulls every panel fully back into view — dragging itself stays free, so moving panels to another monitor still works.
@@ -81,7 +81,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Stats panel
 
-![The stats panel in edit mode: a male Deinosuchus at 96,7% growth, the four stat bars — health, stamina, hunger, thirst — and the live status line](docs/stats-panel.png)
+![The stats panel in edit mode: a fully grown male Deinosuchus, the four stat bars — health, stamina, hunger at 13% with "~15m" left at the fill's tip, thirst — the three dim fracture badges, and the live status line](docs/stats-panel.png)
 
 - The stats panel can be **hidden** entirely (control panel → Stats → Show/hide) — the app keeps running from the tray, and hotkeys and the minimap stay live. Its size is adjustable with the Scale slider in Settings → Stats panel.
 
@@ -98,7 +98,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Minimap
 
-![The minimap in edit mode: the player-centered view of a river delta with the orange player arrow, and the footer showing "centered · 5,22×"](docs/minimap.png)
+![The minimap in edit mode: the player-centered view of a lake shore with the orange player arrow, the breadcrumb trail and a tracked waypoint's ringed diamond, the scale bar and the heading and speed pill in the corners, and the footer showing "centered · 4,54× · ◆ North Lake · 178 m"](docs/minimap.png)
 
 - The **minimap** is a separate window sharing the same edit mode: drag it independently, show or hide it from the control panel. Your arrow glides between updates and rotates with your facing. It adds zero extra requests — both windows feed off the same poll.
 - Two views, toggled with the control panel's **Map view** button (or **Ctrl+F5** any time): the whole island (default), or **player-centered** (north-up, the map pans under a fixed arrow). In the centered view the mouse wheel zooms (1.25–6×) while in edit mode. Both the view and zoom are remembered (and also editable in Settings), and the footer under the map always shows the active view (and zoom).
@@ -121,7 +121,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Prime tracker
 
-![The Prime tracker: "Prime Elder" status, the ten conditions as a ✓/✗ list, and the footer showing "Checked 08:29 · Deinosuchus" with the "next check in 0:43" countdown](docs/prime-tracker.png)
+![The Prime tracker: "Prime Elder" status, the ten conditions as a ✓/✗ list, and the footer showing "Checked 15:25 · Deinosuchus" with the "next check in 4:17" countdown](docs/prime-tracker.png)
 
 - The **Prime tracker** is a third widget (docked to the left screen edge by default, draggable like the others) showing your Prime status and the server's ten Prime conditions as a ✓/✗ list — the same result as the website's "Prime Check" box. 5 of 10 are needed for Prime.
 - It never checks by itself. Press **Ctrl+F8** any time (rebindable in Settings), or **Check** in the control panel's Prime group. The server enforces a cooldown between checks — 5 minutes normally, shorter with some supporter ranks — so after each check the overlay asks the server for *your* cooldown, counts it down in the widget, and remembers it across restarts. A click during the cooldown sends nothing. You need to be spawned in for a check to work.
@@ -129,6 +129,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - Hide or show the widget with **Show/hide** in the control panel's Prime group. Its size has its own Scale slider in Settings → Prime tracker (75–150%).
 
 ### Activity feed
+
+![The Activity feed: "1 of 3 friends in game" in the header, then the lines "Prime check · 7/10 · Prime Elder", "You spawned as Deinosuchus 100%" and "Hunger under 20%" with orange dots, fading with age, and "In game: Zoro (Tyrannosaurus)" at the bottom](docs/activity-feed.png)
 
 - The **Activity widget** (a fourth panel, docked under the Prime tracker by default) is a feed of the last ten minutes: each line reports something that just happened, newest at the top, fading as it ages. Every other cue on the overlay is momentary — the growth readout blinks, a chime plays once — so this is the one you can read after a fight or when you come back to the keyboard. With friends' events included, its header also says how many friends you have and how many are in game.
 - **Your friends' events** (on by default): a friend spawned in ("spawned as Deinosuchus 42%"), left the game, started a fresh dino of the same species, switched dino, reached a growth stage, took a fracture, came within 200 m of you, or joined or left your list. Several friends leaving at once (a server restart) become one line, and "left the game" is worded neutrally on purpose — from outside, a logout, a restart and a death look the same.
