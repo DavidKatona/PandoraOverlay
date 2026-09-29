@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- A default layout for fresh installs: the Prime tracker in the top-left
-  corner with the Activity feed under it, the minimap in the top-right
-  corner with the stats panel under it. Existing layouts are untouched.
+- A default layout for fresh installs: the Prime tracker at the top-left
+  with the Activity feed under it, the minimap at the top-right with the
+  stats panel under it, all starting under the game's own top HUD
+  readouts. Existing layouts are untouched.
 - Settings → General → **Reset positions** puts every panel back in that
   layout (applied on Save). Sizes are not changed.
 

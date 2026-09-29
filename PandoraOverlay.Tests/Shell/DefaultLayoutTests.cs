@@ -10,14 +10,25 @@ public class DefaultLayoutTests
     private static readonly Size Small = new(WidgetFrame.Width, WidgetFrame.SmallHeight);
 
     [Fact]
-    public void ColumnsPutPrimeAndActivityLeftMinimapAndStatsRight()
+    public void ColumnsPutPrimeAndActivityLeftMinimapAndStatsRightUnderTheHudStrip()
     {
         var p = DefaultLayout.Columns(Screen, Large, Small, Large, Small);
 
-        Assert.Equal(new Point(16, 16), p.Prime);
-        Assert.Equal(new Point(16, 16 + WidgetFrame.LargeHeight + 8), p.Activity);
-        Assert.Equal(new Point(1920 - 16 - WidgetFrame.Width, 16), p.Minimap);
-        Assert.Equal(new Point(1920 - 16 - WidgetFrame.Width, 16 + WidgetFrame.LargeHeight + 8), p.Stats);
+        const double top = 108; // 10% of 1080: clear of the game's version/FPS/camera and ping/FPS readouts
+        Assert.Equal(new Point(16, top), p.Prime);
+        Assert.Equal(new Point(16, top + WidgetFrame.LargeHeight + 8), p.Activity);
+        Assert.Equal(new Point(1920 - 16 - WidgetFrame.Width, top), p.Minimap);
+        Assert.Equal(new Point(1920 - 16 - WidgetFrame.Width, top + WidgetFrame.LargeHeight + 8), p.Stats);
+    }
+
+    [Fact]
+    public void TopInsetScalesWithTheScreenAndNeverDropsUnderTheSideInset()
+    {
+        var p1440 = DefaultLayout.Columns(new Rect(0, 0, 2560, 1440), Large, Small, Large, Small);
+        Assert.Equal(144, p1440.Prime.Y);
+
+        var tiny = DefaultLayout.Columns(new Rect(0, 0, 800, 100), Large, Small, Large, Small);
+        Assert.Equal(16, tiny.Prime.Y); // 10% of 100 is under the floor
     }
 
     [Fact]
@@ -36,7 +47,7 @@ public class DefaultLayoutTests
 
         Assert.Equal(1920 - 16, p.Minimap.X + bigMap.Width);
         Assert.Equal(1920 - 16, p.Stats.X + Small.Width);
-        Assert.Equal(16 + bigMap.Height + 8, p.Stats.Y); // docked under the bigger map
+        Assert.Equal(108 + bigMap.Height + 8, p.Stats.Y); // docked under the bigger map
     }
 
     [Fact]
@@ -45,8 +56,8 @@ public class DefaultLayoutTests
         var second = new Rect(1920, -200, 2560, 1440); // a monitor to the right, higher up
         var p = DefaultLayout.Columns(second, Large, Small, Large, Small);
 
-        Assert.Equal(new Point(1936, -184), p.Prime);
+        Assert.Equal(new Point(1936, -200 + 144), p.Prime);
         Assert.Equal(1920 + 2560 - 16 - WidgetFrame.Width, p.Minimap.X);
-        Assert.Equal(-184, p.Minimap.Y);
+        Assert.Equal(-200 + 144, p.Minimap.Y);
     }
 }

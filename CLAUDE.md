@@ -269,7 +269,12 @@ Every overlay window derives from `OverlayWindowBase`.
   position. One preset, `Columns(screen, prime, activity, minimap,
   stats)` → the four top-left points: Prime top-left at the 16 px
   `Inset` with Activity `Gap` 8 below; minimap top-right with the stats
-  panel below, right edges aligned; sizes passed in are the windows'
+  panel below, right edges aligned; the TOP inset is `TopFraction` 10%
+  of the screen height (floor 16 px — 108 px at 1080p) because the game's
+  own HUD owns the top strip (version/FPS/recording camera left, ping/FPS
+  right, ~85 px at 1080p, scaling with resolution; owner, Sep 29 2026,
+  from a screenshot) and vertical centring was rejected as it would run
+  into the game's bottom-right stat hexes on short screens; sizes passed in are the windows'
   ACTUAL (scaled) sizes. Written preset-shaped so a second layout is one
   more method (owner, Sep 29 2026: no presets yet). Wired through
   `MainWindow.FillDefaultPositions`: at startup, BEFORE the other windows
