@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.26.0 is built, working, and approved by the server's
+and settings window. **v1.27.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1103,17 +1103,16 @@ page and the tray's "Server rules…" showing the pack limits with the
 live species highlighted and the numbered rules, from a dated bundled
 copy of the site's page (`Assets/rules.json`, ServerRules) — the site
 has no rules endpoint; the `/api/rules` ask is pending on the owner's
-side — verified in-game). No layout presets beyond the default for now.
-
-Built Sep 30 2026, awaiting in-game verification (two player requests
-from the #pandora-overlay channel): the **stamina timer** (StaminaTracker
-— time until empty while draining, "full ~Ns" while recovering, on the
-stamina bar) and the stats panel's two views, **Survival / Combat**
-(Combat = health, stamina, damage taken this fight, speed — same rows,
-same frame; "Wounded"/"Healthy" in the header corner, the view named in
-the footer, its own fade ruleset; Settings default, Ctrl+F9 and the
-control panel's View button to flip; no automatic switching; the first
-large-bar build was reworked the same day).
+side — verified in-game), v1.27.0 (Sep 30 — two player requests from the
+#pandora-overlay channel: the stamina timer (StaminaTracker — time until
+empty while draining, "full ~Ns" while recovering, on the stamina bar)
+and the stats panel's two views, Survival / Combat (Combat = health,
+stamina, damage taken this fight, speed — same rows, same frame;
+"Wounded"/"Healthy" in the header corner, the view named in the footer,
+its own fade ruleset, a flip always lighting the panel; Settings
+default, Ctrl+F9 and the control panel's View button to flip; no
+automatic switching; the first large-bar build was reworked the same
+day — verified in-game). No layout presets beyond the default for now.
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
@@ -1182,7 +1181,7 @@ re-propose.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.26.0.
+  minor, fixes bump patch. Current: 1.27.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
