@@ -28,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The attention fade follows the view. In Combat the stats panel lights
   up for health or stamina under 75%, a fracture, and for as long as the
   Damage row shows a fight; hunger and thirst, which that view doesn't
-  show, no longer wake it. Survival wakes exactly as before.
+  show, no longer wake it. Survival wakes exactly as before. Flipping
+  the view always lights the panel for a few seconds.
 
 Both were requested by players in the Discord channel.
 

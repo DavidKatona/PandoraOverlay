@@ -405,10 +405,14 @@ Every overlay window derives from `OverlayWindowBase`.
   combat panel that doesn't show thirst. `Update(p, hungerLeft,
   thirstLeft, combatView, inFight)` branches into two private rules that
   share the identity and the damage baseline (one class, not two, so a
-  flip mid-fight loses nothing; a flipped view decides afresh — a value
-  between the new view's lines reads as calm instead of inheriting the
-  other view's verdict; `ToggleStatsView` re-runs it on the same sample
-  so the fade follows the flip at once). SURVIVAL (unchanged): wake on health/hunger/thirst < 50%, any fracture, damage
+  flip mid-fight loses nothing). A FLIP ALWAYS LIGHTS the panel for 10 s
+  (owner's call: it is a change to the panel itself) — `ApplyStatsView`
+  tells a flip from a re-apply (`_shownCombat`), calls `NoteViewFlip` and
+  lights the panel at once, whichever path flipped it (hotkey, control
+  panel, Settings save); `FlipHeld` covers not-in-game, where `Update`
+  never runs. After the hold the new view decides AFRESH — a value
+  between its lines reads as calm instead of inheriting the hold or the
+  other view's verdict. SURVIVAL (unchanged): wake on health/hunger/thirst < 50%, any fracture, damage
   (health down > 0.005 between polls, held 10 s — one poll's drop is
   momentary) or a drain estimate under 15 min; calm only above 55% / 20
   min with none of the rest, so a stat at the line can't blink; stamina

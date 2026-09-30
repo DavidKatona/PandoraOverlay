@@ -407,7 +407,7 @@ public partial class MainWindow : OverlayWindowBase
             _attention.Reset();
             _lowStat.Reset();
             _milestones.Reset();
-            SetAttention(false); // "Not in-game" is nothing to watch
+            SetAttention(_attention.FlipHeld); // "Not in-game" is nothing to watch — bar a view flip's few seconds
             RenderTimeLeft();
             DinoText.Text = "Not in-game";
             GrowthText.Text = "";
@@ -587,15 +587,25 @@ public partial class MainWindow : OverlayWindowBase
         ViewText.Text = combat ? "combat view" : "survival view";
         FitViewName();
         RenderTimeLeft();
+
+        // A flip — by hotkey, the control panel or a Settings save — always
+        // lights the panel for a few seconds: it is a change to the panel
+        // itself (owner's call). Then the new view's ruleset decides.
+        if (_shownCombat is { } was && was != combat)
+        {
+            _attention.NoteViewFlip();
+            SetAttention(true);
+        }
+        _shownCombat = combat;
     }
+
+    private bool? _shownCombat; // the view on screen, to tell a flip from a re-apply
 
     /// <summary>The stats-view hotkey and the control panel's View button: flips Survival ↔ Combat (persisted with the next Save).</summary>
     private void ToggleStatsView()
     {
         _config.StatsView = CombatViewOn ? "survival" : "combat";
         ApplyStatsView();
-        // Same sample, new ruleset: the fade follows the flip at once instead of a poll later.
-        if (_me is { } p) SetAttention(_attention.Update(p, _hungerDrain.TimeLeft, _thirstDrain.TimeLeft, CombatViewOn, _damage.InFight));
     }
 
     /// <summary>The time labels on the bars; the trackers run either way, so the Settings checkbox applies at once.</summary>

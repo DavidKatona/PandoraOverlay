@@ -199,6 +199,42 @@ public class StatsAttentionTests
     }
 
     [Fact]
+    public void AFlipAlwaysLightsThePanelForAFewSeconds() // a change to the panel itself
+    {
+        var a = new StatsAttention();
+        Assert.False(a.Update(Player(), null, null, T0)); // all is well in survival
+        a.NoteViewFlip(T0 + TimeSpan.FromSeconds(1));
+        Assert.True(Combat(a, Player(), seconds: 3));     // nothing to wake combat either, lit by the flip
+        Assert.True(Combat(a, Player(), seconds: 9));
+        Assert.False(Combat(a, Player(), seconds: 12));   // hold over: the new view's rules decide
+    }
+
+    [Fact]
+    public void AfterTheFlipsHoldTheNewViewDecidesAfresh()
+    {
+        var a = new StatsAttention();
+        a.Update(Player(stamina: 0.78), null, null, T0);
+        a.NoteViewFlip(T0);
+        Assert.True(Combat(a, Player(stamina: 0.78), seconds: 3));
+        Assert.False(Combat(a, Player(stamina: 0.78), seconds: 12)); // between combat's lines: the hold is not a verdict to inherit
+
+        a.NoteViewFlip(T0 + TimeSpan.FromSeconds(20));
+        Assert.True(a.Update(Player(thirst: 0.30), null, null, T0 + TimeSpan.FromSeconds(21)));
+        Assert.True(a.Update(Player(thirst: 0.30), null, null, T0 + TimeSpan.FromSeconds(33))); // hold over, but survival has its own reason
+    }
+
+    [Fact]
+    public void TheFlipsHoldIsKnownWithoutASample() // not in game: Update never runs
+    {
+        var a = new StatsAttention();
+        Assert.False(a.FlipHeldAt(T0));
+        a.NoteViewFlip(T0);
+        a.Reset(); // leaving the game must not cut the hold short
+        Assert.True(a.FlipHeldAt(T0 + TimeSpan.FromSeconds(9)));
+        Assert.False(a.FlipHeldAt(T0 + TimeSpan.FromSeconds(11)));
+    }
+
+    [Fact]
     public void AFlipMidFightKeepsSurvivalsDamageHold() // the baseline runs in both views
     {
         var a = new StatsAttention();

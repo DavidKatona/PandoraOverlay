@@ -22,7 +22,8 @@ namespace PandoraOverlay;
 /// Each view calms only once everything sits clear of its thresholds, with a
 /// gap between wake and calm so a stat hovering at the line cannot make the
 /// panel blink. Both share the identity and the damage baseline, so flipping
-/// views mid-fight loses nothing.
+/// views mid-fight loses nothing. The flip itself lights the panel for a few
+/// seconds (NoteViewFlip); then the new view's rules decide afresh.
 /// </summary>
 public sealed class StatsAttention
 {
@@ -43,9 +44,25 @@ public sealed class StatsAttention
     private DateTime _damageUntil;
     private DateTime _eventUntil;
     private bool? _combatView; // the view the last verdict was for
+    private bool _afresh;      // the view changed: the next verdict must not inherit the old one
+    private DateTime _flipUntil;
 
     /// <summary>True while the panel should show at full opacity. Starts lit: nothing is known yet.</summary>
     public bool Lit { get; private set; } = true;
+
+    /// <summary>
+    /// The view was flipped: a change to the panel itself is always shown at
+    /// full opacity for a few seconds, whatever the new view's rules say
+    /// (owner's call). After the hold the new view decides afresh.
+    /// </summary>
+    public void NoteViewFlip() => NoteViewFlip(DateTime.UtcNow);
+
+    internal void NoteViewFlip(DateTime now) => _flipUntil = now + EventHold;
+
+    /// <summary>True while a flip's hold runs — for the states Update never sees (not in game).</summary>
+    public bool FlipHeld => FlipHeldAt(DateTime.UtcNow);
+
+    internal bool FlipHeldAt(DateTime now) => now < _flipUntil;
 
     /// <summary>Call when leaving the game: the next spawn starts with no damage baseline.</summary>
     public void Reset()
@@ -86,13 +103,20 @@ public sealed class StatsAttention
             ? CombatRule(p, fractured, inFight)
             : SurvivalRule(p, fractured, now < _damageUntil || now < _eventUntil, hungerLeft, thirstLeft);
 
-        if (_combatView is { } before && before != combatView)
+        if (_combatView is { } before && before != combatView) _afresh = true;
+        _combatView = combatView;
+
+        if (now < _flipUntil)
         {
-            Lit = wake; // a flipped view decides afresh: a value between its lines must not inherit the other view's verdict
+            Lit = true; // the flip itself is worth a look
+        }
+        else if (_afresh)
+        {
+            Lit = wake; // a value between the new view's lines must not inherit the other view's verdict (or the flip's hold)
+            _afresh = false;
         }
         else if (wake) Lit = true;
         else if (calm) Lit = false;
-        _combatView = combatView;
         return Lit;
     }
 
