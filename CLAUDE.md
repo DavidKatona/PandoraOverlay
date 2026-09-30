@@ -157,6 +157,20 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
 - `Assets/` unchanged; `App.xaml` (StartupUri now `Shell/MainWindow.xaml`),
   csproj, sln and the docs stay at the root. `PandoraOverlay.Tests/` mirrors
   the folders.
+- `packs/` — DATA, not code (Sep 30 2026): three ready-made waypoint packs
+  users download and import (`gateway-areas` 26, `gateway-water` 27,
+  `gateway-landmarks` 27 = landmarks + human sites + tunnels) and their
+  own README with the import walkthrough (`docs/waypoint-import*.png`).
+  Not built into the app and not in the release zip. Converted once from
+  VulnonaMAP's Gateway label data (vulnona.com, community-made): world cm
+  = its Lat/Long × 1000, Long → X, Lat → Y — the game's own coordinates,
+  checked against hand-placed waypoints and a plot on `Assets/map.png`.
+  Ids are deterministic (MD5 of "vulnona-gateway/<pack>/<record name>"),
+  so a regenerated pack re-imports as duplicates. Owner's call: a credit
+  line in each file (`Source`, `CopiedOn` — extra JSON the importer
+  ignores) and in the README is enough. A dated snapshot like
+  `rules.json`; the overlay never contacts vulnona.com. Left out: fence
+  gates, caves, mud, air currents, food spawns and the zone shapes.
 
 The namespace stays ONE flat `PandoraOverlay` on purpose (35 files don't
 earn sub-namespaces; `.editorconfig` silences IDE0130). The SDK-style csproj
