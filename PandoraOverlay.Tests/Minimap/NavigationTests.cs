@@ -126,3 +126,22 @@ public class ShareCodeTests
         Assert.Equal("Nest", name);
     }
 }
+
+public class SpeedTrackerWindowTests
+{
+    private static readonly DateTime T0 = new(2026, 9, 30, 12, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public void AShortWindowFollowsAStopWithinTwoPolls()
+    {
+        var calm = new SpeedTracker();                          // 15 s, the minimap's
+        var quick = new SpeedTracker(TimeSpan.FromSeconds(6)); // the combat row's
+        // Four polls of sprinting at 10 m/s (3000 cm per 3 s), then two standing still.
+        for (var i = 0; i <= 4; i++) { calm.Add(i * 3000, 0, T0.AddSeconds(i * 3)); quick.Add(i * 3000, 0, T0.AddSeconds(i * 3)); }
+        Assert.Equal(10, quick.SpeedMps!.Value, 1);
+        for (var i = 5; i <= 6; i++) { calm.Add(12000, 0, T0.AddSeconds(i * 3)); quick.Add(12000, 0, T0.AddSeconds(i * 3)); }
+
+        Assert.Equal(0, quick.SpeedMps!.Value, 1);  // the last 6 s were stationary
+        Assert.True(calm.SpeedMps > 3);             // the long window still remembers the sprint
+    }
+}

@@ -14,11 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ("full ~40s"). It shows a few seconds into a steady sprint or rest and
   disappears when stamina holds still. The existing time-left checkbox in
   Settings → Stats panel covers it.
-- Combat view for the stats panel: health and stamina as two large bars
-  with big percentages plus the fracture badges, for fights. Same panel
-  size and position as the full view. Flip with Ctrl+F9 (rebindable) or
-  the control panel's new View button; Settings → Stats panel chooses the
-  view it starts in.
+- Two views for the stats panel, Survival and Combat. Survival is the
+  panel as it was (health, stamina, hunger, thirst, growth). Combat keeps
+  health and stamina and swaps the other two rows for what matters in a
+  fight: Damage, the health you have lost in this fight as a red bar that
+  grows (it clears 30 seconds after the last hit), and Speed, your
+  current speed in km/h. Same panel size, same rows, so nothing moves.
+  Flip with Ctrl+F9 (rebindable) or the control panel's new View button;
+  Settings → Stats panel chooses the view it starts in.
 
 Both were requested by players in the Discord channel.
 

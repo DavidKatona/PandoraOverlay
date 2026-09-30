@@ -10,10 +10,14 @@ namespace PandoraOverlay;
 /// </summary>
 public sealed class SpeedTracker
 {
-    private static readonly TimeSpan Window = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan DefaultWindow = TimeSpan.FromSeconds(15);
+    private readonly TimeSpan _window;
     private const double MaxSpeedCmPerSec = 6000; // 60 m/s — beyond any dino, so not travel
 
     private readonly List<(DateTime At, double X, double Y)> _samples = new();
+
+    /// <summary>The default window (15 s) keeps the minimap's pill calm; the stats panel's combat row passes a shorter one so a sprint or a stop shows within a couple of polls.</summary>
+    public SpeedTracker(TimeSpan? window = null) => _window = window ?? DefaultWindow;
 
     public void Reset() => _samples.Clear();
 
@@ -27,13 +31,13 @@ public sealed class SpeedTracker
             var last = _samples[^1];
             var seconds = (now - last.At).TotalSeconds;
             if (seconds <= 0) return;
-            if (seconds > Window.TotalSeconds || Distance(last.X, last.Y, x, y) / seconds > MaxSpeedCmPerSec)
+            if (seconds > _window.TotalSeconds || Distance(last.X, last.Y, x, y) / seconds > MaxSpeedCmPerSec)
             {
                 _samples.Clear();
             }
         }
         _samples.Add((now, x, y));
-        while (now - _samples[0].At > Window)
+        while (now - _samples[0].At > _window)
         {
             _samples.RemoveAt(0);
         }

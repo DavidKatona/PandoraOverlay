@@ -17,8 +17,8 @@
     <!-- The SMALL frame (WidgetFrame): a fixed outer size the content lays out
          inside, shared with the Activity feed. The status line docks to the
          bottom, so any slack sits between the bars and the status. Two views
-         share the frame (StatsView): the full one with all four bars, and the
-         combat one with health and stamina only, drawn large. -->
+         share the frame (StatsView): Survival with health, stamina, hunger
+         and thirst, and Combat with health, stamina, damage and speed. -->
     <Border x:Name="RootPanel"
             Width="{x:Static local:WidgetFrame.Width}"
             Height="{x:Static local:WidgetFrame.SmallHeight}"
@@ -59,7 +59,7 @@
             <!-- The bars fill what is left: one of the two views is visible. -->
             <Grid>
 
-            <!-- ===== Full view: all four bars ===== -->
+            <!-- ===== Survival view: health, stamina, hunger, thirst ===== -->
             <StackPanel x:Name="FullView" VerticalAlignment="Top">
 
             <!-- Health -->
@@ -141,41 +141,72 @@
 
             </StackPanel>
 
-            <!-- ===== Combat view: health and stamina only, drawn large =====
-                 Same columns as the full view, so the fills use the same 170 px
-                 track; taller bars and bigger numbers, readable in a fight. -->
-            <StackPanel x:Name="CombatView" VerticalAlignment="Center" Visibility="Collapsed">
+            <!-- ===== Combat view: the same four rows, different information =====
+                 Health and stamina as in the survival view, then what matters in
+                 a fight in place of hunger and thirst: damage taken in this fight
+                 (a red bar that GROWS) and your speed (a number — there is no
+                 honest full mark for a speed bar). Same sizes and positions as
+                 the survival view, so flipping moves nothing. -->
+            <StackPanel x:Name="CombatView" VerticalAlignment="Top" Visibility="Collapsed">
 
-            <Grid>
+            <Grid Margin="0,3,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="58"/>
                     <ColumnDefinition Width="170"/>
                     <ColumnDefinition Width="44"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Health" Foreground="#ECF2F8" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <Border Grid.Column="1" Height="24" CornerRadius="8" Background="#3D202830" VerticalAlignment="Center">
-                    <Border x:Name="CombatHealthFill" Height="24" CornerRadius="8" Background="#4CAF50"
+                <TextBlock Text="Health" Foreground="#C7D1DA" FontSize="11" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="12" CornerRadius="6" Background="#3D202830" VerticalAlignment="Center">
+                    <Border x:Name="CombatHealthFill" Height="12" CornerRadius="6" Background="#4CAF50"
                             HorizontalAlignment="Left" Width="0"/>
                 </Border>
-                <TextBlock x:Name="CombatHealthPct" Grid.Column="2" Foreground="#ECF2F8" FontSize="15" FontWeight="Bold"
+                <TextBlock x:Name="CombatHealthPct" Grid.Column="2" Foreground="#C7D1DA" FontSize="11"
                            TextAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
 
-            <Grid Margin="0,8,0,0">
+            <Grid Margin="0,3,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="58"/>
                     <ColumnDefinition Width="170"/>
                     <ColumnDefinition Width="44"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Stamina" Foreground="#ECF2F8" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <Border Grid.Column="1" Height="24" CornerRadius="8" Background="#3D202830" VerticalAlignment="Center">
-                    <Border x:Name="CombatStaminaFill" Height="24" CornerRadius="8" Background="#FFD54F"
+                <TextBlock Text="Stamina" Foreground="#C7D1DA" FontSize="11" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="12" CornerRadius="6" Background="#3D202830" VerticalAlignment="Center">
+                    <Border x:Name="CombatStaminaFill" Height="12" CornerRadius="6" Background="#FFD54F"
                             HorizontalAlignment="Left" Width="0"/>
                 </Border>
-                <TextBlock x:Name="CombatStaminaLeft" Grid.Column="1" FontSize="12" FontWeight="SemiBold"
+                <TextBlock x:Name="CombatStaminaLeft" Grid.Column="1" FontSize="10"
                            HorizontalAlignment="Left" VerticalAlignment="Center"
                            Visibility="Collapsed"/>
-                <TextBlock x:Name="CombatStaminaPct" Grid.Column="2" Foreground="#ECF2F8" FontSize="15" FontWeight="Bold"
+                <TextBlock x:Name="CombatStaminaPct" Grid.Column="2" Foreground="#C7D1DA" FontSize="11"
+                           TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Damage taken in this fight: fills as you lose health, clears 30 s after the last hit -->
+            <Grid Margin="0,3,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="44"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Damage" Foreground="#C7D1DA" FontSize="11" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="12" CornerRadius="6" Background="#3D202830" VerticalAlignment="Center">
+                    <Border x:Name="DamageFill" Height="12" CornerRadius="6" Background="#E53935"
+                            HorizontalAlignment="Left" Width="0"/>
+                </Border>
+                <TextBlock x:Name="DamagePct" Grid.Column="2" Foreground="#C7D1DA" FontSize="11"
+                           TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Speed: a number, no bar (its top value changes with growth, so no scale would be true) -->
+            <Grid Margin="0,3,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="44"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Speed" Foreground="#C7D1DA" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock x:Name="SpeedValue" Grid.Column="1" Grid.ColumnSpan="2" Foreground="#C7D1DA" FontSize="11"
                            TextAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
 

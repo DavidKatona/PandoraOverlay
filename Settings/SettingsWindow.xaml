@@ -555,9 +555,9 @@
             </DockPanel>
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="View:"/>
-                <RadioButton x:Name="StatsViewFull" Style="{StaticResource Radio}" Content="Full"
+                <RadioButton x:Name="StatsViewSurvival" Style="{StaticResource Radio}" Content="Survival"
                              GroupName="StatsView" Margin="14,0,0,0"/>
-                <RadioButton x:Name="StatsViewCombat" Style="{StaticResource Radio}" Content="Combat (health, stamina, fractures)"
+                <RadioButton x:Name="StatsViewCombat" Style="{StaticResource Radio}" Content="Combat"
                              GroupName="StatsView" Margin="14,0,0,0"/>
             </StackPanel>
             <CheckBox x:Name="TimeLeftCheck" Style="{StaticResource Check}" Margin="0,8,0,0"

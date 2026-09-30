@@ -146,7 +146,7 @@ public partial class SettingsWindow : Window
         TimeLeftCheck.IsChecked = config.StatTimeLeftEnabled;
         var combatView = string.Equals(config.StatsView, "combat", StringComparison.OrdinalIgnoreCase);
         StatsViewCombat.IsChecked = combatView;
-        StatsViewFull.IsChecked = !combatView;
+        StatsViewSurvival.IsChecked = !combatView;
         HideNotInGameCheck.IsChecked = config.HideWhenNotInGame;
         LowStatChimeCheck.IsChecked = config.LowStatChimeEnabled;
         GrowthChimeCheck.IsChecked = config.GrowthChimeEnabled;
@@ -450,7 +450,7 @@ public partial class SettingsWindow : Window
         _config.HideWhenNotInGame = HideNotInGameCheck.IsChecked == true; // MainWindow reads these live, no flag needed
         _config.LowStatChimeEnabled = LowStatChimeCheck.IsChecked == true;
         _config.GrowthChimeEnabled = GrowthChimeCheck.IsChecked == true;
-        _config.StatsView = StatsViewCombat.IsChecked == true ? "combat" : "full"; // MainWindow reapplies the view after every save
+        _config.StatsView = StatsViewCombat.IsChecked == true ? "combat" : "survival"; // MainWindow reapplies the view after every save
 
         var scale = Math.Round(ScaleSlider.Value, 2);
         var primeScale = Math.Round(PrimeScaleSlider.Value, 2);

@@ -99,7 +99,7 @@ public sealed class OverlayConfig
     public string HotkeyPrimeCheck { get; set; } = "Ctrl+F8";
 
     /// <summary>
-    /// Flip the stats panel between its full and combat views from gameplay —
+    /// Flip the stats panel between its Survival and Combat views from gameplay —
     /// same format as Hotkey. A late-added key like the two above: a collision
     /// with a customized combo is resolved to a free one at startup.
     /// </summary>
@@ -111,12 +111,13 @@ public sealed class OverlayConfig
     public bool StatsEnabled { get; set; } = true;
 
     /// <summary>
-    /// Which view the stats panel shows: "full" (all four bars and growth) or
-    /// "combat" (health and stamina drawn large plus the fracture badges —
-    /// for fights). Same frame either way. Set in Settings → Stats panel, and
-    /// flipped mid-game with HotkeyStatsView or the control panel's View.
+    /// Which view the stats panel shows: "survival" (health, stamina, hunger,
+    /// thirst, growth) or "combat" (health, stamina, damage taken in this
+    /// fight, speed — for fights). Same frame and sizes either way; anything
+    /// other than "combat" reads as survival. Set in Settings → Stats panel,
+    /// and flipped mid-game with HotkeyStatsView or the control panel's View.
     /// </summary>
-    public string StatsView { get; set; } = "full";
+    public string StatsView { get; set; } = "survival";
 
     /// <summary>
     /// Hide every widget after ~30 s of not being spawned in (spawn menu,

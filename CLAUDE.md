@@ -145,8 +145,8 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   SnapGuideWindow, ControlPanelWindow, TrayIcon, and MainWindow (the
   orchestrator, which is also the stats panel — splitting the panel out
   into its own window is a possible later refactor).
-- `Stats/` — GrowthTracker, DrainTracker, StaminaTracker, StatsAttention,
-  LowStatAlert, GrowthMilestones.
+- `Stats/` — GrowthTracker, DrainTracker, StaminaTracker, DamageTracker,
+  StatsAttention, LowStatAlert, GrowthMilestones.
 - `Minimap/` — MinimapWindow, BreadcrumbTrail, ScaleBar, SpeedTracker, Compass.
 - `Waypoints/` — WaypointLibrary, WaypointPacks, ShareCode.
 - `Friends/` — FriendBook (+ FriendColour), FriendFeed.
@@ -389,6 +389,16 @@ Every overlay window derives from `OverlayWindowBase`.
   fade wake or chime (stamina drains by design). Rendered by
   `MainWindow.SetBarLabel` on the stamina bar of both views, gated by the
   same `StatTimeLeftEnabled` checkbox as hunger/thirst.
+- **DamageTracker.cs** — pure, tested (v1.27): health lost in the current
+  fight, for the combat view's Damage row. Every drop > 0.002 between
+  polls adds to `Total` (bleed counts, regeneration is never subtracted,
+  so a long fight can pass 100%); 30 s without a hit ends the fight and
+  clears it; death/dino swap/not-in-game reset. A readout, not a combat
+  log: one reading per poll, so a hit healed within the same poll is
+  invisible and WHO hit you is unknowable (no such data in the API) —
+  don't claim either in user-facing text. Separate from StatsAttention's
+  damage cue (fade) and SelfActivity's damage line (feed) on purpose:
+  each has its own threshold for its own job.
 - **StatsAttention.cs** — pure, tested wake/calm rule for the stats
   panel's fade: wake on health/hunger/thirst < 50%, any fracture, damage
   (health down > 0.005 between polls, held 10 s — one poll's drop is
@@ -443,16 +453,25 @@ Every overlay window derives from `OverlayWindowBase`.
   `ShowPrime` at startup and hands the new widget a suggested spot right
   under the Prime tracker; every activity show/hide calls
   `RefreshFriendsAsync` so the fetch gate follows the surfaces). Stats
-  views (v1.27, a player's request for a PvP focus): `StatsView` "full"
-  (all four bars + growth) or "combat" (health and stamina as 24 px bars
-  with 15 px bold percents, bigger fracture badges, no growth readout,
-  the status line kept — staleness matters most in a fight). Two layouts
-  (`FullView` / `CombatView`) inside the SAME small frame, both kept up
-  to date per poll so `ToggleStatsView` (hotkey, control panel "View") is
-  instant and never resizes or moves the panel; `ApplyStatsView` also
-  runs after every Settings save. A shorter panel was the literal ask and
-  was turned down for the frame's sake; automatic switching on damage was
-  rejected by the owner (content changing by itself is a surprise). Six global hotkeys (RegisterHotKey +
+  views (v1.27, a player's request for a PvP focus): `StatsView`
+  "survival" (health, stamina, hunger, thirst + growth; anything that is
+  not "combat" reads as survival, so the first build's "full" still
+  loads) or "combat" — the SAME four rows at the same sizes showing
+  different information: health, stamina, Damage (`DamageTracker`: this
+  fight's total as a red bar that grows, the percent uncapped) and Speed
+  (a plain "N km/h" from a second, short-window `SpeedTracker` — NO bar:
+  a dino's top speed changes with growth, so no full mark would be true;
+  owner's call); no growth readout, the status line kept — staleness
+  matters most in a fight. Two StackPanels (`FullView` = Survival /
+  `CombatView`) inside the SAME small frame, both kept up to date per
+  poll so `ToggleStatsView` (hotkey, control panel "View") is instant and
+  moves nothing; `ApplyStatsView` also runs after every Settings save. A
+  shorter panel was the literal ask and was turned down for the frame's
+  sake; a first build that drew health and stamina LARGE (24 px bars, big
+  percents, bigger badges) was REJECTED on sight by the owner — size is
+  not how this overlay emphasises anything, don't reintroduce it;
+  automatic switching on damage was rejected too (content changing by
+  itself is a surprise). Six global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
   (`Hotkey`, Ctrl+F7) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
@@ -649,7 +668,10 @@ Every overlay window derives from `OverlayWindowBase`.
   positions → m/s (zig-zags count as path, not displacement), and
   `ClosingMps(target)` — signed approach speed for the waypoint ETA. A
   jump > 60 m/s or a gap longer than the window restarts it, so a respawn
-  or resumed idle polling never reads as a dash.
+  or resumed idle polling never reads as a dash. The window is a ctor
+  argument (v1.27): the minimap keeps the calm 15 s, the stats panel's
+  combat Speed row runs its own instance at 2.5 poll intervals (min 6 s)
+  so a sprint or a stop shows within two polls.
 - **Compass.cs** — eight-point letter for a screen heading (0 = north,
   clockwise, matching the arrow's RotateTransform).
 - **ShareCode.cs** — the share-a-spot text: `pandora:<x>,<y> [name]` in
@@ -930,8 +952,8 @@ Every overlay window derives from `OverlayWindowBase`.
   auto-hide checkbox (no flag: MainWindow reads it live), background
   opacity (30–100%), the fade row (20–80%) and "Reset positions" (v1.25:
   arms `PositionsReset`, applied on Save — positions only); Stats panel = scale
-  (75–150%), the View radios (Full / Combat — the default view; the
-  hotkey flips it mid-game), the time-left checkbox (hunger, thirst and
+  (75–150%), the View radios (Survival / Combat — the owner's names; the
+  default view, the hotkey flips it mid-game), the time-left checkbox (hunger, thirst and
   stamina labels) and the two chime
   checkboxes (low stat / growth stages — no flag, MainWindow reads them
   live); Prime tracker = scale.
@@ -1054,9 +1076,11 @@ side — verified in-game). No layout presets beyond the default for now.
 Built Sep 30 2026, awaiting in-game verification (two player requests
 from the #pandora-overlay channel): the **stamina timer** (StaminaTracker
 — time until empty while draining, "full ~Ns" while recovering, on the
-stamina bar) and the **combat view** of the stats panel (health + stamina
-large, fracture badges, same frame; Settings default, Ctrl+F9 and the
-control panel's View button to flip; no automatic switching).
+stamina bar) and the stats panel's two views, **Survival / Combat**
+(Combat = health, stamina, damage taken this fight, speed — same rows,
+same frame; Settings default, Ctrl+F9 and the control panel's View
+button to flip; no automatic switching; the first large-bar build was
+reworked the same day).
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,

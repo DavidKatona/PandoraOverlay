@@ -49,6 +49,8 @@ public partial class MainWindow : OverlayWindowBase
     private readonly DrainTracker _hungerDrain = new(p => p.Hunger);
     private readonly DrainTracker _thirstDrain = new(p => p.Thirst);
     private readonly StaminaTracker _stamina = new();
+    private readonly DamageTracker _damage = new();
+    private readonly SpeedTracker _combatSpeed; // a short window: the combat row should follow a sprint or a stop within a couple of polls
     private readonly StatsAttention _attention = new();
     private readonly FriendFeed _feed = new();
     private readonly ActivityLog _log = new();
@@ -75,6 +77,8 @@ public partial class MainWindow : OverlayWindowBase
         InitializeComponent();
 
         _config = OverlayConfig.Load();
+        // Two and a half poll intervals, at least 6 s: always room for two steps, whatever cadence is configured.
+        _combatSpeed = new SpeedTracker(TimeSpan.FromSeconds(Math.Max(6, 2.5 * Math.Max(2, _config.PollIntervalSeconds))));
         _library = WaypointLibrary.Load();
         MigrateWaypointSlots();
         _library.Changed += () => _library.Save(); // user content: saved on every change, not just on exit
@@ -395,6 +399,8 @@ public partial class MainWindow : OverlayWindowBase
             _hungerDrain.Reset();
             _thirstDrain.Reset();
             _stamina.Reset();
+            _damage.Reset();
+            _combatSpeed.Reset();
             _attention.Reset();
             _lowStat.Reset();
             _milestones.Reset();
@@ -409,6 +415,8 @@ public partial class MainWindow : OverlayWindowBase
             SetBar(ThirstFill, ThirstPct, 0);
             SetBar(CombatHealthFill, CombatHealthPct, 0);
             SetBar(CombatStaminaFill, CombatStaminaPct, 0);
+            SetBar(DamageFill, DamagePct, 0);
+            SpeedValue.Text = "—";
             SetPulse(HealthFill, false);
             SetPulse(CombatHealthFill, false);
             SetPulse(HungerFill, false);
@@ -460,6 +468,14 @@ public partial class MainWindow : OverlayWindowBase
         _stamina.Add(p);
         RenderTimeLeft();
 
+        // The combat view's two own rows: damage taken in this fight (a bar
+        // that grows, capped at the full track) and the current speed.
+        _damage.Add(p);
+        SetBar(DamageFill, DamagePct, _damage.Total);
+        DamagePct.Text = $"{_damage.Total * 100:0}%"; // the bar stops at the track's end; a long fight's number does not
+        _combatSpeed.Add(p.X, p.Y);
+        SpeedValue.Text = _combatSpeed.SpeedMps is { } mps ? $"{mps * 3.6:0} km/h" : "—";
+
         // Alerts: the rules are pure and always run; the sounds are opt-in,
         // and each moment also becomes a line in the Activity feed.
         var now = DateTime.UtcNow;
@@ -510,12 +526,16 @@ public partial class MainWindow : OverlayWindowBase
     private bool CombatViewOn => string.Equals(_config.StatsView, "combat", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Shows the full view (all four bars, growth) or the combat view (health
-    /// and stamina drawn large, bigger fracture badges, no growth readout) —
-    /// two layouts inside the SAME fixed frame, so flipping never resizes or
-    /// moves the panel (a player's request, Sep 30 2026: "only health, stam
-    /// and body breaks ... to focus and help with pvp"; a shorter panel was
-    /// the literal ask and was turned down for the frame's sake).
+    /// Shows the Survival view (health, stamina, hunger, thirst, growth) or
+    /// the Combat view (health, stamina, damage taken in this fight, speed;
+    /// no growth readout) — two layouts of the SAME four rows inside the
+    /// same fixed frame, at the same sizes, so flipping moves nothing. A
+    /// player's request (Sep 30 2026: "only health, stam and body breaks ...
+    /// to focus and help with pvp"). A shorter panel — the literal ask — was
+    /// turned down for the frame's sake, and a first build that drew health
+    /// and stamina LARGE was rejected on sight by the owner: size is not how
+    /// this overlay emphasises anything. The combat view shows different
+    /// information instead of bigger information.
     /// </summary>
     private void ApplyStatsView()
     {
@@ -523,18 +543,13 @@ public partial class MainWindow : OverlayWindowBase
         FullView.Visibility = combat ? Visibility.Collapsed : Visibility.Visible;
         CombatView.Visibility = combat ? Visibility.Visible : Visibility.Collapsed;
         GrowthText.Visibility = combat ? Visibility.Collapsed : Visibility.Visible;
-        foreach (var (badge, text) in new[] { (FracHead, FracHeadText), (FracBody, FracBodyText), (FracLegs, FracLegsText) })
-        {
-            badge.Padding = combat ? new Thickness(9, 3, 9, 3) : new Thickness(6, 2, 6, 2);
-            text.FontSize = combat ? 12 : 10;
-        }
         RenderTimeLeft();
     }
 
-    /// <summary>The stats-view hotkey and the control panel's View button: flips full ↔ combat (persisted with the next Save).</summary>
+    /// <summary>The stats-view hotkey and the control panel's View button: flips Survival ↔ Combat (persisted with the next Save).</summary>
     private void ToggleStatsView()
     {
-        _config.StatsView = CombatViewOn ? "full" : "combat";
+        _config.StatsView = CombatViewOn ? "survival" : "combat";
         ApplyStatsView();
     }
 
