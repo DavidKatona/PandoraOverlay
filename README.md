@@ -52,9 +52,9 @@ The exe lands in `bin\Release\net8.0-windows\PandoraOverlay.exe`.
 
 2. Click **Open live map in browser** and log in with Discord.
 3. On the live-map page press F12 → Network tab → type `mylocation` into the filter → click any row.
-4. Under **Request Headers**, copy the whole value of `cookie` and paste it into the Account section's paste box. It validates as you type (it also cleans up stray quotes, a `cookie:` prefix, and line breaks automatically). Hit Save — the overlay connects immediately, no restart needed.
+4. Under **Request Headers**, copy the whole value of `cookie` (right-click the value → **Copy value** gets all of it in one go) and paste it into the Account section's paste box. It validates as you type (it also cleans up stray quotes, a `cookie:` prefix, and line breaks automatically). Hit Save — the overlay connects immediately, no restart needed.
 
-   ![The browser's DevTools on the live-map page with the four spots marked: 1 the Network tab, 2 "mylocation" typed into the filter, 3 a mylocation row selected, 4 the Cookie line under Request headers, its value hidden in this screenshot](docs/setup-devtools.png)
+   ![The browser's DevTools on the live-map page with the four spots marked: 1 the Network tab, 2 "mylocation" typed into the filter, 3 a mylocation row selected, 4 the Cookie line under Request headers, its value hidden in this screenshot with the tip "right-click it > Copy value"](docs/setup-devtools.png)
 
    ![The Settings dialog after pasting: the paste box holding the cookie (hidden in this screenshot), the green line "Looks good ✓ — both session and Cloudflare cookies found", and Save now enabled](docs/setup-pasted.png)
 
