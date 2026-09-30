@@ -113,7 +113,7 @@ public partial class MainWindow
         _registerFailures.Add(wanted.ToString());
         HotkeySpec.Register(hwnd, id, fallback);
         writeBack(fallback.ToString());
-        StatusText.Text = $"Hotkey {wanted} unavailable — keeping {fallback}";
+        SetStatus($"Hotkey {wanted} unavailable — keeping {fallback}");
         return fallback;
     }
 
@@ -142,7 +142,7 @@ public partial class MainWindow
         if (_registerFailures.Count > 0)
         {
             var combos = string.Join(", ", _registerFailures);
-            StatusText.Text = $"Hotkey {combos} in use by another app — rebind in Settings";
+            SetStatus($"Hotkey {combos} in use by another app — rebind in Settings");
             _tray.ShowHotkeyConflict(combos);
         }
 

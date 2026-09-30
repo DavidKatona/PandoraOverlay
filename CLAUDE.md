@@ -400,10 +400,28 @@ Every overlay window derives from `OverlayWindowBase`.
   damage cue (fade) and SelfActivity's damage line (feed) on purpose:
   each has its own threshold for its own job.
 - **StatsAttention.cs** — pure, tested wake/calm rule for the stats
-  panel's fade: wake on health/hunger/thirst < 50%, any fracture, damage
+  panel's fade, ONE RULESET PER VIEW (v1.27) on the principle "lit means
+  something ON this panel is worth a look" — before, low thirst lit a
+  combat panel that doesn't show thirst. `Update(p, hungerLeft,
+  thirstLeft, combatView, inFight)` branches into two private rules that
+  share the identity and the damage baseline (one class, not two, so a
+  flip mid-fight loses nothing; a flipped view decides afresh — a value
+  between the new view's lines reads as calm instead of inheriting the
+  other view's verdict; `ToggleStatsView` re-runs it on the same sample
+  so the fade follows the flip at once). SURVIVAL (unchanged): wake on health/hunger/thirst < 50%, any fracture, damage
   (health down > 0.005 between polls, held 10 s — one poll's drop is
   momentary) or a drain estimate under 15 min; calm only above 55% / 20
-  min with none of the rest, so a stat at the line can't blink. Resets
+  min with none of the rest, so a stat at the line can't blink; stamina
+  ignored. COMBAT: wake on health OR stamina < 75%, calm above 80%
+  (owner's numbers, Sep 30 2026 — stamina is that view's subject and a
+  chase has no hits; the 75% health line means a wounded dino keeps the
+  panel lit while it heals, accepted), any fracture, and `inFight` =
+  `DamageTracker.InFight`, so the panel is lit exactly as long as the
+  Damage row shows something (30 s after the last hit) instead of a
+  second timer that could disagree with it; hunger, thirst, their
+  estimates and `NoteEvent` (growth readout hidden) do not wake it.
+  Always-lit-in-combat was considered and dropped: combat can be the
+  default view, and that would silently switch the fade off. Resets
   its damage baseline on death/dino swap (identity or growth decrease,
   like the trackers) and on not-in-game. `NoteEvent` holds it lit 10 s for
   a one-off moment (a growth milestone). MainWindow also lights the panel
@@ -461,8 +479,18 @@ Every overlay window derives from `OverlayWindowBase`.
   fight's total as a red bar that grows, the percent uncapped) and Speed
   (a plain "N km/h" from a second, short-window `SpeedTracker` — NO bar:
   a dino's top speed changes with growth, so no full mark would be true;
-  owner's call); no growth readout, the status line kept — staleness
-  matters most in a fight. Two StackPanels (`FullView` = Survival /
+  owner's call); the header's corner swaps the growth readout for
+  `ConditionText` — "Wounded" under 50% health (the GAME's keyword and
+  line, `WoundedBelow`, the same line the health bar turns amber on; red
+  under 25% like the bar) or a quiet grey "Healthy" (OUR word for
+  not-wounded, so the slot always answers); the status line kept —
+  staleness matters most in a fight. The footer names the view at its
+  right end, lowercase like the minimap's ("survival view" / "combat
+  view", `ViewText`): every status goes through `SetStatus`, whose
+  `FitViewName` hides the name (Hidden, not Collapsed) whenever the
+  status needs the room — the first-run hint, hotkey notices and the
+  Disconnected line do; Live / Connected / Update lines don't. Never
+  trim a status for it. Two StackPanels (`FullView` = Survival /
   `CombatView`) inside the SAME small frame, both kept up to date per
   poll so `ToggleStatsView` (hotkey, control panel "View") is instant and
   moves nothing; `ApplyStatsView` also runs after every Settings save. A
@@ -1078,9 +1106,10 @@ from the #pandora-overlay channel): the **stamina timer** (StaminaTracker
 — time until empty while draining, "full ~Ns" while recovering, on the
 stamina bar) and the stats panel's two views, **Survival / Combat**
 (Combat = health, stamina, damage taken this fight, speed — same rows,
-same frame; Settings default, Ctrl+F9 and the control panel's View
-button to flip; no automatic switching; the first large-bar build was
-reworked the same day).
+same frame; "Wounded"/"Healthy" in the header corner, the view named in
+the footer, its own fade ruleset; Settings default, Ctrl+F9 and the
+control panel's View button to flip; no automatic switching; the first
+large-bar build was reworked the same day).
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,

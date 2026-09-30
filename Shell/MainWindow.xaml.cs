@@ -18,8 +18,11 @@ public partial class MainWindow : OverlayWindowBase
 {
     // ---- Layout constants -------------------------------------------------
     private const double TrackWidth = 170; // must match bar track width in XAML
+    private const double ContentWidth = WidgetFrame.Width - 26; // the frame minus RootPanel's padding (12 a side) and border
+    private const double FooterGap = 10; // px the status line and the view name keep between them
 
     private static readonly TimeSpan HeaderPulse = TimeSpan.FromSeconds(10);
+    private const double WoundedBelow = 0.50; // the game calls you Wounded under half health; the health bar turns amber on the same line
 
     // ---- Brushes ----------------------------------------------------------
     private static readonly Brush HealthGood = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50));
@@ -183,7 +186,7 @@ public partial class MainWindow : OverlayWindowBase
             if (dialog.CookieChanged)
             {
                 DinoText.Text = "Connecting…";
-                StatusText.Text = "";
+                SetStatus("");
                 SetAttention(true);
                 _poll.RebuildClient();
             }
@@ -217,7 +220,7 @@ public partial class MainWindow : OverlayWindowBase
     private async Task CheckForUpdateAsync()
     {
         if (await UpdateChecker.CheckAsync() is not { } tag) return;
-        StatusText.Text = $"Update available: {tag}";
+        SetStatus($"Update available: {tag}");
         _tray.ShowUpdateAvailable(tag);
     }
 
@@ -242,7 +245,7 @@ public partial class MainWindow : OverlayWindowBase
     private void ShowNoCookieState()
     {
         DinoText.Text = "Not set up yet";
-        StatusText.Text = "Open Settings from the tray icon to connect your account";
+        SetStatus("Open Settings from the tray icon to connect your account");
         SetAttention(true);
     }
 
@@ -342,7 +345,7 @@ public partial class MainWindow : OverlayWindowBase
     // ---- Poll stream --------------------------------------------------------
     private void OnPollFailed(Exception ex)
     {
-        StatusText.Text = $"Disconnected · retrying ({ex.GetType().Name})";
+        SetStatus($"Disconnected · retrying ({ex.GetType().Name})");
         _tray.SetStatus("Pandora Overlay — disconnected");
         SetAttention(true); // a broken connection is worth eyes
     }
@@ -409,6 +412,7 @@ public partial class MainWindow : OverlayWindowBase
             DinoText.Text = "Not in-game";
             GrowthText.Text = "";
             GrowthText.Foreground = GrowthNormal;
+            ConditionText.Text = "";
             SetBar(HealthFill, HealthPct, 0);
             SetBar(StaminaFill, StaminaPct, 0);
             SetBar(HungerFill, HungerPct, 0);
@@ -423,9 +427,9 @@ public partial class MainWindow : OverlayWindowBase
             SetPulse(ThirstFill, false);
             SetFractures(false, false, false);
             // Not in-game the poll idles; say so, or a slow reaction to a spawn reads as frozen.
-            StatusText.Text = _poll.IsIdling
+            SetStatus(_poll.IsIdling
                 ? $"Connected · checking every {_poll.Interval.TotalSeconds:0}s · {DateTime.Now:HH:mm:ss}"
-                : $"Connected · waiting for spawn · {DateTime.Now:HH:mm:ss}";
+                : $"Connected · waiting for spawn · {DateTime.Now:HH:mm:ss}");
             return;
         }
 
@@ -450,13 +454,24 @@ public partial class MainWindow : OverlayWindowBase
             ? HealthWarn
             : GrowthNormal;
 
+        // The combat view's corner: the game's own word for health under 50%,
+        // in the health bar's colour; "Healthy" (quiet) above it, so the slot
+        // always answers the question.
+        ConditionText.Text = p.Health < WoundedBelow ? "Wounded" : "Healthy";
+        ConditionText.Foreground = p.Health switch
+        {
+            < 0.25 => HealthCrit,
+            < WoundedBelow => HealthWarn,
+            _ => GrowthNormal
+        };
+
         // Both views are kept up to date, so flipping between them is instant.
         SetBar(HealthFill, HealthPct, p.Health);
         SetBar(CombatHealthFill, CombatHealthPct, p.Health);
         HealthFill.Background = CombatHealthFill.Background = p.Health switch
         {
             < 0.25 => HealthCrit,
-            < 0.50 => HealthWarn,
+            < WoundedBelow => HealthWarn,
             _ => HealthGood
         };
         SetBar(StaminaFill, StaminaPct, p.Stamina);
@@ -493,7 +508,7 @@ public partial class MainWindow : OverlayWindowBase
             if (_lowStat.ThirstFired) _log.Post(SelfActivity.LowStatLine("Thirst", _thirstDrain.Label, now));
         }
 
-        SetAttention(_attention.Update(p, _hungerDrain.TimeLeft, _thirstDrain.TimeLeft));
+        SetAttention(_attention.Update(p, _hungerDrain.TimeLeft, _thirstDrain.TimeLeft, CombatViewOn, _damage.InFight));
 
         // Critical-stat pulse. Stamina is deliberately excluded — it drains to
         // zero every sprint by design and would train the eye to ignore it.
@@ -504,7 +519,29 @@ public partial class MainWindow : OverlayWindowBase
 
         SetFractures(p.HeadFractured, p.BodyFractured, p.LegsFractured);
 
-        StatusText.Text = $"Live · updated {DateTime.Now:HH:mm:ss}";
+        SetStatus($"Live · updated {DateTime.Now:HH:mm:ss}");
+    }
+
+    /// <summary>
+    /// The footer's left half. Every status goes through here so the view
+    /// name at the right end can step aside for one that needs the whole
+    /// line (the first-run hint, a hotkey conflict) instead of overlapping
+    /// it or cutting it short.
+    /// </summary>
+    private void SetStatus(string text)
+    {
+        StatusText.Text = text;
+        FitViewName();
+    }
+
+    /// <summary>Shows the view name only while the status line leaves room for it (hidden, not collapsed: the row keeps its height).</summary>
+    private void FitViewName()
+    {
+        var unbounded = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        StatusText.Measure(unbounded);
+        ViewText.Measure(unbounded);
+        var fits = StatusText.DesiredSize.Width + FooterGap + ViewText.DesiredSize.Width <= ContentWidth;
+        ViewText.Visibility = fits ? Visibility.Visible : Visibility.Hidden;
     }
 
     /// <summary>The three badges are always there; a fractured part lights up, the rest stay dim. Never changes the panel's size.</summary>
@@ -535,7 +572,10 @@ public partial class MainWindow : OverlayWindowBase
     /// turned down for the frame's sake, and a first build that drew health
     /// and stamina LARGE was rejected on sight by the owner: size is not how
     /// this overlay emphasises anything. The combat view shows different
-    /// information instead of bigger information.
+    /// information instead of bigger information. The header's corner
+    /// follows the view (growth ↔ Wounded/Healthy) and the footer names it,
+    /// like the minimap's does. Each view also has its own fade ruleset
+    /// (StatsAttention).
     /// </summary>
     private void ApplyStatsView()
     {
@@ -543,6 +583,9 @@ public partial class MainWindow : OverlayWindowBase
         FullView.Visibility = combat ? Visibility.Collapsed : Visibility.Visible;
         CombatView.Visibility = combat ? Visibility.Visible : Visibility.Collapsed;
         GrowthText.Visibility = combat ? Visibility.Collapsed : Visibility.Visible;
+        ConditionText.Visibility = combat ? Visibility.Visible : Visibility.Collapsed;
+        ViewText.Text = combat ? "combat view" : "survival view";
+        FitViewName();
         RenderTimeLeft();
     }
 
@@ -551,6 +594,8 @@ public partial class MainWindow : OverlayWindowBase
     {
         _config.StatsView = CombatViewOn ? "survival" : "combat";
         ApplyStatsView();
+        // Same sample, new ruleset: the fade follows the flip at once instead of a poll later.
+        if (_me is { } p) SetAttention(_attention.Update(p, _hungerDrain.TimeLeft, _thirstDrain.TimeLeft, CombatViewOn, _damage.InFight));
     }
 
     /// <summary>The time labels on the bars; the trackers run either way, so the Settings checkbox applies at once.</summary>

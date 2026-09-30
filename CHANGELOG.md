@@ -19,9 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   health and stamina and swaps the other two rows for what matters in a
   fight: Damage, the health you have lost in this fight as a red bar that
   grows (it clears 30 seconds after the last hit), and Speed, your
-  current speed in km/h. Same panel size, same rows, so nothing moves.
-  Flip with Ctrl+F9 (rebindable) or the control panel's new View button;
-  Settings → Stats panel chooses the view it starts in.
+  current speed in km/h. Its top-right corner says "Wounded" once your
+  health is under 50% (the game's own term) and "Healthy" otherwise.
+  Same panel size, same rows, so nothing moves. Flip with Ctrl+F9
+  (rebindable) or the control panel's new View button; Settings → Stats
+  panel chooses the view it starts in, and the panel's footer names the
+  view you are in.
+- The attention fade follows the view. In Combat the stats panel lights
+  up for health or stamina under 75%, a fracture, and for as long as the
+  Damage row shows a fight; hunger and thirst, which that view doesn't
+  show, no longer wake it. Survival wakes exactly as before.
 
 Both were requested by players in the Discord channel.
 

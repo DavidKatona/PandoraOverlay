@@ -29,18 +29,29 @@
             Padding="12,10">
         <DockPanel>
 
-            <!-- Header: dino + growth (the growth readout is hidden in the combat view) -->
+            <!-- Header: dino + the view's own readout in the corner — growth in the
+                 survival view, the game's Wounded state (health under 50%) in
+                 the combat view. One of the two is visible. -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                 <TextBlock x:Name="GrowthText" DockPanel.Dock="Right"
                            Foreground="#9AA7B0" FontSize="12"
                            VerticalAlignment="Center"/>
+                <TextBlock x:Name="ConditionText" DockPanel.Dock="Right"
+                           Foreground="#9AA7B0" FontSize="12"
+                           VerticalAlignment="Center" Visibility="Collapsed"/>
                 <TextBlock x:Name="DinoText" Text="Connecting…"
                            Foreground="#ECF2F8" FontSize="14" FontWeight="Bold"/>
             </DockPanel>
 
-            <!-- Status line -->
-            <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom"
-                       Foreground="#7B8790" FontSize="10" Margin="0,8,0,0"/>
+            <!-- Footer: the status line, and the active view at its right end
+                 (like the minimap's footer). The two overlay one cell; the view
+                 name steps aside in code when a long status needs the room. -->
+            <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                <TextBlock x:Name="StatusText" Foreground="#7B8790" FontSize="10"
+                           HorizontalAlignment="Left"/>
+                <TextBlock x:Name="ViewText" Foreground="#7B8790" FontSize="10"
+                           HorizontalAlignment="Right"/>
+            </Grid>
 
             <!-- Fracture badges: ALWAYS present (dim when intact, lit when
                  fractured), so a fracture can never resize the panel. -->
