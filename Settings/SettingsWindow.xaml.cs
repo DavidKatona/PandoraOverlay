@@ -133,6 +133,8 @@ public partial class SettingsWindow : Window
             HotkeySpec.TryParse(config.HotkeyHeatmap) ?? new HotkeySpec(ModifierKeys.Control, Key.F6), "the heatmap toggle");
         _hotkeyEntries[PrimeHotkeyBox] = new HotkeyEntry(
             HotkeySpec.TryParse(config.HotkeyPrimeCheck) ?? new HotkeySpec(ModifierKeys.Control, Key.F8), "Check Prime");
+        _hotkeyEntries[StatsViewHotkeyBox] = new HotkeyEntry(
+            HotkeySpec.TryParse(config.HotkeyStatsView) ?? new HotkeySpec(ModifierKeys.Control, Key.F9), "the stats view toggle");
         foreach (var (box, entry) in _hotkeyEntries)
         {
             box.Text = entry.Chosen.ToString();
@@ -142,6 +144,9 @@ public partial class SettingsWindow : Window
         _initialStartup = StartupRegistration.IsEnabled();
         StartupCheck.IsChecked = _initialStartup;
         TimeLeftCheck.IsChecked = config.StatTimeLeftEnabled;
+        var combatView = string.Equals(config.StatsView, "combat", StringComparison.OrdinalIgnoreCase);
+        StatsViewCombat.IsChecked = combatView;
+        StatsViewFull.IsChecked = !combatView;
         HideNotInGameCheck.IsChecked = config.HideWhenNotInGame;
         LowStatChimeCheck.IsChecked = config.LowStatChimeEnabled;
         GrowthChimeCheck.IsChecked = config.GrowthChimeEnabled;
@@ -436,6 +441,7 @@ public partial class SettingsWindow : Window
             _config.HotkeyMinimapView = _hotkeyEntries[ViewHotkeyBox].Chosen.ToString();
             _config.HotkeyHeatmap = _hotkeyEntries[HeatmapHotkeyBox].Chosen.ToString();
             _config.HotkeyPrimeCheck = _hotkeyEntries[PrimeHotkeyBox].Chosen.ToString();
+            _config.HotkeyStatsView = _hotkeyEntries[StatsViewHotkeyBox].Chosen.ToString();
             HotkeyChanged = true;
         }
 
@@ -444,6 +450,7 @@ public partial class SettingsWindow : Window
         _config.HideWhenNotInGame = HideNotInGameCheck.IsChecked == true; // MainWindow reads these live, no flag needed
         _config.LowStatChimeEnabled = LowStatChimeCheck.IsChecked == true;
         _config.GrowthChimeEnabled = GrowthChimeCheck.IsChecked == true;
+        _config.StatsView = StatsViewCombat.IsChecked == true ? "combat" : "full"; // MainWindow reapplies the view after every save
 
         var scale = Math.Round(ScaleSlider.Value, 2);
         var primeScale = Math.Round(PrimeScaleSlider.Value, 2);

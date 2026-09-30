@@ -98,10 +98,25 @@ public sealed class OverlayConfig
     /// </summary>
     public string HotkeyPrimeCheck { get; set; } = "Ctrl+F8";
 
+    /// <summary>
+    /// Flip the stats panel between its full and combat views from gameplay —
+    /// same format as Hotkey. A late-added key like the two above: a collision
+    /// with a customized combo is resolved to a free one at startup.
+    /// </summary>
+    public string HotkeyStatsView { get; set; } = "Ctrl+F9";
+
     // ---- Minimap (v1.1) ---------------------------------------------------
 
     /// <summary>Show the stats panel (toggled from the control panel or the tray menu).</summary>
     public bool StatsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Which view the stats panel shows: "full" (all four bars and growth) or
+    /// "combat" (health and stamina drawn large plus the fracture badges —
+    /// for fights). Same frame either way. Set in Settings → Stats panel, and
+    /// flipped mid-game with HotkeyStatsView or the control panel's View.
+    /// </summary>
+    public string StatsView { get; set; } = "full";
 
     /// <summary>
     /// Hide every widget after ~30 s of not being spawned in (spawn menu,

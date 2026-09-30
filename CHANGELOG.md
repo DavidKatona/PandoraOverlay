@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Stamina timer on the stamina bar, both ways: how long until it's empty
+  while it drains ("~25s"), how long until it's full while it recovers
+  ("full ~40s"). It shows a few seconds into a steady sprint or rest and
+  disappears when stamina holds still. The existing time-left checkbox in
+  Settings → Stats panel covers it.
+- Combat view for the stats panel: health and stamina as two large bars
+  with big percentages plus the fracture badges, for fights. Same panel
+  size and position as the full view. Flip with Ctrl+F9 (rebindable) or
+  the control panel's new View button; Settings → Stats panel chooses the
+  view it starts in.
+
+Both were requested by players in the Discord channel.
+
 ## [1.26.0] - 2026-09-29
 
 ### Added

@@ -16,7 +16,9 @@
 
     <!-- The SMALL frame (WidgetFrame): a fixed outer size the content lays out
          inside, shared with the Activity feed. The status line docks to the
-         bottom, so any slack sits between the bars and the status. -->
+         bottom, so any slack sits between the bars and the status. Two views
+         share the frame (StatsView): the full one with all four bars, and the
+         combat one with health and stamina only, drawn large. -->
     <Border x:Name="RootPanel"
             Width="{x:Static local:WidgetFrame.Width}"
             Height="{x:Static local:WidgetFrame.SmallHeight}"
@@ -27,7 +29,7 @@
             Padding="12,10">
         <DockPanel>
 
-            <!-- Header: dino + growth -->
+            <!-- Header: dino + growth (the growth readout is hidden in the combat view) -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                 <TextBlock x:Name="GrowthText" DockPanel.Dock="Right"
                            Foreground="#9AA7B0" FontSize="12"
@@ -54,8 +56,11 @@
                 </Border>
             </StackPanel>
 
-            <!-- The four bars fill what is left -->
-            <StackPanel VerticalAlignment="Top">
+            <!-- The bars fill what is left: one of the two views is visible. -->
+            <Grid>
+
+            <!-- ===== Full view: all four bars ===== -->
+            <StackPanel x:Name="FullView" VerticalAlignment="Top">
 
             <!-- Health -->
             <Grid Margin="0,3,0,0">
@@ -85,6 +90,10 @@
                     <Border x:Name="StaminaFill" Height="12" CornerRadius="6" Background="#FFD54F"
                             HorizontalAlignment="Left" Width="0"/>
                 </Border>
+                <!-- Time until empty while draining, "full ~40s" while recovering (StaminaTracker). -->
+                <TextBlock x:Name="StaminaLeft" Grid.Column="1" FontSize="10"
+                           HorizontalAlignment="Left" VerticalAlignment="Center"
+                           Visibility="Collapsed"/>
                 <TextBlock x:Name="StaminaPct" Grid.Column="2" Foreground="#C7D1DA" FontSize="11"
                            TextAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
@@ -131,6 +140,48 @@
             </Grid>
 
             </StackPanel>
+
+            <!-- ===== Combat view: health and stamina only, drawn large =====
+                 Same columns as the full view, so the fills use the same 170 px
+                 track; taller bars and bigger numbers, readable in a fight. -->
+            <StackPanel x:Name="CombatView" VerticalAlignment="Center" Visibility="Collapsed">
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="44"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Health" Foreground="#ECF2F8" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="24" CornerRadius="8" Background="#3D202830" VerticalAlignment="Center">
+                    <Border x:Name="CombatHealthFill" Height="24" CornerRadius="8" Background="#4CAF50"
+                            HorizontalAlignment="Left" Width="0"/>
+                </Border>
+                <TextBlock x:Name="CombatHealthPct" Grid.Column="2" Foreground="#ECF2F8" FontSize="15" FontWeight="Bold"
+                           TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58"/>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="44"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Stamina" Foreground="#ECF2F8" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="24" CornerRadius="8" Background="#3D202830" VerticalAlignment="Center">
+                    <Border x:Name="CombatStaminaFill" Height="24" CornerRadius="8" Background="#FFD54F"
+                            HorizontalAlignment="Left" Width="0"/>
+                </Border>
+                <TextBlock x:Name="CombatStaminaLeft" Grid.Column="1" FontSize="12" FontWeight="SemiBold"
+                           HorizontalAlignment="Left" VerticalAlignment="Center"
+                           Visibility="Collapsed"/>
+                <TextBlock x:Name="CombatStaminaPct" Grid.Column="2" Foreground="#ECF2F8" FontSize="15" FontWeight="Bold"
+                           TextAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            </StackPanel>
+
+            </Grid>
         </DockPanel>
     </Border>
 </local:OverlayWindowBase>

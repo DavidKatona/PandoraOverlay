@@ -8,7 +8,7 @@ using System.Windows.Media.Animation;
 namespace PandoraOverlay;
 
 /// <summary>
-/// MainWindow, hotkeys part: the five global hotkeys — ids, late-key
+/// MainWindow, hotkeys part: the six global hotkeys — ids, late-key
 /// candidates, registration with fallback, the settings-dialog suspension,
 /// and the WM_HOTKEY dispatch. Same class as MainWindow.xaml.cs, split for
 /// reading; see CLAUDE.md.
@@ -22,6 +22,7 @@ public partial class MainWindow
     private const int ViewHotkeyId = 0xA11F;
     private const int HeatmapHotkeyId = 0xA120;
     private const int PrimeHotkeyId = 0xA121;
+    private const int StatsViewHotkeyId = 0xA122;
 
     // Tried in order when a late-added key's combo collides with one the
     // user already gave another action; always one more candidate than
@@ -43,6 +44,17 @@ public partial class MainWindow
         new(ModifierKeys.Control, Key.F6)
     };
 
+    // The stats-view key (v1.27) is the sixth: five possible takers, six candidates.
+    private static readonly HotkeySpec[] StatsViewHotkeyCandidates =
+    {
+        new(ModifierKeys.Control, Key.F9),
+        new(ModifierKeys.Control, Key.F11),
+        new(ModifierKeys.Control, Key.F12),
+        new(ModifierKeys.Control, Key.F8),
+        new(ModifierKeys.Control, Key.F6),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F9)
+    };
+
     /// <summary>
     /// Re-registers all hotkeys after a settings change. Everything is
     /// unregistered first so swapped combos can't collide with themselves;
@@ -58,6 +70,7 @@ public partial class MainWindow
         HotkeySpec.Unregister(hwnd, ViewHotkeyId);
         HotkeySpec.Unregister(hwnd, HeatmapHotkeyId);
         HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
+        HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
 
         _registerFailures.Clear();
         _hotkey = RegisterWithFallback(hwnd, HotkeyId, _config.Hotkey, _hotkey, v => _config.Hotkey = v);
@@ -65,6 +78,7 @@ public partial class MainWindow
         _hotkeyView = RegisterWithFallback(hwnd, ViewHotkeyId, _config.HotkeyMinimapView, _hotkeyView, v => _config.HotkeyMinimapView = v);
         _hotkeyHeatmap = RegisterWithFallback(hwnd, HeatmapHotkeyId, _config.HotkeyHeatmap, _hotkeyHeatmap, v => _config.HotkeyHeatmap = v);
         _hotkeyPrime = RegisterWithFallback(hwnd, PrimeHotkeyId, _config.HotkeyPrimeCheck, _hotkeyPrime, v => _config.HotkeyPrimeCheck = v);
+        _hotkeyStatsView = RegisterWithFallback(hwnd, StatsViewHotkeyId, _config.HotkeyStatsView, _hotkeyStatsView, v => _config.HotkeyStatsView = v);
         _config.Save();
         UpdateHotkeyTexts();
 
@@ -124,6 +138,7 @@ public partial class MainWindow
         if (!HotkeySpec.Register(hwnd, ViewHotkeyId, _hotkeyView)) _registerFailures.Add(_hotkeyView.ToString());
         if (!HotkeySpec.Register(hwnd, HeatmapHotkeyId, _hotkeyHeatmap)) _registerFailures.Add(_hotkeyHeatmap.ToString());
         if (!HotkeySpec.Register(hwnd, PrimeHotkeyId, _hotkeyPrime)) _registerFailures.Add(_hotkeyPrime.ToString());
+        if (!HotkeySpec.Register(hwnd, StatsViewHotkeyId, _hotkeyStatsView)) _registerFailures.Add(_hotkeyStatsView.ToString());
         if (_registerFailures.Count > 0)
         {
             var combos = string.Join(", ", _registerFailures);
@@ -158,6 +173,10 @@ public partial class MainWindow
                     break;
                 case PrimeHotkeyId:
                     CheckPrime();
+                    handled = true;
+                    break;
+                case StatsViewHotkeyId:
+                    ToggleStatsView();
                     handled = true;
                     break;
             }

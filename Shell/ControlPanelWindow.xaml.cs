@@ -17,6 +17,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
     private readonly OverlayConfig _config;
     private readonly Action _openSettings;
     private readonly Action _toggleStats;
+    private readonly Action _toggleStatsView;
     private readonly Action _toggleMinimap;
     private readonly Action _toggleMinimapView;
     private readonly Action _toggleHeatmap;
@@ -28,7 +29,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
 
     protected override bool IsSnapTarget => false;
 
-    public ControlPanelWindow(OverlayConfig config, Action openSettings, Action toggleStats,
+    public ControlPanelWindow(OverlayConfig config, Action openSettings, Action toggleStats, Action toggleStatsView,
                               Action toggleMinimap, Action toggleMinimapView, Action toggleHeatmap,
                               Action togglePrime, Action checkPrime, Action toggleActivity,
                               Action lockOverlay, Action exit)
@@ -38,6 +39,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
         _config = config;
         _openSettings = openSettings;
         _toggleStats = toggleStats;
+        _toggleStatsView = toggleStatsView;
         _toggleMinimap = toggleMinimap;
         _toggleMinimapView = toggleMinimapView;
         _toggleHeatmap = toggleHeatmap;
@@ -87,6 +89,8 @@ public partial class ControlPanelWindow : OverlayWindowBase
     private void Settings_Click(object sender, RoutedEventArgs e) => _openSettings();
 
     private void Stats_Click(object sender, RoutedEventArgs e) => _toggleStats();
+
+    private void StatsView_Click(object sender, RoutedEventArgs e) => _toggleStatsView();
 
     private void Minimap_Click(object sender, RoutedEventArgs e) => _toggleMinimap();
 

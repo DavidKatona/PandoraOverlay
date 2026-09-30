@@ -83,8 +83,12 @@
 
                 <StackPanel>
                     <TextBlock Style="{StaticResource GroupCaption}" Text="STATS"/>
-                    <Button Content="Show/hide" Click="Stats_Click"
-                            Style="{StaticResource PanelButton}" Margin="0"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Show/hide" Click="Stats_Click"
+                                Style="{StaticResource PanelButton}"/>
+                        <Button Content="View" Click="StatsView_Click"
+                                Style="{StaticResource PanelButton}" Margin="0"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <Border Style="{StaticResource GroupSeparator}"/>

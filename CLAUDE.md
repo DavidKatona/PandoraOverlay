@@ -145,8 +145,8 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   SnapGuideWindow, ControlPanelWindow, TrayIcon, and MainWindow (the
   orchestrator, which is also the stats panel — splitting the panel out
   into its own window is a possible later refactor).
-- `Stats/` — GrowthTracker, DrainTracker, StatsAttention, LowStatAlert,
-  GrowthMilestones.
+- `Stats/` — GrowthTracker, DrainTracker, StaminaTracker, StatsAttention,
+  LowStatAlert, GrowthMilestones.
 - `Minimap/` — MinimapWindow, BreadcrumbTrail, ScaleBar, SpeedTracker, Compass.
 - `Waypoints/` — WaypointLibrary, WaypointPacks, ShareCode.
 - `Friends/` — FriendBook (+ FriendColour), FriendFeed.
@@ -309,7 +309,7 @@ Every overlay window derives from `OverlayWindowBase`.
 - **ControlPanelWindow.xaml(.cs)** — the edit-mode control panel (v1.9):
   appears with edit mode, hides on lock; ONE row grouped by widget (owner's
   call, Sep 2026 — a two-row layout was tried and rejected): Settings |
-  STATS: Show/hide | MINIMAP: Show/hide, Map view, Heatmap | PRIME:
+  STATS: Show/hide, View | MINIMAP: Show/hide, Map view, Heatmap | PRIME:
   Show/hide, Check | ACTIVITY: Show/hide | Lock / Exit — small captions over each group keep
   labels short, and a new widget adds a group, not loose buttons; + the hint
   line (hotkey label follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
@@ -374,6 +374,21 @@ Every overlay window derives from `OverlayWindowBase`.
   claim it in user-facing text. `StatTimeLeftEnabled`
   (Settings checkbox, default on) only gates rendering; the trackers always
   run, so ticking the box shows the estimate at once.
+- **StaminaTracker.cs** — pure, tested (v1.27, a player's request): the
+  stamina trend as a time, BOTH ways — "~25s" until empty while it falls
+  poll after poll, "full ~40s" until full while it climbs. Recovery time
+  is unique to stamina on purpose: it refills by itself at a steady
+  pace, where hunger/thirst refill in bites the player controls and have
+  no rate to extrapolate. A reading needs two consistent steps (three
+  polls, ~6 s into a sprint), follows the last six samples (~15 s), and
+  ends on one flat poll (< 0.004), a reversal (the new run starts at the
+  previous sample), a gap > 8 s (idle polling) or a new dino; nothing at
+  the ends (≤ 0.5% to go) or beyond 5 min. "~Ns" under 100 s, "~Nm"
+  above. The number is up to one poll old — the interval floor
+  (constraint #3) means that can't improve. Information ONLY: no pulse,
+  fade wake or chime (stamina drains by design). Rendered by
+  `MainWindow.SetBarLabel` on the stamina bar of both views, gated by the
+  same `StatTimeLeftEnabled` checkbox as hunger/thirst.
 - **StatsAttention.cs** — pure, tested wake/calm rule for the stats
   panel's fade: wake on health/hunger/thirst < 50%, any fracture, damage
   (health down > 0.005 between polls, held 10 s — one poll's drop is
@@ -427,7 +442,17 @@ Every overlay window derives from `OverlayWindowBase`.
   then fires the one user-triggered check; `ShowActivity` runs after
   `ShowPrime` at startup and hands the new widget a suggested spot right
   under the Prime tracker; every activity show/hide calls
-  `RefreshFriendsAsync` so the fetch gate follows the surfaces). Five global hotkeys (RegisterHotKey +
+  `RefreshFriendsAsync` so the fetch gate follows the surfaces). Stats
+  views (v1.27, a player's request for a PvP focus): `StatsView` "full"
+  (all four bars + growth) or "combat" (health and stamina as 24 px bars
+  with 15 px bold percents, bigger fracture badges, no growth readout,
+  the status line kept — staleness matters most in a fight). Two layouts
+  (`FullView` / `CombatView`) inside the SAME small frame, both kept up
+  to date per poll so `ToggleStatsView` (hotkey, control panel "View") is
+  instant and never resizes or moves the panel; `ApplyStatsView` also
+  runs after every Settings save. A shorter panel was the literal ask and
+  was turned down for the frame's sake; automatic switching on damage was
+  rejected by the owner (content changing by itself is a surprise). Six global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
   (`Hotkey`, Ctrl+F7) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
@@ -435,9 +460,11 @@ Every overlay window derives from `OverlayWindowBase`.
   (`HotkeyMinimapView`, Ctrl+F5 → `MinimapWindow.ToggleView`), and the
   heatmap toggle (`HotkeyHeatmap`, Ctrl+F6 → `ToggleHeatmap`, a no-op while
   the minimap is hidden; it replaced the tray entry and the Settings
-  checkbox), and Check Prime (`HotkeyPrimeCheck`, Ctrl+F8 → `CheckPrime`;
-  v1.19, replacing the tray's "Check Prime status" line). The heatmap and
-  Prime keys arrived after users had customized the earlier ones, so
+  checkbox), Check Prime (`HotkeyPrimeCheck`, Ctrl+F8 → `CheckPrime`;
+  v1.19, replacing the tray's "Check Prime status" line) and the stats
+  view toggle (`HotkeyStatsView`, Ctrl+F9 → `ToggleStatsView`; v1.27,
+  candidates F9/F11/F12/F8/F6/Ctrl+Shift+F9). The heatmap, Prime and
+  stats-view keys arrived after users had customized the earlier ones, so
   `ResolveLateHotkey` swaps a colliding default for the first free
   candidate (heatmap F6/F8/F9/F11, prime F8/F9/F11/F12/F6 — always one
   more candidate than takers) instead of letting an own-app duplicate
@@ -883,10 +910,10 @@ Every overlay window derives from `OverlayWindowBase`.
   hidden paste can't be saved) and the hint line hides while empty; first
   run shows the box + walkthrough up front and gates Save on a valid paste (`Clean()` strips
   `cookie:` prefix, quotes, newlines, trailing `;`; live validation needs
-  `connect.sid`, warns if `cf_clearance` missing). Five hotkey capture boxes
-  (edit / hide-overlay / minimap-view / heatmap / Check Prime) share the capture UX: combos are
+  `connect.sid`, warns if `cf_clearance` missing). Six hotkey capture boxes
+  (edit / hide-overlay / minimap-view / heatmap / Check Prime / stats view) share the capture UX: combos are
   availability-tested via a throwaway RegisterHotKey on the dialog's hwnd
-  and cross-duplicates rejected. MainWindow suspends its five
+  and cross-duplicates rejected. MainWindow suspends its six
   registrations for the dialog's lifetime (WM_HOTKEY is system-level and
   would fire behind the modal dialog; suspension also lets the boxes see
   and reassign our own combos) and restores them in a finally on close.
@@ -903,7 +930,9 @@ Every overlay window derives from `OverlayWindowBase`.
   auto-hide checkbox (no flag: MainWindow reads it live), background
   opacity (30–100%), the fade row (20–80%) and "Reset positions" (v1.25:
   arms `PositionsReset`, applied on Save — positions only); Stats panel = scale
-  (75–150%), the hunger/thirst time-left checkbox and the two chime
+  (75–150%), the View radios (Full / Combat — the default view; the
+  hotkey flips it mid-game), the time-left checkbox (hunger, thirst and
+  stamina labels) and the two chime
   checkboxes (low stat / growth stages — no flag, MainWindow reads them
   live); Prime tracker = scale.
   All scales, opacities, the time-left and fade settings ride the one
@@ -1020,8 +1049,14 @@ page and the tray's "Server rules…" showing the pack limits with the
 live species highlighted and the numbered rules, from a dated bundled
 copy of the site's page (`Assets/rules.json`, ServerRules) — the site
 has no rules endpoint; the `/api/rules` ask is pending on the owner's
-side — verified in-game). Still to do: a Discord announcement for
-1.24–1.26 together. No layout presets beyond the default for now.
+side — verified in-game). No layout presets beyond the default for now.
+
+Built Sep 30 2026, awaiting in-game verification (two player requests
+from the #pandora-overlay channel): the **stamina timer** (StaminaTracker
+— time until empty while draining, "full ~Ns" while recovering, on the
+stamina bar) and the **combat view** of the stats panel (health + stamina
+large, fracture badges, same frame; Settings default, Ctrl+F9 and the
+control panel's View button to flip; no automatic switching).
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,

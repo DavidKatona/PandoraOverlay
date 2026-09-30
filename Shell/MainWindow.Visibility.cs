@@ -260,6 +260,7 @@ public partial class MainWindow
                 _config,
                 openSettings: OpenSettings,
                 toggleStats: ToggleStats,
+                toggleStatsView: ToggleStatsView,
                 toggleMinimap: ToggleMinimap,
                 toggleMinimapView: () => _minimap?.ToggleView(),
                 toggleHeatmap: ToggleHeatmap,

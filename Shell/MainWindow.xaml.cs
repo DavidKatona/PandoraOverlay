@@ -28,6 +28,7 @@ public partial class MainWindow : OverlayWindowBase
     private static readonly Brush GrowthNormal = new SolidColorBrush(Color.FromRgb(0x9A, 0xA7, 0xB0));
     private static readonly Brush HungerTint = new SolidColorBrush(Color.FromRgb(0xFF, 0xB7, 0x4D));     // the bar's orange, lightened for text
     private static readonly Brush ThirstTint = new SolidColorBrush(Color.FromRgb(0x81, 0xD4, 0xFA));     // the bar's blue, lightened for text
+    private static readonly Brush StaminaTint = new SolidColorBrush(Color.FromRgb(0xFF, 0xE0, 0x82));    // the bar's yellow, lightened for text
     private static readonly Brush TimeLeftOnFill = new SolidColorBrush(Color.FromRgb(0x10, 0x15, 0x1B)); // panel-glass dark, for a label inside the fill
     private const double TimeLeftGap = 5; // px between the fill's tip and its label
 
@@ -47,6 +48,7 @@ public partial class MainWindow : OverlayWindowBase
     private readonly GrowthTracker _growth = new();
     private readonly DrainTracker _hungerDrain = new(p => p.Hunger);
     private readonly DrainTracker _thirstDrain = new(p => p.Thirst);
+    private readonly StaminaTracker _stamina = new();
     private readonly StatsAttention _attention = new();
     private readonly FriendFeed _feed = new();
     private readonly ActivityLog _log = new();
@@ -62,6 +64,7 @@ public partial class MainWindow : OverlayWindowBase
     private HotkeySpec _hotkeyView;
     private HotkeySpec _hotkeyHeatmap;
     private HotkeySpec _hotkeyPrime;
+    private HotkeySpec _hotkeyStatsView;
     private readonly LowStatAlert _lowStat = new();
     private readonly GrowthMilestones _milestones = new();
     private bool _overlayHidden;
@@ -89,7 +92,10 @@ public partial class MainWindow : OverlayWindowBase
             new[] { _hotkey, _hotkeyHide, _hotkeyView }, v => _config.HotkeyHeatmap = v);
         _hotkeyPrime = ResolveLateHotkey(_config.HotkeyPrimeCheck, PrimeHotkeyCandidates,
             new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap }, v => _config.HotkeyPrimeCheck = v);
+        _hotkeyStatsView = ResolveLateHotkey(_config.HotkeyStatsView, StatsViewHotkeyCandidates,
+            new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap, _hotkeyPrime }, v => _config.HotkeyStatsView = v);
         ApplyAppearance(_config);
+        ApplyStatsView();
 
         _poll = new PollService(_config);
         _poll.SnapshotReceived += OnSnapshot;
@@ -159,6 +165,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, ViewHotkeyId);
         HotkeySpec.Unregister(hwnd, HeatmapHotkeyId);
         HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
+        HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
         try
         {
             var dialog = new SettingsWindow(_config, _library, _book, _poll.Friends, _me?.Dino, page) { Topmost = true };
@@ -177,6 +184,7 @@ public partial class MainWindow : OverlayWindowBase
                 _poll.RebuildClient();
             }
             if (dialog.MinimapChanged || dialog.AppearanceChanged || dialog.FriendsChanged) _minimap?.ApplySettings();
+            ApplyStatsView(); // the default view is a Settings choice; cheap to reapply
             if (dialog.AppearanceChanged)
             {
                 ApplyAppearance(_config);
@@ -386,6 +394,7 @@ public partial class MainWindow : OverlayWindowBase
             _growth.Reset(); // a wall-clock gap would flatten the measured slope
             _hungerDrain.Reset();
             _thirstDrain.Reset();
+            _stamina.Reset();
             _attention.Reset();
             _lowStat.Reset();
             _milestones.Reset();
@@ -398,7 +407,10 @@ public partial class MainWindow : OverlayWindowBase
             SetBar(StaminaFill, StaminaPct, 0);
             SetBar(HungerFill, HungerPct, 0);
             SetBar(ThirstFill, ThirstPct, 0);
+            SetBar(CombatHealthFill, CombatHealthPct, 0);
+            SetBar(CombatStaminaFill, CombatStaminaPct, 0);
             SetPulse(HealthFill, false);
+            SetPulse(CombatHealthFill, false);
             SetPulse(HungerFill, false);
             SetPulse(ThirstFill, false);
             SetFractures(false, false, false);
@@ -430,18 +442,22 @@ public partial class MainWindow : OverlayWindowBase
             ? HealthWarn
             : GrowthNormal;
 
+        // Both views are kept up to date, so flipping between them is instant.
         SetBar(HealthFill, HealthPct, p.Health);
-        HealthFill.Background = p.Health switch
+        SetBar(CombatHealthFill, CombatHealthPct, p.Health);
+        HealthFill.Background = CombatHealthFill.Background = p.Health switch
         {
             < 0.25 => HealthCrit,
             < 0.50 => HealthWarn,
             _ => HealthGood
         };
         SetBar(StaminaFill, StaminaPct, p.Stamina);
+        SetBar(CombatStaminaFill, CombatStaminaPct, p.Stamina);
         SetBar(HungerFill, HungerPct, p.Hunger);
         SetBar(ThirstFill, ThirstPct, p.Thirst);
         _hungerDrain.Add(p);
         _thirstDrain.Add(p);
+        _stamina.Add(p);
         RenderTimeLeft();
 
         // Alerts: the rules are pure and always run; the sounds are opt-in,
@@ -466,6 +482,7 @@ public partial class MainWindow : OverlayWindowBase
         // Critical-stat pulse. Stamina is deliberately excluded — it drains to
         // zero every sprint by design and would train the eye to ignore it.
         SetPulse(HealthFill, p.Health < 0.25);
+        SetPulse(CombatHealthFill, p.Health < 0.25);
         SetPulse(HungerFill, p.Hunger < 0.25);
         SetPulse(ThirstFill, p.Thirst < 0.25);
 
@@ -488,11 +505,48 @@ public partial class MainWindow : OverlayWindowBase
         text.Foreground = fractured ? FracturedText : IntactText;
     }
 
-    /// <summary>The time-left labels on the hunger/thirst bars; the trackers run either way, so the Settings checkbox applies at once.</summary>
+    // ---- Stats views --------------------------------------------------------
+
+    private bool CombatViewOn => string.Equals(_config.StatsView, "combat", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Shows the full view (all four bars, growth) or the combat view (health
+    /// and stamina drawn large, bigger fracture badges, no growth readout) —
+    /// two layouts inside the SAME fixed frame, so flipping never resizes or
+    /// moves the panel (a player's request, Sep 30 2026: "only health, stam
+    /// and body breaks ... to focus and help with pvp"; a shorter panel was
+    /// the literal ask and was turned down for the frame's sake).
+    /// </summary>
+    private void ApplyStatsView()
+    {
+        var combat = CombatViewOn;
+        FullView.Visibility = combat ? Visibility.Collapsed : Visibility.Visible;
+        CombatView.Visibility = combat ? Visibility.Visible : Visibility.Collapsed;
+        GrowthText.Visibility = combat ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var (badge, text) in new[] { (FracHead, FracHeadText), (FracBody, FracBodyText), (FracLegs, FracLegsText) })
+        {
+            badge.Padding = combat ? new Thickness(9, 3, 9, 3) : new Thickness(6, 2, 6, 2);
+            text.FontSize = combat ? 12 : 10;
+        }
+        RenderTimeLeft();
+    }
+
+    /// <summary>The stats-view hotkey and the control panel's View button: flips full ↔ combat (persisted with the next Save).</summary>
+    private void ToggleStatsView()
+    {
+        _config.StatsView = CombatViewOn ? "full" : "combat";
+        ApplyStatsView();
+    }
+
+    /// <summary>The time labels on the bars; the trackers run either way, so the Settings checkbox applies at once.</summary>
     private void RenderTimeLeft()
     {
-        SetTimeLeft(HungerLeft, _hungerDrain, HungerFill.Width, HungerTint);
-        SetTimeLeft(ThirstLeft, _thirstDrain, ThirstFill.Width, ThirstTint);
+        var on = _config.StatTimeLeftEnabled;
+        SetBarLabel(HungerLeft, on ? _hungerDrain.Label : null, HungerFill.Width, HungerTint);
+        SetBarLabel(ThirstLeft, on ? _thirstDrain.Label : null, ThirstFill.Width, ThirstTint);
+        // Stamina reads both ways: "~25s" until empty, "full ~40s" until recovered.
+        SetBarLabel(StaminaLeft, on ? _stamina.Label : null, StaminaFill.Width, StaminaTint);
+        SetBarLabel(CombatStaminaLeft, on ? _stamina.Label : null, CombatStaminaFill.Width, StaminaTint);
     }
 
     /// <summary>
@@ -501,9 +555,8 @@ public partial class MainWindow : OverlayWindowBase
     /// second number next to the percent. With no room left on the track it
     /// flips inside the fill's end, dark on the bright colour.
     /// </summary>
-    private void SetTimeLeft(System.Windows.Controls.TextBlock label, DrainTracker tracker, double fillWidth, Brush tint)
+    private static void SetBarLabel(System.Windows.Controls.TextBlock label, string? text, double fillWidth, Brush tint)
     {
-        var text = _config.StatTimeLeftEnabled ? tracker.Label : null;
         if (text is null)
         {
             label.Visibility = Visibility.Collapsed;
