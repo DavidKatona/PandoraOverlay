@@ -54,12 +54,8 @@ public partial class SettingsWindow
     private void BuildWaypointRows()
     {
         WaypointRows.Children.Clear();
-        WaypointCount.Text = $"{_draft.Count} / {WaypointLibrary.Capacity}";
-        DeleteAllButton.Content = "Delete all";
-        DeleteAllButton.IsEnabled = _draft.Count > 0;
-        ExportButton.IsEnabled = _draft.Count > 0;
-        ImportButton.IsEnabled = _draft.Count < WaypointLibrary.Capacity;
-        _deleteAllArmed = false;
+        _rowShowChecks.Clear();
+        UpdateWaypointTotals();
 
         if (_draft.Count == 0)
         {
@@ -90,6 +86,20 @@ public partial class SettingsWindow
     private const int RowBatch = 24;
     private int _waypointRenderVersion;   // a newer rebuild stops an older one's batches
 
+    /// <summary>The Show box of every row built so far, so a pack's Show all can tick them where they stand.</summary>
+    private readonly Dictionary<Guid, CheckBox> _rowShowChecks = new();
+
+    /// <summary>The count and the three buttons under the list, after anything that changes how many waypoints there are.</summary>
+    private void UpdateWaypointTotals()
+    {
+        WaypointCount.Text = $"{_draft.Count} / {WaypointLibrary.Capacity}";
+        DeleteAllButton.Content = "Delete all";
+        DeleteAllButton.IsEnabled = _draft.Count > 0;
+        ExportButton.IsEnabled = _draft.Count > 0;
+        ImportButton.IsEnabled = _draft.Count < WaypointLibrary.Capacity;
+        _deleteAllArmed = false;
+    }
+
     private void AddWaypointRowBatch(Queue<Action> rows, int count, int version)
     {
         if (version != _waypointRenderVersion) return;
@@ -117,21 +127,34 @@ public partial class SettingsWindow
         if (members.Count == 0) return;
 
         var body = new StackPanel();
-        var (band, groupCheck) = BuildGroupBand(title, pack, members);
-        body.Children.Add(band);
-        var stripe = false;
-        foreach (var wp in members)
-        {
-            var striped = stripe;
-            // A row's Show click must reach the band: the group box shows all / none / mixed live.
-            rows.Enqueue(() => body.Children.Add(BuildWaypointRow(wp, striped, () => groupCheck.IsChecked = GroupState(members))));
-            stripe = !stripe;
-        }
-        WaypointRows.Children.Add(new Border
+        var card = new Border
         {
             Child = body, CornerRadius = new CornerRadius(4), BorderBrush = CardBorder, BorderThickness = new Thickness(1),
             Background = CardSurface, Padding = new Thickness(6, 6, 6, 4), Margin = new Thickness(0, 0, 0, 8)
-        });
+        };
+        var (band, groupCheck) = BuildGroupBand(title, pack, members, card);
+        body.Children.Add(band);
+        foreach (var wp in members)
+        {
+            rows.Enqueue(() =>
+            {
+                if (!_draft.Contains(wp)) return; // deleted (alone or with its pack) while its row was still waiting
+                body.Children.Add(BuildWaypointRow(wp, new GroupCard(card, body, members, groupCheck)));
+            });
+        }
+        WaypointRows.Children.Add(card);
+    }
+
+    /// <summary>What a row needs of the group it sits in, to change things IN PLACE: its card, the rows' panel, the members and the band's checkbox.</summary>
+    private sealed record GroupCard(Border Card, StackPanel Body, List<Waypoint> Members, CheckBox Check);
+
+    /// <summary>Zebra stripes by position (the band is child 0), so they stay right after a row is removed.</summary>
+    private static void Restripe(StackPanel body)
+    {
+        for (var i = 1; i < body.Children.Count; i++)
+        {
+            if (body.Children[i] is Grid row) row.Background = i % 2 == 0 ? RowStripe : Brushes.Transparent;
+        }
     }
 
     /// <summary>
@@ -165,7 +188,7 @@ public partial class SettingsWindow
         return shown == members.Count ? true : shown == 0 ? false : null;
     }
 
-    private (Border Band, CheckBox GroupCheck) BuildGroupBand(string text, string? pack, List<Waypoint> members)
+    private (Border Band, CheckBox GroupCheck) BuildGroupBand(string text, string? pack, List<Waypoint> members, Border card)
     {
         var row = NewRowGrid();
         row.Margin = new Thickness(0);
@@ -196,7 +219,7 @@ public partial class SettingsWindow
                 Style = (Style)FindResource("DangerButtonStyle"),
                 HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Delete this pack"
             };
-            delete.Click += (_, _) => DeletePack(pack);
+            delete.Click += (_, _) => DeletePack(pack, card);
             Grid.SetColumn(delete, 4);
             row.Children.Add(delete);
         }
@@ -220,28 +243,73 @@ public partial class SettingsWindow
         return row;
     }
 
+    /// <summary>
+    /// A pack's Show all / Hide all, IN PLACE: the draft changes and the rows
+    /// already on screen get their boxes ticked where they stand (rows still
+    /// waiting to be built read the draft when their turn comes). The list
+    /// used to be rebuilt for this, which threw you back to the top and
+    /// re-drew every row in front of you — the owner lost their place in a
+    /// long list each time (Oct 2026). Nothing here may rebuild the list.
+    /// </summary>
     private void SetGroupVisible(string? pack, bool visible)
     {
-        foreach (var w in _draft.Where(w => w.Pack == pack)) w.Visible = visible;
+        foreach (var w in _draft.Where(w => w.Pack == pack))
+        {
+            w.Visible = visible;
+            if (_rowShowChecks.TryGetValue(w.Id, out var box)) box.IsChecked = visible;
+        }
         _waypointsDirty = true;
-        BuildWaypointRows();
     }
 
-    /// <summary>Removes a whole pack — no confirmation: it is a draft, Cancel still reverts it.</summary>
-    private void DeletePack(string pack)
+    /// <summary>Removes a whole pack — no confirmation: it is a draft, Cancel still reverts it. Only its card leaves the list; the rest stays where it is.</summary>
+    private void DeletePack(string pack, Border card)
     {
         if (_draft.Any(w => w.Pack == pack && w.Id == _draftTracked)) _draftTracked = null;
+        foreach (var w in _draft.Where(w => w.Pack == pack)) _rowShowChecks.Remove(w.Id);
         _draft.RemoveAll(w => w.Pack == pack);
         _waypointsDirty = true;
-        BuildWaypointRows();
+        if (_draft.Count == 0)
+        {
+            BuildWaypointRows(); // nothing left: back to "No waypoints yet"
+            return;
+        }
+        WaypointRows.Children.Remove(card);
+        UpdateWaypointTotals();
+    }
+
+    /// <summary>One waypoint's ✕, IN PLACE: its row leaves, the rows below close up and are re-striped, an emptied card goes too.</summary>
+    private void DeleteWaypointRow(Waypoint wp, Grid row, GroupCard group)
+    {
+        _draft.Remove(wp);
+        group.Members.Remove(wp);
+        _rowShowChecks.Remove(wp.Id);
+        if (_draftTracked == wp.Id) _draftTracked = null;
+        _waypointsDirty = true;
+        if (_draft.Count == 0)
+        {
+            BuildWaypointRows();
+            return;
+        }
+
+        group.Body.Children.Remove(row);
+        if (group.Members.Count == 0)
+        {
+            WaypointRows.Children.Remove(group.Card);
+        }
+        else
+        {
+            Restripe(group.Body);
+            group.Check.IsChecked = GroupState(group.Members);
+        }
+        UpdateWaypointTotals();
     }
 
     /// <summary>One list row; alternate rows carry a faint stripe so the controls read as part of the row.</summary>
-    private Grid BuildWaypointRow(Waypoint wp, bool stripe, Action onVisibilityChanged)
+    private Grid BuildWaypointRow(Waypoint wp, GroupCard group)
     {
         var row = NewRowGrid();
         row.Margin = new Thickness(0, 1, 0, 1);
-        row.Background = stripe ? RowStripe : Brushes.Transparent;
+        row.Background = group.Body.Children.Count % 2 == 0 ? RowStripe : Brushes.Transparent; // by position: the band is child 0
 
         // The colour disc sits in the same 15 px dark well as the checkboxes,
         // so it reads as a control in the table rather than a loose dot.
@@ -276,8 +344,9 @@ public partial class SettingsWindow
         {
             wp.Visible = show.IsChecked == true;
             _waypointsDirty = true;
-            onVisibilityChanged();
+            group.Check.IsChecked = GroupState(group.Members); // the band's box shows all / none / mixed live
         };
+        _rowShowChecks[wp.Id] = show;
         Grid.SetColumn(show, 2);
         row.Children.Add(show);
 
@@ -311,13 +380,7 @@ public partial class SettingsWindow
             Style = (Style)FindResource("NeutralButtonStyle"), Foreground = RowDeleteGlyph,
             HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Delete this waypoint"
         };
-        delete.Click += (_, _) =>
-        {
-            _draft.Remove(wp);
-            if (_draftTracked == wp.Id) _draftTracked = null;
-            _waypointsDirty = true;
-            BuildWaypointRows();
-        };
+        delete.Click += (_, _) => DeleteWaypointRow(wp, row, group);
         Grid.SetColumn(delete, 4);
         row.Children.Add(delete);
 

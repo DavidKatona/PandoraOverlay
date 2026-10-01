@@ -1069,7 +1069,15 @@ Every overlay window derives from `OverlayWindowBase`.
   would bring the first opening to ~90 ms; the owner chose NOT to build
   it ("we can live with this") — don't re-propose it unasked. Only
   what sets a page's HEIGHT stays eager (the Rules note wraps, and the
-  tallest page sets the dialog's height). The rows come from a DRAFT
+  tallest page sets the dialog's height). The list is CHANGED IN PLACE,
+  never rebuilt, by what you do inside it (owner, Oct 1 2026: a pack's
+  Show all rebuilt the whole list, threw the view back to the top and
+  redrew every row in front of them — "I lose track where I was"):
+  `SetGroupVisible` ticks the built rows' boxes through `_rowShowChecks`,
+  `DeleteWaypointRow` removes one row and re-stripes its card (stripes
+  are by position), `DeletePack` removes one card; an emptied card
+  leaves too. Only Import and Delete all still rebuild (they change the
+  list's structure). The rows come from a DRAFT
   (`_library.Clone()`) so Cancel drops edits and Save commits via
   `ReplaceWith` — colour dot (click cycles the palette), `NameBox`,
   Show checkbox, Track radio (clicking the tracked one untracks, since a
