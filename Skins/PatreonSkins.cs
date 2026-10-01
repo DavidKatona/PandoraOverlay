@@ -24,9 +24,18 @@ public sealed record PatreonSkin(
     /// <summary>The id as it goes into the apply request: a bare number or a quoted string, as the list had it.</summary>
     public string IdJson => PatreonSkins.IdJson(Id, IdIsNumber);
 
-    /// <summary>The picture a tile shows — the thumbnail when there is one, like the site.</summary>
-    public string? Picture => string.IsNullOrWhiteSpace(Thumbnail) ? Image : Thumbnail;
+    /// <summary>
+    /// Where a tile's picture may come from, in the order to try: the
+    /// thumbnail, then the full image (the site shows "thumbnail || image" and
+    /// falls back between the two when one fails to load). Empty = the skin
+    /// has no picture at all.
+    /// </summary>
+    public IReadOnlyList<string> Pictures =>
+        new[] { Thumbnail, Image }.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a!.Trim()).Distinct().ToList();
 }
+
+/// <summary>One tile picture as fetched: its bytes, or a short reason why not ("HTTP 404", "too large (6 MB)", an exception type). Never server text.</summary>
+public sealed record SkinPicture(byte[]? Bytes, string? Problem = null);
 
 /// <summary>The skin and pattern last applied for one species, so the Skins page can offer it again (kept in config).</summary>
 public sealed record SkinChoice(string SkinId, bool IdIsNumber, string Name, int Pattern);

@@ -38,14 +38,30 @@ public class PatreonSkinsTests
         Assert.Equal("Glowing coals", ember.Description);
         Assert.Equal("Patreon | Silver", ember.RequiredRole);
         Assert.False(ember.Locked);
-        Assert.Equal("/img/ember_t.png", ember.Picture); // the thumbnail wins, like on the site
+        Assert.Equal(new[] { "/img/ember_t.png", "/img/ember.png" }, ember.Pictures); // the thumbnail first, the full image as the fallback
 
         var glacier = skins[1];
         Assert.Equal("abc-7", glacier.Id);
         Assert.False(glacier.IdIsNumber);
         Assert.True(glacier.Locked);
         Assert.Null(glacier.Description);
-        Assert.Equal("https://cdn.example.com/g.png", glacier.Picture); // no thumbnail: the image
+        Assert.Equal(new[] { "https://cdn.example.com/g.png" }, glacier.Pictures); // no thumbnail: the image alone
+    }
+
+    [Fact]
+    public void ASkinMayHaveNoPictureOrTheSameOneTwice()
+    {
+        var skins = PatreonSkins.ParseList(Json("""
+            {"success":true,"skins":[
+              {"id":1,"name":"Bare"},
+              {"id":2,"name":"Blank","image":"  ","thumbnail":""},
+              {"id":3,"name":"Twin","image":"/img/x.png","thumbnail":"/img/x.png"}
+            ]}
+            """))!;
+
+        Assert.Empty(skins[0].Pictures);
+        Assert.Empty(skins[1].Pictures);
+        Assert.Equal(new[] { "/img/x.png" }, skins[2].Pictures);
     }
 
     [Fact]

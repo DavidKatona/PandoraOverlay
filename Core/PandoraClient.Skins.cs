@@ -82,22 +82,40 @@ public sealed partial class PandoraClient
     /// <summary>
     /// One tile picture. Its own bare client: a User-Agent and nothing else —
     /// no Cookie, no Origin, no Referer — because the address comes from the
-    /// list and may point anywhere. Capped in size; null on any trouble.
+    /// list and may point anywhere. Capped in size. Never throws: trouble
+    /// comes back as a short reason the page can show (a status code, "too
+    /// large", an exception type — never anything the server wrote).
     /// </summary>
-    public async Task<byte[]?> FetchPictureAsync(Uri address, CancellationToken ct = default)
+    public async Task<SkinPicture> FetchPictureAsync(Uri address, CancellationToken ct = default)
     {
-        if (address.Scheme != Uri.UriSchemeHttps) return null;
+        if (address.Scheme != Uri.UriSchemeHttps) return new SkinPicture(null, "not an https address");
         _pictures ??= CreatePictureClient();
         try
         {
-            using var response = await _pictures.GetAsync(address, ct).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode) return null;
-            if (response.Content.Headers.ContentLength is > MaxPictureBytes) return null;
-            return await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+            // Headers first, so an oversized picture is turned away before its body is downloaded.
+            using var response = await _pictures.GetAsync(address, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return new SkinPicture(null, $"HTTP {(int)response.StatusCode}");
+            if (response.Content.Headers.ContentLength is > MaxPictureBytes and var length)
+            {
+                return new SkinPicture(null, $"too large ({length / 1048576.0:0.#} MB)");
+            }
+            try
+            {
+                await response.Content.LoadIntoBufferAsync(MaxPictureBytes).ConfigureAwait(false); // a body with no declared length is capped here
+            }
+            catch (HttpRequestException)
+            {
+                return new SkinPicture(null, $"too large (over {MaxPictureBytes / 1048576} MB)");
+            }
+            return new SkinPicture(await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false));
         }
-        catch
+        catch (TaskCanceledException)
         {
-            return null; // a tile without its picture still shows its colours
+            return new SkinPicture(null, "timed out");
+        }
+        catch (Exception ex)
+        {
+            return new SkinPicture(null, ex.GetType().Name);
         }
     }
 
@@ -105,8 +123,7 @@ public sealed partial class PandoraClient
     {
         var client = new HttpClient(new HttpClientHandler { UseCookies = false })
         {
-            Timeout = TimeSpan.FromSeconds(15),
-            MaxResponseContentBufferSize = MaxPictureBytes
+            Timeout = TimeSpan.FromSeconds(15)
         };
         if (_http.DefaultRequestHeaders.TryGetValues("User-Agent", out var agent))
         {

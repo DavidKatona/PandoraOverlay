@@ -914,7 +914,8 @@ Every overlay window derives from `OverlayWindowBase`.
   The site's "SV" value is ignored (nobody knows what it means).
   **PandoraClient.Skins.cs**: the list POST, the apply POST (reads the
   body whatever the status, like Prime; Referer set to /patreon) and
-  `FetchPictureAsync` on its own bare HttpClient (UA only, 4 MB cap).
+  `FetchPictureAsync` on its own bare HttpClient (UA only, 4 MB cap;
+  never throws — returns a `SkinPicture` with the bytes or a short reason).
   **PollService.Skins.cs**: ALL gating — `GetSkinsAsync(refresh)` (the
   session's copy for 10 min, 30 s floor, a failure keeps the last good
   list and names the problem), `GetSkinPictureAsync` (once per session
@@ -929,8 +930,14 @@ Every overlay window derives from `OverlayWindowBase`.
   words — a deliberate exception to "never echo server strings" until
   the real messages are known and can be mapped). **SettingsWindow.Skins.cs**:
   tiles in a WrapPanel, three across (138 px; the page is 436 wide):
-  picture well (the seven colours as stripes until the picture arrives;
-  a format Windows can't decode just keeps the stripes), name, tier
+  picture well (a quiet dark box that SAYS its state: "loading…", "no
+  picture" when the skin has none, "picture unavailable" when every
+  address failed — the reason, host first, is on the hover tip: "HTTP
+  404", "too large", "timed out", "not a picture format this Windows can
+  show". The thumbnail is tried first, then the full image, like the
+  site's own fallback. A first build filled the well with the seven
+  colours as stripes and the owner read them as broken images — don't
+  bring that back; the dots already show the colours), name, tier
   (orange, red + "locked"), colour dots, Apply → the six pattern buttons
   A–F in place (one tile armed at a time; the site uses a pop-up), a
   hover preview in our own tooltip colours, search + Available/All,

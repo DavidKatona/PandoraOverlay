@@ -25,7 +25,10 @@ public partial class SettingsWindow
     private const double TileWidth = 138;     // three across the page (436 px) with their 6 px gaps, and a little slack
     private const double PictureWidth = 124;  // the tile minus its padding and border
     private const double PictureHeight = 74;
-    private const int MaxPictures = 60;       // tiles beyond this keep their colour stripes
+    private const int MaxPictures = 120;      // skins beyond this say "not loaded"
+    private const string NoPicture = "no picture";
+    private const string PictureLoading = "loading…";
+    private const string PictureUnavailable = "picture unavailable";
     private static readonly TimeSpan ServerSkinCooldown = TimeSpan.FromMinutes(15); // shown as a hint only, never enforced here
 
     private static readonly Brush TileName = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8));
@@ -38,7 +41,9 @@ public partial class SettingsWindow
 
     private readonly PollService _poll;
     private readonly Dictionary<string, ImageSource> _skinPictures = new();
+    private readonly Dictionary<string, string> _skinPictureProblems = new(); // skin id → why its picture can't be shown
     private readonly Dictionary<string, Image> _tilePictures = new();
+    private readonly Dictionary<string, TextBlock> _tileNotes = new();        // the words in an empty picture well
     private IReadOnlyList<PatreonSkin>? _skins;
     private bool _skinsOpened;
     private bool _skinApplying;
@@ -90,25 +95,59 @@ public partial class SettingsWindow
         _ = LoadSkinPicturesAsync();
     }
 
-    /// <summary>Pictures one after another, what you can apply first; each is fetched once per session and never with the cookie.</summary>
+    /// <summary>
+    /// Pictures one after another, what you can apply first; each address is
+    /// fetched once per session and never with the cookie. A skin's thumbnail
+    /// is tried first, then its full image — the site falls back the same
+    /// way. A skin whose pictures all fail keeps an empty well that says so,
+    /// with the reason on hover.
+    /// </summary>
     private async Task LoadSkinPicturesAsync()
     {
         if (_skins is null) return;
         var loaded = 0;
         foreach (var skin in PatreonSkins.Sorted(_skins))
         {
-            if (_skinsClosed || loaded >= MaxPictures) return;
-            if (_skinPictures.ContainsKey(skin.Id) || skin.Picture is null) continue;
-            loaded++;
-            var bytes = await _poll.GetSkinPictureAsync(skin.Picture);
             if (_skinsClosed) return;
-            if (bytes is null || DecodePicture(bytes) is not { } picture) continue;
-            _skinPictures[skin.Id] = picture;
-            if (_tilePictures.TryGetValue(skin.Id, out var image)) image.Source = picture;
+            if (_skinPictures.ContainsKey(skin.Id) || _skinPictureProblems.ContainsKey(skin.Id) || skin.Pictures.Count == 0) continue;
+            if (++loaded > MaxPictures)
+            {
+                NotePictureProblem(skin.Id, "not loaded (too many pictures)");
+                continue;
+            }
+
+            var problems = new List<string>();
+            foreach (var address in skin.Pictures)
+            {
+                var fetched = await _poll.GetSkinPictureAsync(address);
+                if (_skinsClosed) return;
+                if (fetched.Bytes is null)
+                {
+                    problems.Add(fetched.Problem ?? "no answer");
+                }
+                else if (DecodePicture(fetched.Bytes) is { } picture)
+                {
+                    _skinPictures[skin.Id] = picture;
+                    if (_tilePictures.TryGetValue(skin.Id, out var image)) image.Source = picture;
+                    if (_tileNotes.TryGetValue(skin.Id, out var note)) note.Visibility = Visibility.Collapsed;
+                    break;
+                }
+                else
+                {
+                    problems.Add("not a picture format this Windows can show");
+                }
+            }
+            if (!_skinPictures.ContainsKey(skin.Id)) NotePictureProblem(skin.Id, string.Join("; ", problems));
         }
     }
 
-    /// <summary>Decoded small and frozen; a format this Windows can't read just leaves the tile its colour stripes.</summary>
+    private void NotePictureProblem(string skinId, string problem)
+    {
+        _skinPictureProblems[skinId] = problem;
+        if (_tileNotes.TryGetValue(skinId, out var note)) note.Text = PictureUnavailable;
+    }
+
+    /// <summary>Decoded small and frozen; null for a format this Windows can't read.</summary>
     private static ImageSource? DecodePicture(byte[] bytes)
     {
         try
@@ -135,6 +174,7 @@ public partial class SettingsWindow
         if (_skins is null) return;
         _disarmTile = null;
         _tilePictures.Clear();
+        _tileNotes.Clear();
         SkinTiles.Children.Clear();
 
         var available = _skins.Count(s => !s.Locked);
@@ -158,16 +198,24 @@ public partial class SettingsWindow
     {
         var body = new StackPanel();
 
-        // Picture well: the seven colours as stripes until (unless) the picture arrives.
-        var stripes = new UniformGrid { Rows = 1 };
-        foreach (var hex in skin.Colours) stripes.Children.Add(new Rectangle { Fill = BrushOf(hex) });
+        // Picture well: a quiet dark box that SAYS what it is waiting for or
+        // missing. (A first build filled it with the seven colours as stripes;
+        // that read as a broken image — the dots below already show the colours.)
         var picture = new Image { Stretch = Stretch.UniformToFill };
-        if (_skinPictures.TryGetValue(skin.Id, out var known)) picture.Source = known;
+        var has = _skinPictures.TryGetValue(skin.Id, out var known);
+        if (has) picture.Source = known;
+        var note = new TextBlock
+        {
+            Text = skin.Pictures.Count == 0 ? NoPicture : _skinPictureProblems.ContainsKey(skin.Id) ? PictureUnavailable : PictureLoading,
+            Foreground = RuleNumber, FontSize = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            Visibility = has ? Visibility.Collapsed : Visibility.Visible
+        };
         _tilePictures[skin.Id] = picture;
+        _tileNotes[skin.Id] = note;
         var well = new Border
         {
             Width = PictureWidth, Height = PictureHeight, Background = PictureWell, CornerRadius = new CornerRadius(3),
-            ClipToBounds = true, Child = new Grid { Children = { stripes, picture } }, ToolTip = BuildSkinTip(skin, picture)
+            ClipToBounds = true, Child = new Grid { Children = { note, picture } }, ToolTip = BuildSkinTip(skin, picture)
         };
         body.Children.Add(well);
 
@@ -244,7 +292,7 @@ public partial class SettingsWindow
     }
 
     /// <summary>Hover preview in the dialog's own colours: the picture larger, the name, tier and description.</summary>
-    private static ToolTip BuildSkinTip(PatreonSkin skin, Image tilePicture)
+    private ToolTip BuildSkinTip(PatreonSkin skin, Image tilePicture)
     {
         var panel = new StackPanel { MaxWidth = 300 };
         var large = new Image { Width = 300, Stretch = Stretch.Uniform, Margin = new Thickness(0, 0, 0, 6) };
@@ -258,11 +306,19 @@ public partial class SettingsWindow
         {
             panel.Children.Add(new TextBlock { Text = skin.Description, Foreground = RuleText, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
         }
+        var why = new TextBlock { Foreground = HintNeutral, FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
+        panel.Children.Add(why);
         var tip = new ToolTip { Content = panel, Background = CardSurface, BorderBrush = CardBorder, Padding = new Thickness(8), HasDropShadow = false };
         tip.Opened += (_, _) =>
         {
             large.Source = tilePicture.Source; // whatever has arrived by now
             large.Visibility = large.Source is null ? Visibility.Collapsed : Visibility.Visible;
+            // Why the well is empty, when it is: nothing to show, or what went wrong fetching it.
+            why.Text = large.Source is not null ? ""
+                     : skin.Pictures.Count == 0 ? "The website has no picture for this skin."
+                     : _skinPictureProblems.TryGetValue(skin.Id, out var problem) ? $"Picture unavailable — {problem}"
+                     : "The picture is still loading.";
+            why.Visibility = why.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         };
         return tip;
     }

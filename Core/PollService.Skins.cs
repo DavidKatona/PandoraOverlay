@@ -24,7 +24,7 @@ public sealed partial class PollService
 
     private const int MaxCachedPictures = 200;
 
-    private readonly Dictionary<string, byte[]?> _skinPictures = new();
+    private readonly Dictionary<string, Task<SkinPicture>> _skinPictures = new();
     private bool _skinListBusy;
     private bool _skinBusy;
     private DateTime _skinListAskedUtc;
@@ -77,18 +77,25 @@ public sealed partial class PollService
         }
     }
 
-    /// <summary>One tile picture, fetched once per session (a failure is remembered too) and never with the cookie.</summary>
-    public async Task<byte[]?> GetSkinPictureAsync(string? address)
+    /// <summary>
+    /// One tile picture, fetched once per session (a failure is remembered
+    /// too, with its reason) and never with the cookie. The reason names the
+    /// host, so "which pictures fail" can be read off the page.
+    /// </summary>
+    public Task<SkinPicture> GetSkinPictureAsync(string? address)
     {
-        if (PatreonSkins.ResolvePicture(address) is not { } uri) return null;
+        if (PatreonSkins.ResolvePicture(address) is not { } uri) return Task.FromResult(new SkinPicture(null, "not a usable address"));
         var key = uri.AbsoluteUri;
-        if (_skinPictures.TryGetValue(key, out var known)) return known;
-        if (_skinPictures.Count >= MaxCachedPictures) return null;
+        if (_skinPictures.TryGetValue(key, out var known)) return known; // done or still under way: never a second download
+        if (_skinPictures.Count >= MaxCachedPictures) return Task.FromResult(new SkinPicture(null, "not loaded (too many pictures)"));
 
-        _skinPictures[key] = null; // claimed: a second tile asking meanwhile gets "none yet", not a second download
-        var bytes = await _client.FetchPictureAsync(uri);
-        _skinPictures[key] = bytes;
-        return bytes;
+        return _skinPictures[key] = FetchSkinPictureAsync(uri);
+    }
+
+    private async Task<SkinPicture> FetchSkinPictureAsync(Uri uri)
+    {
+        var fetched = await _client.FetchPictureAsync(uri);
+        return fetched.Problem is null ? fetched : fetched with { Problem = $"{uri.Host}: {fetched.Problem}" };
     }
 
     /// <summary>
