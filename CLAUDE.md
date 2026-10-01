@@ -1060,9 +1060,14 @@ Every overlay window derives from `OverlayWindowBase`.
   `DispatcherPriority.Background` tick, with a version counter so a newer
   rebuild stops an older one (waypoint rows 12 then 24, skin tiles 9 then
   12; skin tiles also build their pattern buttons and tooltip content
-  only when first needed). Measured after: every page's first frame at
-  ~0.2–0.3 s against ~0.12 s for a bare transparent WPF window, the
-  floor; the very first opening after launch is slower once (JIT). Only
+  only when first needed). Measured after, with the overlay's windows
+  already up (an idle PC, off-screen): a normal opening ~80 ms, the FIRST
+  opening per launch ~200 ms — ~60 ms reading the dialog's BAML once,
+  ~55 ms the first layout (control templates, six framework assemblies),
+  only ~27 ms of it JIT, so ReadyToRun would barely help. A hidden
+  warm-up (construct + lay out off-screen, ~180 ms once after launch)
+  would bring the first opening to ~90 ms; the owner chose NOT to build
+  it ("we can live with this") — don't re-propose it unasked. Only
   what sets a page's HEIGHT stays eager (the Rules note wraps, and the
   tallest page sets the dialog's height). The rows come from a DRAFT
   (`_library.Clone()`) so Cancel drops edits and Save commits via
