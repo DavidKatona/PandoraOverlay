@@ -14,7 +14,7 @@ To download one, open it here on GitHub and use the **Download raw file** button
 
 ![Every waypoint of the areas, water and landmarks packs plotted on the island map: areas in white, water in blue, landmarks in yellow, human sites in purple](gateway-preview.jpg)
 
-![The mud and salt rock packs plotted on the island map: mud pools in tan, salt rocks in pink](gateway-mud-salt-preview.jpg)
+![The mud and salt rock packs plotted on the island map: mud pools in tan, salt rocks in pale blue](gateway-mud-salt-preview.jpg)
 
 ## Importing a pack
 
