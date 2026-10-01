@@ -9,7 +9,7 @@ It is **fully external**: all it knows about the game comes from the same logged
 [![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
 [![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
-![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel top-right, and the control panel bottom-center, over a Deinosuchus in night-time grassland](docs/screenshot.png)
+![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Combat view top-right, and the control panel bottom-center, over a Deinosuchus among rocks; a caption box names version 1.27.0 and its new Survival and Combat views, damage taken, speed and stamina timer](docs/screenshot.png)
 
 ## Contents
 
@@ -228,7 +228,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 **A hotkey does nothing, or clashes with another program.** Every hotkey can be changed under Settings → Controls. The box tells you while you press whether a combination is free.
 
-**Where do I ask for help, report a bug or suggest something?** In the pandora-overlay channel on the Isla Pandora Discord, or by opening an [issue](../../issues) here.
+**Where do I ask for help, report a bug or suggest something?** Open an [issue](../../issues) here on GitHub; a free account is all it takes. Say what you did, what you expected and what happened instead, and add a screenshot if you can (never one that shows your cookie).
 
 ## Troubleshooting
 
