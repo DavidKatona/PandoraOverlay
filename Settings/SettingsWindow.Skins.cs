@@ -25,6 +25,8 @@ public partial class SettingsWindow
     private const double TileWidth = 138;     // three across the page (436 px) with their 6 px gaps, and a little slack
     private const double PictureWidth = 124;  // the tile minus its padding and border
     private const double PictureHeight = 74;
+    private const int FirstTileBatch = 9;     // three rows: what the list shows without scrolling, and one more
+    private const int TileBatch = 12;
     private const string NoPicture = "no picture";
     private const string PictureLoading = "loading…";
     private const string PictureUnavailable = "picture unavailable";
@@ -48,6 +50,7 @@ public partial class SettingsWindow
     private bool _skinApplying;
     private bool _skinsClosed;
     private bool _picturesLoading;
+    private int _skinRenderVersion;
     private Action? _disarmTile; // puts the Apply button back on the tile showing its pattern row
 
     // ---- Opening the page ---------------------------------------------------
@@ -197,6 +200,7 @@ public partial class SettingsWindow
     private void RenderSkins()
     {
         if (_skins is null) return;
+        var version = ++_skinRenderVersion; // a newer render (filter, search, refresh) stops an older one's batches
         _disarmTile = null;
         _tilePictures.Clear();
         _tileNotes.Clear();
@@ -207,9 +211,11 @@ public partial class SettingsWindow
         SkinCount.Text = locked > 0 ? $"{available} available · {locked} locked" : $"{available} available";
 
         var shown = PatreonSkins.Sorted(_skins.Where(s => (_skinsShowAll || !s.Locked) && PatreonSkins.Matches(s, _skinSearch)));
-        foreach (var skin in shown) SkinTiles.Children.Add(BuildSkinTile(skin));
-        QueueVisibleSkinPictures(); // a new filter or search can bring tiles into view without the list scrolling
-        if (shown.Count > 0) return;
+        if (shown.Count > 0)
+        {
+            AddSkinTiles(shown, 0, version);
+            return;
+        }
 
         SkinTiles.Children.Add(new TextBlock
         {
@@ -218,6 +224,21 @@ public partial class SettingsWindow
                  : "Nothing unlocked yet — choose All to see what each tier has.",
             Foreground = HintNeutral, FontSize = 12, TextWrapping = TextWrapping.Wrap, Width = 3 * TileWidth, Margin = new Thickness(2, 8, 0, 0)
         });
+    }
+
+    /// <summary>
+    /// Tiles in batches: the rows you can see at once, the rest a batch per
+    /// idle moment. Building all of them in one go (some ninety, each a
+    /// couple of dozen elements) held the dialog back by a fifth of a second
+    /// before it even appeared when it reopened on this page.
+    /// </summary>
+    private void AddSkinTiles(IReadOnlyList<PatreonSkin> shown, int from, int version)
+    {
+        if (version != _skinRenderVersion || _skinsClosed) return;
+        var to = Math.Min(shown.Count, from + (from == 0 ? FirstTileBatch : TileBatch));
+        for (var i = from; i < to; i++) SkinTiles.Children.Add(BuildSkinTile(shown[i]));
+        if (from == 0) QueueVisibleSkinPictures(); // a new filter or search can bring tiles into view without the list scrolling
+        if (to < shown.Count) Dispatcher.BeginInvoke(DispatcherPriority.Background, () => AddSkinTiles(shown, to, version));
     }
 
     private Border BuildSkinTile(PatreonSkin skin)
@@ -241,8 +262,9 @@ public partial class SettingsWindow
         var well = new Border
         {
             Width = PictureWidth, Height = PictureHeight, Background = PictureWell, CornerRadius = new CornerRadius(3),
-            ClipToBounds = true, Child = new Grid { Children = { note, picture } }, ToolTip = BuildSkinTip(skin, picture)
+            ClipToBounds = true, Child = new Grid { Children = { note, picture } }
         };
+        AttachSkinTip(well, skin, picture);
         body.Children.Add(well);
 
         body.Children.Add(new TextBlock
@@ -288,7 +310,31 @@ public partial class SettingsWindow
         area.Children.Add(apply);
         if (skin.Locked) return area;
 
-        var patterns = new UniformGrid { Rows = 1, Visibility = Visibility.Collapsed };
+        UniformGrid? patterns = null; // built on the first click: six buttons a tile nobody presses would be most of its weight
+        apply.Click += (_, _) =>
+        {
+            _disarmTile?.Invoke();
+            if (patterns is null)
+            {
+                patterns = BuildPatternButtons(skin);
+                area.Children.Add(patterns);
+            }
+            var row = patterns;
+            apply.Visibility = Visibility.Collapsed;
+            row.Visibility = Visibility.Visible;
+            _disarmTile = () =>
+            {
+                row.Visibility = Visibility.Collapsed;
+                apply.Visibility = Visibility.Visible;
+            };
+            SetSkinStatus($"{skin.Name}: choose its pattern, A to F. That applies it at once.", HintNeutral);
+        };
+        return area;
+    }
+
+    private UniformGrid BuildPatternButtons(PatreonSkin skin)
+    {
+        var patterns = new UniformGrid { Rows = 1 };
         for (var i = 0; i < PatreonSkins.PatternCount; i++)
         {
             var index = i;
@@ -301,25 +347,28 @@ public partial class SettingsWindow
             button.Click += async (_, _) => await ApplySkinAsync(skin.Id, skin.IdIsNumber, skin.Name, index);
             patterns.Children.Add(button);
         }
-        area.Children.Add(patterns);
-
-        apply.Click += (_, _) =>
-        {
-            _disarmTile?.Invoke();
-            apply.Visibility = Visibility.Collapsed;
-            patterns.Visibility = Visibility.Visible;
-            _disarmTile = () =>
-            {
-                patterns.Visibility = Visibility.Collapsed;
-                apply.Visibility = Visibility.Visible;
-            };
-            SetSkinStatus($"{skin.Name}: choose its pattern, A to F. That applies it at once.", HintNeutral);
-        };
-        return area;
+        return patterns;
     }
 
-    /// <summary>Hover preview in the dialog's own colours: the picture larger, the name, tier and description.</summary>
-    private ToolTip BuildSkinTip(PatreonSkin skin, Image tilePicture)
+    /// <summary>
+    /// Hover preview in the dialog's own colours: the picture larger, the
+    /// name, tier and description. Only the empty tooltip shell is made with
+    /// the tile; its content is built the first time it is about to open.
+    /// </summary>
+    private void AttachSkinTip(FrameworkElement well, PatreonSkin skin, Image tilePicture)
+    {
+        var tip = new ToolTip { Background = CardSurface, BorderBrush = CardBorder, Padding = new Thickness(8), HasDropShadow = false };
+        Action? refresh = null;
+        well.ToolTip = tip;
+        well.ToolTipOpening += (_, _) =>
+        {
+            refresh ??= BuildSkinTipContent(tip, skin, tilePicture);
+            refresh();
+        };
+    }
+
+    /// <summary>Fills the tooltip; returns what brings its picture and "why is it empty" line up to date before each showing.</summary>
+    private Action BuildSkinTipContent(ToolTip tip, PatreonSkin skin, Image tilePicture)
     {
         var panel = new StackPanel { MaxWidth = 300 };
         var large = new Image { Width = 300, Stretch = Stretch.Uniform, Margin = new Thickness(0, 0, 0, 6) };
@@ -335,8 +384,8 @@ public partial class SettingsWindow
         }
         var why = new TextBlock { Foreground = HintNeutral, FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
         panel.Children.Add(why);
-        var tip = new ToolTip { Content = panel, Background = CardSurface, BorderBrush = CardBorder, Padding = new Thickness(8), HasDropShadow = false };
-        tip.Opened += (_, _) =>
+        tip.Content = panel;
+        return () =>
         {
             large.Source = tilePicture.Source; // whatever has arrived by now
             large.Visibility = large.Source is null ? Visibility.Collapsed : Visibility.Visible;
@@ -347,7 +396,6 @@ public partial class SettingsWindow
                      : "The picture is still loading.";
             why.Visibility = why.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         };
-        return tip;
     }
 
     private static Brush BrushOf(string hex)

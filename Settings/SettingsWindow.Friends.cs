@@ -23,8 +23,17 @@ public partial class SettingsWindow
     private readonly List<FriendEntry> _friendDraft;
     private string? _draftTrackedFriend;
     private bool _friendsDirty;
+    private bool _friendRowsBuilt;
 
     private static readonly Brush InGameBrush = new SolidColorBrush(Color.FromRgb(0x7C, 0xC8, 0x84));
+
+    /// <summary>Builds the rows the first time the page is looked at; Save works on the draft and never needed them.</summary>
+    private void OpenFriendsPage()
+    {
+        if (_friendRowsBuilt) return;
+        _friendRowsBuilt = true;
+        BuildFriendRows();
+    }
 
     /// <summary>The list: one card, rows sorted in-game first, then by name.</summary>
     private void BuildFriendRows()

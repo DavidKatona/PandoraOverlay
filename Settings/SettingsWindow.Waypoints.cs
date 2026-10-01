@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace PandoraOverlay;
 
@@ -70,11 +71,30 @@ public partial class SettingsWindow
             return;
         }
 
-        AddGroupCard("Your waypoints", pack: null);
+        // The cards and their bands at once; the rows in batches — the first
+        // screenful now, the rest a batch per idle moment. A row is five
+        // templated controls, and a full rebuild (it happens on every Show
+        // all, delete or import too) held the dialog for a third of a second
+        // with the five packs in the library.
+        var version = ++_waypointRenderVersion;
+        var rows = new Queue<Action>();
+        AddGroupCard("Your waypoints", pack: null, rows);
         foreach (var pack in _draft.Where(w => w.Pack is not null).Select(w => w.Pack!).Distinct())
         {
-            AddGroupCard(pack, pack);
+            AddGroupCard(pack, pack, rows);
         }
+        AddWaypointRowBatch(rows, FirstRowBatch, version);
+    }
+
+    private const int FirstRowBatch = 12; // more than the list shows without scrolling
+    private const int RowBatch = 24;
+    private int _waypointRenderVersion;   // a newer rebuild stops an older one's batches
+
+    private void AddWaypointRowBatch(Queue<Action> rows, int count, int version)
+    {
+        if (version != _waypointRenderVersion) return;
+        for (var i = 0; i < count && rows.Count > 0; i++) rows.Dequeue()();
+        if (rows.Count > 0) Dispatcher.BeginInvoke(DispatcherPriority.Background, () => AddWaypointRowBatch(rows, RowBatch, version));
     }
 
     private static readonly Brush CardBorder = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
@@ -91,7 +111,7 @@ public partial class SettingsWindow
     /// strip that runs from its name, and the group's own controls have a
     /// home. Stock white glyphs on bare page were tried first and floated.
     /// </summary>
-    private void AddGroupCard(string title, string? pack)
+    private void AddGroupCard(string title, string? pack, Queue<Action> rows)
     {
         var members = _draft.Where(w => w.Pack == pack).ToList();
         if (members.Count == 0) return;
@@ -102,8 +122,9 @@ public partial class SettingsWindow
         var stripe = false;
         foreach (var wp in members)
         {
+            var striped = stripe;
             // A row's Show click must reach the band: the group box shows all / none / mixed live.
-            body.Children.Add(BuildWaypointRow(wp, stripe, () => groupCheck.IsChecked = GroupState(members)));
+            rows.Enqueue(() => body.Children.Add(BuildWaypointRow(wp, striped, () => groupCheck.IsChecked = GroupState(members))));
             stripe = !stripe;
         }
         WaypointRows.Children.Add(new Border

@@ -186,12 +186,11 @@ public partial class SettingsWindow : Window
         // Friends
         FriendsMapCheck.IsChecked = config.FriendsOnMinimap;
         FriendsChimeCheck.IsChecked = config.FriendsChimeEnabled;
-        BuildFriendRows();
-        FriendList.ScrollChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
+        FriendList.ScrollChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14); // the rows are built on the first look (SetPage)
         FriendList.SizeChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
 
-        // Server rules (reference only, nothing to save)
-        BuildRulesPage();
+        // Server rules (reference only, nothing to save): the cards are built on the first look
+        PrepareRulesPage();
 
         Validate();
         SetPage(_firstRun ? "Account" : page ?? _lastPage);
@@ -218,8 +217,16 @@ public partial class SettingsWindow : Window
         {
             page.Visibility = (string)page.Tag == key ? Visibility.Visible : Visibility.Hidden;
         }
-        if (key == "Skins") OpenSkinsPage(); // the one page that talks to the site, and only once it is looked at
-        if (key == "Waypoints") OpenWaypointsPage();
+        // Pages whose content is built in code build it on the first look:
+        // hidden pages are still laid out, so anything built up front is
+        // paid for on every opening of the dialog, whichever page shows.
+        switch (key)
+        {
+            case "Skins": OpenSkinsPage(); break; // also the one page that talks to the site
+            case "Waypoints": OpenWaypointsPage(); break;
+            case "Friends": OpenFriendsPage(); break;
+            case "Rules": OpenRulesPage(); break;
+        }
     }
 
     // ---- Window chrome ----------------------------------------------------

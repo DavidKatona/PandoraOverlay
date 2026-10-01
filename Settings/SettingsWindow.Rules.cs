@@ -28,20 +28,27 @@ public partial class SettingsWindow
 
     private readonly string? _currentDino; // the live dino when the dialog opened, for the pack-limit highlight
 
-    private void BuildRulesPage()
+    private RulesDocument? _rulesDocument;
+    private bool _rulesBuilt;
+
+    /// <summary>
+    /// What the page needs when the dialog opens: the stamp and the note.
+    /// The note wraps, so it is part of the page's HEIGHT — and the tallest
+    /// page sets the dialog's — which is why it can't wait for the first
+    /// look like the cards do.
+    /// </summary>
+    private void PrepareRulesPage()
     {
-        RulesContent.Children.Clear();
-        var doc = ServerRules.LoadBundled();
-        if (doc is null)
-        {
-            RulesStamp.Text = "";
-            RulesNote.Text = "The bundled rules could not be read — see the website.";
-            return;
-        }
+        _rulesDocument = ServerRules.LoadBundled();
+        RulesStamp.Text = _rulesDocument is null ? "" : $"copied {_rulesDocument.CopiedOn}";
+        RulesNote.Text = _rulesDocument?.Note ?? "The bundled rules could not be read — see the website.";
+    }
 
-        RulesStamp.Text = $"copied {doc.CopiedOn}";
-        RulesNote.Text = doc.Note;
-
+    /// <summary>The cards, built the first time the page is looked at (they sit in a fixed-height list, so nothing shifts).</summary>
+    private void OpenRulesPage()
+    {
+        if (_rulesBuilt || _rulesDocument is not { } doc) return;
+        _rulesBuilt = true;
         if (doc.PackLimits.Count > 0) RulesContent.Children.Add(BuildPackLimitsCard(doc));
         if (doc.Rules.Count > 0) RulesContent.Children.Add(BuildRulesCard(doc));
     }

@@ -1052,10 +1052,19 @@ Every overlay window derives from `OverlayWindowBase`.
   is five templated controls and hidden pages are still laid out, so with
   the packs imported (122 waypoints) every opening of the dialog took
   ~0.6 s instead of ~0.25 s, whichever page was shown (measured; a full
-  library ~0.9 s). Save never needed the rows. Opening ON the Waypoints
-  page still pays that cost; virtualising the list would be the next
-  step if it bothers anyone. A page that builds many controls should be
-  built on first look, like this one and Skins — from a DRAFT
+  library ~0.9 s). Save never needed the rows. RULE (owner reported the
+  dialog opening slowly twice, Oct 1 2026): content built in code is
+  built on the page's FIRST LOOK (`SetPage` → `OpenWaypointsPage` /
+  `OpenFriendsPage` / `OpenRulesPage` / `OpenSkinsPage`), and anything
+  long is added IN BATCHES — the first screenful at once, the rest per
+  `DispatcherPriority.Background` tick, with a version counter so a newer
+  rebuild stops an older one (waypoint rows 12 then 24, skin tiles 9 then
+  12; skin tiles also build their pattern buttons and tooltip content
+  only when first needed). Measured after: every page's first frame at
+  ~0.2–0.3 s against ~0.12 s for a bare transparent WPF window, the
+  floor; the very first opening after launch is slower once (JIT). Only
+  what sets a page's HEIGHT stays eager (the Rules note wraps, and the
+  tallest page sets the dialog's height). The rows come from a DRAFT
   (`_library.Clone()`) so Cancel drops edits and Save commits via
   `ReplaceWith` — colour dot (click cycles the palette), `NameBox`,
   Show checkbox, Track radio (clicking the tracked one untracks, since a
