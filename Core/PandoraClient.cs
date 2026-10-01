@@ -90,9 +90,10 @@ public sealed record PrimeCheckResult(
 /// Minimal client for the Isla Pandora live-map API — the overlay's entire
 /// data path: authenticated, empty-bodied POSTs identical to the website
 /// frontend's own (mylocation, calibration), plus the public, cookie-less
-/// heatmap GETs. Nothing here touches the game.
+/// heatmap GETs. Nothing here touches the game. The Patreon skins calls
+/// (v1.28) live in PandoraClient.Skins.cs.
 /// </summary>
-public sealed class PandoraClient : IDisposable
+public sealed partial class PandoraClient : IDisposable
 {
     private const string Endpoint = "https://islapandora.eu/api/map/mylocation";
     private const string CalibrationEndpoint = "https://islapandora.eu/api/map/calibration";
@@ -468,5 +469,9 @@ public sealed class PandoraClient : IDisposable
         }
     }
 
-    public void Dispose() => _http.Dispose();
+    public void Dispose()
+    {
+        _http.Dispose();
+        _pictures?.Dispose();
+    }
 }

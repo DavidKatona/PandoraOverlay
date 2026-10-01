@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Patreon skins: a new Settings → Skins page shows the skins of your
+  islapandora.eu account as tiles (picture, name, tier, the seven colours,
+  locked ones dimmed) with search and an Available / All filter. Apply
+  turns into the pattern buttons A to F; a click applies the skin to the
+  dino you are playing, like the website's Patreon page. It acts at once,
+  not on Save, and only for your click. The server keeps its own cooldown
+  and decides what your tier unlocks. The skin and pattern you last
+  applied are remembered per species and offered as "Apply again", and a
+  successful apply shows up in the Activity feed.
+
 ## [1.27.0] - 2026-09-30
 
 ### Added

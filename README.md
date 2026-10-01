@@ -1,8 +1,8 @@
 # Pandora Overlay
 
-A small always-on-top overlay for The Isle: Evrima on the Isla Pandora server. While you play it shows your dino's health, stamina, hunger, thirst, growth and fractures, a minimap with your live position, your waypoints and your friends, your Prime status, a feed of what just happened, and the server rules.
+A small always-on-top overlay for The Isle: Evrima on the Isla Pandora server. While you play it shows your dino's health, stamina, hunger, thirst, growth and fractures, a minimap with your live position, your waypoints and your friends, your Prime status, a feed of what just happened, and the server rules, and it lets you apply your Patreon skins without alt-tabbing.
 
-It is **fully external**: all it knows about the game comes from the same logged-in HTTPS requests the islapandora.eu website makes in your browser when you look at its live map. It never reads game memory, never touches game files, and never interacts with the game process in any way.
+It is **fully external**: everything it does goes through the same logged-in HTTPS requests the islapandora.eu website makes in your browser. It never reads game memory, never touches game files, and never interacts with the game process in any way.
 
 [![Build](https://github.com/DavidKatona/PandoraOverlay/actions/workflows/release.yml/badge.svg)](https://github.com/DavidKatona/PandoraOverlay/actions)
 [![Latest release](https://img.shields.io/github/v/release/DavidKatona/PandoraOverlay)](https://github.com/DavidKatona/PandoraOverlay/releases/latest)
@@ -18,7 +18,7 @@ It is **fully external**: all it knows about the game comes from the same logged
   - [Basics](#basics) — edit mode, snapping, hotkeys, hiding
   - [Tray icon & settings](#tray-icon--settings)
   - Widgets: [Stats panel](#stats-panel) · [Minimap](#minimap) · [Prime tracker](#prime-tracker) · [Activity feed](#activity-feed)
-  - Features: [Waypoints](#waypoints) · [Friends](#friends) · [Server rules](#server-rules)
+  - Features: [Waypoints](#waypoints) · [Friends](#friends) · [Patreon skins](#patreon-skins) · [Server rules](#server-rules)
 - **Help:** [FAQ](#faq) — can't see the overlay, how to close it, updating, and more · [Troubleshooting](#troubleshooting)
 - **Reference:** [Configuration (config.json)](#configuration-configjson) · [Fair-play notes](#fair-play-notes) · [Roadmap](#roadmap) · [License](#license)
 
@@ -84,7 +84,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, Server rules, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints and Server rules.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints, Skins and Server rules.
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -159,6 +159,16 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - Privacy works the way the website's does: a friend who turned on "hide my location" is counted as in game but never drawn, and you appear to your friends exactly as you do on their live map. The overlay only ever reads the friends list; it never sends friend requests or changes any setting there.
 - Cost: while the Activity widget includes friends' events or the minimap draws friends, the friends list is fetched every second update while you play (every 6 seconds at the default pace) and once per idle check while you aren't spawned — less often than the website's own live map does. Untick "Include friends' events" and "Show friends on the minimap" to send no friends requests at all.
 
+### Patreon skins
+
+- **Settings → Skins** shows the Patreon skins of your islapandora.eu account as tiles, the way the website's [Patreon page](https://islapandora.eu/patreon) lists them: a picture, the name, the tier that unlocks it and its seven colours. Skins your tier doesn't include are dimmed and marked locked; choose **All** to see them, **Available** to hide them, or type in the search box.
+- **Applying one:** click **Apply** on a tile and it turns into six buttons, **A** to **F**: the pattern. Clicking a letter applies the skin to the dino you are playing, and it shows in game after 5–10 seconds. You have to be spawned in. Hover a picture for a larger preview.
+- **This acts at once, not on Save.** It presses the same button as the website does, and everything else in Settings waits for Save. It is the only thing in the overlay that changes anything in the game, and it only ever happens for your click.
+- **The cooldown is the server's** (about 15 minutes between skins). The page tells you how long ago you last applied one; if you are too early, the server's own answer is shown. What your tier unlocks is decided by the server too.
+- **Apply again:** the overlay remembers the skin and pattern you last applied for each species, and offers it as one button at the top of the page when you are on that species again.
+- A successful apply is noted in the [Activity feed](#activity-feed).
+- Cost: the list is fetched when you open the page and reused for ten minutes (Refresh asks again), the pictures once each per run. Nothing is fetched while the page is closed.
+
 ### Server rules
 
 ![The Settings dialog on the Server rules page: the pack-limits card with Herbivore, Carnivore and Omnivore columns and "Deinosuchus 2" highlighted in orange, the start of the numbered rules below, the "copied 2026-09-29" stamp, and buttons to islapandora.eu/rules and the Discord](docs/server-rules.png)
@@ -198,7 +208,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Is it safe, is it allowed
 
-**Is this allowed?** Yes. It never touches the game: it is a separate program that reads what the website already shows you when you're logged in. The Isla Pandora team has okayed it, and each kind of data it reads was cleared with the site's developer first. See [Fair-play notes](#fair-play-notes).
+**Is this allowed?** Yes. It never touches the game: it is a separate program that reads what the website already shows you when you're logged in. The Isla Pandora team has okayed it. See [Fair-play notes](#fair-play-notes).
 
 **Can it see other players?** No. It shows your own dino, and the friends from your islapandora.eu friends list who share their location, exactly as the website's live map does.
 
@@ -270,6 +280,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `FriendsOnMinimap` | Draw in-game friends on the minimap. Checkbox in Settings → Friends. Default `true`. |
 | `FriendsChimeEnabled` | Play the Windows "Exclamation" sound when a friend spawns in. Checkbox in Settings → Friends. Default `false`. |
 | `TrackedFriendSteamId` | The friend the minimap follows (ring, edge indicator, footer); empty = none. Set from the map menu or Settings → Friends. |
+| `SkinChoices` / `SkinLastAppliedUtc` | The Patreon skin and pattern you last applied per species (for the Skins page's "Apply again"), and when you last applied one. Managed by the app. |
 | `Calibration` | Cached world→map constants from the site, refreshed once per launch. Managed by the app. |
 | `TrackedWaypointId` | The library waypoint the footer follows and the ring marks; `null` = follow the nearest visible one. Set from the map menu or Settings → Waypoints. |
 | `WaypointVisibility` | Which waypoints the minimap draws: `all` (default), `tracked` or `nearest` (the ten closest). Radio buttons in Settings → Minimap. |
@@ -287,7 +298,8 @@ Most of these are editable from the Settings window; `UserAgent`, `PollIntervalS
 
 - The overlay shows **your own** dino and, since the friends update, the friends the website already shows you on its live map — the same data Isla Pandora displays to you in a browser tab, nothing else. It cannot see other players, and a friend who hides their location on the site is never drawn. Adding, removing and blocking friends stays on the website; the overlay only reads the list.
 - It polls at the same rate as the website itself while you play, slows right down while you aren't spawned in, and respects their rate limit.
-- It reads Isla Pandora's login-gated website data, and it does so with the server team's okay: each kind of data it uses was cleared with the site's developer first, and nothing is added without asking. If you build your own tool on that data, ask them too.
+- The one thing it can change is your own dino's skin, from the Patreon skins page: the same request the website's Apply button sends, only when you click, and only for skins the server says your tier includes.
+- It uses Isla Pandora's login-gated website data with the server team's okay. If you build your own tool on that data, ask them too.
 
 ## Roadmap
 

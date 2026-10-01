@@ -116,6 +116,7 @@ public partial class MainWindow : OverlayWindowBase
                 _log.Post(SelfActivity.PrimeLines(_primeBefore, fresh, DateTime.UtcNow));
             }
         };
+        _poll.SkinApplied += applied => _log.Post(SelfActivity.SkinLine(applied.SkinName, applied.Pattern, DateTime.UtcNow));
 
         _tray = new TrayIcon(
             toggleEditMode: ToggleEditMode,
@@ -175,7 +176,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
         try
         {
-            var dialog = new SettingsWindow(_config, _library, _book, _poll.Friends, _me?.Dino, page) { Topmost = true };
+            var dialog = new SettingsWindow(_config, _library, _book, _poll, _me?.Dino, page) { Topmost = true };
             var saved = dialog.ShowDialog() == true;
 
             if (!saved)

@@ -90,19 +90,21 @@ public partial class SettingsWindow : Window
         ResetPositionsButton.IsEnabled = false;
     }
 
+    /// <param name="poll">The shared poll service: the friends roster for the Friends page, and the Skins page's only way to the network.</param>
     /// <param name="currentDino">The live dino when the dialog opened (null if not in game) — the Rules page highlights its pack limit.</param>
     /// <param name="page">A page to open on (the tray's "Server rules…" passes "Rules"); null = the page you were on last.</param>
-    public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, IReadOnlyList<FriendState>? roster,
+    public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, PollService poll,
                           string? currentDino = null, string? page = null)
     {
         InitializeComponent();
         _config = config;
+        _poll = poll;
         _currentDino = currentDino;
         _library = library;
         _draft = library.Clone();
         _draftTracked = config.TrackedWaypointId;
         _book = book;
-        _roster = roster;
+        _roster = poll.Friends;
         _friendDraft = book.Clone();
         _draftTrackedFriend = config.TrackedFriendSteamId;
         _firstRun = string.IsNullOrWhiteSpace(config.GetCookie());
@@ -215,6 +217,7 @@ public partial class SettingsWindow : Window
         {
             page.Visibility = (string)page.Tag == key ? Visibility.Visible : Visibility.Hidden;
         }
+        if (key == "Skins") OpenSkinsPage(); // the one page that talks to the site, and only once it is looked at
     }
 
     // ---- Window chrome ----------------------------------------------------

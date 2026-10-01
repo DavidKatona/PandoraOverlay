@@ -59,6 +59,10 @@ public sealed class SelfActivity
     public static FeedLine LowStatLine(string stat, string? timeLeftLabel, DateTime now) =>
         Mine(now, timeLeftLabel is null ? $"{stat} under 20%" : $"{stat} under 20% · {timeLeftLabel} left", FeedKind.LowStat);
 
+    /// <summary>"Skin applied · Ember (pattern C)" — a skin you applied from the Skins page.</summary>
+    public static FeedLine SkinLine(string skinName, int pattern, DateTime now) =>
+        Mine(now, $"Skin applied · {skinName} (pattern {PatreonSkins.PatternLetter(pattern)})", FeedKind.Skin);
+
     /// <summary>
     /// A Prime check: the CHANGE, not the state — the widget shows the state.
     /// One line per condition that flipped since the previous result; with

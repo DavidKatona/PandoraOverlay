@@ -39,7 +39,17 @@ web dev.**
    with its friend arrows; both off = zero friends requests. READ-ONLY:
    the friends page's management calls — `/api/friends/data`, requests,
    accept/decline, block, `/api/preferences/*` toggles — are writes or
-   roster admin and are NEVER called; friends are managed on the website).
+   roster admin and are NEVER called; friends are managed on the website),
+   and the Patreon skins pair `POST /api/skins/patreon-skins` (the list;
+   empty body) + `POST /api/skins/apply-patreon` (JSON `{skinId,
+   patternIndex}` — the overlay's FIRST WRITE: it changes your dino's skin
+   in game), built Oct 1 2026 under the server owner's blanket go-ahead
+   (see Permissions). Both are CLICK-DRIVEN ONLY: the list when the
+   Settings → Skins page is opened (reused 10 min, 30 s floor), apply for
+   a click on a pattern button, never a timer; not-in-game and a 15 s
+   mash guard answer locally with no request. Tile pictures are plain GETs
+   to whatever address the list names, from a separate client that sends
+   NO cookie and none of the site headers.
    The zone overlays are NOT cleared for use (see Permissions). The
    launch-time update check calls the GitHub releases API — not an
    islapandora endpoint, so it sits outside this constraint.
@@ -81,6 +91,16 @@ web dev.**
   /api/rules` ask to the dev is PENDING (the owner will ask); when it
   exists it follows the calibration pattern (once per launch, cached,
   the seed only a fresh install's first content).
+- **Blanket go-ahead, Oct 1 2026** (the server owner, Tar, relayed by the
+  owner; the overlay is endorsed and has its own announcement channel):
+  "anything the site can do, we can do too. No need to ask now." So a
+  normal player-facing endpoint of islapandora.eu no longer needs a
+  per-endpoint ask to the site dev — it needs the OWNER's okay for the
+  feature, as always. First use: the Patreon skins page. What still holds
+  whatever the endpoint: fully external; the cookie is a credential;
+  nothing polls faster than the site; a WRITE happens only for a click,
+  never on a timer; the admin / staff endpoints (`/api/admin/*`, the
+  skin-store and admin-skin editors) are never called.
 - **NOT approved:** the zone overlay images
   (the live-map bundles patrols / sanctuaries / migrations / salt rocks as
   static PNGs) — ask him first. A read-only API
@@ -153,7 +173,9 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
 - `Activity/` — ActivityWindow, ActivityLog, SelfActivity (the widget is
   the feed of everyone's events; the friends folder holds the friend half).
 - `Prime/` — PrimeWindow, PrimeConditions. `Rules/` — ServerRules (+
-  `Assets/rules.json`, the seed). `Settings/` — SettingsWindow.
+  `Assets/rules.json`, the seed). `Skins/` — PatreonSkins (the pure half;
+  its requests and gating are the `Core/PandoraClient.Skins.cs` and
+  `Core/PollService.Skins.cs` parts). `Settings/` — SettingsWindow.
 - `Assets/` unchanged; `App.xaml` (StartupUri now `Shell/MainWindow.xaml`),
   csproj, sln and the docs stay at the root. `PandoraOverlay.Tests/` mirrors
   the folders.
@@ -184,8 +206,10 @@ globs subfolders, so moving a file needs no project edit; pack URIs point at
 `Assets/`, which didn't move. Big windows are PARTIAL CLASSES split by
 concern, the way WPF already splits them from their generated `.g.cs`:
 `MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`),
-`MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`) and
-`SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`). Same class, same
+`MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`),
+`SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`,
+`.Skins.cs`) and, since v1.28, the two Core classes that had reached the
+limit: `PandoraClient.cs` + `.Skins.cs`, `PollService.cs` + `.Skins.cs`. Same class, same
 fields, no behaviour change — a reading aid, not decoupling; the pure
 helper classes are the real decoupling. Keep each part under ~500 lines;
 when one outgrows that, cut another `Window.Topic.cs`, don't extract a
@@ -820,7 +844,7 @@ Every overlay window derives from `OverlayWindowBase`.
   makes its return seed again instead of reporting everyone as new.
 - **ActivityLog.cs** — pure, tested: `FeedKind` (Roster / Spawned / Left
   / NewLife / DinoChanged / Growth / Fracture / Nearby / LowStat / Damage
-  / Prime), `FeedLine` (time, text, a friend's `SteamId` or `Mine`) and
+  / Prime / Skin), `FeedLine` (time, text, a friend's `SteamId` or `Mine`) and
   the store: `Post` (one line or a batch keeping its order, newest first,
   cap 50) raises `Posted(batch)` for the widget; `Expire` drops lines
   older than 10 min; `AgeOpacity` 1 → 0.35. Owned by MainWindow.
@@ -873,6 +897,52 @@ Every overlay window derives from `OverlayWindowBase`.
   requests, see constraint #2), `ActivityX/Y` nullable; first show = the
   `suggested` point under the Prime tracker (MainWindow computes it),
   else left edge centred.
+- **Patreon skins (v1.28, a pilot — the owner's idea, Oct 1 2026)** — the
+  website's `/patreon` page rebuilt as Settings → Skins, so a skin can be
+  applied right after spawning without alt-tabbing (the server allows one
+  about every 15 minutes, only while spawned in). Four parts:
+  **Skins/PatreonSkins.cs** (pure, tested): `PatreonSkin` (id kept WITH
+  its JSON type — `IdJson` sends back a number as a number, a string
+  quoted — name, description, image/thumbnail, tier name + role id,
+  `Locked`, seven colours), `ParseList`, `ParseApply`, `ToHex` (the
+  site's own conversion: linear 0–1 channels raised to 1/1.8, rounded
+  half-up like JS), `ResolvePicture` (https only; site-relative paths go
+  under islapandora.eu; http / data: / file: = no picture), `Sorted`
+  (unlocked, then tier rank from the site's four hard-coded role ids,
+  then name), `Matches`, `Clean` (server text made showable: one line,
+  capped, and DROPPED WHOLE if it mentions connect.sid / cf_clearance).
+  The site's "SV" value is ignored (nobody knows what it means).
+  **PandoraClient.Skins.cs**: the list POST, the apply POST (reads the
+  body whatever the status, like Prime; Referer set to /patreon) and
+  `FetchPictureAsync` on its own bare HttpClient (UA only, 4 MB cap).
+  **PollService.Skins.cs**: ALL gating — `GetSkinsAsync(refresh)` (the
+  session's copy for 10 min, 30 s floor, a failure keeps the last good
+  list and names the problem), `GetSkinPictureAsync` (once per session
+  per address, failures remembered), `ApplySkinAsync` (busy + 15 s guard
+  and not-in-game answer locally; a stale not-in-game state gets one
+  regular poll first; on Ok stores `config.SkinLastAppliedUtc` and
+  `config.SkinChoices[species]`, raises `SkinApplied` → MainWindow posts
+  `SelfActivity.SkinLine` to the feed); `RebuildClient` forgets the list.
+  The server's cooldown is NEVER enforced locally — it may differ by
+  rank like Prime's; the page only says how long ago the last apply was
+  and shows the server's refusal (`SkinApplyOutcome.Refused`, its cleaned
+  words — a deliberate exception to "never echo server strings" until
+  the real messages are known and can be mapped). **SettingsWindow.Skins.cs**:
+  tiles in a WrapPanel, three across (138 px; the page is 436 wide):
+  picture well (the seven colours as stripes until the picture arrives;
+  a format Windows can't decode just keeps the stripes), name, tier
+  (orange, red + "locked"), colour dots, Apply → the six pattern buttons
+  A–F in place (one tile armed at a time; the site uses a pop-up), a
+  hover preview in our own tooltip colours, search + Available/All,
+  "Apply again: <name> · C" for the current species, Refresh and a link
+  to the site. THE ONE PAGE THAT ACTS AT ONCE instead of on Save, and
+  says so. The list loads the first time the page is looked at per
+  dialog (`SetPage` → `OpenSkinsPage`), never for a page you aren't on.
+  Buttons stay enabled while not in game on purpose: the click is what
+  refreshes a stale idle state. Rejected for it: a widget (needs clicks,
+  isn't watched) and a control-panel button (no widget to group under).
+  Later, if the pilot works: a hotkey for "apply my skin", favourites,
+  the custom presets (other endpoints).
 - **ServerRules.cs** — `RulesDocument` (Source, CopiedOn, Note,
   PackLimits = categories of `PackLimit(Name, Limit)`, Rules; `LimitFor`
   case-insensitive), `ServerRules.LoadBundled` (the `rules.json` embedded
@@ -920,8 +990,8 @@ Every overlay window derives from `OverlayWindowBase`.
   of our own glow-style buttons (`NavButton`; the selected one is
   recoloured in code by `SetPage`) and ONE page visible at a time on the
   right — Account / Controls / General (APP-WIDE ONLY) / Stats panel /
-  Minimap / Prime tracker / Activity / Friends / Waypoints / Server
-  rules, widget pages in the control panel's order, each holding that
+  Minimap / Prime tracker / Activity / Friends / Waypoints / Skins (see
+  Patreon skins) / Server rules, widget pages in the control panel's order, each holding that
   widget's Scale-or-Size slider and its own options; a new widget adds a
   nav entry + page. Server rules page (`SettingsWindow.Rules.cs`, Sep 29
   2026): a REFERENCE page, nothing saved — the bundled RulesDocument
@@ -1133,6 +1203,12 @@ its own fade ruleset, a flip always lighting the panel; Settings
 default, Ctrl+F9 and the control panel's View button to flip; no
 automatic switching; the first large-bar build was reworked the same
 day — verified in-game). No layout presets beyond the default for now.
+
+Built Oct 1 2026, awaiting in-game verification (target 1.28.0): the
+**Patreon skins page** (see Architecture) — the first feature under the
+blanket go-ahead and the overlay's first write. Unknown until the first
+real run: where the pictures are hosted and how big they are, and the
+server's refusal wording (cooldown / not spawned in).
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,

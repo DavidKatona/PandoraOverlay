@@ -255,6 +255,18 @@ public sealed class OverlayConfig
     /// </summary>
     public DateTime? PrimeCooldownUntilUtc { get; set; }
 
+    // ---- Patreon skins (v1.28) ---------------------------------------------
+
+    /// <summary>
+    /// When a skin was last applied from the overlay (UTC). The Skins page
+    /// only SHOWS how long ago that was — the server enforces its own
+    /// cooldown and nothing here blocks on a guess at its length.
+    /// </summary>
+    public DateTime? SkinLastAppliedUtc { get; set; }
+
+    /// <summary>The skin and pattern last applied per species, so the Skins page can offer it again for the dino you are on. Managed by the app.</summary>
+    public Dictionary<string, SkinChoice> SkinChoices { get; set; } = new();
+
     // ---- Activity feed + friends (approved Sep 27 2026) -------------------
 
     /// <summary>
@@ -402,6 +414,7 @@ public sealed class OverlayConfig
             cfg.HotkeyMinimapView = "Ctrl+F5";
         }
 
+        cfg.SkinChoices ??= new(); // a hand-edited "SkinChoices": null must not cost the first apply
         cfg.PrimeScale ??= cfg.UiScale;
         cfg.ActivityScale ??= cfg.PrimeScale;
         cfg.MinimapScale ??= MinimapScaleFromSize(cfg.MinimapSize);

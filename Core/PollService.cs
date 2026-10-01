@@ -12,9 +12,10 @@ namespace PandoraOverlay;
 /// refetches the minimap's heatmap layer while it is enabled, and the friends
 /// roster rides every second in-game poll while a friends surface is shown.
 /// Runs entirely on the UI thread via DispatcherTimer, so subscribers may
-/// touch UI directly.
+/// touch UI directly. The Patreon skins requests (v1.28, click-driven only)
+/// live in PollService.Skins.cs.
 /// </summary>
-public sealed class PollService : IDisposable
+public sealed partial class PollService : IDisposable
 {
     // ---- Idle pacing --------------------------------------------------------
     // An overlay left running with the game closed used to send ~28,800
@@ -171,6 +172,7 @@ public sealed class PollService : IDisposable
         _calibrationRequested = false; // retry with the fresh session
         _failStreak = 0;               // a fresh session starts the idle clock over
         _lastLiveUtc = DateTime.UtcNow;
+        ForgetSkins();                 // another login may see other skins
         Start();
     }
 
