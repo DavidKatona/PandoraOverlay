@@ -23,6 +23,22 @@ public partial class SettingsWindow
     private Guid? _draftTracked;
     private bool _waypointsDirty;
     private bool _deleteAllArmed;
+    private bool _waypointRowsBuilt;
+
+    /// <summary>
+    /// Builds the list the first time the page is looked at, not when the
+    /// dialog opens: with 122 waypoints (the five packs) the rows more than
+    /// doubled the time every Settings opening took (measured Oct 2026:
+    /// ~0.25 s empty, ~0.6 s with the packs, ~0.9 s with a full library),
+    /// whichever page was shown — hidden pages are still laid out. Saving
+    /// never needed the rows: it works on the draft.
+    /// </summary>
+    private void OpenWaypointsPage()
+    {
+        if (_waypointRowsBuilt) return;
+        _waypointRowsBuilt = true;
+        BuildWaypointRows();
+    }
 
     private static readonly Brush[] PaletteBrushes = WaypointPalette.Colours
         .Select(c => { var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(c.Hex)); b.Freeze(); return (Brush)b; })

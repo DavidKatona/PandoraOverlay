@@ -172,8 +172,9 @@ public partial class SettingsWindow : Window
         var visibilityRadio = config.WaypointVisibility switch { "tracked" => WpTracked, "nearest" => WpNearest, _ => WpAll };
         visibilityRadio.IsChecked = true;
 
-        // Waypoints
-        BuildWaypointRows();
+        // Waypoints: the rows are built when the page is first looked at (OpenWaypointsPage) —
+        // a row per waypoint is five templated controls, and with the packs imported that
+        // made every opening of the dialog wait for a page nobody had asked for.
         WaypointList.ScrollChanged += (_, _) => AlignWaypointHeader(); // fires when the extent/viewport changes, i.e. when the bar comes or goes
         WaypointList.SizeChanged += (_, _) => AlignWaypointHeader();
 
@@ -218,6 +219,7 @@ public partial class SettingsWindow : Window
             page.Visibility = (string)page.Tag == key ? Visibility.Visible : Visibility.Hidden;
         }
         if (key == "Skins") OpenSkinsPage(); // the one page that talks to the site, and only once it is looked at
+        if (key == "Waypoints") OpenWaypointsPage();
     }
 
     // ---- Window chrome ----------------------------------------------------

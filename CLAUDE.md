@@ -1047,7 +1047,15 @@ Every overlay window derives from `OverlayWindowBase`.
   alignment trick is shared (`AlignHeader(header, list, top)`).
   History: regrouped by widget Sep 24 2026 ("option A"), then the nav
   ("option B") Sep 25 2026 as the foundation for the waypoint library's
-  list page. Waypoints page (v1.22): rows built in code from a DRAFT
+  list page. Waypoints page (v1.22): rows built in code — LAZILY since
+  Oct 1 2026 (`OpenWaypointsPage`, on the first look at the page): a row
+  is five templated controls and hidden pages are still laid out, so with
+  the packs imported (122 waypoints) every opening of the dialog took
+  ~0.6 s instead of ~0.25 s, whichever page was shown (measured; a full
+  library ~0.9 s). Save never needed the rows. Opening ON the Waypoints
+  page still pays that cost; virtualising the list would be the next
+  step if it bothers anyone. A page that builds many controls should be
+  built on first look, like this one and Skins — from a DRAFT
   (`_library.Clone()`) so Cancel drops edits and Save commits via
   `ReplaceWith` — colour dot (click cycles the palette), `NameBox`,
   Show checkbox, Track radio (clicking the tracked one untracks, since a
