@@ -1,19 +1,19 @@
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace PandoraOverlay;
 
 /// <summary>
 /// SettingsWindow, Skins part (v1.28): the website's Patreon skins page as
 /// tiles — picture, name, tier, the seven colour dots, Apply. Two things set
-/// it apart from every other page: it talks to the site (the list and the
-/// pictures, fetched when the page is first looked at and kept for the
-/// session), and Apply acts AT ONCE instead of on Save — it changes your
+/// it apart from every other page: it talks to the site (the list when the
+/// page is first looked at; a picture only once its tile is on screen, and
+/// then only if no thumbnail of it is saved on disk — see SkinThumbnails),
+/// and Apply acts AT ONCE instead of on Save — it changes your
 /// dino's skin in game, like the site's own button. Apply turns into the
 /// six pattern buttons (A–F) in place of the site's pop-up. All requests go
 /// through PollService.Skins, which holds the gating; this file only draws.
@@ -25,7 +25,6 @@ public partial class SettingsWindow
     private const double TileWidth = 138;     // three across the page (436 px) with their 6 px gaps, and a little slack
     private const double PictureWidth = 124;  // the tile minus its padding and border
     private const double PictureHeight = 74;
-    private const int MaxPictures = 120;      // skins beyond this say "not loaded"
     private const string NoPicture = "no picture";
     private const string PictureLoading = "loading…";
     private const string PictureUnavailable = "picture unavailable";
@@ -48,16 +47,22 @@ public partial class SettingsWindow
     private bool _skinsOpened;
     private bool _skinApplying;
     private bool _skinsClosed;
+    private bool _picturesLoading;
     private Action? _disarmTile; // puts the Apply button back on the tile showing its pattern row
 
     // ---- Opening the page ---------------------------------------------------
 
-    /// <summary>First look at the page this dialog: one list request (or the session's copy), then the pictures.</summary>
+    /// <summary>First look at the page this dialog: one list request (or the session's copy), then the pictures of the tiles in view.</summary>
     private async void OpenSkinsPage()
     {
-        if (_skinsOpened) return;
+        if (_skinsOpened)
+        {
+            QueueVisibleSkinPictures(); // back on the page: carry on where the loader stopped
+            return;
+        }
         _skinsOpened = true;
         Closed += (_, _) => _skinsClosed = true;
+        SkinList.ScrollChanged += (_, _) => LoadVisibleSkinPictures(); // also raised when the tiles are first laid out
 
         SkinSearch.Text = _skinSearch;
         (_skinsShowAll ? SkinsAll : SkinsAvailable).IsChecked = true;
@@ -92,80 +97,100 @@ public partial class SettingsWindow
         RenderSkins();
         if (result.Problem is null) ShowSkinHint(); else SetSkinStatus($"Showing the earlier list — refresh failed ({result.Problem}).", HintWarn);
         UpdateSkinAgain();
-        _ = LoadSkinPicturesAsync();
+        QueueVisibleSkinPictures();
+    }
+
+    // ---- Pictures -------------------------------------------------------------
+
+    /// <summary>Starts the loader once the tiles have been laid out — before that nothing counts as on screen.</summary>
+    private void QueueVisibleSkinPictures() => Dispatcher.BeginInvoke(DispatcherPriority.Loaded, LoadVisibleSkinPictures);
+
+    /// <summary>
+    /// Loads the pictures of the tiles that are ON SCREEN, one after another,
+    /// and stops when none is left — scrolling (or coming back to the page)
+    /// starts it again. The site does the same with loading="lazy", and for
+    /// the same reason: the pictures are served at full size, ~5 MB each and
+    /// some ninety of them, so fetching what nobody looks at would cost
+    /// hundreds of MB. One loop at a time; never for a page that is hidden.
+    /// </summary>
+    private async void LoadVisibleSkinPictures()
+    {
+        if (_picturesLoading || _skins is null) return;
+        _picturesLoading = true;
+        try
+        {
+            while (!_skinsClosed && NextVisibleSkinWithoutPicture() is { } skin) await LoadSkinPictureAsync(skin);
+        }
+        finally
+        {
+            _picturesLoading = false;
+        }
+    }
+
+    private PatreonSkin? NextVisibleSkinWithoutPicture()
+    {
+        if (SkinList.ViewportHeight <= 0) return null;
+        foreach (var tile in SkinTiles.Children.OfType<Border>())
+        {
+            if (tile.Tag is not PatreonSkin skin || skin.Pictures.Count == 0) continue;
+            if (_skinPictures.ContainsKey(skin.Id) || _skinPictureProblems.ContainsKey(skin.Id)) continue;
+            if (!tile.IsVisible) return null; // the page itself is hidden
+            var top = tile.TranslatePoint(new Point(0, 0), SkinList).Y;
+            if (top + tile.ActualHeight > 0 && top < SkinList.ViewportHeight) return skin;
+        }
+        return null;
     }
 
     /// <summary>
-    /// Pictures one after another, what you can apply first; each address is
-    /// fetched once per session and never with the cookie. A skin's thumbnail
-    /// is tried first, then its full image — the site falls back the same
-    /// way. A skin whose pictures all fail keeps an empty well that says so,
-    /// with the reason on hover.
+    /// One skin's picture: the thumbnail saved on disk if there is one (no
+    /// request at all), else a download — never with the cookie — that is
+    /// shrunk to a thumbnail, saved for next time and dropped. The skin's
+    /// thumbnail address is tried first, then its full image, like the
+    /// site's own fallback. When everything fails the well says so, with the
+    /// reasons on hover.
     /// </summary>
-    private async Task LoadSkinPicturesAsync()
+    private async Task LoadSkinPictureAsync(PatreonSkin skin)
     {
-        if (_skins is null) return;
-        var loaded = 0;
-        foreach (var skin in PatreonSkins.Sorted(_skins))
+        var addresses = skin.Pictures.Select(PatreonSkins.ResolvePicture).OfType<Uri>().ToList();
+        foreach (var address in addresses)
         {
+            if (SkinThumbnails.TryLoad(address, DateTime.UtcNow) is not { } saved) continue;
+            ShowSkinPicture(skin.Id, saved);
+            return;
+        }
+
+        var problems = new List<string>();
+        if (addresses.Count == 0) problems.Add("not a usable address");
+        foreach (var address in addresses)
+        {
+            var fetched = await _poll.GetSkinPictureAsync(address);
             if (_skinsClosed) return;
-            if (_skinPictures.ContainsKey(skin.Id) || _skinPictureProblems.ContainsKey(skin.Id) || skin.Pictures.Count == 0) continue;
-            if (++loaded > MaxPictures)
+            if (fetched.Bytes is null)
             {
-                NotePictureProblem(skin.Id, "not loaded (too many pictures)");
-                continue;
+                problems.Add(fetched.Problem ?? "no answer");
             }
-
-            var problems = new List<string>();
-            foreach (var address in skin.Pictures)
+            else if (SkinThumbnails.Make(fetched.Bytes) is { } thumbnail)
             {
-                var fetched = await _poll.GetSkinPictureAsync(address);
-                if (_skinsClosed) return;
-                if (fetched.Bytes is null)
-                {
-                    problems.Add(fetched.Problem ?? "no answer");
-                }
-                else if (DecodePicture(fetched.Bytes) is { } picture)
-                {
-                    _skinPictures[skin.Id] = picture;
-                    if (_tilePictures.TryGetValue(skin.Id, out var image)) image.Source = picture;
-                    if (_tileNotes.TryGetValue(skin.Id, out var note)) note.Visibility = Visibility.Collapsed;
-                    break;
-                }
-                else
-                {
-                    problems.Add("not a picture format this Windows can show");
-                }
+                SkinThumbnails.TrySave(address, thumbnail);
+                ShowSkinPicture(skin.Id, thumbnail);
+                return;
             }
-            if (!_skinPictures.ContainsKey(skin.Id)) NotePictureProblem(skin.Id, string.Join("; ", problems));
+            else
+            {
+                problems.Add($"{address.Host}: not a picture format this Windows can show");
+            }
         }
+        _skinPictureProblems[skin.Id] = string.Join("; ", problems);
+        if (_tileNotes.TryGetValue(skin.Id, out var note)) note.Text = PictureUnavailable;
     }
 
-    private void NotePictureProblem(string skinId, string problem)
+    private void ShowSkinPicture(string skinId, ImageSource picture)
     {
-        _skinPictureProblems[skinId] = problem;
-        if (_tileNotes.TryGetValue(skinId, out var note)) note.Text = PictureUnavailable;
+        _skinPictures[skinId] = picture;
+        if (_tilePictures.TryGetValue(skinId, out var image)) image.Source = picture;
+        if (_tileNotes.TryGetValue(skinId, out var note)) note.Visibility = Visibility.Collapsed;
     }
 
-    /// <summary>Decoded small and frozen; null for a format this Windows can't read.</summary>
-    private static ImageSource? DecodePicture(byte[] bytes)
-    {
-        try
-        {
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.DecodePixelWidth = (int)(PictureWidth * 2.5); // sharp at 150% scaling and in the hover preview
-            image.StreamSource = new MemoryStream(bytes);
-            image.EndInit();
-            image.Freeze();
-            return image;
-        }
-        catch
-        {
-            return null;
-        }
-    }
 
     // ---- Tiles ----------------------------------------------------------------
 
@@ -183,6 +208,7 @@ public partial class SettingsWindow
 
         var shown = PatreonSkins.Sorted(_skins.Where(s => (_skinsShowAll || !s.Locked) && PatreonSkins.Matches(s, _skinSearch)));
         foreach (var skin in shown) SkinTiles.Children.Add(BuildSkinTile(skin));
+        QueueVisibleSkinPictures(); // a new filter or search can bring tiles into view without the list scrolling
         if (shown.Count > 0) return;
 
         SkinTiles.Children.Add(new TextBlock
@@ -243,6 +269,7 @@ public partial class SettingsWindow
 
         return new Border
         {
+            Tag = skin, // the picture loader finds its skin through the tile
             Child = body, Width = TileWidth, Margin = new Thickness(0, 0, 6, 6), Padding = new Thickness(6),
             CornerRadius = new CornerRadius(4), BorderBrush = CardBorder, BorderThickness = new Thickness(1),
             Background = CardSurface, Opacity = skin.Locked ? 0.55 : 1
@@ -434,7 +461,13 @@ public partial class SettingsWindow
         RenderSkins();
     }
 
-    private async void SkinRefresh_Click(object sender, RoutedEventArgs e) => await LoadSkinsAsync(refresh: true);
+    /// <summary>Refresh asks for the list again and gives pictures that failed another try (saved thumbnails stay).</summary>
+    private async void SkinRefresh_Click(object sender, RoutedEventArgs e)
+    {
+        _poll.ForgetSkinPictureFailures();
+        _skinPictureProblems.Clear();
+        await LoadSkinsAsync(refresh: true);
+    }
 
     private void OpenPatreonPage_Click(object sender, RoutedEventArgs e) => OpenUrl(PatreonPageUrl);
 

@@ -18,7 +18,8 @@ public sealed partial class PandoraClient
     private const string PatreonSkinsEndpoint = "https://islapandora.eu/api/skins/patreon-skins";
     private const string ApplyPatreonSkinEndpoint = "https://islapandora.eu/api/skins/apply-patreon";
     private const string PatreonPage = "https://islapandora.eu/patreon"; // the page these calls come from on the site
-    private const int MaxPictureBytes = 4 * 1024 * 1024;
+    /// <summary>The site serves its skin pictures at full size (4.7 MB seen, Oct 2026); this is a sanity cap, not a budget.</summary>
+    private const int MaxPictureBytes = 16 * 1024 * 1024;
 
     private HttpClient? _pictures;
 
@@ -123,7 +124,7 @@ public sealed partial class PandoraClient
     {
         var client = new HttpClient(new HttpClientHandler { UseCookies = false })
         {
-            Timeout = TimeSpan.FromSeconds(15)
+            Timeout = TimeSpan.FromSeconds(60) // several MB each: a slow line needs the time
         };
         if (_http.DefaultRequestHeaders.TryGetValues("User-Agent", out var agent))
         {

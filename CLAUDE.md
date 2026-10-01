@@ -914,12 +914,25 @@ Every overlay window derives from `OverlayWindowBase`.
   The site's "SV" value is ignored (nobody knows what it means).
   **PandoraClient.Skins.cs**: the list POST, the apply POST (reads the
   body whatever the status, like Prime; Referer set to /patreon) and
-  `FetchPictureAsync` on its own bare HttpClient (UA only, 4 MB cap;
-  never throws — returns a `SkinPicture` with the bytes or a short reason).
+  `FetchPictureAsync` on its own bare HttpClient (UA only, 60 s timeout,
+  a 16 MB sanity cap — the first build's 4 MB cap rejected the site's real
+  pictures; never throws — returns a `SkinPicture` with the bytes or a
+  short reason). PICTURES ARE BIG: islapandora.eu serves each one at full
+  size (4.7 MB seen, ~90 skins, thumbnail and image alike), so they are
+  (1) fetched ONLY for tiles on screen, like the site's `loading="lazy"`
+  (`LoadVisibleSkinPictures`: one loop, re-started by ScrollChanged, a
+  re-render or coming back to the page; no preload margin on purpose),
+  and (2) fetched ONCE: **Skins/SkinThumbnails.cs** (WPF imaging, tested)
+  decodes the download straight to a 320 px thumbnail, saves it as a
+  ~10–40 KB JPEG under `cache/skins/<hash of the address>.jpg` next to
+  the exe (30 days, temp-file-then-move, fail-soft) and the bytes are
+  dropped — neither PollService nor the window keeps a download in
+  memory. PollService remembers only failures (per session; Refresh
+  clears them) and downloads under way.
   **PollService.Skins.cs**: ALL gating — `GetSkinsAsync(refresh)` (the
   session's copy for 10 min, 30 s floor, a failure keeps the last good
-  list and names the problem), `GetSkinPictureAsync` (once per session
-  per address, failures remembered), `ApplySkinAsync` (busy + 15 s guard
+  list and names the problem), `GetSkinPictureAsync` (see the pictures
+  note above; a failure is remembered), `ApplySkinAsync` (busy + 15 s guard
   and not-in-game answer locally; a stale not-in-game state gets one
   regular poll first; on Ok stores `config.SkinLastAppliedUtc` and
   `config.SkinChoices[species]`, raises `SkinApplied` → MainWindow posts

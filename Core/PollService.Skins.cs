@@ -22,9 +22,8 @@ public sealed partial class PollService
     /// <summary>The breather after every apply request, whatever its outcome: it can never be mashed.</summary>
     private static readonly TimeSpan SkinApplyGuard = TimeSpan.FromSeconds(15);
 
-    private const int MaxCachedPictures = 200;
-
-    private readonly Dictionary<string, Task<SkinPicture>> _skinPictures = new();
+    private readonly Dictionary<string, Task<SkinPicture>> _skinPictureFetches = new(); // downloads under way
+    private readonly Dictionary<string, string> _skinPictureFailures = new();          // address → why it failed, this session
     private bool _skinListBusy;
     private bool _skinBusy;
     private DateTime _skinListAskedUtc;
@@ -78,19 +77,33 @@ public sealed partial class PollService
     }
 
     /// <summary>
-    /// One tile picture, fetched once per session (a failure is remembered
-    /// too, with its reason) and never with the cookie. The reason names the
-    /// host, so "which pictures fail" can be read off the page.
+    /// One tile picture, never with the cookie. The downloads are big (the
+    /// site serves full-size images, ~5 MB each), so NOTHING is kept here on
+    /// success: the page turns the bytes into a small thumbnail on disk
+    /// (SkinThumbnails) and asks again only when that is gone. What IS
+    /// remembered for the session is a failure, with its reason — host
+    /// first, so "which pictures fail" can be read off the page — and a
+    /// download under way, so one address is never fetched twice at once.
     /// </summary>
-    public Task<SkinPicture> GetSkinPictureAsync(string? address)
+    public async Task<SkinPicture> GetSkinPictureAsync(Uri address)
     {
-        if (PatreonSkins.ResolvePicture(address) is not { } uri) return Task.FromResult(new SkinPicture(null, "not a usable address"));
-        var key = uri.AbsoluteUri;
-        if (_skinPictures.TryGetValue(key, out var known)) return known; // done or still under way: never a second download
-        if (_skinPictures.Count >= MaxCachedPictures) return Task.FromResult(new SkinPicture(null, "not loaded (too many pictures)"));
-
-        return _skinPictures[key] = FetchSkinPictureAsync(uri);
+        var key = address.AbsoluteUri;
+        if (_skinPictureFailures.TryGetValue(key, out var why)) return new SkinPicture(null, why);
+        if (!_skinPictureFetches.TryGetValue(key, out var fetch)) _skinPictureFetches[key] = fetch = FetchSkinPictureAsync(address);
+        try
+        {
+            var picture = await fetch;
+            if (picture.Bytes is null) _skinPictureFailures[key] = picture.Problem ?? "no answer";
+            return picture;
+        }
+        finally
+        {
+            _skinPictureFetches.Remove(key);
+        }
     }
+
+    /// <summary>The page's Refresh: pictures that failed earlier get another try.</summary>
+    public void ForgetSkinPictureFailures() => _skinPictureFailures.Clear();
 
     private async Task<SkinPicture> FetchSkinPictureAsync(Uri uri)
     {
