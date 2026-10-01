@@ -157,9 +157,13 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
 - `Assets/` unchanged; `App.xaml` (StartupUri now `Shell/MainWindow.xaml`),
   csproj, sln and the docs stay at the root. `PandoraOverlay.Tests/` mirrors
   the folders.
-- `packs/` — DATA, not code (Sep 30 2026): three ready-made waypoint packs
+- `packs/` — DATA, not code (Sep 30 2026): five ready-made waypoint packs
   users download and import (`gateway-areas` 26, `gateway-water` 27,
-  `gateway-landmarks` 27 = landmarks + human sites + tunnels) and their
+  `gateway-landmarks` 27 = landmarks + human sites + tunnels; added Oct 1
+  on a player's request: `gateway-mud` 18 — one waypoint per pool, the
+  centre of each circle / outline in the source, numbered where a record
+  holds two — and `gateway-saltrocks` 24 — bare points in the source, so
+  each is named "Salt: <nearest named place>") and their
   own README with the import walkthrough (`docs/waypoint-import*.png`).
   Not built into the app and not in the release zip. Converted once from
   VulnonaMAP's Gateway label data (vulnona.com, community-made): world cm
@@ -170,7 +174,9 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   line in each file (`Source`, `CopiedOn` — extra JSON the importer
   ignores) and in the README is enough. A dated snapshot like
   `rules.json`; the overlay never contacts vulnona.com. Left out: fence
-  gates, caves, mud, air currents, food spawns and the zone shapes.
+  gates, caves, air currents, the other food spawns and the zone shapes.
+  These packs are user-imported waypoints from a community map — NOT the
+  site's zone-overlay images (salt rocks included), which stay unapproved.
 
 The namespace stays ONE flat `PandoraOverlay` on purpose (35 files don't
 earn sub-namespaces; `.editorconfig` silences IDE0130). The SDK-style csproj

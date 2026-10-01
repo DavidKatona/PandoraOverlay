@@ -1,0 +1,26 @@
+{
+  "Format": 1,
+  "Name": "Gateway mud",
+  "Source": "VulnonaMAP (vulnona.com/game/map), Gateway v0.21.772",
+  "CopiedOn": "2026-10-01",
+  "Waypoints": [
+    { "Id": "9e635caa-6062-e8b8-3bd2-916c18fb4a5d", "Name": "Mud: Central Jungle", "X": 104000, "Y": 56000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "b6cacb17-41ee-367f-5eee-a56fe55d8410", "Name": "Mud: Dam Lake", "X": 81000, "Y": -248000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "384aedc1-c844-9b2b-0630-5f4392b2220e", "Name": "Mud: East Lake", "X": 434000, "Y": -142000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "8adfc51c-9713-1f5a-2f3a-2ae75fd0fd89", "Name": "Mud: Gorge River (N)", "X": -144000, "Y": 56000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "fc3ebc7f-1472-bbc7-18bd-9c53273bf7b8", "Name": "Mud: Gorge River (S)", "X": -173000, "Y": 193000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "e0e21f83-3995-8dfd-f320-f4747e1113c4", "Name": "Mud: Highland", "X": -95000, "Y": -167727.273, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "3c74f89b-ebf4-34bd-5015-26cc1555d248", "Name": "Mud: Mud Grotto", "X": 219500, "Y": -50500, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "a49fca0c-d58b-c224-f370-ceee53c5ea66", "Name": "Mud: North Jungle", "X": 207000, "Y": -389000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "dbde53f3-8540-0d21-8250-c37b3f7bcd1f", "Name": "Mud: North Plains", "X": 367000, "Y": -369000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "aed056c1-c6f8-a1ff-f26b-7f1e3e67a55e", "Name": "Mud: Pipes", "X": 38000, "Y": 180000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "a1088a50-eae6-2a38-b91b-772ed72d7a10", "Name": "Mud: Pipes west", "X": 23000, "Y": 187000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "745b5ab9-f4a3-dec0-45a1-3e1b74d3a259", "Name": "Mud: Port 1", "X": 503000, "Y": -276000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "b625d5bb-1d72-a154-74b1-1a6e3f75dbc9", "Name": "Mud: Port 2", "X": 504000, "Y": -271500, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "98799cab-eeef-7760-c06c-ee05267e1f97", "Name": "Mud: Water Treatment 1", "X": 486333.333, "Y": -96000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "f3c94534-f695-bcaf-8366-f21c727363fe", "Name": "Mud: Water Treatment 2", "X": 495000, "Y": -98750, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "ef1cae4c-297c-9cb2-a36e-d38259393190", "Name": "Mud: Swamp NE 1", "X": 176000, "Y": 165000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "3867b2e2-48e9-793a-4c10-5eba7e7d0d58", "Name": "Mud: Swamp NE 2", "X": 164000, "Y": 165000, "Colour": 11, "Visible": true, "Pack": null },
+    { "Id": "186f5577-71b7-2523-2e63-0794f36bbdf7", "Name": "Mud: West Pond", "X": -294500, "Y": 9000, "Colour": 11, "Visible": true, "Pack": null }
+  ]
+}
