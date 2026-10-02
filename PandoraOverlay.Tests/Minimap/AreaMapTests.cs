@@ -11,9 +11,6 @@ public sealed class AreaMapTests
         new AreaEntry("Alpha", Red, 0, 0), new AreaEntry("Beta", Green, 0, 0), new AreaEntry("Gamma", Blue, 0, 0)
     });
 
-    /// <summary>The site's calibration (Sep 2026) — the constants tools/area-map generated the bundled map with.</summary>
-    private static readonly MapCalibration Calibration = new(
-        1160.9249840132136, 1223.2852629424794, 0.0020010632626191725, -0.0020003567492836005, 2500, -15, 25);
 
     /// <summary>A square BGRA image from a per-pixel "#RRGGBB" (null = transparent).</summary>
     private static byte[] Pixels(int size, Func<int, int, string?> colourAt)
@@ -104,16 +101,29 @@ public sealed class AreaMapTests
     {
         var legend = AreaLegend.Parse("""
             { "Source": "s", "CopiedOn": "2026-09-30", "Size": 1000, "Areas": [
-              { "Name": " Delta ", "Colour": "#F0A3FF", "X": 177000, "Y": 33000 },
+              { "Name": " Somewhere ", "Colour": "#F0A3FF", "X": 177000, "Y": 33000 },
               { "Name": "", "Colour": "#000000" },
               { "Name": "No colour" },
               { "Name": "Bad colour", "Colour": "pink" } ] }
             """)!;
 
         var only = Assert.Single(legend.Areas);
-        Assert.Equal("Delta", only.Name);
+        Assert.Equal("Somewhere", only.Name);
         Assert.Equal(177000, only.X);
         Assert.Equal("2026-09-30", legend.CopiedOn);
+        Assert.Null(legend.Calibration); // none given
+    }
+
+    [Fact]
+    public void TheLegendCarriesTheCalibrationItsLabelsWerePlacedWith()
+    {
+        const string areas = """ "Areas": [ { "Name": "Somewhere", "Colour": "#F0A3FF", "X": 1, "Y": 2 } ] """;
+
+        var legend = AreaLegend.Parse("{ \"Calibration\": { \"OffsetX\": 1, \"OffsetY\": 2, \"ScaleX\": 0.5, \"ScaleY\": -0.5, \"MapSize\": 100, \"PinOffsetX\": 3, \"PinOffsetY\": 4 }, " + areas + "}")!;
+        var unusable = AreaLegend.Parse("{ \"Calibration\": { \"OffsetX\": 1, \"MapSize\": 0 }, " + areas + "}")!;
+
+        Assert.Equal(new MapCalibration(1, 2, 0.5, -0.5, 100, 3, 4), legend.Calibration);
+        Assert.Null(unusable.Calibration); // a calibration that can't place anything is as good as none
     }
 
     [Fact]
@@ -296,9 +306,9 @@ public sealed class AreaMapTests
     [Fact]
     public void TheFeedLineNamesTheArea()
     {
-        var line = SelfActivity.AreaLine("Highland", T0);
+        var line = SelfActivity.AreaLine("Somewhere", T0);
 
-        Assert.Equal("Entered Highland", line.Text);
+        Assert.Equal("Entered Somewhere", line.Text);
         Assert.Equal(FeedKind.Area, line.Kind);
         Assert.True(line.Mine);
     }
@@ -350,95 +360,165 @@ public sealed class AreaMapTests
         var map = Bands((0, Red), (50, Green));
         // The top half is land; below row 50 the two areas meet in their coastal water.
         var topHalf = Enumerable.Range(0, 100 * 100).Select(i => i / 100 < 50).ToArray();
-        // Alpha's land, with Beta entirely at sea: they meet at a coastline, and a coastline is not a border line.
-        var leftOnly = Enumerable.Range(0, 100 * 100).Select(i => i % 100 < 50).ToArray();
 
         var mask = map.BorderMask(1, topHalf);
 
         Assert.True(mask[10 * 100 + 49]);
         Assert.True(mask[49 * 100 + 49]);
         Assert.False(mask[50 * 100 + 49]);   // the line ends at the coast
-        Assert.Equal(50, mask.Count(b => b));
-        Assert.DoesNotContain(true, map.BorderMask(1, leftOnly));
+        Assert.Equal(50, mask.Count(b => b)); // and the two areas' own coast (row 49) is not traced: they have each other
         Assert.Equal(100, map.BorderMask(1, new bool[7]).Count(b => b)); // a mask of the wrong size is ignored
     }
 
+    private static int[] Columns(bool[] mask, int y) => Enumerable.Range(0, 100).Where(x => mask[y * 100 + x]).ToArray();
+
     [Fact]
-    public void TheBundledMapsBordersAreLinesNotFills()
+    public void AnAreaThatIsAnIslandOfItsOwnGetsItsShorelineTraced()
     {
-        var map = AreaMapAsset.LoadBundled()!;
+        // Alpha and Beta share a land border; Gamma lies across the water, with a strip of coastal water of its own.
+        var map = Bands((0, Red), (30, Green), (60, null), (70, Blue));
+        var land = Enumerable.Range(0, 100 * 100).Select(i => i % 100 is < 55 or >= 80).ToArray(); // sea from column 55 to 79
 
-        var thin = map.BorderMask(1).Count(b => b);
-        var thick = map.BorderMask(4).Count(b => b);
+        var mask = map.BorderMask(1, land);
 
-        Assert.InRange(thin, 2_000, 40_000);  // of a million pixels
-        Assert.InRange(thick, thin * 2, thin * 5);
+        // The Alpha | Beta border, and Gamma's shore: its first land column, with water to its left.
+        Assert.Equal(new[] { 29, 80 }, Columns(mask, 40));
+        // Beta's own shore (column 54) is NOT traced: it has a neighbour on land, so it is no island.
+        Assert.False(mask[40 * 100 + 54]);
+        Assert.Equal(200, mask.Count(b => b));
     }
 
     [Fact]
-    public void TheBundledLandMaskFitsTheMap()
+    public void WhatMakesAnIslandIsItsNeighboursNotItsSize()
     {
-        var map = AreaMapAsset.LoadBundled()!;
-        var land = AreaMapAsset.LoadBundledLand()!;
+        // The big area stands alone; the two small ones share a border.
+        var map = Bands((0, Red), (80, null), (90, Green), (95, Blue));
+        var land = Enumerable.Range(0, 100 * 100).Select(i => i % 100 is < 70 or >= 90).ToArray();
 
-        Assert.Equal(map.Size * map.Size, land.Length);
-        Assert.InRange(land.Count(l => l), 300_000, 450_000); // the island is a good third of the picture
-        // Every piece of land belongs to an area: nothing on the island is nameless.
-        for (var i = 0; i < land.Length; i++)
-        {
-            if (land[i]) Assert.NotEqual(AreaMap.None, map.IndexAtPixel(i % map.Size, i / map.Size));
-        }
-        Assert.False(land[0]);                               // the corner is sea
-
-        var onLand = map.BorderMask(1, land).Count(b => b);
-        Assert.InRange(onLand, 1_000, map.BorderMask(1).Count(b => b) - 1); // fewer than with the sea stubs, but not none
+        Assert.Equal(new[] { 69, 94 }, Columns(map.BorderMask(1, land), 10)); // the big one's shore, and the small ones' border
     }
 
-    // ---- The map that ships ---------------------------------------------------------
+    [Fact]
+    public void WithoutALandMaskNoShoreIsTraced()
+    {
+        var map = Bands((0, Red), (40, null), (60, Green));
+
+        Assert.DoesNotContain(true, map.BorderMask(1)); // nothing says where the coast is
+    }
+
+    // ---- The map that ships -------------------------------------------------------------
+    // These hold for ANY map the generator produces: none of them names an area or counts
+    // on this island's shape. A new map means new input files and a generator run, no edits here.
+
+    private static AreaMap Bundled => AreaMapAsset.LoadBundled()!;
 
     [Fact]
     public void TheBundledMapLoadsCleanly()
     {
-        var map = AreaMapAsset.LoadBundled()!;
+        var map = Bundled;
 
-        Assert.Equal(1000, map.Size);
-        Assert.Equal(26, map.Areas.Count);
-        Assert.Equal(26, map.Areas.Select(a => a.Colour.ToUpperInvariant()).Distinct().Count());
-        Assert.Equal(26, map.Areas.Select(a => a.Name).Distinct().Count());
-        Assert.Equal(0, map.UnknownPixels); // every painted pixel is exactly a legend colour
+        Assert.True(map.Size > 0);
+        Assert.InRange(map.Areas.Count, 1, AreaMap.MaxAreas);
+        Assert.Equal(map.Areas.Count, map.Areas.Select(a => a.Colour.ToUpperInvariant()).Distinct().Count());
+        Assert.Equal(map.Areas.Count, map.Areas.Select(a => a.Name).Distinct().Count());
+        Assert.Equal(0, map.UnknownPixels);         // every painted pixel is exactly a legend colour
+        Assert.NotNull(map.Legend.Calibration);     // the generator records what it placed the labels with
     }
 
     [Fact]
-    public void EveryAreasOwnLabelPointIsInThatArea()
+    public void EveryAreaIsOnTheMapAtItsOwnLabelPoint()
     {
-        var map = AreaMapAsset.LoadBundled()!;
+        var map = Bundled;
+        var calibration = map.Legend.Calibration!;
 
         foreach (var area in map.Areas)
         {
-            var (fx, fy) = Calibration.ToFraction(area.X, area.Y);
+            var (fx, fy) = calibration.ToFraction(area.X, area.Y);
             Assert.Equal(area.Name, map.NameAt(fx, fy));
         }
     }
 
     [Fact]
-    public void KnownSpotsOfTheBundledMap()
+    public void TheBundledLandMaskFitsTheMap()
     {
-        var map = AreaMapAsset.LoadBundled()!;
+        var map = Bundled;
+        var land = AreaMapAsset.LoadBundledLand()!;
 
-        Assert.Null(map.NameAt(0.02, 0.02));  // open sea in the corner
-        Assert.Null(map.NameAt(0.98, 0.98));
-        var (px, py) = Calibration.ToFraction(-394000, 329000); // the pale quarry in the south-west
+        Assert.Equal(map.Size * map.Size, land.Length);
+        Assert.Contains(true, land);
+        Assert.Contains(false, land);
+        // Every piece of land belongs to an area: nothing on the map is nameless.
+        for (var i = 0; i < land.Length; i++)
+        {
+            if (land[i]) Assert.NotEqual(AreaMap.None, map.IndexAtPixel(i % map.Size, i / map.Size));
+        }
+    }
 
-        Assert.Equal("The Pit", map.NameAt(px, py));
+    [Fact]
+    public void TheBundledBordersAreThinLinesOnLand()
+    {
+        var map = Bundled;
+        var land = AreaMapAsset.LoadBundledLand()!;
+
+        var lines = map.BorderMask(1, land);
+
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (lines[i]) Assert.True(land[i]); // no line runs out into the sea
+        }
+        Assert.True(lines.Count(l => l) * 10 < land.Count(l => l)); // lines, not fills
+    }
+
+    [Fact]
+    public void OnTheBundledMapAnAreasShoreIsTracedExactlyWhenItHasNoNeighbourOnLand()
+    {
+        var map = Bundled;
+        var land = AreaMapAsset.LoadBundledLand()!;
+        var n = map.Size;
+        var lines = map.BorderMask(1, land);
+
+        int AreaOf(int i) => map.IndexAtPixel(i % n, i / n);
+        IEnumerable<int> Around(int i)
+        {
+            if (i % n > 0) yield return i - 1;
+            if (i % n < n - 1) yield return i + 1;
+            if (i >= n) yield return i - n;
+            if (i < n * (n - 1)) yield return i + n;
+        }
+        bool OtherLand(int j, int area) => land[j] && AreaOf(j) != AreaMap.None && AreaOf(j) != area;
+        bool IsShore(int i) => Around(i).Any(j => !land[j]);
+        bool IsBorder(int i) => (i % n < n - 1 && OtherLand(i + 1, AreaOf(i))) || (i < n * (n - 1) && OtherLand(i + n, AreaOf(i)));
+
+        // Which areas have a neighbour on land — worked out here from the two files, not known in advance.
+        var neighboured = new bool[map.Areas.Count];
+        for (var i = 0; i < land.Length; i++)
+        {
+            if (land[i] && Around(i).Any(j => OtherLand(j, AreaOf(i)))) neighboured[AreaOf(i)] = true;
+        }
+
+        for (var i = 0; i < land.Length; i++)
+        {
+            if (!land[i]) continue;
+            if (neighboured[AreaOf(i)])
+            {
+                if (lines[i]) Assert.True(IsBorder(i)); // a line here is a border with the neighbour, never the coast as such
+            }
+            else
+            {
+                Assert.Equal(IsShore(i), lines[i]);     // an island of its own: its shore, all of it, and nothing else
+            }
+        }
     }
 
     [Fact]
     public void TheCalibrationTransformMatchesTheSitesFormula()
     {
-        var (fx, fy) = Calibration.ToFraction(177000, 33000); // the Delta label
+        var calibration = new MapCalibration(100, 200, 0.5, -0.25, 1000, 10, -20);
 
-        Assert.Equal((1160.9249840132136 + 177000 * 0.0020010632626191725 - 15) / 2500, fx, 12);
-        Assert.Equal(1 - (1223.2852629424794 + 33000 * -0.0020003567492836005 + 25) / 2500, fy, 12);
+        var (fx, fy) = calibration.ToFraction(300, 400);
+
+        Assert.Equal((100 + 300 * 0.5 + 10) / 1000, fx, 12);
+        Assert.Equal(1 - (200 + 400 * -0.25 - 20) / 1000, fy, 12);
         Assert.Equal((0.0, 0.0), new MapCalibration(0, 0, 1, 1, 100).ToFraction(-500, 500)); // clamped onto the map: x under 0, y flipped past the bottom
     }
 }

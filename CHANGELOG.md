@@ -24,8 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   light a faded Activity panel. They work with the minimap hidden.
   Settings → Activity → "Note when you enter another area" turns them off.
 - Area borders on the minimap: the control panel's new Areas button (in
-  the Minimap group) draws thin dark lines where one area meets another on land,
-  in both views and over the heatmap. Off by default.
+  the Minimap group) draws thin dark lines where one area meets another
+  on land, in both views and over the heatmap; an area that is an island
+  of its own is outlined along its shore. Off by default.
 
 ## [1.28.0] - 2026-10-02
 

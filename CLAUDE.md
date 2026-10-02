@@ -202,13 +202,31 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   site's zone-overlay images (salt rocks included), which stay unapproved.
 - `tools/area-map/` — NOT part of the app (Oct 2 2026): the PowerShell
   generator of the area map (`make-area-map.ps1`, Windows PowerShell 5.1
-  with inline C#) and its input `area-labels.json` (VulnonaMAP's 26 area
-  label points + size hints, credited). It writes `Assets/areas.png` +
-  `Assets/areas.json`, the land mask `Assets/land.png` (for the border
-  layer) and, with `-PreviewPath`, the picture for people
-  (`docs/area-map.jpg`). A STARTING POINT, not a build step: corrections
-  are painted into `Assets/areas.png`, and a re-run overwrites them. See
-  AreaMap under Architecture.
+  with inline C#) and its input `area-labels.json` (the site's map
+  calibration, and one label point per area in world cm with a size hint
+  and a sea flag — today VulnonaMAP's Gateway labels, credited). It
+  writes `Assets/areas.png` + `Assets/areas.json`, the land mask
+  `Assets/land.png` (for the border layer) and, with `-PreviewPath`, the
+  picture for people (`docs/area-map.jpg`). A STARTING POINT, not a
+  build step: corrections are painted into `Assets/areas.png`, and a
+  re-run overwrites them. See AreaMap under Architecture.
+  **RULE (owner, Oct 2 2026): NOTHING IS WRITTEN FOR ONE NAMED AREA.**
+  The generator, the overlay's area code and the tests treat every area
+  alike, and everything about a particular map is INPUT — so a new map
+  means: replace `Assets/map.png`, replace `area-labels.json`, run the
+  script, done. No rule, exception or test may name an area ("Spiky
+  Isle", "Highland") or count on this island (26 areas, 1000 px, sea in
+  the corner, how much land there is). That is why the calibration lives
+  in the input file and is copied into `areas.json` (the tests read it
+  from there), distances are in metres and turned into pixels by the
+  calibration, colours beyond the 26 hand-picked ones are generated, and
+  the bundled-map tests check properties any generated map has: only
+  legend colours, every label point inside its own area, every piece of
+  land named, lines only on land, a shore traced exactly for the areas
+  with no neighbour on land. The two numbers that are about the map
+  PICTURE's style, not the island, stay in the generator and are named
+  as such: the sea colour tolerance and the 2 px dark rim of shallow
+  water the picture paints round every coast.
 
 The namespace stays ONE flat `PandoraOverlay` on purpose (35 files don't
 earn sub-namespaces; `.editorconfig` silences IDE0130). The SDK-style csproj
@@ -731,7 +749,21 @@ Every overlay window derives from `OverlayWindowBase`.
   read by `AreaMapAsset.LoadBundledLand`), so every line ends at the
   coast; the sea areas (the bays) have no outline, their edge is the
   coastline the map already shows. Don't bring the light lines or the
-  sea lines back. The
+  sea lines back. That left an area that is AN ISLAND OF ITS OWN with no
+  line at all (the owner noticed it on Spiky Isle), so such an area
+  gets its SHORELINE traced: its land pixels with water beside them.
+  What makes it one is a rule, not a name or a size (the owner asked
+  how the mainland is told from an islet, and for the least-maintenance
+  option): none of its land touches another area's land. Islets that
+  belong to an area with a neighbour stay unmarked; a stray rock that
+  is all of some area's land would get a speck — accepted, the rule
+  stays pure. The first try was invisible: the land mask's outermost
+  pixels are the dark rim of shallow water the map picture paints round
+  every coast, and a dark line there is dark on dark — so the generator
+  trims that rim (2 px) off `land.png`, which now means the land you can
+  SEE, and lines end, or run, on the beach. Alternatives weighed for
+  marking the sea areas and not taken: a dotted ring in the water, names
+  written in the water, a soft wash, rounder bay shapes. The
   picture is in map pixels, so `UpdateAreaBorders` picks the line's
   thickness per view (1–4 map px, ~1.2 screen px: four in the island
   view, one at 5×) from `AreaMapAsset.Borders`, which builds each
@@ -829,7 +861,8 @@ Every overlay window derives from `OverlayWindowBase`.
   announced. Area lines do NOT light a faded Activity panel
   (`ActivityWindow.OnPosted`) — a crossing is worth a line, not a look.
   `BorderMask(thickness, land)` gives the border pixels for the
-  minimap's optional layer (two areas meeting, land on both sides).
+  minimap's optional layer (two areas meeting with land on both sides,
+  plus the shore of an area with no neighbour on land).
   **AreaMapAsset.cs**
   is the WPF-imaging half: decodes the PNG (colour profile ignored,
   straight BGRA) once, on first use (~25 ms, a megabyte of grid). THE
@@ -849,7 +882,7 @@ Every overlay window derives from `OverlayWindowBase`.
   blobs, Port / East Coast claiming big octagons of sea. CORRECTIONS ARE
   PAINTED into `Assets/areas.png` with the legend's exact colours, hard
   edges, PNG — which is why it is an image and not polygons — and the
-  bundled-asset tests hold it to that (26 areas, zero unknown pixels,
+  bundled-asset tests hold it to that (only legend colours,
   every label point inside its own area). Elevation (a cave under a
   meadow) is DROPPED, not deferred — owner, Oct 2 2026: the game's caves
   are few and small, ignore them. (For the record: a second layer with

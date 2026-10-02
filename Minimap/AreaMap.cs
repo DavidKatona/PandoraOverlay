@@ -8,9 +8,12 @@ public sealed record AreaEntry(string Name, string Colour, double X, double Y);
 
 /// <summary>
 /// The area map's legend (Assets/areas.json): which colour is which area,
-/// where the names came from and when. Parse is tolerant and pure.
+/// where the names came from and when, and the map calibration the
+/// generator placed the label points with (the overlay itself always uses
+/// the live one; this is the record of what the map was built for). Parse
+/// is tolerant and pure.
 /// </summary>
-public sealed record AreaLegend(string Source, string CopiedOn, IReadOnlyList<AreaEntry> Areas)
+public sealed record AreaLegend(string Source, string CopiedOn, IReadOnlyList<AreaEntry> Areas, MapCalibration? Calibration = null)
 {
     /// <summary>Entries without a name or a readable "#RRGGBB" colour are dropped; nothing usable is null.</summary>
     public static AreaLegend? Parse(string json)
@@ -31,7 +34,8 @@ public sealed record AreaLegend(string Source, string CopiedOn, IReadOnlyList<Ar
             .Select(a => a with { Name = a.Name.Trim() })
             .Take(AreaMap.MaxAreas)
             .ToList();
-        return areas.Count == 0 ? null : new AreaLegend(doc.Source ?? "", doc.CopiedOn ?? "", areas);
+        var calibration = doc.Calibration is { MapSize: > 0 } c && c.ScaleX != 0 && c.ScaleY != 0 ? c : null;
+        return areas.Count == 0 ? null : new AreaLegend(doc.Source ?? "", doc.CopiedOn ?? "", areas, calibration);
     }
 }
 
@@ -54,18 +58,20 @@ public sealed class AreaMap
 
     private readonly byte[] _grid;
 
-    private AreaMap(int size, byte[] grid, IReadOnlyList<AreaEntry> areas, int unknownPixels)
+    private AreaMap(int size, byte[] grid, AreaLegend legend, int unknownPixels)
     {
         Size = size;
         _grid = grid;
-        Areas = areas;
+        Legend = legend;
         UnknownPixels = unknownPixels;
     }
 
     /// <summary>Pixels per side.</summary>
     public int Size { get; }
 
-    public IReadOnlyList<AreaEntry> Areas { get; }
+    public AreaLegend Legend { get; }
+
+    public IReadOnlyList<AreaEntry> Areas => Legend.Areas;
 
     /// <summary>
     /// Pixels that are neither empty nor one of the legend's colours — a
@@ -99,7 +105,7 @@ public sealed class AreaMap
             if (alpha == 255 && byColour.TryGetValue((bgra[o + 2] << 16) | (bgra[o + 1] << 8) | bgra[o], out var area)) grid[p] = area;
             else unknown++;
         }
-        return new AreaMap(width, grid, legend.Areas, unknown);
+        return new AreaMap(width, grid, legend, unknown);
     }
 
     /// <summary>"#RRGGBB" → 0xRRGGBB.</summary>
@@ -131,10 +137,13 @@ public sealed class AreaMap
     /// map. With a land mask (one flag per pixel, true = land) a border
     /// also needs LAND ON BOTH SIDES, so the lines end at the coast instead
     /// of running on between two areas' coastal water and stopping in the
-    /// middle of the sea. Thickness widens the line in whole pixels (1–4),
-    /// for views that show the map so small that a one-pixel line would
-    /// vanish. For the minimap's optional border layer; the lookup never
-    /// needs it.
+    /// middle of the sea. That rule leaves an area that is an ISLAND OF ITS
+    /// OWN with no line at all, so such an area gets its shoreline traced
+    /// instead. What makes it one is its neighbours — none of its land
+    /// touches another area's land — never its name or its size. Thickness
+    /// widens the line in whole pixels (1–4), for views that show the map
+    /// so small that a one-pixel line would vanish. For the minimap's
+    /// optional border layer; the lookup never needs it.
     /// </summary>
     public bool[] BorderMask(int thickness, bool[]? land = null)
     {
@@ -142,6 +151,8 @@ public sealed class AreaMap
         var n = Size;
         if (land is not null && land.Length != n * n) land = null; // a mask of another size says nothing about this map
         var thin = new bool[n * n];
+        var hasLand = new bool[MaxAreas + 1];   // per grid value: the area owns land at all
+        var bordered = new bool[MaxAreas + 1];  // … and some of it touches another area's land
         for (var y = 0; y < n; y++)
         {
             for (var x = 0; x < n; x++)
@@ -149,9 +160,28 @@ public sealed class AreaMap
                 var i = y * n + x;
                 var here = _grid[i];
                 if (here == 0 || (land is not null && !land[i])) continue;
-                thin[i] = (x < n - 1 && Other(i + 1)) || (y < n - 1 && Other(i + n));
+                hasLand[here] = true;
+                var right = x < n - 1 && Other(i + 1);
+                var below = y < n - 1 && Other(i + n);
+                thin[i] = right || below;
+                if (right) bordered[here] = bordered[_grid[i + 1]] = true;
+                if (below) bordered[here] = bordered[_grid[i + n]] = true;
 
                 bool Other(int j) => _grid[j] != 0 && _grid[j] != here && (land is null || land[j]);
+            }
+        }
+
+        // An island of its own: its shore — its land pixels that have water beside them — is its outline.
+        if (land is not null && Enumerable.Range(1, MaxAreas).Any(a => hasLand[a] && !bordered[a]))
+        {
+            for (var y = 0; y < n; y++)
+            {
+                for (var x = 0; x < n; x++)
+                {
+                    var i = y * n + x;
+                    if (!land[i] || _grid[i] == 0 || bordered[_grid[i]]) continue;
+                    thin[i] = (x > 0 && !land[i - 1]) || (x < n - 1 && !land[i + 1]) || (y > 0 && !land[i - n]) || (y < n - 1 && !land[i + n]);
+                }
             }
         }
         if (thickness == 1) return thin;
@@ -194,7 +224,7 @@ public sealed class AreaMap
 /// </summary>
 public sealed class AreaReadout
 {
-    /// <summary>How far inside counts as clearly inside: 2 px of the 1000 px map, about 25 m.</summary>
+    /// <summary>How far inside counts as clearly inside, in pixels of the area map (about 25 m on a map of 12.5 m per pixel).</summary>
     public const int MarginPixels = 2;
 
     private int _current = AreaMap.None;

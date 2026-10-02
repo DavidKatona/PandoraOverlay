@@ -1,8 +1,8 @@
 {
-  "Source": "Area names: VulnonaMAP (vulnona.com), Gateway v0.21.772 labels. Borders: computed by tools/area-map from those 26 label points and the island map; they are the overlay's own, not from any source.",
+  "Source": "Area names: VulnonaMAP (vulnona.com), Gateway v0.21.772: its area labels, one point per area where the label sits (its Lat/Long x 1000 = world cm, Long = X, Lat = Y), with its label flags as Size (large / normal / small) and Sea (ocean). Borders: computed by tools/area-map from the label points and the island map; they are the overlay's own, not from any source.",
   "CopiedOn": "2026-09-30",
   "GeneratedOn": "2026-10-02",
-  "Size": 1000,
+  "Calibration": { "OffsetX": 1160.9249840132136, "OffsetY": 1223.2852629424794, "ScaleX": 0.0020010632626191725, "ScaleY": -0.0020003567492836005, "MapSize": 2500, "PinOffsetX": -15, "PinOffsetY": 25 },
   "Areas": [
     { "Name": "Delta", "Colour": "#F0A3FF", "X": 177000, "Y": 33000 },
     { "Name": "Delta Bay", "Colour": "#0075DC", "X": 298000, "Y": 175000 },
