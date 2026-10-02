@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.27.0 is built, working, and approved by the server's
+and settings window. **v1.28.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1272,17 +1272,19 @@ stamina, damage taken this fight, speed — same rows, same frame;
 its own fade ruleset, a flip always lighting the panel; Settings
 default, Ctrl+F9 and the control panel's View button to flip; no
 automatic switching; the first large-bar build was reworked the same
-day — verified in-game). No layout presets beyond the default for now.
-
-Built Oct 1 2026, awaiting in-game verification (target 1.28.0): the
-**Patreon skins page** (see Architecture) — the first feature under the
-blanket go-ahead and the overlay's first write. The owner's first real
-runs (Oct 1) answered the open questions: applying works; the pictures
-are served by islapandora.eu itself at full size (~4.7 MB each, 72
-available + 15 locked on the owner's account) and all load; a too-early
-apply is refused with a message that states when the next skin can be
-applied, shown as the server's words. Still to do: more testing by the
-owner, then the release pass on request.
+day — verified in-game), v1.28.0 (Oct 2 — the **Patreon skins page**,
+the first feature under the blanket go-ahead and the overlay's first
+write: Settings → Skins lists the account's skins as tiles and applies
+one with its pattern A–F for a click; "Apply again" per species, a feed
+line, pictures loaded only on screen and kept as thumbnails, Refresh
+and Reload pictures. With it: Settings pages build on first look and in
+batches (the dialog opened slowly with the waypoint packs imported),
+and the Waypoints list changes in place. Verified in-game by the owner
+over two days: applying works, all pictures load — served by
+islapandora.eu itself at full size, ~4.7 MB each, 72 available + 15
+locked on the owner's account — and a too-early apply is refused with a
+message stating when the next skin can be applied, shown as the
+server's words). No layout presets beyond the default for now.
 
 Planned, maybe v1.29.0 (owner, Oct 2 2026 — brainstormed, NOT started):
 **"which area am I in"** from a colour-coded AREA MAP. The owner's idea:
@@ -1389,7 +1391,7 @@ re-propose.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.27.0.
+  minor, fixes bump patch. Current: 1.28.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
