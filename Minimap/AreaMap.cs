@@ -129,54 +129,7 @@ public sealed class AreaMap
 
     public string? NameAt(double fx, double fy) => NameOf(IndexAt(fx, fy));
 
-    /// <summary>
-    /// Where the borders run, as one flag per pixel (row by row): a pixel
-    /// whose right or lower neighbour belongs to something else — another
-    /// area, or none. ONE RULE, every edge: each area comes out as a closed
-    /// shape, its water included, which is exactly what the lookup uses.
-    /// Thickness widens the line in whole pixels (1–4), for views that show
-    /// the map so small that a one-pixel line would vanish. For the
-    /// minimap's optional border layer; the lookup never needs it.
-    /// </summary>
-    public bool[] BorderMask(int thickness)
-    {
-        thickness = Math.Clamp(thickness, 1, 4);
-        var n = Size;
-        var thin = new bool[n * n];
-        for (var y = 0; y < n; y++)
-        {
-            for (var x = 0; x < n; x++)
-            {
-                var here = _grid[y * n + x];
-                thin[y * n + x] = (x < n - 1 && _grid[y * n + x + 1] != here) || (y < n - 1 && _grid[(y + 1) * n + x] != here);
-            }
-        }
-        if (thickness == 1) return thin;
-
-        // Widen with a thickness × thickness square, one axis at a time.
-        int before = (thickness - 1) / 2, after = thickness / 2;
-        var wide = new bool[n * n];
-        for (var y = 0; y < n; y++)
-        {
-            for (var x = 0; x < n; x++)
-            {
-                if (!thin[y * n + x]) continue;
-                for (var k = Math.Max(0, x - before); k <= Math.Min(n - 1, x + after); k++) wide[y * n + k] = true;
-            }
-        }
-        var mask = new bool[n * n];
-        for (var y = 0; y < n; y++)
-        {
-            for (var x = 0; x < n; x++)
-            {
-                if (!wide[y * n + x]) continue;
-                for (var k = Math.Max(0, y - before); k <= Math.Min(n - 1, y + after); k++) mask[k * n + x] = true;
-            }
-        }
-        return mask;
-    }
-
-    /// <summary>The area of one pixel (None outside the map) — for checks that walk the grid.</summary>
+    /// <summary>The area of one pixel (None outside the map) — for AreaBorders, and for checks that walk the grid.</summary>
     internal int IndexAtPixel(int x, int y) => x < 0 || y < 0 || x >= Size || y >= Size ? None : _grid[y * Size + x] - 1;
 }
 

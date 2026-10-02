@@ -38,34 +38,33 @@ public static class AreaMapAsset
         }
     }
 
-    private static readonly Dictionary<int, BitmapSource> BorderImages = new();
+    private static readonly Lazy<Geometry?> BorderLines = new(MakeBorders);
 
     /// <summary>
-    /// The borders of the bundled map as a picture for the minimap's border
-    /// layer: transparent, with dark lines of the given thickness in map
-    /// pixels (1–4). One bit per pixel, so each is ~125 KB; made on first
-    /// use and kept. Null when there is no map.
+    /// The borders of the bundled map as LINES (AreaBorders), in map-pixel
+    /// coordinates (0 … Size), for the minimap's border layer. Vector, not a
+    /// picture: a picture of the borders is stretched with the map and went
+    /// blocky at 5–6× zoom, a line stays sharp at any zoom and is drawn at a
+    /// fixed screen width. Traced once, on first use, and frozen. Null when
+    /// there is no map.
     /// </summary>
-    public static BitmapSource? Borders(int thickness)
+    public static Geometry? Borders => BorderLines.Value;
+
+    private static Geometry? MakeBorders()
     {
         if (Shared is not { } map) return null;
-        thickness = Math.Clamp(thickness, 1, 4);
-        if (BorderImages.TryGetValue(thickness, out var known)) return known;
-
-        var mask = map.BorderMask(thickness);
-        var stride = (map.Size + 7) / 8;
-        var bits = new byte[stride * map.Size];
-        for (var y = 0; y < map.Size; y++)
+        var geometry = new StreamGeometry();
+        using (var context = geometry.Open())
         {
-            for (var x = 0; x < map.Size; x++)
+            foreach (var line in AreaBorders.Trace(map))
             {
-                if (mask[y * map.Size + x]) bits[y * stride + (x >> 3)] |= (byte)(0x80 >> (x & 7));
+                if (line.Count < 2) continue;
+                context.BeginFigure(new System.Windows.Point(line[0].X, line[0].Y), isFilled: false, isClosed: false);
+                for (var i = 1; i < line.Count; i++) context.LineTo(new System.Windows.Point(line[i].X, line[i].Y), isStroked: true, isSmoothJoin: true);
             }
         }
-        var palette = new BitmapPalette(new[] { Colors.Transparent, Color.FromRgb(0x00, 0x14, 0x30) }); // dark navy; light lines read as a net thrown over the map
-        var image = BitmapSource.Create(map.Size, map.Size, 96, 96, PixelFormats.Indexed1, palette, bits, stride);
-        image.Freeze();
-        return BorderImages[thickness] = image;
+        geometry.Freeze();
+        return geometry;
     }
 
     /// <summary>

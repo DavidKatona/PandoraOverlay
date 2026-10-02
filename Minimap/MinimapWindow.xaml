@@ -91,14 +91,15 @@
                            Visibility="Collapsed"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
                     <!-- Optional area borders: a dark outline round every named area,
-                         from the bundled area map. Sized and translated
-                         with the map like the heatmap, and above it. -->
-                    <Image x:Name="AreaBordersImage"
-                           Stretch="Fill"
-                           Opacity="0.7"
-                           Visibility="Collapsed"
-                           IsHitTestVisible="False"
-                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                         from the bundled area map, as vector lines (sharp at any
+                         zoom). Scaled to the map in code, translated with it like
+                         the heatmap, and above it. -->
+                    <Path x:Name="AreaBordersPath"
+                          Stroke="#001430"
+                          Opacity="0.7"
+                          StrokeLineJoin="Round"
+                          Visibility="Collapsed"
+                          IsHitTestVisible="False"/>
                     <!-- Breadcrumb trail, in map-pixel space and panned with the
                          map. Three age bands, oldest faintest: one polyline
                          can't fade along its length. -->

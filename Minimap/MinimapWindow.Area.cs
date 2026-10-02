@@ -81,26 +81,29 @@ public partial class MinimapWindow
     }
 
     /// <summary>
-    /// The border layer: a dark outline round every area, over the
-    /// map (and the heatmap) and panning with it. Lines, not the area
-    /// colours — those are picked to be told apart and would bury the
-    /// terrain. The line is drawn in map pixels, so its thickness is chosen
-    /// for the view: four map pixels in the island view, one when zoomed
-    /// right in, each coming out about a screen pixel wide. Follows the
-    /// view, the zoom and the widget's scale (ApplyViewMode).
+    /// The border layer: a dark outline round every area, over the map (and
+    /// the heatmap) and panning with it. Lines, not the area colours — those
+    /// are picked to be told apart and would bury the terrain. VECTOR lines
+    /// (AreaBorders): the geometry is in map pixels and scaled to the map's
+    /// rendered size through the GEOMETRY's transform, which moves the
+    /// points but leaves the stroke alone — so the line is the same thin
+    /// width at every zoom and stays sharp. (A first build drew a picture of
+    /// the borders, stretched with the map; at 5–6× its pixels showed.) The
+    /// width undoes the widget's own scale, so it is about a screen pixel at
+    /// any MinimapScale. Follows the view, the zoom and the scale
+    /// (ApplyViewMode).
     /// </summary>
     private void UpdateAreaBorders()
     {
-        if (!_config.MinimapAreaBordersEnabled || AreaMapAsset.Shared is not { } map)
+        if (!_config.MinimapAreaBordersEnabled || AreaMapAsset.Shared is not { } map || AreaMapAsset.Borders is not { } lines)
         {
-            AreaBordersImage.Visibility = Visibility.Collapsed;
-            AreaBordersImage.Source = null;
+            AreaBordersPath.Visibility = Visibility.Collapsed;
+            AreaBordersPath.Data = null;
             return;
         }
-        var screenPerMapPixel = MapImage.Width * AppearanceScale(_config) / map.Size;
-        var thickness = Math.Clamp((int)Math.Round(BorderScreenPixels / screenPerMapPixel), 1, 4);
-        AreaBordersImage.Source = AreaMapAsset.Borders(thickness);
-        AreaBordersImage.Width = AreaBordersImage.Height = MapImage.Width;
-        AreaBordersImage.Visibility = Visibility.Visible;
+        var scale = MapImage.Width / map.Size;
+        AreaBordersPath.Data = new GeometryGroup { Children = { lines }, Transform = new ScaleTransform(scale, scale) };
+        AreaBordersPath.StrokeThickness = BorderScreenPixels / Math.Max(0.1, AppearanceScale(_config));
+        AreaBordersPath.Visibility = Visibility.Visible;
     }
 }

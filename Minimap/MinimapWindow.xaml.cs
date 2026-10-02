@@ -123,7 +123,7 @@ public partial class MinimapWindow : OverlayWindowBase
         MapImage.Source = bmp;
         MapImage.RenderTransform = _mapTranslate;
         HeatmapImage.RenderTransform = _mapTranslate; // shared: heatmap pans with the map
-        AreaBordersImage.RenderTransform = _mapTranslate; // and the area borders
+        AreaBordersPath.RenderTransform = _mapTranslate; // and the area borders
         TrailOld.RenderTransform = TrailMid.RenderTransform = TrailNew.RenderTransform = _mapTranslate; // so does the trail
 
         PlayerArrow.RenderTransform = new TransformGroup
@@ -266,7 +266,7 @@ public partial class MinimapWindow : OverlayWindowBase
             _mapTranslate.Y = 0;
         }
         HeatmapImage.Width = HeatmapImage.Height = MapImage.Width;
-        UpdateAreaBorders(); // sized like the map, and its line thickness follows the view and zoom
+        UpdateAreaBorders(); // scaled to the map's rendered size
         UpdateScaleBar();
         RenderTrail(); // map-pixel space: the rendered size just changed
 

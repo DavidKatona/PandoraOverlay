@@ -168,7 +168,7 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
 - `Stats/` — GrowthTracker, DrainTracker, StaminaTracker, DamageTracker,
   StatsAttention, LowStatAlert, GrowthMilestones.
 - `Minimap/` — MinimapWindow, BreadcrumbTrail, ScaleBar, SpeedTracker, Compass,
-  AreaMap (+ AreaReadout) and AreaMapAsset (its PNG loader).
+  AreaMap (+ AreaReadout, AreaJournal), AreaBorders and AreaMapAsset (its PNG loader).
 - `Waypoints/` — WaypointLibrary, WaypointPacks, ShareCode.
 - `Friends/` — FriendBook (+ FriendColour), FriendFeed.
 - `Activity/` — ActivityWindow, ActivityLog, SelfActivity (the widget is
@@ -732,13 +732,13 @@ Every overlay window derives from `OverlayWindowBase`.
   `FractionAt` is the one panel-point → map-fraction inverse (the
   right-click menu uses it too). Area BORDER layer
   (`MinimapAreaBordersEnabled`, default off; the control panel's Areas
-  button → `ToggleAreaBorders`): `AreaBordersImage`, sized and
+  button → `ToggleAreaBorders`): `AreaBordersPath`, scaled and
   translated with the map like the heatmap and above it, at 70% — DARK
   NAVY LINES, NOT the area colours: those are picked to be told apart
   and bury the terrain, and would turn to mud with the heatmap (owner
   agreed, Oct 2 2026). THE RULE IS ONE LINE: a line wherever a pixel's
   neighbour belongs to something else, another area OR none
-  (`BorderMask`), so every area is a closed shape, its coastal water
+  (`AreaBorders`), so every area is a closed shape, its coastal water
   and the bays included — exactly what the pill's lookup uses. HOW IT
   GOT THERE, so it isn't walked again (all Oct 2 2026, the owner
   judging each step by eye): (1) the first build drew that same rule in
@@ -762,11 +762,19 @@ Every overlay window derives from `OverlayWindowBase`.
   in 16 directions instead of 8, so bays aren't angular) — too subtle
   at actual size to justify changing a map already tried in game; it
   lives only in the generator, so it can be added later if the angular
-  bays start to bother. The
-  picture is in map pixels, so `UpdateAreaBorders` picks the line's
-  thickness per view (1–4 map px, ~1.2 screen px: four in the island
-  view, one at 5×) from `AreaMapAsset.Borders`, which builds each
-  thickness once as a 1-bit image (~125 KB). Optional heatmap
+  bays start to bother. (4) The layer was first a PICTURE of the
+  borders (1-bit, map pixels) stretched with the map; the owner found it
+  low-res at 5–6× zoom, so it is now VECTOR LINES: `AreaBorders.Trace`
+  (pure, tested) walks the pixel edges into chains — junction to
+  junction, plus closed loops — and straightens each with
+  Douglas–Peucker at 0.9 map px, so a slanted border's staircase becomes
+  one line, junctions stay put and lines still meet. `AreaMapAsset.Borders`
+  is that, traced once into a frozen StreamGeometry in map pixels;
+  `UpdateAreaBorders` scales it through the GEOMETRY's transform (points
+  move, the stroke doesn't), so the line is ~1.2 screen px at every zoom
+  and MinimapScale and stays sharp — and a future big map could reuse it
+  as is. `Assets/areas.png` is untouched by this; the borders are no
+  more ACCURATE than its 12.5 m grid, only cleaner. Optional heatmap
   layer (`HeatmapEnabled`): the site's pre-rendered heatmap PNG (opaque —
   grayscale map, blobs and a player-count caption baked in) as a second
   Image sharing the map image's size and translate transform, blended at
@@ -859,8 +867,8 @@ Every overlay window derives from `OverlayWindowBase`.
   area you left); where a life begins is no entry, open sea is never
   announced. Area lines do NOT light a faded Activity panel
   (`ActivityWindow.OnPosted`) — a crossing is worth a line, not a look.
-  `BorderMask(thickness)` gives the border pixels for the minimap's
-  optional layer (every edge of every area).
+  `AreaBorders.Trace` gives the borders as lines for the minimap's
+  optional layer (every edge of every area, see the border layer above).
   **AreaMapAsset.cs**
   is the WPF-imaging half: decodes the PNG (colour profile ignored,
   straight BGRA) once, on first use (~25 ms, a megabyte of grid). THE

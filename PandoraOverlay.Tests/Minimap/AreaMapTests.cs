@@ -315,43 +315,60 @@ public sealed class AreaMapTests
 
     // ---- Borders, for the minimap's layer ---------------------------------------------
 
+    private static AreaMap Drawn(Func<int, int, string?> colourAt) => AreaMap.FromPixels(100, 100, Pixels(100, colourAt), ThreeAreas)!;
+
     [Fact]
-    public void ABorderRunsWhereTwoAreasMeet()
+    public void ABorderRunsBetweenThePixelsWhereTwoAreasMeet()
     {
         var map = Bands((0, Red), (50, Green));
 
-        var mask = map.BorderMask(1);
+        var line = Assert.Single(AreaBorders.Trace(map));
 
-        for (var y = 0; y < 100; y++)
-        {
-            Assert.True(mask[y * 100 + 49]);  // the last Alpha column: its right neighbour is Beta
-            Assert.False(mask[y * 100 + 48]);
-            Assert.False(mask[y * 100 + 50]);
-        }
-        Assert.Equal(100, mask.Count(b => b));
+        Assert.Equal(new[] { (50.0, 0.0), (50.0, 100.0) }, line); // one straight line along the pixel edge, end to end
     }
-
-    private static int[] Columns(bool[] mask, int y) => Enumerable.Range(0, 100).Where(x => mask[y * 100 + x]).ToArray();
 
     [Fact]
     public void AnAreasEdgeToNothingIsABorderTooSoEveryAreaIsClosed()
     {
-        var shore = Bands((0, Red), (50, null));
         var strait = Bands((0, Red), (40, null), (60, Green)); // open water between two areas: each has its own edge
 
-        Assert.Equal(new[] { 49 }, Columns(shore.BorderMask(1), 10));
-        Assert.Equal(new[] { 39, 59 }, Columns(strait.BorderMask(1), 10));
+        var xs = AreaBorders.Trace(strait).Select(l => l[0].X).OrderBy(x => x);
+
+        Assert.Equal(new[] { 40.0, 60.0 }, xs);
     }
 
     [Fact]
-    public void ThicknessWidensTheLineInWholePixels()
+    public void AStaircaseBecomesAStraightLine()
     {
-        var map = Bands((0, Red), (50, Green));
+        var map = Drawn((x, y) => x < y ? Red : Green); // a diagonal border: on the grid, a staircase of 199 steps
 
-        Assert.Equal(new[] { 49, 50 }, Columns(map.BorderMask(2), 20));
-        Assert.Equal(new[] { 48, 49, 50 }, Columns(map.BorderMask(3), 20));
-        Assert.Equal(new[] { 48, 49, 50, 51 }, Columns(map.BorderMask(4), 20));
-        Assert.Equal(new[] { 48, 49, 50, 51 }, Columns(map.BorderMask(9), 20)); // capped
+        var line = Assert.Single(AreaBorders.Trace(map));
+
+        Assert.Equal(2, line.Count);
+        Assert.All(line, p => Assert.True(Math.Abs(p.X - p.Y) <= 1)); // both ends on the diagonal
+    }
+
+    [Fact]
+    public void LinesStillMeetAtAJunction()
+    {
+        var map = Drawn((x, y) => y >= 50 ? Blue : x < 50 ? Red : Green); // three areas meet at (50, 50)
+
+        var lines = AreaBorders.Trace(map);
+
+        Assert.Equal(3, lines.Count);
+        Assert.All(lines, l => Assert.True(l[0] == (50, 50) || l[^1] == (50, 50)));
+    }
+
+    [Fact]
+    public void AnIslandIsAClosedLoopThatKeepsItsShape()
+    {
+        var map = Drawn((x, y) => x is >= 30 and < 70 && y is >= 30 and < 70 ? Red : null);
+
+        var loop = Assert.Single(AreaBorders.Trace(map));
+
+        Assert.Equal(loop[0], loop[^1]);
+        Assert.True(loop.Count >= 5);                               // its four corners and back, not collapsed
+        Assert.All(loop, p => Assert.True(p.X is 30 or 70 || p.Y is 30 or 70)); // every point on the square's edge
     }
 
     // ---- The map that ships -------------------------------------------------------------
@@ -387,15 +404,15 @@ public sealed class AreaMapTests
     }
 
     [Fact]
-    public void TheBundledBordersAreThinLines()
+    public void TheBundledBordersTraceIntoLinesOnTheMap()
     {
         var map = Bundled;
-        var painted = Enumerable.Range(0, map.Size * map.Size).Count(i => map.IndexAtPixel(i % map.Size, i / map.Size) != AreaMap.None);
 
-        var lines = map.BorderMask(1).Count(l => l);
+        var lines = AreaBorders.Trace(map);
 
-        Assert.True(lines > 0);
-        Assert.True(lines * 10 < painted); // lines, not fills
+        Assert.NotEmpty(lines);
+        Assert.All(lines, l => Assert.True(l.Count >= 2));
+        Assert.All(lines.SelectMany(l => l), p => Assert.True(p.X is >= 0 && p.X <= map.Size && p.Y >= 0 && p.Y <= map.Size));
     }
 
     [Fact]
