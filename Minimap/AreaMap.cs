@@ -128,22 +128,30 @@ public sealed class AreaMap
     /// whose right or lower neighbour belongs to ANOTHER AREA. An area's
     /// edge to nothing (open sea) is not a border — drawn, those edges were
     /// rings around the whole coast that said nothing and dominated the
-    /// map. Thickness widens the line in whole pixels (1–4), for views that
-    /// show the map so small that a one-pixel line would vanish. For the
-    /// minimap's optional border layer; the lookup never needs it.
+    /// map. With a land mask (one flag per pixel, true = land) a border
+    /// also needs LAND ON BOTH SIDES, so the lines end at the coast instead
+    /// of running on between two areas' coastal water and stopping in the
+    /// middle of the sea. Thickness widens the line in whole pixels (1–4),
+    /// for views that show the map so small that a one-pixel line would
+    /// vanish. For the minimap's optional border layer; the lookup never
+    /// needs it.
     /// </summary>
-    public bool[] BorderMask(int thickness)
+    public bool[] BorderMask(int thickness, bool[]? land = null)
     {
         thickness = Math.Clamp(thickness, 1, 4);
         var n = Size;
+        if (land is not null && land.Length != n * n) land = null; // a mask of another size says nothing about this map
         var thin = new bool[n * n];
         for (var y = 0; y < n; y++)
         {
             for (var x = 0; x < n; x++)
             {
-                var here = _grid[y * n + x];
-                if (here == 0) continue;
-                thin[y * n + x] = (x < n - 1 && Other(_grid[y * n + x + 1], here)) || (y < n - 1 && Other(_grid[(y + 1) * n + x], here));
+                var i = y * n + x;
+                var here = _grid[i];
+                if (here == 0 || (land is not null && !land[i])) continue;
+                thin[i] = (x < n - 1 && Other(i + 1)) || (y < n - 1 && Other(i + n));
+
+                bool Other(int j) => _grid[j] != 0 && _grid[j] != here && (land is null || land[j]);
             }
         }
         if (thickness == 1) return thin;
@@ -169,9 +177,10 @@ public sealed class AreaMap
             }
         }
         return mask;
-
-        static bool Other(byte neighbour, byte here) => neighbour != 0 && neighbour != here;
     }
+
+    /// <summary>The area of one pixel (None outside the map) — for checks that walk the grid.</summary>
+    internal int IndexAtPixel(int x, int y) => x < 0 || y < 0 || x >= Size || y >= Size ? None : _grid[y * Size + x] - 1;
 }
 
 /// <summary>

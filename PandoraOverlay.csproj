@@ -54,6 +54,9 @@
          same reason as the rules. -->
     <EmbeddedResource Include="Assets\areas.png" LogicalName="areas.png" />
     <EmbeddedResource Include="Assets\areas.json" LogicalName="areas.json" />
+    <!-- White = land (lakes and rivers included), black = sea: lets the
+         minimap's border layer end its lines at the coast. -->
+    <EmbeddedResource Include="Assets\land.png" LogicalName="land.png" />
   </ItemGroup>
 
 </Project>

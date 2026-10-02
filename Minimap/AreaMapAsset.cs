@@ -38,13 +38,41 @@ public static class AreaMapAsset
         }
     }
 
+    public const string LandResource = "land.png";
+
+    private static readonly Lazy<bool[]?> BundledLand = new(LoadBundledLand);
     private static readonly Dictionary<int, BitmapSource> BorderImages = new();
+
+    /// <summary>
+    /// The bundled land mask (Assets/land.png, written by tools/area-map
+    /// with the area map): one flag per pixel of the island map, true =
+    /// land, lakes and rivers included. Null when missing or unreadable —
+    /// the border layer then draws its lines over the water too.
+    /// </summary>
+    public static bool[]? LoadBundledLand()
+    {
+        try
+        {
+            using var stream = typeof(AreaMapAsset).Assembly.GetManifestResourceStream(LandResource);
+            if (stream is null) return null;
+            var decoder = BitmapDecoder.Create(stream,
+                BitmapCreateOptions.PreservePixelFormat | BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
+            BitmapSource frame = new FormatConvertedBitmap(decoder.Frames[0], PixelFormats.Gray8, null, 0);
+            var pixels = new byte[frame.PixelWidth * frame.PixelHeight];
+            frame.CopyPixels(pixels, frame.PixelWidth, 0);
+            return Array.ConvertAll(pixels, grey => grey >= 128);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     /// <summary>
     /// The borders of the bundled map as a picture for the minimap's border
     /// layer: transparent, with dark lines of the given thickness in map
-    /// pixels (1–4). One bit per pixel, so each is ~125 KB; made on first
-    /// use and kept. Null when there is no map.
+    /// pixels (1–4), on land only. One bit per pixel, so each is ~125 KB;
+    /// made on first use and kept. Null when there is no map.
     /// </summary>
     public static BitmapSource? Borders(int thickness)
     {
@@ -52,7 +80,7 @@ public static class AreaMapAsset
         thickness = Math.Clamp(thickness, 1, 4);
         if (BorderImages.TryGetValue(thickness, out var known)) return known;
 
-        var mask = map.BorderMask(thickness);
+        var mask = map.BorderMask(thickness, BundledLand.Value);
         var stride = (map.Size + 7) / 8;
         var bits = new byte[stride * map.Size];
         for (var y = 0; y < map.Size; y++)
@@ -62,7 +90,7 @@ public static class AreaMapAsset
                 if (mask[y * map.Size + x]) bits[y * stride + (x >> 3)] |= (byte)(0x80 >> (x & 7));
             }
         }
-        var palette = new BitmapPalette(new[] { Colors.Transparent, Color.FromRgb(0x00, 0x14, 0x30) }); // dark navy: dark on land, lost in the sea
+        var palette = new BitmapPalette(new[] { Colors.Transparent, Color.FromRgb(0x00, 0x14, 0x30) }); // dark navy; light lines read as a net thrown over the map
         var image = BitmapSource.Create(map.Size, map.Size, 96, 96, PixelFormats.Indexed1, palette, bits, stride);
         image.Freeze();
         return BorderImages[thickness] = image;

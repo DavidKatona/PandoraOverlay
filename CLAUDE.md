@@ -204,7 +204,8 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   generator of the area map (`make-area-map.ps1`, Windows PowerShell 5.1
   with inline C#) and its input `area-labels.json` (VulnonaMAP's 26 area
   label points + size hints, credited). It writes `Assets/areas.png` +
-  `Assets/areas.json` and, with `-PreviewPath`, the picture for people
+  `Assets/areas.json`, the land mask `Assets/land.png` (for the border
+  layer) and, with `-PreviewPath`, the picture for people
   (`docs/area-map.jpg`). A STARTING POINT, not a build step: corrections
   are painted into `Assets/areas.png`, and a re-run overwrites them. See
   AreaMap under Architecture.
@@ -720,10 +721,17 @@ Every overlay window derives from `OverlayWindowBase`.
   round the whole coast — and chose "darker, fainter" from the
   alternatives (outline only your own area, a muted tint, names on the
   map, hiding it with the heatmap were the others). So: only borders
-  BETWEEN TWO AREAS (`BorderMask`), which removes the rings, and a navy
-  that is dark on land and nearly lost in the sea, which hides the
-  short stubs where coastal strips of two areas meet (a land-only mask
-  was considered and not needed). Don't bring the light lines back. The
+  BETWEEN TWO AREAS (`BorderMask`), which removes the rings, in a dark
+  navy. That still left short stubs where the coastal strips of two
+  areas meet, running out from the shore and stopping in the sea; I had
+  judged the navy would hide them, the owner still saw "lines ending
+  abruptly in the sea", so the lines are now ON LAND ONLY: a border
+  needs land on both sides (`Assets/land.png`, the generator's land
+  mask — white = land, lakes and rivers included — an embedded resource
+  read by `AreaMapAsset.LoadBundledLand`), so every line ends at the
+  coast; the sea areas (the bays) have no outline, their edge is the
+  coastline the map already shows. Don't bring the light lines or the
+  sea lines back. The
   picture is in map pixels, so `UpdateAreaBorders` picks the line's
   thickness per view (1–4 map px, ~1.2 screen px: four in the island
   view, one at 5×) from `AreaMapAsset.Borders`, which builds each
@@ -820,8 +828,9 @@ Every overlay window derives from `OverlayWindowBase`.
   area you left); where a life begins is no entry, open sea is never
   announced. Area lines do NOT light a faded Activity panel
   (`ActivityWindow.OnPosted`) — a crossing is worth a line, not a look.
-  `BorderMask(thickness)` gives the border pixels for the minimap's
-  optional layer. **AreaMapAsset.cs**
+  `BorderMask(thickness, land)` gives the border pixels for the
+  minimap's optional layer (two areas meeting, land on both sides).
+  **AreaMapAsset.cs**
   is the WPF-imaging half: decodes the PNG (colour profile ignored,
   straight BGRA) once, on first use (~25 ms, a megabyte of grid). THE
   BORDERS ARE OURS: VulnonaMAP's data holds each of the 26 areas as ONE

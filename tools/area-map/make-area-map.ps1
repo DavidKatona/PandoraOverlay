@@ -1,4 +1,4 @@
-# Generates the overlay's AREA MAP: Assets/areas.png + Assets/areas.json.
+# Generates the overlay's AREA MAP: Assets/areas.png + Assets/areas.json (+ Assets/land.png, the land mask).
 #
 # The map answers "which area am I in": an image the size of Assets/map.png with one
 # flat colour per named area and nothing else (transparent = no area, open sea). The
@@ -137,7 +137,7 @@ public static class AreaMapGenerator
         return found;
     }
 
-    public static string Run(string mapPath, AreaLabel[] labels, string outPng, string previewPath)
+    public static string Run(string mapPath, AreaLabel[] labels, string outPng, string outLand, string previewPath)
     {
         if (labels.Length > Palette.Length) throw new Exception("more labels than palette colours");
         StringBuilder log = new StringBuilder();
@@ -181,6 +181,18 @@ public static class AreaMapGenerator
         int landCount = 0;
         for (int i = 0; i < N * N; i++) { land[i] = !sea[i]; if (land[i]) landCount++; }
         log.AppendLine(string.Format("sea colour #{0:X2}{1:X2}{2:X2}; land pixels {3} ({4:0.0} km2)", r0, g0, b0, landCount, landCount * 156.25 / 1e6));
+
+        // The land mask (white = land, lakes and rivers included; black = sea): the overlay's border
+        // layer draws a border only where both sides are land, so its lines end at the coast.
+        int[] landPx = new int[N * N];
+        for (int i = 0; i < N * N; i++) landPx[i] = land[i] ? unchecked((int)0xFFFFFFFF) : unchecked((int)0xFF000000);
+        using (Bitmap lm = new Bitmap(N, N, PixelFormat.Format32bppArgb))
+        {
+            BitmapData ld = lm.LockBits(new Rectangle(0, 0, N, N), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            Marshal.Copy(landPx, 0, ld.Scan0, N * N);
+            lm.UnlockBits(ld);
+            lm.Save(outLand, ImageFormat.Png);
+        }
 
         // Seeds. A label's pixel is found exactly as the overlay finds yours: floor(fraction x size).
         double[] speed = new double[labels.Length];
@@ -371,7 +383,7 @@ $areas = $labelList.ToArray()
 
 $outDirFull = (Resolve-Path $OutDir).Path
 $preview = if ($PreviewPath) { [IO.Path]::GetFullPath((Join-Path (Get-Location) $PreviewPath)) } else { '' }
-$log = [AreaMapGenerator]::Run((Resolve-Path $Map).Path, $areas, (Join-Path $outDirFull 'areas.png'), $preview)
+$log = [AreaMapGenerator]::Run((Resolve-Path $Map).Path, $areas, (Join-Path $outDirFull 'areas.png'), (Join-Path $outDirFull 'land.png'), $preview)
 
 # The legend the overlay reads beside the image: which colour is which area, and where
 # its label point is (world cm - the same coordinates as a waypoint).

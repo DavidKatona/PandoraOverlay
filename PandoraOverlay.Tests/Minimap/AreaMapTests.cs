@@ -345,6 +345,25 @@ public sealed class AreaMapTests
     }
 
     [Fact]
+    public void WithALandMaskABorderNeedsLandOnBothSides()
+    {
+        var map = Bands((0, Red), (50, Green));
+        // The top half is land; below row 50 the two areas meet in their coastal water.
+        var topHalf = Enumerable.Range(0, 100 * 100).Select(i => i / 100 < 50).ToArray();
+        // Alpha's land, with Beta entirely at sea: they meet at a coastline, and a coastline is not a border line.
+        var leftOnly = Enumerable.Range(0, 100 * 100).Select(i => i % 100 < 50).ToArray();
+
+        var mask = map.BorderMask(1, topHalf);
+
+        Assert.True(mask[10 * 100 + 49]);
+        Assert.True(mask[49 * 100 + 49]);
+        Assert.False(mask[50 * 100 + 49]);   // the line ends at the coast
+        Assert.Equal(50, mask.Count(b => b));
+        Assert.DoesNotContain(true, map.BorderMask(1, leftOnly));
+        Assert.Equal(100, map.BorderMask(1, new bool[7]).Count(b => b)); // a mask of the wrong size is ignored
+    }
+
+    [Fact]
     public void TheBundledMapsBordersAreLinesNotFills()
     {
         var map = AreaMapAsset.LoadBundled()!;
@@ -354,6 +373,25 @@ public sealed class AreaMapTests
 
         Assert.InRange(thin, 2_000, 40_000);  // of a million pixels
         Assert.InRange(thick, thin * 2, thin * 5);
+    }
+
+    [Fact]
+    public void TheBundledLandMaskFitsTheMap()
+    {
+        var map = AreaMapAsset.LoadBundled()!;
+        var land = AreaMapAsset.LoadBundledLand()!;
+
+        Assert.Equal(map.Size * map.Size, land.Length);
+        Assert.InRange(land.Count(l => l), 300_000, 450_000); // the island is a good third of the picture
+        // Every piece of land belongs to an area: nothing on the island is nameless.
+        for (var i = 0; i < land.Length; i++)
+        {
+            if (land[i]) Assert.NotEqual(AreaMap.None, map.IndexAtPixel(i % map.Size, i / map.Size));
+        }
+        Assert.False(land[0]);                               // the corner is sea
+
+        var onLand = map.BorderMask(1, land).Count(b => b);
+        Assert.InRange(onLand, 1_000, map.BorderMask(1).Count(b => b) - 1); // fewer than with the sea stubs, but not none
     }
 
     // ---- The map that ships ---------------------------------------------------------
