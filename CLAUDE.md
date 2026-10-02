@@ -1284,6 +1284,44 @@ apply is refused with a message that states when the next skin can be
 applied, shown as the server's words. Still to do: more testing by the
 owner, then the release pass on request.
 
+Planned, maybe v1.29.0 (owner, Oct 2 2026 — brainstormed, NOT started):
+**"which area am I in"** from a colour-coded AREA MAP. The owner's idea:
+an image the size of `Assets/map.png` with one flat colour per named
+area and nothing else; your world position goes through the same
+world→map transform as the arrow (`ToFraction`), the pixel's colour is
+the area. A data file the code reads — it needs no drawing; showing it
+as a tinted layer on the minimap would be a separate, optional feature.
+Purely local (our own position, no request, nothing game-side), and our
+own asset — NOT the site's unapproved zone images. THE CATCH IS THE
+BORDERS, not the lookup: VulnonaMAP's data holds each of the 26 areas as
+ONE label point plus a size hint (`large` / `small` / `ocean`), no
+bounds (its only shapes are mud pools, caves, roads, air currents and
+the migration / patrol zones), and the map image has no borders drawn,
+so image analysis can't recover them either — they are community names
+without official edges and whatever we ship is our judgement. A
+GENERATED DRAFT exists (Oct 2 2026, on the owner's Desktop in
+`pandora-area-map-draft`: `areas-colour-map.png` 1000×1000, a preview
+over the map, a legend, and the generator script with its input):
+every land pixel goes to the label that reaches it soonest OVER LAND
+(sea = the map's navy connected to the border, so lakes and rivers stay
+land; `large` spreads 1.3×, `small` 0.7×), sea labels claim ~1 km of
+water, an offshore label of a land area takes the nearest shore plus
+the water around it, a ~375 m coastal band follows the land beside it,
+open sea stays empty. Its weak spots, seen on the preview: straight
+borders that ignore rivers and ridges, the central dome split three
+ways (no label of its own), small areas as round blobs, Port / East
+Coast claiming big octagons of sea, sizes that follow label placement.
+The agreed path: (1) the draft, (2) the owner corrects it by PAINTING
+over it — which is why an image beats polygons: it can be authored in
+any paint program, (3) it ships as a dated asset like `rules.json`.
+Rules for the build: PNG with hard edges and exact colours (no
+anti-aliasing, never JPEG), read once into a plain grid behind a pure,
+tested class; the readout changes only once you are clearly past a
+border, so walking along one can't flicker; say "near" rather than "in"
+until the borders are hand-corrected; one pixel is ~12.5 m, plenty.
+Undecided: where the readout shows (the minimap footer is navigation
+only), and whether areas also name auto-created waypoints / share codes.
+
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
 sanctuaries, migrations, salt rocks), official token auth (the nudge went
