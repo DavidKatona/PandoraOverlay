@@ -9,7 +9,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 [![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
 [![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
-![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Survival view top-right, the control panel bottom-center, and the Settings dialog open on its Skins page in the middle, showing Patreon skin tiles with their pictures, tiers, colours and Apply buttons, over a lake at dusk; a caption box names version 1.28.0 and its new Patreon skins page: browse, pick a pattern, apply without alt-tabbing](docs/screenshot.png)
+![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Survival view top-right, and the control panel bottom-center, over a Deinosuchus resting on a rock by a sunlit lake; the Activity feed's newest line reads "Skin applied · Nightmare (pattern A)", and a caption box names version 1.28.0 and its new Patreon skins page: browse, pick a pattern, apply without alt-tabbing](docs/screenshot.png)
 
 ## Contents
 
