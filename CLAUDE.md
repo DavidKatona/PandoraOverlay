@@ -718,8 +718,14 @@ Every overlay window derives from `OverlayWindowBase`.
   the free-look camera) and km/h. Area pill (`MinimapAreaEnabled`,
   default on, v1.29, `MinimapWindow.Area.cs`): TOP-RIGHT, the one free
   corner (owner's choice) — the settled area MainWindow hands it through
-  `SetArea` (its `AreaJournal`; the minimap computes none itself), hidden
-  at open sea and while not in game; in EDIT MODE it names the area
+  `SetArea` (its `AreaJournal`; the minimap computes none itself). Where
+  NO area is named (open sea, off the map's edge) it reads "Uncharted",
+  dimmed to 60% so it isn't taken for an area of that name — the owner's
+  word (Oct 2 2026): they asked for something mystical and NEUTRAL, one
+  that doesn't claim water ("Uncharted waters" was my pick and was
+  turned down for that), since a future map could leave land unnamed.
+  It never reaches the Activity feed. Hidden only while there is no
+  position (not in game) or the pill is off; in EDIT MODE it names the area
   under the CURSOR instead, in the edit orange, and only that (falling
   back to your own area there would read as "this spot is in my area") —
   the owner's way to look the borders over without walking the island.

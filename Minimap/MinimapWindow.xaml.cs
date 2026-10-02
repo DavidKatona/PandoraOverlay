@@ -306,6 +306,7 @@ public partial class MinimapWindow : OverlayWindowBase
             _lastWorld = null;
             _speed.Reset();
             UpdateSpeedPill();
+            UpdateAreaPill(); // no position: nothing to place, not even "Uncharted"
             PlayerArrow.Visibility = Visibility.Collapsed;
             MapStatus.Text = cal is null ? "waiting for map calibration…" : "not in-game";
             MapStatus.Visibility = Visibility.Visible;
@@ -324,6 +325,7 @@ public partial class MinimapWindow : OverlayWindowBase
         if (_config.WaypointVisibility == "nearest") RebuildMarkersIfSetChanged(); // the nearest ten follow the player
         RenderLastFix();
         UpdateSpeedPill();
+        UpdateAreaPill(); // MainWindow has already said which area (SetArea); a position is what lets "Uncharted" show
     }
 
     /// <summary>World cm → map fractions (0–1, y flipped) — mirrors the live-map frontend, pinOffset included.</summary>

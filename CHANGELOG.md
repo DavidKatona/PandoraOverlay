@@ -15,9 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with no extra requests. The names are VulnonaMAP's Gateway labels; the
   borders are the overlay's own estimate, since nobody publishes official
   ones (see `docs/area-map.jpg`). The name changes only once you are about
-  25 m inside the next area, so it doesn't flicker along a border. In edit
-  mode the pill names the area under the cursor instead. Settings →
-  Minimap → "Show the area you are in" turns it off.
+  25 m inside the next area, so it doesn't flicker along a border. Where
+  no area is named, out at open sea, it reads "Uncharted". In edit mode
+  the pill names the area under the cursor instead. Settings → Minimap →
+  "Show the area you are in" turns it off.
 - Area lines in the Activity feed: "Entered Highland" when you clearly
   cross into another area. At most one such line per half minute, nothing
   for stepping over a border and straight back, and these lines never

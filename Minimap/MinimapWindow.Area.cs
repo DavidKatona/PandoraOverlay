@@ -21,7 +21,16 @@ public partial class MinimapWindow
     private static readonly Brush AreaOwn = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8));
     private static readonly Brush AreaHover = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64)); // the edit-mode accent
 
-    private string? _area;                       // where you are, settled (null = open sea / not in game / unknown)
+    /// <summary>
+    /// What the pill says where there is no named area (owner's word, Oct 2
+    /// 2026: neutral on purpose — it must not claim water, a future map
+    /// could leave land unnamed). Shown dimmer than a real name, so it
+    /// reads as "nothing is named here" and not as an area called that.
+    /// </summary>
+    private const string Uncharted = "Uncharted";
+    private const double UnchartedOpacity = 0.6;
+
+    private string? _area;                       // where you are, settled (null = no named area / not in game / unknown)
     private (double Fx, double Fy)? _hoverSpot;  // edit mode: the map point under the cursor
 
     /// <summary>The bundled map for the hover lookup, decoded on first use — never, with the pill switched off.</summary>
@@ -45,22 +54,21 @@ public partial class MinimapWindow
     /// <summary>
     /// Your area — or, while the cursor is over the map in edit mode, the
     /// area under it and only that (falling back to yours there would read
-    /// as "this spot is in my area"). Hidden where there is no area.
+    /// as "this spot is in my area"). Where no area is named — open sea,
+    /// off the map's edge — it says "Uncharted", dimmed. Hidden only when
+    /// there is nothing to place: not in game, no map, or switched off.
     /// </summary>
     private void UpdateAreaPill()
     {
         var hovering = EditMode && _hoverSpot is not null;
-        string? name = null;
-        if (Areas is { } map)
-        {
-            name = hovering && _hoverSpot is { } spot ? map.NameAt(spot.Fx, spot.Fy) : _area;
-        }
-        if (name is null)
+        if (Areas is not { } map || (!hovering && _lastFix is null))
         {
             AreaPanel.Visibility = Visibility.Collapsed;
             return;
         }
-        AreaText.Text = name;
+        var name = hovering && _hoverSpot is { } spot ? map.NameAt(spot.Fx, spot.Fy) : _area;
+        AreaText.Text = name ?? Uncharted;
+        AreaText.Opacity = name is null ? UnchartedOpacity : 1;
         AreaText.Foreground = hovering ? AreaHover : AreaOwn;
         AreaPanel.Visibility = Visibility.Visible;
     }
