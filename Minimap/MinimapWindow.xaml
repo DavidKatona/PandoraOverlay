@@ -90,6 +90,15 @@
                            Opacity="0.55"
                            Visibility="Collapsed"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <!-- Optional area borders: light lines where one named area meets
+                         another, from the bundled area map. Sized and translated
+                         with the map like the heatmap, and above it. -->
+                    <Image x:Name="AreaBordersImage"
+                           Stretch="Fill"
+                           Opacity="0.6"
+                           Visibility="Collapsed"
+                           IsHitTestVisible="False"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
                     <!-- Breadcrumb trail, in map-pixel space and panned with the
                          map. Three age bands, oldest faintest: one polyline
                          can't fade along its length. -->

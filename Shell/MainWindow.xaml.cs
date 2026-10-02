@@ -58,6 +58,7 @@ public partial class MainWindow : OverlayWindowBase
     private readonly FriendFeed _feed = new();
     private readonly ActivityLog _log = new();
     private readonly SelfActivity _self = new();
+    private readonly AreaJournal _areaJournal = new(); // where you are: the minimap's pill and the feed's "Entered …" lines
     private PlayerState? _me;          // your last in-game state, for the feed's proximity rule
     private PrimeSnapshot? _primeBefore; // the Prime result on screen when the current check started
     private MinimapWindow? _minimap;
@@ -192,6 +193,7 @@ public partial class MainWindow : OverlayWindowBase
                 _poll.RebuildClient();
             }
             if (dialog.MinimapChanged || dialog.AppearanceChanged || dialog.FriendsChanged) _minimap?.ApplySettings();
+            UpdateArea(); // the pill or the feed's area lines may have been switched on: name the area now, not a poll later
             ApplyStatsView(); // the default view is a Settings choice; cheap to reapply
             if (dialog.AppearanceChanged)
             {
@@ -381,6 +383,7 @@ public partial class MainWindow : OverlayWindowBase
         _me = result.InGame ? result.Player : null;
         UpdateUi(result);
         _log.Post(_self.Update(result, _config.ActivityDamageLines, DateTime.UtcNow));
+        UpdateArea();
         UpdateAutoHide(result.InGame && result.Player is not null);
         _tray.SetStatus(result.InGame && result.Player is { } p
             ? $"Pandora Overlay — {p.Dino} · HP {p.Health * 100:0}% · Growth {p.Growth * 100:0.#}%"
@@ -392,6 +395,29 @@ public partial class MainWindow : OverlayWindowBase
         {
             Topmost = true;
         }
+    }
+
+    /// <summary>
+    /// Which named area you are in, from the bundled area map and your own
+    /// position — no request. Kept here, not in the minimap, so the feed's
+    /// "Entered …" lines don't depend on that widget being shown; the
+    /// minimap's pill is told the result. Runs per poll and after a
+    /// Settings save; with both uses switched off the map is never loaded.
+    /// </summary>
+    private void UpdateArea()
+    {
+        if ((!_config.MinimapAreaEnabled && !_config.ActivityAreaLines) ||
+            _me is not { } me || _poll.Calibration is not { } cal || AreaMapAsset.Shared is not { } map)
+        {
+            _areaJournal.Reset();
+            _minimap?.SetArea(null);
+            return;
+        }
+        var now = DateTime.UtcNow;
+        var (fx, fy) = cal.ToFraction(me.X, me.Y);
+        var entered = _areaJournal.Update(map, fx, fy, now);
+        if (entered is not null && _config.ActivityAreaLines) _log.Post(SelfActivity.AreaLine(entered, now));
+        _minimap?.SetArea(_areaJournal.Current);
     }
 
     // ---- Rendering ----------------------------------------------------------

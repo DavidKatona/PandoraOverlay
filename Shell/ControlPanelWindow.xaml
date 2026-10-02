@@ -101,7 +101,10 @@
                         <Button Content="Map view" Click="MapView_Click"
                                 Style="{StaticResource PanelButton}"/>
                         <Button Content="Heatmap" Click="Heatmap_Click"
-                                Style="{StaticResource PanelButton}" Margin="0"/>
+                                Style="{StaticResource PanelButton}"/>
+                        <Button Content="Areas" Click="AreaBorders_Click"
+                                Style="{StaticResource PanelButton}" Margin="0"
+                                ToolTip="Show or hide the borders between the island's named areas"/>
                     </StackPanel>
                 </StackPanel>
 

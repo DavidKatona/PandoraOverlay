@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   25 m inside the next area, so it doesn't flicker along a border. In edit
   mode the pill names the area under the cursor instead. Settings →
   Minimap → "Show the area you are in" turns it off.
+- Area lines in the Activity feed: "Entered Highland" when you clearly
+  cross into another area. At most one such line per half minute, nothing
+  for stepping over a border and straight back, and these lines never
+  light a faded Activity panel. They work with the minimap hidden.
+  Settings → Activity → "Note when you enter another area" turns them off.
+- Area borders on the minimap: the control panel's new Areas button (in
+  the Minimap group) draws thin light lines where one area meets another,
+  in both views and over the heatmap. Off by default.
 
 ## [1.28.0] - 2026-10-02
 

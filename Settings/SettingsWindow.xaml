@@ -704,8 +704,10 @@
                       Content="Include friends' events"/>
             <CheckBox x:Name="ActivityDamageCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Also note damage taken (at most one line per half minute)"/>
+            <CheckBox x:Name="ActivityAreaCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Note when you enter another area of the island"/>
             <TextBlock Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
-                       Text="The feed keeps the last ten minutes of your own events: spawning in or starting a fresh dino, growth stages, low hunger or thirst, fractures and Prime check results. With friends' events included it also shows friends spawning in or leaving, fresh dinos, growth stages, fractures and a friend coming near — and the friends list is fetched while the widget is shown."/>
+                       Text="The feed keeps the last ten minutes of your own events: spawning in or starting a fresh dino, growth stages, low hunger or thirst, fractures, Prime check results and the areas you enter. With friends' events included it also shows friends spawning in or leaving, fresh dinos, growth stages, fractures and a friend coming near — and the friends list is fetched while the widget is shown."/>
             </StackPanel>
 
             <!-- ============================ Friends ======================== -->

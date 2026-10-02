@@ -166,7 +166,8 @@ public partial class ActivityWindow : OverlayWindowBase
     private void OnPosted(IReadOnlyList<FeedLine> fresh)
     {
         Render();
-        Wake();
+        // Crossing into another area is worth a line, not a look: it must not light a faded panel.
+        if (fresh.Any(line => line.Kind != FeedKind.Area)) Wake();
     }
 
     private void Wake()

@@ -362,7 +362,7 @@ Every overlay window derives from `OverlayWindowBase`.
 - **ControlPanelWindow.xaml(.cs)** — the edit-mode control panel (v1.9):
   appears with edit mode, hides on lock; ONE row grouped by widget (owner's
   call, Sep 2026 — a two-row layout was tried and rejected): Settings |
-  STATS: Show/hide, View | MINIMAP: Show/hide, Map view, Heatmap | PRIME:
+  STATS: Show/hide, View | MINIMAP: Show/hide, Map view, Heatmap, Areas | PRIME:
   Show/hide, Check | ACTIVITY: Show/hide | Lock / Exit — small captions over each group keep
   labels short, and a new widget adds a group, not loose buttons; + the hint
   line (hotkey label follows config). Derives OverlayWindowBase (drag/snap/clamp inherited),
@@ -701,13 +701,24 @@ Every overlay window derives from `OverlayWindowBase`.
   yaw + `MinimapYawOffsetDegrees`, so relative to the dino's body, not
   the free-look camera) and km/h. Area pill (`MinimapAreaEnabled`,
   default on, v1.29, `MinimapWindow.Area.cs`): TOP-RIGHT, the one free
-  corner (owner's choice) — the settled area from `AreaReadout`, hidden
+  corner (owner's choice) — the settled area MainWindow hands it through
+  `SetArea` (its `AreaJournal`; the minimap computes none itself), hidden
   at open sea and while not in game; in EDIT MODE it names the area
   under the CURSOR instead, in the edit orange, and only that (falling
   back to your own area there would read as "this spot is in my area") —
   the owner's way to look the borders over without walking the island.
   `FractionAt` is the one panel-point → map-fraction inverse (the
-  right-click menu uses it too). Optional heatmap
+  right-click menu uses it too). Area BORDER layer
+  (`MinimapAreaBordersEnabled`, default off; the control panel's Areas
+  button → `ToggleAreaBorders`): `AreaBordersImage`, sized and
+  translated with the map like the heatmap and above it, at 60% — light
+  LINES where two areas meet (or an area meets nothing), NOT the area
+  colours: those are picked to be told apart and bury the terrain, and
+  would turn to mud with the heatmap (owner agreed, Oct 2 2026). The
+  picture is in map pixels, so `UpdateAreaBorders` picks the line's
+  thickness per view (1–4 map px, ~1.2 screen px: four in the island
+  view, one at 5×) from `AreaMapAsset.Borders`, which builds each
+  thickness once as a 1-bit image (~125 KB). Optional heatmap
   layer (`HeatmapEnabled`): the site's pre-rendered heatmap PNG (opaque —
   grayscale map, blobs and a player-count caption baked in) as a second
   Image sharing the map image's size and translate transform, blended at
@@ -786,7 +797,22 @@ Every overlay window derives from `OverlayWindowBase`.
   it — the same area at your spot and at eight points `MarginPixels` (2
   px ≈ 25 m) around; the first reading of a life is taken as it is, and
   so is one after a jump (the shown area nowhere around you: no border to
-  wait for); "no area" is a reading like any other. **AreaMapAsset.cs**
+  wait for); "no area" is a reading like any other. **AreaJournal**
+  wraps it for MainWindow (which owns it, so the feed's lines don't
+  depend on the minimap being shown — `UpdateArea`, per poll and after a
+  Settings save; with pill and lines both off the map is never loaded):
+  `Current` for the pill, and ONE rule for the Activity feed's "Entered
+  Highland" (`SelfActivity.AreaLine`, `FeedKind.Area`,
+  `ActivityAreaLines`, default on) — the feed names an area when it
+  differs from the last one it named and the last such line is ≥ 30 s
+  old. So a first crossing is said at once, a step over the border and
+  straight back says nothing more, and staying on the other side is
+  caught up when the half minute is over (the feed never ends on an
+  area you left); where a life begins is no entry, open sea is never
+  announced. Area lines do NOT light a faded Activity panel
+  (`ActivityWindow.OnPosted`) — a crossing is worth a line, not a look.
+  `BorderMask(thickness)` gives the border pixels for the minimap's
+  optional layer. **AreaMapAsset.cs**
   is the WPF-imaging half: decodes the PNG (colour profile ignored,
   straight BGRA) once, on first use (~25 ms, a megabyte of grid). THE
   BORDERS ARE OURS: VulnonaMAP's data holds each of the 26 areas as ONE
@@ -807,10 +833,11 @@ Every overlay window derives from `OverlayWindowBase`.
   edges, PNG — which is why it is an image and not polygons — and the
   bundled-asset tests hold it to that (26 areas, zero unknown pixels,
   every label point inside its own area). Elevation (a cave under a
-  meadow) was discussed and left out: a second layer with a ceiling
-  height per cave is the route; packing heights into the alpha channel
-  was considered and dropped (no height data, and alpha is awkward to
-  author).
+  meadow) is DROPPED, not deferred — owner, Oct 2 2026: the game's caves
+  are few and small, ignore them. (For the record: a second layer with
+  a ceiling height per cave would be the route; packing heights into
+  the alpha channel was considered and dismissed — no height data, and
+  alpha is awkward to author.)
 - **ShareCode.cs** — the share-a-spot text: `pandora:<x>,<y> [name]` in
   METRES (short, no decimals), parsed forgivingly (prefix optional, may
   sit inside a longer message, |value| ≤ 50 km; the rest of the line
@@ -905,7 +932,7 @@ Every overlay window derives from `OverlayWindowBase`.
   makes its return seed again instead of reporting everyone as new.
 - **ActivityLog.cs** — pure, tested: `FeedKind` (Roster / Spawned / Left
   / NewLife / DinoChanged / Growth / Fracture / Nearby / LowStat / Damage
-  / Prime / Skin), `FeedLine` (time, text, a friend's `SteamId` or `Mine`) and
+  / Prime / Skin / Area), `FeedLine` (time, text, a friend's `SteamId` or `Mine`) and
   the store: `Post` (one line or a batch keeping its order, newest first,
   cap 50) raises `Posted(batch)` for the widget; `Expire` drops lines
   older than 10 min; `AgeOpacity` 1 → 0.35. Owned by MainWindow.
@@ -1347,19 +1374,20 @@ locked on the owner's account — and a too-early apply is refused with a
 message stating when the next skin can be applied, shown as the
 server's words). No layout presets beyond the default for now.
 
-Built Oct 2 2026, awaiting in-game verification (target 1.29.0): the
-**area name on the minimap** — "which area am I in" from a bundled
-colour-coded area map (see AreaMap under Architecture and
+Built Oct 2 2026 (target 1.29.0): **areas** — "which area am I in" from
+a bundled colour-coded area map (see AreaMap under Architecture and
 `tools/area-map`). The owner's idea; they accepted the generated borders
 as the first version, chose the top-right corner for the pill and asked
-for the edit-mode hover. Verified off-screen: the pill in both views,
-hover, not-in-game, the setting; a walk from the Highland label to the
-Central Jungle label changes the name once. NOT yet checked in game:
-whether the borders feel right where the owner actually stands. Left
-for later, none started: a tinted area layer on the map, "Entered X"
-lines in the Activity feed, area names in new waypoints and share
-codes, hand-corrected borders (painted into `Assets/areas.png`), caves
-and elevation.
+for the edit-mode hover. Three parts: (1) the minimap's area pill —
+tried in game by the owner the same day ("seems to work well");
+(2) "Entered …" lines in the Activity feed and (3) the border layer on
+the minimap (control panel → Areas), both built right after and
+verified off-screen only (the journal's rules by tests; the layer in
+both views, the button, the feed line and that it doesn't wake the
+fade by render) — awaiting the owner's in-game check. Left for later,
+none started: area names in new waypoints and share codes,
+hand-corrected borders (painted into `Assets/areas.png`). Dropped:
+caves and elevation.
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,

@@ -1,6 +1,6 @@
 namespace PandoraOverlay;
 
-public enum FeedKind { Roster, Spawned, Left, NewLife, DinoChanged, Growth, Fracture, Nearby, LowStat, Damage, Prime, Skin }
+public enum FeedKind { Roster, Spawned, Left, NewLife, DinoChanged, Growth, Fracture, Nearby, LowStat, Damage, Prime, Skin, Area }
 
 /// <summary>One feed line: when, what, whose (a friend's steamId, or Mine for your own events; neither for roster-wide lines).</summary>
 public sealed record FeedLine(DateTime AtUtc, string Text, string? SteamId, FeedKind Kind, bool Mine = false);

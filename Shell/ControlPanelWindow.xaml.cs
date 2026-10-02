@@ -21,6 +21,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
     private readonly Action _toggleMinimap;
     private readonly Action _toggleMinimapView;
     private readonly Action _toggleHeatmap;
+    private readonly Action _toggleAreaBorders;
     private readonly Action _togglePrime;
     private readonly Action _checkPrime;
     private readonly Action _toggleActivity;
@@ -30,7 +31,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
     protected override bool IsSnapTarget => false;
 
     public ControlPanelWindow(OverlayConfig config, Action openSettings, Action toggleStats, Action toggleStatsView,
-                              Action toggleMinimap, Action toggleMinimapView, Action toggleHeatmap,
+                              Action toggleMinimap, Action toggleMinimapView, Action toggleHeatmap, Action toggleAreaBorders,
                               Action togglePrime, Action checkPrime, Action toggleActivity,
                               Action lockOverlay, Action exit)
     {
@@ -43,6 +44,7 @@ public partial class ControlPanelWindow : OverlayWindowBase
         _toggleMinimap = toggleMinimap;
         _toggleMinimapView = toggleMinimapView;
         _toggleHeatmap = toggleHeatmap;
+        _toggleAreaBorders = toggleAreaBorders;
         _togglePrime = togglePrime;
         _checkPrime = checkPrime;
         _toggleActivity = toggleActivity;
@@ -97,6 +99,8 @@ public partial class ControlPanelWindow : OverlayWindowBase
     private void MapView_Click(object sender, RoutedEventArgs e) => _toggleMinimapView();
 
     private void Heatmap_Click(object sender, RoutedEventArgs e) => _toggleHeatmap();
+
+    private void AreaBorders_Click(object sender, RoutedEventArgs e) => _toggleAreaBorders();
 
     private void Prime_Click(object sender, RoutedEventArgs e) => _togglePrime();
 

@@ -123,6 +123,7 @@ public partial class MinimapWindow : OverlayWindowBase
         MapImage.Source = bmp;
         MapImage.RenderTransform = _mapTranslate;
         HeatmapImage.RenderTransform = _mapTranslate; // shared: heatmap pans with the map
+        AreaBordersImage.RenderTransform = _mapTranslate; // and the area borders
         TrailOld.RenderTransform = TrailMid.RenderTransform = TrailNew.RenderTransform = _mapTranslate; // so does the trail
 
         PlayerArrow.RenderTransform = new TransformGroup
@@ -216,7 +217,7 @@ public partial class MinimapWindow : OverlayWindowBase
         RebuildFriendMarkers(); // the friends layer, or a friend's map visibility / colour, may have too
         ApplyViewMode();
         UpdateSpeedPill();
-        if (_lastFix is { } fix) NoteAreaFix(fix.Fx, fix.Fy); else UpdateAreaPill(); // just switched on: name the area now, not a poll later
+        UpdateAreaPill(); // the pill's own switch; MainWindow re-sends the area after a save
     }
 
     /// <summary>Fresh heatmap bytes from PollService's slow timer; null hides the layer.</summary>
@@ -265,6 +266,7 @@ public partial class MinimapWindow : OverlayWindowBase
             _mapTranslate.Y = 0;
         }
         HeatmapImage.Width = HeatmapImage.Height = MapImage.Width;
+        UpdateAreaBorders(); // sized like the map, and its line thickness follows the view and zoom
         UpdateScaleBar();
         RenderTrail(); // map-pixel space: the rendered size just changed
 
@@ -304,7 +306,6 @@ public partial class MinimapWindow : OverlayWindowBase
             _lastWorld = null;
             _speed.Reset();
             UpdateSpeedPill();
-            ClearAreaFix();
             PlayerArrow.Visibility = Visibility.Collapsed;
             MapStatus.Text = cal is null ? "waiting for map calibration…" : "not in-game";
             MapStatus.Visibility = Visibility.Visible;
@@ -323,7 +324,6 @@ public partial class MinimapWindow : OverlayWindowBase
         if (_config.WaypointVisibility == "nearest") RebuildMarkersIfSetChanged(); // the nearest ten follow the player
         RenderLastFix();
         UpdateSpeedPill();
-        NoteAreaFix(fx, fy);
     }
 
     /// <summary>World cm → map fractions (0–1, y flipped) — mirrors the live-map frontend, pinOffset included.</summary>

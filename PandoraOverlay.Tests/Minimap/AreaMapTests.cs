@@ -199,6 +199,161 @@ public sealed class AreaMapTests
         Assert.Equal("Beta", map.NameOf(readout.Update(map, At(50.5), 0.5)));
     }
 
+    // ---- The journal: when the feed says "Entered …" ------------------------------------
+
+    private static readonly DateTime T0 = new(2026, 10, 2, 18, 0, 0, DateTimeKind.Utc);
+
+    private static DateTime After(double seconds) => T0.AddSeconds(seconds);
+
+    [Fact]
+    public void WhereALifeBeginsIsNotAnEntry()
+    {
+        var map = Bands((0, Red), (50, Green));
+        var journal = new AreaJournal();
+
+        Assert.Null(journal.Update(map, At(30), 0.5, T0));
+        Assert.Equal("Alpha", journal.Current);
+        Assert.Null(journal.Update(map, At(31), 0.5, After(3)));
+    }
+
+    [Fact]
+    public void AFirstCrossingIsAnnouncedAtOnce()
+    {
+        var map = Bands((0, Red), (50, Green));
+        var journal = new AreaJournal();
+        journal.Update(map, At(30), 0.5, T0);
+
+        Assert.Null(journal.Update(map, At(50.5), 0.5, After(3)));          // on the border: not clearly in Beta yet
+        Assert.Equal("Beta", journal.Update(map, At(60), 0.5, After(6)));
+        Assert.Equal("Beta", journal.Current);
+        Assert.Null(journal.Update(map, At(61), 0.5, After(9)));            // said once
+    }
+
+    [Fact]
+    public void AStepOverTheBorderAndStraightBackSaysNothingMore()
+    {
+        var map = Bands((0, Red), (50, Green));
+        var journal = new AreaJournal();
+        journal.Update(map, At(30), 0.5, T0);
+        Assert.Equal("Beta", journal.Update(map, At(60), 0.5, After(60)));
+
+        Assert.Null(journal.Update(map, At(40), 0.5, After(70)));  // back in Alpha, inside the quiet half minute
+        Assert.Equal("Alpha", journal.Current);                    // the pill follows at once; only the feed waits
+        Assert.Null(journal.Update(map, At(60), 0.5, After(80)));  // and in Beta again: the feed already says Beta
+    }
+
+    [Fact]
+    public void StayingOnTheOtherSideIsCaughtUpWhenTheQuietIsOver()
+    {
+        var map = Bands((0, Red), (50, Green));
+        var journal = new AreaJournal();
+        journal.Update(map, At(30), 0.5, T0);
+        Assert.Equal("Beta", journal.Update(map, At(60), 0.5, After(60)));
+        Assert.Null(journal.Update(map, At(40), 0.5, After(70)));
+
+        Assert.Null(journal.Update(map, At(40), 0.5, After(89)));
+        Assert.Equal("Alpha", journal.Update(map, At(40), 0.5, After(90))); // the feed must not end on an area you left
+    }
+
+    [Fact]
+    public void OpenSeaIsNeverAnnouncedAndComingBackToTheSameAreaIsNoEntry()
+    {
+        var map = Bands((0, Red), (50, null), (70, Green));
+        var journal = new AreaJournal();
+        journal.Update(map, At(30), 0.5, T0);
+
+        Assert.Null(journal.Update(map, At(60), 0.5, After(60)));
+        Assert.Null(journal.Current);
+        Assert.Null(journal.Update(map, At(30), 0.5, After(120)));           // back where the feed last had you
+        Assert.Equal("Beta", journal.Update(map, At(80), 0.5, After(180)));  // across the water: a new area
+    }
+
+    [Fact]
+    public void ALifeThatBeginsAtSeaAnnouncesItsFirstArea()
+    {
+        var map = Bands((0, null), (50, Green));
+        var journal = new AreaJournal();
+
+        Assert.Null(journal.Update(map, At(20), 0.5, T0));
+        Assert.Equal("Beta", journal.Update(map, At(70), 0.5, After(3)));
+    }
+
+    [Fact]
+    public void AfterAResetTheNextLifeStartsAfresh()
+    {
+        var map = Bands((0, Red), (50, Green));
+        var journal = new AreaJournal();
+        journal.Update(map, At(30), 0.5, T0);
+        Assert.Equal("Beta", journal.Update(map, At(60), 0.5, After(3)));
+
+        journal.Reset();
+
+        Assert.Null(journal.Current);
+        Assert.Null(journal.Update(map, At(30), 0.5, After(6))); // a respawn in Alpha is a beginning, not an entry
+        Assert.Equal("Alpha", journal.Current);
+    }
+
+    [Fact]
+    public void TheFeedLineNamesTheArea()
+    {
+        var line = SelfActivity.AreaLine("Highland", T0);
+
+        Assert.Equal("Entered Highland", line.Text);
+        Assert.Equal(FeedKind.Area, line.Kind);
+        Assert.True(line.Mine);
+    }
+
+    // ---- Borders, for the minimap's layer ---------------------------------------------
+
+    [Fact]
+    public void ABorderRunsWhereTwoAreasMeet()
+    {
+        var map = Bands((0, Red), (50, Green));
+
+        var mask = map.BorderMask(1);
+
+        for (var y = 0; y < 100; y++)
+        {
+            Assert.True(mask[y * 100 + 49]);  // the last Alpha column: its right neighbour is Beta
+            Assert.False(mask[y * 100 + 48]);
+            Assert.False(mask[y * 100 + 50]);
+        }
+        Assert.Equal(100, mask.Count(b => b));
+    }
+
+    [Fact]
+    public void AnAreasEdgeToNothingIsABorderToo()
+    {
+        var map = Bands((0, Red), (50, null));
+
+        Assert.True(map.BorderMask(1)[10 * 100 + 49]);
+    }
+
+    [Fact]
+    public void ThicknessWidensTheLineInWholePixels()
+    {
+        var map = Bands((0, Red), (50, Green));
+
+        Assert.Equal(new[] { 49, 50 }, Row(map.BorderMask(2), 20));
+        Assert.Equal(new[] { 48, 49, 50 }, Row(map.BorderMask(3), 20));
+        Assert.Equal(new[] { 48, 49, 50, 51 }, Row(map.BorderMask(4), 20));
+        Assert.Equal(new[] { 48, 49, 50, 51 }, Row(map.BorderMask(9), 20)); // capped
+
+        static int[] Row(bool[] mask, int y) => Enumerable.Range(0, 100).Where(x => mask[y * 100 + x]).ToArray();
+    }
+
+    [Fact]
+    public void TheBundledMapsBordersAreLinesNotFills()
+    {
+        var map = AreaMapAsset.LoadBundled()!;
+
+        var thin = map.BorderMask(1).Count(b => b);
+        var thick = map.BorderMask(4).Count(b => b);
+
+        Assert.InRange(thin, 5_000, 40_000);  // of a million pixels
+        Assert.InRange(thick, thin * 2, thin * 5);
+    }
+
     // ---- The map that ships ---------------------------------------------------------
 
     [Fact]

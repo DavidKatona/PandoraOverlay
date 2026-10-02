@@ -228,6 +228,13 @@ public sealed class OverlayConfig
     /// <summary>Show the area you are in (from the bundled area map) in the minimap's top-right corner. Checkbox in Settings.</summary>
     public bool MinimapAreaEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Draw the area borders over the minimap: light lines where one named
+    /// area meets another. Flipped with the control panel's Areas button,
+    /// like the heatmap — a layer you switch, not a preference. Off by default.
+    /// </summary>
+    public bool MinimapAreaBordersEnabled { get; set; }
+
     /// <summary>Edit-mode control panel position; null until first moved (defaults to bottom-center).</summary>
     public double? ControlPanelX { get; set; }
 
@@ -306,6 +313,13 @@ public sealed class OverlayConfig
     /// one per half minute). Off by default — a long fight fills the feed.
     /// </summary>
     public bool ActivityDamageLines { get; set; }
+
+    /// <summary>
+    /// Post "Entered Highland" when you clearly cross into another named
+    /// area (at most one such line per half minute). On by default; these
+    /// lines never light a faded Activity panel.
+    /// </summary>
+    public bool ActivityAreaLines { get; set; } = true;
 
     /// <summary>
     /// Draw in-game friends as small arrows on the minimap. Checkbox on the

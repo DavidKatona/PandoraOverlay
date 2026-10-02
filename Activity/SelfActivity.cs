@@ -63,6 +63,9 @@ public sealed class SelfActivity
     public static FeedLine SkinLine(string skinName, int pattern, DateTime now) =>
         Mine(now, $"Skin applied · {skinName} (pattern {PatreonSkins.PatternLetter(pattern)})", FeedKind.Skin);
 
+    /// <summary>"Entered Highland" — for the moment AreaJournal says you have clearly crossed into another area.</summary>
+    public static FeedLine AreaLine(string area, DateTime now) => Mine(now, $"Entered {area}", FeedKind.Area);
+
     /// <summary>
     /// A Prime check: the CHANGE, not the state — the widget shows the state.
     /// One line per condition that flipped since the previous result; with

@@ -122,6 +122,51 @@ public sealed class AreaMap
     public string? NameOf(int index) => index >= 0 && index < Areas.Count ? Areas[index].Name : null;
 
     public string? NameAt(double fx, double fy) => NameOf(IndexAt(fx, fy));
+
+    /// <summary>
+    /// Where the borders run, as one flag per pixel (row by row): a pixel
+    /// whose right or lower neighbour belongs to something else — another
+    /// area, or none. Thickness widens the line in whole pixels (1–4), for
+    /// views that show the map so small that a one-pixel line would vanish.
+    /// For the minimap's optional border layer; the lookup never needs it.
+    /// </summary>
+    public bool[] BorderMask(int thickness)
+    {
+        thickness = Math.Clamp(thickness, 1, 4);
+        var n = Size;
+        var thin = new bool[n * n];
+        for (var y = 0; y < n; y++)
+        {
+            for (var x = 0; x < n; x++)
+            {
+                var here = _grid[y * n + x];
+                thin[y * n + x] = (x < n - 1 && _grid[y * n + x + 1] != here) || (y < n - 1 && _grid[(y + 1) * n + x] != here);
+            }
+        }
+        if (thickness == 1) return thin;
+
+        // Widen with a thickness × thickness square, one axis at a time.
+        int before = (thickness - 1) / 2, after = thickness / 2;
+        var wide = new bool[n * n];
+        for (var y = 0; y < n; y++)
+        {
+            for (var x = 0; x < n; x++)
+            {
+                if (!thin[y * n + x]) continue;
+                for (var k = Math.Max(0, x - before); k <= Math.Min(n - 1, x + after); k++) wide[y * n + k] = true;
+            }
+        }
+        var mask = new bool[n * n];
+        for (var y = 0; y < n; y++)
+        {
+            for (var x = 0; x < n; x++)
+            {
+                if (!wide[y * n + x]) continue;
+                for (var k = Math.Max(0, y - before); k <= Math.Min(n - 1, y + after); k++) mask[k * n + x] = true;
+            }
+        }
+        return mask;
+    }
 }
 
 /// <summary>
@@ -174,5 +219,57 @@ public sealed class AreaReadout
     {
         _has = false;
         _current = AreaMap.None;
+    }
+}
+
+/// <summary>
+/// Your area over time: the settled area for the minimap's pill, and the
+/// moments worth an "Entered Highland" line in the Activity feed. One rule
+/// for the lines: the feed names an area when it differs from the last one
+/// it named and the last such line is at least half a minute old. So a
+/// first crossing is announced at once; a step over the border and straight
+/// back says nothing more; and if you stay on the other side, the feed
+/// catches up when the half minute is over — it never ends on an area you
+/// have left. Where a life begins is where it begins, not an entry (the
+/// spawn line already has that moment), and open sea is never announced.
+/// Pure, tested; MainWindow owns it, so the lines keep coming with the
+/// minimap hidden.
+/// </summary>
+public sealed class AreaJournal
+{
+    public static readonly TimeSpan Quiet = TimeSpan.FromSeconds(30);
+
+    private readonly AreaReadout _readout = new();
+    private bool _started;
+    private string? _named;   // the area the feed last named, or where this life began
+    private DateTime _lineAt;
+
+    /// <summary>The area you are settled in; null at open sea, off the map, or before the first position.</summary>
+    public string? Current { get; private set; }
+
+    /// <summary>A new position. Returns the area to announce, or null.</summary>
+    public string? Update(AreaMap map, double fx, double fy, DateTime now)
+    {
+        Current = map.NameOf(_readout.Update(map, fx, fy));
+        if (!_started)
+        {
+            _started = true;
+            _named = Current;
+            return null;
+        }
+        if (Current is null || Current == _named || now - _lineAt < Quiet) return null;
+        _named = Current;
+        _lineAt = now;
+        return Current;
+    }
+
+    /// <summary>Not in game: nowhere, and the next life starts afresh.</summary>
+    public void Reset()
+    {
+        _readout.Reset();
+        _started = false;
+        _named = null;
+        _lineAt = default;
+        Current = null;
     }
 }

@@ -47,6 +47,15 @@ public partial class MainWindow
         _ = _poll.RefreshHeatmapAsync(); // delivers fresh bytes, or null to clear the layer
     }
 
+    /// <summary>
+    /// The control panel's Areas button: flips the minimap's area-border
+    /// layer (persisted with the next Save). A layer you switch, like the
+    /// heatmap, so it lives on the control panel and not in Settings; no
+    /// hotkey until it proves to be flipped mid-game often. Local drawing
+    /// from the bundled area map — no request.
+    /// </summary>
+    private void ToggleAreaBorders() => _minimap?.ToggleAreaBorders();
+
     private void Minimap_Click(object sender, RoutedEventArgs e) => ToggleMinimap();
 
     private void ToggleMinimap()
@@ -69,6 +78,7 @@ public partial class MainWindow
         {
             _minimap = new MinimapWindow(_config, _poll, _library, _book);
             _minimap.Closed += (_, _) => _minimap = null;
+            _minimap.SetArea(_areaJournal.Current); // shown mid-session: it starts from where you already are
             _minimap.Show();
         }
         _config.MinimapEnabled = true;
@@ -264,6 +274,7 @@ public partial class MainWindow
                 toggleMinimap: ToggleMinimap,
                 toggleMinimapView: () => _minimap?.ToggleView(),
                 toggleHeatmap: ToggleHeatmap,
+                toggleAreaBorders: ToggleAreaBorders,
                 togglePrime: TogglePrime,
                 checkPrime: CheckPrime,
                 toggleActivity: ToggleActivity,

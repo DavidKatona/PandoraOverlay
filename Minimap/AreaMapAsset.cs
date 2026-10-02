@@ -38,6 +38,36 @@ public static class AreaMapAsset
         }
     }
 
+    private static readonly Dictionary<int, BitmapSource> BorderImages = new();
+
+    /// <summary>
+    /// The borders of the bundled map as a picture for the minimap's border
+    /// layer: transparent, with light lines of the given thickness in map
+    /// pixels (1–4). One bit per pixel, so each is ~125 KB; made on first
+    /// use and kept. Null when there is no map.
+    /// </summary>
+    public static BitmapSource? Borders(int thickness)
+    {
+        if (Shared is not { } map) return null;
+        thickness = Math.Clamp(thickness, 1, 4);
+        if (BorderImages.TryGetValue(thickness, out var known)) return known;
+
+        var mask = map.BorderMask(thickness);
+        var stride = (map.Size + 7) / 8;
+        var bits = new byte[stride * map.Size];
+        for (var y = 0; y < map.Size; y++)
+        {
+            for (var x = 0; x < map.Size; x++)
+            {
+                if (mask[y * map.Size + x]) bits[y * stride + (x >> 3)] |= (byte)(0x80 >> (x & 7));
+            }
+        }
+        var palette = new BitmapPalette(new[] { Colors.Transparent, Color.FromRgb(0xF4, 0xF7, 0xFA) });
+        var image = BitmapSource.Create(map.Size, map.Size, 96, 96, PixelFormats.Indexed1, palette, bits, stride);
+        image.Freeze();
+        return BorderImages[thickness] = image;
+    }
+
     /// <summary>
     /// Decodes an area image against a legend. The colours must arrive
     /// exactly as painted, so the colour profile is ignored and the pixels

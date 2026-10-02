@@ -183,6 +183,7 @@ public partial class SettingsWindow : Window
         ActivityScaleSlider.Value = Math.Clamp(config.ActivityScale ?? config.PrimeScale ?? config.UiScale, ActivityScaleSlider.Minimum, ActivityScaleSlider.Maximum);
         ActivityFriendsCheck.IsChecked = config.ActivityIncludeFriends;
         ActivityDamageCheck.IsChecked = config.ActivityDamageLines;
+        ActivityAreaCheck.IsChecked = config.ActivityAreaLines;
 
         // Friends
         FriendsMapCheck.IsChecked = config.FriendsOnMinimap;
@@ -527,6 +528,7 @@ public partial class SettingsWindow : Window
 
         var includeFriends = ActivityFriendsCheck.IsChecked == true;
         _config.ActivityDamageLines = ActivityDamageCheck.IsChecked == true; // read live by MainWindow, no flag needed
+        _config.ActivityAreaLines = ActivityAreaCheck.IsChecked == true;     // likewise
         _config.FriendsChimeEnabled = FriendsChimeCheck.IsChecked == true;  // likewise
         if (includeFriends != _config.ActivityIncludeFriends)
         {
