@@ -167,7 +167,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - **The cooldown is the server's** (about 15 minutes between skins). The page tells you how long ago you last applied one; if you are too early, the server's own answer is shown. What your tier unlocks is decided by the server too.
 - **Apply again:** the overlay remembers the skin and pattern you last applied for each species, and offers it as one button at the top of the page when you are on that species again.
 - A successful apply is noted in the [Activity feed](#activity-feed).
-- Cost: the list is fetched when you open the page and reused for ten minutes (Refresh asks again). The website's pictures are large, several MB each, so a picture is only downloaded once its tile is on screen, and a small copy is then kept in the `cache\skins` folder next to the app for 30 days: reopening the page downloads nothing you have already seen. Nothing is fetched while the page is closed, and deleting the `cache` folder is harmless.
+- Cost: the list is fetched when you open the page and reused for ten minutes (Refresh asks again). The website's pictures are large, several MB each, so a picture is only downloaded once its tile is on screen, and a small copy is then kept in the `cache\skins` folder next to the app for 30 days: reopening the page downloads nothing you have already seen. **Reload pictures** discards those saved copies, for the rare case that the website replaced a picture: each one is then downloaded again when its tile is next on screen, and the picture you already see stays until the new one arrives. Nothing is fetched while the page is closed, and deleting the `cache` folder is harmless.
 
 ### Server rules
 

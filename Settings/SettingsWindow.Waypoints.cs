@@ -79,12 +79,30 @@ public partial class SettingsWindow
         {
             AddGroupCard(pack, pack, rows);
         }
-        AddWaypointRowBatch(rows, FirstRowBatch, version);
+        AddWaypointRowBatch(rows, FirstRowBatch, version, rows.Count);
     }
 
     private const int FirstRowBatch = 12; // more than the list shows without scrolling
     private const int RowBatch = 24;
     private int _waypointRenderVersion;   // a newer rebuild stops an older one's batches
+
+    /// <summary>
+    /// How long the batches after the first screenful may take before a
+    /// list's count line says "building… 48 of 122". Normally they are done
+    /// well inside it and nothing is shown — a notice that lived a fifth of
+    /// a second would only flicker; a slow PC or a full library gets the
+    /// words instead of a list that silently keeps growing. Counted from the
+    /// first idle batch, not from the build's start, so the dialog's own
+    /// opening doesn't use the time up. Words in the count line on purpose:
+    /// a cover over the list was considered and dropped (owner, Oct 2 2026)
+    /// — the first screenful is ready at once, and a cover would hide it.
+    /// </summary>
+    private static readonly TimeSpan BuildNoticeAfter = TimeSpan.FromMilliseconds(300);
+
+    private static bool BuildIsSlow(long waitingSince) =>
+        waitingSince != 0 && Stopwatch.GetElapsedTime(waitingSince) > BuildNoticeAfter;
+
+    private string WaypointCountText() => $"{_draft.Count} / {WaypointLibrary.Capacity}";
 
     /// <summary>The Show box of every row built so far, so a pack's Show all can tick them where they stand.</summary>
     private readonly Dictionary<Guid, CheckBox> _rowShowChecks = new();
@@ -92,7 +110,7 @@ public partial class SettingsWindow
     /// <summary>The count and the three buttons under the list, after anything that changes how many waypoints there are.</summary>
     private void UpdateWaypointTotals()
     {
-        WaypointCount.Text = $"{_draft.Count} / {WaypointLibrary.Capacity}";
+        WaypointCount.Text = WaypointCountText();
         DeleteAllButton.Content = "Delete all";
         DeleteAllButton.IsEnabled = _draft.Count > 0;
         ExportButton.IsEnabled = _draft.Count > 0;
@@ -100,11 +118,18 @@ public partial class SettingsWindow
         _deleteAllArmed = false;
     }
 
-    private void AddWaypointRowBatch(Queue<Action> rows, int count, int version)
+    private void AddWaypointRowBatch(Queue<Action> rows, int count, int version, int total, long waitingSince = 0)
     {
         if (version != _waypointRenderVersion) return;
         for (var i = 0; i < count && rows.Count > 0; i++) rows.Dequeue()();
-        if (rows.Count > 0) Dispatcher.BeginInvoke(DispatcherPriority.Background, () => AddWaypointRowBatch(rows, RowBatch, version));
+        if (rows.Count == 0)
+        {
+            WaypointCount.Text = WaypointCountText();
+            return;
+        }
+        if (BuildIsSlow(waitingSince)) WaypointCount.Text = $"building… {total - rows.Count} of {total}";
+        Dispatcher.BeginInvoke(DispatcherPriority.Background,
+            () => AddWaypointRowBatch(rows, RowBatch, version, total, waitingSince != 0 ? waitingSince : Stopwatch.GetTimestamp()));
     }
 
     private static readonly Brush CardBorder = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));

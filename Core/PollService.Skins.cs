@@ -22,6 +22,9 @@ public sealed partial class PollService
     /// <summary>The breather after every apply request, whatever its outcome: it can never be mashed.</summary>
     private static readonly TimeSpan SkinApplyGuard = TimeSpan.FromSeconds(15);
 
+    /// <summary>Floor under "Reload pictures": a second press would only download the same pictures twice.</summary>
+    private static readonly TimeSpan SkinPictureReloadFloor = TimeSpan.FromSeconds(30);
+
     private readonly Dictionary<string, Task<SkinPicture>> _skinPictureFetches = new(); // downloads under way
     private readonly Dictionary<string, string> _skinPictureFailures = new();          // address → why it failed, this session
     private bool _skinListBusy;
@@ -29,6 +32,7 @@ public sealed partial class PollService
     private DateTime _skinListAskedUtc;
     private DateTime _skinListGotUtc;
     private DateTime _skinGuardUntilUtc;
+    private DateTime _skinPicturesReloadedUtc;
 
     /// <summary>The last list fetched this session; null until the page was opened once.</summary>
     public IReadOnlyList<PatreonSkin>? Skins { get; private set; }
@@ -104,6 +108,21 @@ public sealed partial class PollService
 
     /// <summary>The page's Refresh: pictures that failed earlier get another try.</summary>
     public void ForgetSkinPictureFailures() => _skinPictureFailures.Clear();
+
+    /// <summary>
+    /// The page's "Reload pictures": true when it may go ahead (the page then
+    /// discards its saved thumbnails, so every picture is downloaded again
+    /// as its tile comes into view). Floored, because each use costs
+    /// megabytes per tile looked at; false = it ran a moment ago.
+    /// </summary>
+    public bool TryBeginSkinPictureReload()
+    {
+        var now = DateTime.UtcNow;
+        if (now - _skinPicturesReloadedUtc < SkinPictureReloadFloor) return false;
+        _skinPicturesReloadedUtc = now;
+        _skinPictureFailures.Clear();
+        return true;
+    }
 
     private async Task<SkinPicture> FetchSkinPictureAsync(Uri uri)
     {

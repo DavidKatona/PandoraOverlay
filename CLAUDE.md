@@ -208,7 +208,7 @@ concern, the way WPF already splits them from their generated `.g.cs`:
 `MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`),
 `MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`),
 `SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`,
-`.Skins.cs`) and, since v1.28, the two Core classes that had reached the
+`.Skins.cs`, `.SkinPictures.cs`) and, since v1.28, the two Core classes that had reached the
 limit: `PandoraClient.cs` + `.Skins.cs`, `PollService.cs` + `.Skins.cs`. Same class, same
 fields, no behaviour change — a reading aid, not decoupling; the pure
 helper classes are the real decoupling. Keep each part under ~500 lines;
@@ -928,7 +928,18 @@ Every overlay window derives from `OverlayWindowBase`.
   the exe (30 days, temp-file-then-move, fail-soft) and the bytes are
   dropped — neither PollService nor the window keeps a download in
   memory. PollService remembers only failures (per session; Refresh
-  clears them) and downloads under way.
+  clears them) and downloads under way. "Reload pictures" (Oct 2 2026,
+  `SettingsWindow.SkinPictures.cs`) is the way to discard the saved
+  copies: `SkinThumbnails.Clear` deletes them (~90 small files, instant),
+  every picture shown is marked stale (`_stalePictures`) and STAYS on its
+  tile until its replacement arrives, the loader re-downloads on-screen
+  tiles as usual, and the list is not re-rendered. Its OWN button, NOT
+  part of Refresh (owner's call, after weighing it): Refresh is about the
+  list and costs one small request; a reload costs ~5 MB per tile looked
+  at (~28 MB a screenful, ~400 MB for the whole list) and only matters
+  when the site replaced a picture under the SAME address — thumbnails
+  are keyed by address, so a new skin loads by itself. Floored at 30 s in
+  PollService (`TryBeginSkinPictureReload`).
   **PollService.Skins.cs**: ALL gating — `GetSkinsAsync(refresh)` (the
   session's copy for 10 min, 30 s floor, a failure keeps the last good
   list and names the problem), `GetSkinPictureAsync` (see the pictures
@@ -954,8 +965,9 @@ Every overlay window derives from `OverlayWindowBase`.
   (orange, red + "locked"), colour dots, Apply → the six pattern buttons
   A–F in place (one tile armed at a time; the site uses a pop-up), a
   hover preview in our own tooltip colours, search + Available/All,
-  "Apply again: <name> · C" for the current species, Refresh and a link
-  to the site. THE ONE PAGE THAT ACTS AT ONCE instead of on Save, and
+  "Apply again: <name> · C" for the current species, Refresh, Reload
+  pictures and a link to the site (the page's note has its own line above
+  the three buttons). THE ONE PAGE THAT ACTS AT ONCE instead of on Save, and
   says so. The list loads the first time the page is looked at per
   dialog (`SetPage` → `OpenSkinsPage`), never for a page you aren't on.
   Buttons stay enabled while not in game on purpose: the click is what
@@ -1060,7 +1072,15 @@ Every overlay window derives from `OverlayWindowBase`.
   `DispatcherPriority.Background` tick, with a version counter so a newer
   rebuild stops an older one (waypoint rows 12 then 24, skin tiles 9 then
   12; skin tiles also build their pattern buttons and tooltip content
-  only when first needed). Measured after, with the overlay's windows
+  only when first needed). The later batches normally take ~0.1–0.2 s;
+  should they take longer than `BuildNoticeAfter` (300 ms, counted from
+  the first idle batch so the dialog's own opening doesn't use it up) the
+  page's count line reads "building… 48 of 122" until the list is whole
+  — on a normal PC it never shows. Words in the count line on purpose: a
+  spinner would live a fifth of a second and only flicker, and a COVER
+  over the list until it is built was proposed and dropped (owner, Oct 2
+  2026) — the first screenful is ready and usable at once, a cover would
+  hide it and flash on every skin search. Measured after, with the overlay's windows
   already up (an idle PC, off-screen): a normal opening ~80 ms, the FIRST
   opening per launch ~200 ms — ~60 ms reading the dialog's BAML once,
   ~55 ms the first layout (control templates, six framework assemblies),
@@ -1256,9 +1276,13 @@ day — verified in-game). No layout presets beyond the default for now.
 
 Built Oct 1 2026, awaiting in-game verification (target 1.28.0): the
 **Patreon skins page** (see Architecture) — the first feature under the
-blanket go-ahead and the overlay's first write. Unknown until the first
-real run: where the pictures are hosted and how big they are, and the
-server's refusal wording (cooldown / not spawned in).
+blanket go-ahead and the overlay's first write. The owner's first real
+runs (Oct 1) answered the open questions: applying works; the pictures
+are served by islapandora.eu itself at full size (~4.7 MB each, 72
+available + 15 locked on the owner's account) and all load; a too-early
+apply is refused with a message that states when the next skin can be
+applied, shown as the server's words. Still to do: more testing by the
+owner, then the release pass on request.
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,

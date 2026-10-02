@@ -11,7 +11,8 @@ namespace PandoraOverlay;
 /// size — close to 5 MB apiece, some ninety of them — while a tile shows 124
 /// px: the picture is decoded straight down to a 320 px thumbnail, saved as
 /// a JPEG of a few dozen KB under cache/skins next to the app, and the
-/// download is dropped. A copy is trusted for 30 days, then fetched afresh.
+/// download is dropped. A copy is trusted for 30 days, then fetched afresh
+/// — or sooner, when the page's "Reload pictures" clears the folder.
 /// Derived data only: deleting the folder costs nothing but the downloads.
 /// Fail-soft like everything on disk here — nothing in this class throws.
 /// </summary>
@@ -89,5 +90,40 @@ public static class SkinThumbnails
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Deletes every saved thumbnail — the page's "Reload pictures" — and
+    /// says how many went. Only this folder's own files (the .jpg copies and
+    /// any .tmp a crash left behind), nothing below it; a file that won't go
+    /// is skipped.
+    /// </summary>
+    public static int Clear(string? folder = null)
+    {
+        var removed = 0;
+        try
+        {
+            var directory = folder ?? DefaultFolder;
+            if (!Directory.Exists(directory)) return 0;
+            foreach (var path in Directory.GetFiles(directory))
+            {
+                var thumbnail = path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase);
+                if (!thumbnail && !path.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)) continue;
+                try
+                {
+                    File.Delete(path);
+                    if (thumbnail) removed++;
+                }
+                catch
+                {
+                    // held by something else: it stays, and counts as saved
+                }
+            }
+        }
+        catch
+        {
+            // the folder can't be listed: nothing deleted
+        }
+        return removed;
     }
 }

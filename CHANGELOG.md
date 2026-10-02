@@ -17,7 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not on Save, and only for your click. The server keeps its own cooldown
   and decides what your tier unlocks. The skin and pattern you last
   applied are remembered per species and offered as "Apply again", and a
-  successful apply shows up in the Activity feed.
+  successful apply shows up in the Activity feed. The website's pictures
+  are several MB each, so a picture is downloaded only once its tile is on
+  screen and a small copy is kept next to the app for 30 days. Refresh
+  asks for the list again; Reload pictures discards the saved copies so
+  each picture is downloaded afresh when you next look at it.
+
+### Changed
+
+- Settings opens faster with a large waypoint library: each page builds
+  its list the first time you look at it, and long lists arrive in
+  batches. If that ever takes long enough to notice, the count in the
+  page's corner says "building… 48 of 122" until the list is complete.
+- Waypoints page: a pack's Show all / Hide all and the delete buttons now
+  change the list where it stands. It used to be rebuilt each time, which
+  threw the view back to the top.
 
 ## [1.27.0] - 2026-09-30
 

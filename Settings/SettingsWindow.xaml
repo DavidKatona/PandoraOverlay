@@ -788,16 +788,22 @@
                 </ScrollViewer.Resources>
                 <WrapPanel x:Name="SkinTiles" Margin="0,0,6,0"/>
             </ScrollViewer>
-            <DockPanel Margin="0,8,0,0">
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="SkinRefreshButton" Content="Refresh" Click="SkinRefresh_Click"
-                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                    <Button Content="islapandora.eu/patreon" Click="OpenPatreonPage_Click"
-                            Style="{StaticResource NeutralButtonStyle}"/>
-                </StackPanel>
-                <TextBlock Text="Apply acts at once, not on Save: it presses the same button as the website's Patreon page. Tiers and the cooldown are the server's."
-                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            </DockPanel>
+            <!-- The note has its own line since the third button arrived: beside
+                 three buttons it wrapped into a narrow column. Refresh asks for
+                 the LIST again (one small request); Reload pictures discards the
+                 saved thumbnails, so it is its own, knowingly pressed button. -->
+            <TextBlock Text="Apply acts at once, not on Save: it presses the same button as the website's Patreon page. Tiers and the cooldown are the server's."
+                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                <Button x:Name="SkinRefreshButton" Content="Refresh" Click="SkinRefresh_Click"
+                        Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"
+                        ToolTip="Ask the server for the list of skins again"/>
+                <Button x:Name="SkinReloadButton" Content="Reload pictures" Click="SkinReloadPictures_Click"
+                        Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0" IsEnabled="False"
+                        ToolTip="Discard the saved pictures and download each one again as its tile comes into view (about 5 MB apiece)"/>
+                <Button Content="islapandora.eu/patreon" Click="OpenPatreonPage_Click"
+                        Style="{StaticResource NeutralButtonStyle}"/>
+            </StackPanel>
             </StackPanel>
 
             <!-- ============================ Server rules =================== -->

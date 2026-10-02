@@ -99,6 +99,33 @@ public sealed class SkinThumbnailsTests : IDisposable
     }
 
     [Fact]
+    public void ClearingDeletesTheThumbnailsAndNothingElse()
+    {
+        var other = new Uri("https://islapandora.eu/skins/ember.png");
+        SkinThumbnails.TrySave(Address, SkinThumbnails.Make(Png(640, 360))!, _folder);
+        SkinThumbnails.TrySave(other, SkinThumbnails.Make(Png(640, 360))!, _folder);
+        File.WriteAllBytes(Path.Combine(_folder, "half-written.jpg.tmp"), new byte[] { 1 });
+        File.WriteAllText(Path.Combine(_folder, "notes.txt"), "not ours");
+        Directory.CreateDirectory(Path.Combine(_folder, "below"));
+        File.WriteAllBytes(Path.Combine(_folder, "below", "kept.jpg"), new byte[] { 1 });
+
+        Assert.Equal(2, SkinThumbnails.Clear(_folder));
+
+        Assert.Null(SkinThumbnails.TryLoad(Address, DateTime.UtcNow, _folder));
+        Assert.Null(SkinThumbnails.TryLoad(other, DateTime.UtcNow, _folder));
+        Assert.Empty(Directory.GetFiles(_folder, "*.tmp"));
+        Assert.True(File.Exists(Path.Combine(_folder, "notes.txt")));
+        Assert.True(File.Exists(Path.Combine(_folder, "below", "kept.jpg")));
+    }
+
+    [Fact]
+    public void ClearingAFolderThatIsNotThereIsNothing()
+    {
+        Assert.Equal(0, SkinThumbnails.Clear(_folder)); // never created
+        Assert.Equal(0, SkinThumbnails.Clear("Z:\\no\\such\\drive\\<bad>|path"));
+    }
+
+    [Fact]
     public void AFolderThatCannotBeWrittenFailsSoftly()
     {
         var thumbnail = SkinThumbnails.Make(Png(640, 360))!;
