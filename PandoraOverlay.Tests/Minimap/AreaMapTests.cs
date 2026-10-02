@@ -331,14 +331,16 @@ public sealed class AreaMapTests
         Assert.Equal(100, mask.Count(b => b));
     }
 
-    [Fact]
-    public void AnAreasEdgeToNothingIsNotABorder()
-    {
-        var sea = Bands((0, Red), (50, null));
-        var strait = Bands((0, Red), (40, null), (60, Green)); // open water between two areas: neither side gets a line
+    private static int[] Columns(bool[] mask, int y) => Enumerable.Range(0, 100).Where(x => mask[y * 100 + x]).ToArray();
 
-        Assert.DoesNotContain(true, sea.BorderMask(1));
-        Assert.DoesNotContain(true, strait.BorderMask(4));
+    [Fact]
+    public void AnAreasEdgeToNothingIsABorderTooSoEveryAreaIsClosed()
+    {
+        var shore = Bands((0, Red), (50, null));
+        var strait = Bands((0, Red), (40, null), (60, Green)); // open water between two areas: each has its own edge
+
+        Assert.Equal(new[] { 49 }, Columns(shore.BorderMask(1), 10));
+        Assert.Equal(new[] { 39, 59 }, Columns(strait.BorderMask(1), 10));
     }
 
     [Fact]
@@ -346,64 +348,10 @@ public sealed class AreaMapTests
     {
         var map = Bands((0, Red), (50, Green));
 
-        Assert.Equal(new[] { 49, 50 }, Row(map.BorderMask(2), 20));
-        Assert.Equal(new[] { 48, 49, 50 }, Row(map.BorderMask(3), 20));
-        Assert.Equal(new[] { 48, 49, 50, 51 }, Row(map.BorderMask(4), 20));
-        Assert.Equal(new[] { 48, 49, 50, 51 }, Row(map.BorderMask(9), 20)); // capped
-
-        static int[] Row(bool[] mask, int y) => Enumerable.Range(0, 100).Where(x => mask[y * 100 + x]).ToArray();
-    }
-
-    [Fact]
-    public void WithALandMaskABorderNeedsLandOnBothSides()
-    {
-        var map = Bands((0, Red), (50, Green));
-        // The top half is land; below row 50 the two areas meet in their coastal water.
-        var topHalf = Enumerable.Range(0, 100 * 100).Select(i => i / 100 < 50).ToArray();
-
-        var mask = map.BorderMask(1, topHalf);
-
-        Assert.True(mask[10 * 100 + 49]);
-        Assert.True(mask[49 * 100 + 49]);
-        Assert.False(mask[50 * 100 + 49]);   // the line ends at the coast
-        Assert.Equal(50, mask.Count(b => b)); // and the two areas' own coast (row 49) is not traced: they have each other
-        Assert.Equal(100, map.BorderMask(1, new bool[7]).Count(b => b)); // a mask of the wrong size is ignored
-    }
-
-    private static int[] Columns(bool[] mask, int y) => Enumerable.Range(0, 100).Where(x => mask[y * 100 + x]).ToArray();
-
-    [Fact]
-    public void AnAreaThatIsAnIslandOfItsOwnGetsItsShorelineTraced()
-    {
-        // Alpha and Beta share a land border; Gamma lies across the water, with a strip of coastal water of its own.
-        var map = Bands((0, Red), (30, Green), (60, null), (70, Blue));
-        var land = Enumerable.Range(0, 100 * 100).Select(i => i % 100 is < 55 or >= 80).ToArray(); // sea from column 55 to 79
-
-        var mask = map.BorderMask(1, land);
-
-        // The Alpha | Beta border, and Gamma's shore: its first land column, with water to its left.
-        Assert.Equal(new[] { 29, 80 }, Columns(mask, 40));
-        // Beta's own shore (column 54) is NOT traced: it has a neighbour on land, so it is no island.
-        Assert.False(mask[40 * 100 + 54]);
-        Assert.Equal(200, mask.Count(b => b));
-    }
-
-    [Fact]
-    public void WhatMakesAnIslandIsItsNeighboursNotItsSize()
-    {
-        // The big area stands alone; the two small ones share a border.
-        var map = Bands((0, Red), (80, null), (90, Green), (95, Blue));
-        var land = Enumerable.Range(0, 100 * 100).Select(i => i % 100 is < 70 or >= 90).ToArray();
-
-        Assert.Equal(new[] { 69, 94 }, Columns(map.BorderMask(1, land), 10)); // the big one's shore, and the small ones' border
-    }
-
-    [Fact]
-    public void WithoutALandMaskNoShoreIsTraced()
-    {
-        var map = Bands((0, Red), (40, null), (60, Green));
-
-        Assert.DoesNotContain(true, map.BorderMask(1)); // nothing says where the coast is
+        Assert.Equal(new[] { 49, 50 }, Columns(map.BorderMask(2), 20));
+        Assert.Equal(new[] { 48, 49, 50 }, Columns(map.BorderMask(3), 20));
+        Assert.Equal(new[] { 48, 49, 50, 51 }, Columns(map.BorderMask(4), 20));
+        Assert.Equal(new[] { 48, 49, 50, 51 }, Columns(map.BorderMask(9), 20)); // capped
     }
 
     // ---- The map that ships -------------------------------------------------------------
@@ -439,75 +387,15 @@ public sealed class AreaMapTests
     }
 
     [Fact]
-    public void TheBundledLandMaskFitsTheMap()
+    public void TheBundledBordersAreThinLines()
     {
         var map = Bundled;
-        var land = AreaMapAsset.LoadBundledLand()!;
+        var painted = Enumerable.Range(0, map.Size * map.Size).Count(i => map.IndexAtPixel(i % map.Size, i / map.Size) != AreaMap.None);
 
-        Assert.Equal(map.Size * map.Size, land.Length);
-        Assert.Contains(true, land);
-        Assert.Contains(false, land);
-        // Every piece of land belongs to an area: nothing on the map is nameless.
-        for (var i = 0; i < land.Length; i++)
-        {
-            if (land[i]) Assert.NotEqual(AreaMap.None, map.IndexAtPixel(i % map.Size, i / map.Size));
-        }
-    }
+        var lines = map.BorderMask(1).Count(l => l);
 
-    [Fact]
-    public void TheBundledBordersAreThinLinesOnLand()
-    {
-        var map = Bundled;
-        var land = AreaMapAsset.LoadBundledLand()!;
-
-        var lines = map.BorderMask(1, land);
-
-        for (var i = 0; i < lines.Length; i++)
-        {
-            if (lines[i]) Assert.True(land[i]); // no line runs out into the sea
-        }
-        Assert.True(lines.Count(l => l) * 10 < land.Count(l => l)); // lines, not fills
-    }
-
-    [Fact]
-    public void OnTheBundledMapAnAreasShoreIsTracedExactlyWhenItHasNoNeighbourOnLand()
-    {
-        var map = Bundled;
-        var land = AreaMapAsset.LoadBundledLand()!;
-        var n = map.Size;
-        var lines = map.BorderMask(1, land);
-
-        int AreaOf(int i) => map.IndexAtPixel(i % n, i / n);
-        IEnumerable<int> Around(int i)
-        {
-            if (i % n > 0) yield return i - 1;
-            if (i % n < n - 1) yield return i + 1;
-            if (i >= n) yield return i - n;
-            if (i < n * (n - 1)) yield return i + n;
-        }
-        bool OtherLand(int j, int area) => land[j] && AreaOf(j) != AreaMap.None && AreaOf(j) != area;
-        bool IsShore(int i) => Around(i).Any(j => !land[j]);
-        bool IsBorder(int i) => (i % n < n - 1 && OtherLand(i + 1, AreaOf(i))) || (i < n * (n - 1) && OtherLand(i + n, AreaOf(i)));
-
-        // Which areas have a neighbour on land — worked out here from the two files, not known in advance.
-        var neighboured = new bool[map.Areas.Count];
-        for (var i = 0; i < land.Length; i++)
-        {
-            if (land[i] && Around(i).Any(j => OtherLand(j, AreaOf(i)))) neighboured[AreaOf(i)] = true;
-        }
-
-        for (var i = 0; i < land.Length; i++)
-        {
-            if (!land[i]) continue;
-            if (neighboured[AreaOf(i)])
-            {
-                if (lines[i]) Assert.True(IsBorder(i)); // a line here is a border with the neighbour, never the coast as such
-            }
-            else
-            {
-                Assert.Equal(IsShore(i), lines[i]);     // an island of its own: its shore, all of it, and nothing else
-            }
-        }
+        Assert.True(lines > 0);
+        Assert.True(lines * 10 < painted); // lines, not fills
     }
 
     [Fact]

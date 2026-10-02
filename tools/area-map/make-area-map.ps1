@@ -1,4 +1,4 @@
-# Generates the overlay's AREA MAP: Assets/areas.png + Assets/areas.json (+ Assets/land.png, the land mask).
+# Generates the overlay's AREA MAP: Assets/areas.png + Assets/areas.json.
 #
 # The map answers "which area am I in": an image the size of the island map with one
 # flat colour per named area and nothing else (transparent = no area, open sea). The
@@ -99,10 +99,8 @@ public static class AreaMapGenerator
     const double CoastalBand = 375;      // water this close to land belongs to that land's area
     const double LabelSnap = 750;        // a label this close to the shore (or, for a sea label, to water) is moved onto it
 
-    // About the map PICTURE, in its own pixels: what counts as sea, and the dark rim of shallow
-    // water it paints round every coast, which the sea test above counts as land.
-    const int SeaTolerance = 38;         // colour distance from the corner pixel
-    const int CoastRim = 2;
+    // About the map PICTURE, not the island: how close to the corner pixel's colour counts as sea.
+    const int SeaTolerance = 38;
 
     const int MaxAreas = 255;            // the overlay keeps one byte per pixel, 0 = no area
 
@@ -191,7 +189,7 @@ public static class AreaMapGenerator
         }
     }
 
-    public static string Run(string mapPath, MapCal cal, AreaLabel[] labels, string outPng, string outLand, string previewPath)
+    public static string Run(string mapPath, MapCal cal, AreaLabel[] labels, string outPng, string previewPath)
     {
         if (labels.Length == 0) throw new Exception("no labels");
         if (labels.Length > MaxAreas) throw new Exception("more than " + MaxAreas + " labels");
@@ -248,24 +246,6 @@ public static class AreaMapGenerator
         for (int i = 0; i < N * N; i++) { land[i] = !sea[i]; if (land[i]) landCount++; }
         log.AppendLine(string.Format("map {0} px, {1:0.00} m per pixel; sea colour #{2:X2}{3:X2}{4:X2}; land {5} px ({6:0.0} km2)",
             N, metresPerPixel, r0, g0, b0, landCount, landCount * km2PerPixel));
-
-        // The land mask the overlay's border layer uses (white = land, lakes and rivers included;
-        // black = sea): the land you can SEE. The picture's dark coastal rim is trimmed off, so a
-        // line that ends "at the coast", or runs along it, sits on the beach and not on dark water.
-        int[] landPx = new int[N * N];
-        for (int y = 0; y < N; y++)
-        for (int x = 0; x < N; x++)
-        {
-            bool shown = land[y * N + x];
-            for (int dy = -CoastRim; shown && dy <= CoastRim; dy++)
-            for (int dx = -CoastRim; dx <= CoastRim; dx++)
-            {
-                int nx = x + dx, ny = y + dy;
-                if (nx >= 0 && ny >= 0 && nx < N && ny < N && sea[ny * N + nx]) { shown = false; break; }
-            }
-            landPx[y * N + x] = shown ? unchecked((int)0xFFFFFFFF) : unchecked((int)0xFF000000);
-        }
-        SaveArgb(landPx, outLand);
 
         // Seeds. A label's pixel is found exactly as the overlay finds yours: floor(fraction x size).
         double[] speed = new double[labels.Length];
@@ -461,7 +441,7 @@ $areas = $labelList.ToArray()
 
 $outDirFull = (Resolve-Path $OutDir).Path
 $preview = if ($PreviewPath) { [IO.Path]::GetFullPath((Join-Path (Get-Location) $PreviewPath)) } else { '' }
-$log = [AreaMapGenerator]::Run((Resolve-Path $Map).Path, $cal, $areas, (Join-Path $outDirFull 'areas.png'), (Join-Path $outDirFull 'land.png'), $preview)
+$log = [AreaMapGenerator]::Run((Resolve-Path $Map).Path, $cal, $areas, (Join-Path $outDirFull 'areas.png'), $preview)
 
 # The legend the overlay reads beside the image: which colour is which area, where its
 # label point is (world cm - the same coordinates as a waypoint), and the calibration

@@ -131,57 +131,24 @@ public sealed class AreaMap
 
     /// <summary>
     /// Where the borders run, as one flag per pixel (row by row): a pixel
-    /// whose right or lower neighbour belongs to ANOTHER AREA. An area's
-    /// edge to nothing (open sea) is not a border — drawn, those edges were
-    /// rings around the whole coast that said nothing and dominated the
-    /// map. With a land mask (one flag per pixel, true = land) a border
-    /// also needs LAND ON BOTH SIDES, so the lines end at the coast instead
-    /// of running on between two areas' coastal water and stopping in the
-    /// middle of the sea. That rule leaves an area that is an ISLAND OF ITS
-    /// OWN with no line at all, so such an area gets its shoreline traced
-    /// instead. What makes it one is its neighbours — none of its land
-    /// touches another area's land — never its name or its size. Thickness
-    /// widens the line in whole pixels (1–4), for views that show the map
-    /// so small that a one-pixel line would vanish. For the minimap's
-    /// optional border layer; the lookup never needs it.
+    /// whose right or lower neighbour belongs to something else — another
+    /// area, or none. ONE RULE, every edge: each area comes out as a closed
+    /// shape, its water included, which is exactly what the lookup uses.
+    /// Thickness widens the line in whole pixels (1–4), for views that show
+    /// the map so small that a one-pixel line would vanish. For the
+    /// minimap's optional border layer; the lookup never needs it.
     /// </summary>
-    public bool[] BorderMask(int thickness, bool[]? land = null)
+    public bool[] BorderMask(int thickness)
     {
         thickness = Math.Clamp(thickness, 1, 4);
         var n = Size;
-        if (land is not null && land.Length != n * n) land = null; // a mask of another size says nothing about this map
         var thin = new bool[n * n];
-        var hasLand = new bool[MaxAreas + 1];   // per grid value: the area owns land at all
-        var bordered = new bool[MaxAreas + 1];  // … and some of it touches another area's land
         for (var y = 0; y < n; y++)
         {
             for (var x = 0; x < n; x++)
             {
-                var i = y * n + x;
-                var here = _grid[i];
-                if (here == 0 || (land is not null && !land[i])) continue;
-                hasLand[here] = true;
-                var right = x < n - 1 && Other(i + 1);
-                var below = y < n - 1 && Other(i + n);
-                thin[i] = right || below;
-                if (right) bordered[here] = bordered[_grid[i + 1]] = true;
-                if (below) bordered[here] = bordered[_grid[i + n]] = true;
-
-                bool Other(int j) => _grid[j] != 0 && _grid[j] != here && (land is null || land[j]);
-            }
-        }
-
-        // An island of its own: its shore — its land pixels that have water beside them — is its outline.
-        if (land is not null && Enumerable.Range(1, MaxAreas).Any(a => hasLand[a] && !bordered[a]))
-        {
-            for (var y = 0; y < n; y++)
-            {
-                for (var x = 0; x < n; x++)
-                {
-                    var i = y * n + x;
-                    if (!land[i] || _grid[i] == 0 || bordered[_grid[i]]) continue;
-                    thin[i] = (x > 0 && !land[i - 1]) || (x < n - 1 && !land[i + 1]) || (y > 0 && !land[i - n]) || (y < n - 1 && !land[i + n]);
-                }
+                var here = _grid[y * n + x];
+                thin[y * n + x] = (x < n - 1 && _grid[y * n + x + 1] != here) || (y < n - 1 && _grid[(y + 1) * n + x] != here);
             }
         }
         if (thickness == 1) return thin;

@@ -90,8 +90,8 @@
                            Opacity="0.55"
                            Visibility="Collapsed"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <!-- Optional area borders: dark lines where one named area meets
-                         another, from the bundled area map. Sized and translated
+                    <!-- Optional area borders: a dark outline round every named area,
+                         from the bundled area map. Sized and translated
                          with the map like the heatmap, and above it. -->
                     <Image x:Name="AreaBordersImage"
                            Stretch="Fill"

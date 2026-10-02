@@ -205,9 +205,8 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   with inline C#) and its input `area-labels.json` (the site's map
   calibration, and one label point per area in world cm with a size hint
   and a sea flag — today VulnonaMAP's Gateway labels, credited). It
-  writes `Assets/areas.png` + `Assets/areas.json`, the land mask
-  `Assets/land.png` (for the border layer) and, with `-PreviewPath`, the
-  picture for people (`docs/area-map.jpg`). A STARTING POINT, not a
+  writes `Assets/areas.png` + `Assets/areas.json` and, with
+  `-PreviewPath`, the picture for people (`docs/area-map.jpg`). A STARTING POINT, not a
   build step: corrections are painted into `Assets/areas.png`, and a
   re-run overwrites them. See AreaMap under Architecture.
   **RULE (owner, Oct 2 2026): NOTHING IS WRITTEN FOR ONE NAMED AREA.**
@@ -221,12 +220,10 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   from there), distances are in metres and turned into pixels by the
   calibration, colours beyond the 26 hand-picked ones are generated, and
   the bundled-map tests check properties any generated map has: only
-  legend colours, every label point inside its own area, every piece of
-  land named, lines only on land, a shore traced exactly for the areas
-  with no neighbour on land. The two numbers that are about the map
-  PICTURE's style, not the island, stay in the generator and are named
-  as such: the sea colour tolerance and the 2 px dark rim of shallow
-  water the picture paints round every coast.
+  legend colours, every label point inside its own area, borders that
+  are lines and not fills. The one number that is about the map
+  PICTURE's style, not the island, stays in the generator and is named
+  as such: the sea colour tolerance.
 
 The namespace stays ONE flat `PandoraOverlay` on purpose (35 files don't
 earn sub-namespaces; `.editorconfig` silences IDE0130). The SDK-style csproj
@@ -731,39 +728,35 @@ Every overlay window derives from `OverlayWindowBase`.
   (`MinimapAreaBordersEnabled`, default off; the control panel's Areas
   button → `ToggleAreaBorders`): `AreaBordersImage`, sized and
   translated with the map like the heatmap and above it, at 70% — DARK
-  NAVY LINES where two areas meet, NOT the area colours: those are
-  picked to be told apart and bury the terrain, and would turn to mud
-  with the heatmap (owner agreed, Oct 2 2026). The first build drew
-  LIGHT lines and also an area's edge to nothing; the owner found it
-  looked odd in game — a white net over the island with scalloped rings
-  round the whole coast — and chose "darker, fainter" from the
-  alternatives (outline only your own area, a muted tint, names on the
-  map, hiding it with the heatmap were the others). So: only borders
-  BETWEEN TWO AREAS (`BorderMask`), which removes the rings, in a dark
-  navy. That still left short stubs where the coastal strips of two
-  areas meet, running out from the shore and stopping in the sea; I had
-  judged the navy would hide them, the owner still saw "lines ending
-  abruptly in the sea", so the lines are now ON LAND ONLY: a border
-  needs land on both sides (`Assets/land.png`, the generator's land
-  mask — white = land, lakes and rivers included — an embedded resource
-  read by `AreaMapAsset.LoadBundledLand`), so every line ends at the
-  coast; the sea areas (the bays) have no outline, their edge is the
-  coastline the map already shows. Don't bring the light lines or the
-  sea lines back. That left an area that is AN ISLAND OF ITS OWN with no
-  line at all (the owner noticed it on Spiky Isle), so such an area
-  gets its SHORELINE traced: its land pixels with water beside them.
-  What makes it one is a rule, not a name or a size (the owner asked
-  how the mainland is told from an islet, and for the least-maintenance
-  option): none of its land touches another area's land. Islets that
-  belong to an area with a neighbour stay unmarked; a stray rock that
-  is all of some area's land would get a speck — accepted, the rule
-  stays pure. The first try was invisible: the land mask's outermost
-  pixels are the dark rim of shallow water the map picture paints round
-  every coast, and a dark line there is dark on dark — so the generator
-  trims that rim (2 px) off `land.png`, which now means the land you can
-  SEE, and lines end, or run, on the beach. Alternatives weighed for
-  marking the sea areas and not taken: a dotted ring in the water, names
-  written in the water, a soft wash, rounder bay shapes. The
+  NAVY LINES, NOT the area colours: those are picked to be told apart
+  and bury the terrain, and would turn to mud with the heatmap (owner
+  agreed, Oct 2 2026). THE RULE IS ONE LINE: a line wherever a pixel's
+  neighbour belongs to something else, another area OR none
+  (`BorderMask`), so every area is a closed shape, its coastal water
+  and the bays included — exactly what the pill's lookup uses. HOW IT
+  GOT THERE, so it isn't walked again (all Oct 2 2026, the owner
+  judging each step by eye): (1) the first build drew that same rule in
+  LIGHT lines — a white net over the island with scalloped rings round
+  the coast; the owner chose "darker, fainter" over the alternatives
+  (outline only your own area, a muted tint, names on the map, hiding
+  it with the heatmap). (2) I then cut the rule down — only between two
+  areas, then on land only with a land mask, then a traced shoreline
+  for an area that is an island of its own, with the map picture's dark
+  coastal rim trimmed off the mask so that line could be seen — each
+  step answering a fair complaint (rings, stubs ending in the sea, an
+  island with no outline) with another mechanism. (3) Asked whether
+  that was worth it, I said only partly; side-by-side renders of "as
+  built" against "every line, in the dark colour" settled it: the owner
+  chose EVERY LINE. In dark navy the sea lines are faint and read as
+  part of the map; the layer shows what the pill does; and the land
+  mask, the rim trim and the island rule all went (less to tend when a
+  new map comes). Don't bring the light lines back, and don't
+  re-introduce a land mask or per-case outline rules. Also rendered and
+  NOT taken: rounder water shapes (the generator spreading over water
+  in 16 directions instead of 8, so bays aren't angular) — too subtle
+  at actual size to justify changing a map already tried in game; it
+  lives only in the generator, so it can be added later if the angular
+  bays start to bother. The
   picture is in map pixels, so `UpdateAreaBorders` picks the line's
   thickness per view (1–4 map px, ~1.2 screen px: four in the island
   view, one at 5×) from `AreaMapAsset.Borders`, which builds each
@@ -860,9 +853,8 @@ Every overlay window derives from `OverlayWindowBase`.
   area you left); where a life begins is no entry, open sea is never
   announced. Area lines do NOT light a faded Activity panel
   (`ActivityWindow.OnPosted`) — a crossing is worth a line, not a look.
-  `BorderMask(thickness, land)` gives the border pixels for the
-  minimap's optional layer (two areas meeting with land on both sides,
-  plus the shore of an area with no neighbour on land).
+  `BorderMask(thickness)` gives the border pixels for the minimap's
+  optional layer (every edge of every area).
   **AreaMapAsset.cs**
   is the WPF-imaging half: decodes the PNG (colour profile ignored,
   straight BGRA) once, on first use (~25 ms, a megabyte of grid). THE
