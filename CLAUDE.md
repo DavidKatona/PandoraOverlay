@@ -711,10 +711,19 @@ Every overlay window derives from `OverlayWindowBase`.
   right-click menu uses it too). Area BORDER layer
   (`MinimapAreaBordersEnabled`, default off; the control panel's Areas
   button → `ToggleAreaBorders`): `AreaBordersImage`, sized and
-  translated with the map like the heatmap and above it, at 60% — light
-  LINES where two areas meet (or an area meets nothing), NOT the area
-  colours: those are picked to be told apart and bury the terrain, and
-  would turn to mud with the heatmap (owner agreed, Oct 2 2026). The
+  translated with the map like the heatmap and above it, at 70% — DARK
+  NAVY LINES where two areas meet, NOT the area colours: those are
+  picked to be told apart and bury the terrain, and would turn to mud
+  with the heatmap (owner agreed, Oct 2 2026). The first build drew
+  LIGHT lines and also an area's edge to nothing; the owner found it
+  looked odd in game — a white net over the island with scalloped rings
+  round the whole coast — and chose "darker, fainter" from the
+  alternatives (outline only your own area, a muted tint, names on the
+  map, hiding it with the heatmap were the others). So: only borders
+  BETWEEN TWO AREAS (`BorderMask`), which removes the rings, and a navy
+  that is dark on land and nearly lost in the sea, which hides the
+  short stubs where coastal strips of two areas meet (a land-only mask
+  was considered and not needed). Don't bring the light lines back. The
   picture is in map pixels, so `UpdateAreaBorders` picks the line's
   thickness per view (1–4 map px, ~1.2 screen px: four in the island
   view, one at 5×) from `AreaMapAsset.Borders`, which builds each

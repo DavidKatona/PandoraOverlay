@@ -73,7 +73,7 @@ public partial class MinimapWindow
     }
 
     /// <summary>
-    /// The border layer: light lines where one area meets another, over the
+    /// The border layer: dark lines where one area meets another, over the
     /// map (and the heatmap) and panning with it. Lines, not the area
     /// colours — those are picked to be told apart and would bury the
     /// terrain. The line is drawn in map pixels, so its thickness is chosen

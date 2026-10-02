@@ -322,11 +322,13 @@ public sealed class AreaMapTests
     }
 
     [Fact]
-    public void AnAreasEdgeToNothingIsABorderToo()
+    public void AnAreasEdgeToNothingIsNotABorder()
     {
-        var map = Bands((0, Red), (50, null));
+        var sea = Bands((0, Red), (50, null));
+        var strait = Bands((0, Red), (40, null), (60, Green)); // open water between two areas: neither side gets a line
 
-        Assert.True(map.BorderMask(1)[10 * 100 + 49]);
+        Assert.DoesNotContain(true, sea.BorderMask(1));
+        Assert.DoesNotContain(true, strait.BorderMask(4));
     }
 
     [Fact]
@@ -350,7 +352,7 @@ public sealed class AreaMapTests
         var thin = map.BorderMask(1).Count(b => b);
         var thick = map.BorderMask(4).Count(b => b);
 
-        Assert.InRange(thin, 5_000, 40_000);  // of a million pixels
+        Assert.InRange(thin, 2_000, 40_000);  // of a million pixels
         Assert.InRange(thick, thin * 2, thin * 5);
     }
 

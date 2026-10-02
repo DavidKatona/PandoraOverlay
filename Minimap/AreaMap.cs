@@ -125,10 +125,12 @@ public sealed class AreaMap
 
     /// <summary>
     /// Where the borders run, as one flag per pixel (row by row): a pixel
-    /// whose right or lower neighbour belongs to something else — another
-    /// area, or none. Thickness widens the line in whole pixels (1–4), for
-    /// views that show the map so small that a one-pixel line would vanish.
-    /// For the minimap's optional border layer; the lookup never needs it.
+    /// whose right or lower neighbour belongs to ANOTHER AREA. An area's
+    /// edge to nothing (open sea) is not a border — drawn, those edges were
+    /// rings around the whole coast that said nothing and dominated the
+    /// map. Thickness widens the line in whole pixels (1–4), for views that
+    /// show the map so small that a one-pixel line would vanish. For the
+    /// minimap's optional border layer; the lookup never needs it.
     /// </summary>
     public bool[] BorderMask(int thickness)
     {
@@ -140,7 +142,8 @@ public sealed class AreaMap
             for (var x = 0; x < n; x++)
             {
                 var here = _grid[y * n + x];
-                thin[y * n + x] = (x < n - 1 && _grid[y * n + x + 1] != here) || (y < n - 1 && _grid[(y + 1) * n + x] != here);
+                if (here == 0) continue;
+                thin[y * n + x] = (x < n - 1 && Other(_grid[y * n + x + 1], here)) || (y < n - 1 && Other(_grid[(y + 1) * n + x], here));
             }
         }
         if (thickness == 1) return thin;
@@ -166,6 +169,8 @@ public sealed class AreaMap
             }
         }
         return mask;
+
+        static bool Other(byte neighbour, byte here) => neighbour != 0 && neighbour != here;
     }
 }
 

@@ -42,7 +42,7 @@ public static class AreaMapAsset
 
     /// <summary>
     /// The borders of the bundled map as a picture for the minimap's border
-    /// layer: transparent, with light lines of the given thickness in map
+    /// layer: transparent, with dark lines of the given thickness in map
     /// pixels (1–4). One bit per pixel, so each is ~125 KB; made on first
     /// use and kept. Null when there is no map.
     /// </summary>
@@ -62,7 +62,7 @@ public static class AreaMapAsset
                 if (mask[y * map.Size + x]) bits[y * stride + (x >> 3)] |= (byte)(0x80 >> (x & 7));
             }
         }
-        var palette = new BitmapPalette(new[] { Colors.Transparent, Color.FromRgb(0xF4, 0xF7, 0xFA) });
+        var palette = new BitmapPalette(new[] { Colors.Transparent, Color.FromRgb(0x00, 0x14, 0x30) }); // dark navy: dark on land, lost in the sea
         var image = BitmapSource.Create(map.Size, map.Size, 96, 96, PixelFormats.Indexed1, palette, bits, stride);
         image.Freeze();
         return BorderImages[thickness] = image;

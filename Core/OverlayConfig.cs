@@ -229,7 +229,7 @@ public sealed class OverlayConfig
     public bool MinimapAreaEnabled { get; set; } = true;
 
     /// <summary>
-    /// Draw the area borders over the minimap: light lines where one named
+    /// Draw the area borders over the minimap: dark lines where one named
     /// area meets another. Flipped with the control panel's Areas button,
     /// like the heatmap — a layer you switch, not a preference. Off by default.
     /// </summary>
