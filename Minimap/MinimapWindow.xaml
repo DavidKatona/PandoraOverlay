@@ -139,6 +139,15 @@
                         IsHitTestVisible="False" Visibility="Collapsed">
                     <TextBlock x:Name="SpeedText" Foreground="#ECF2F8" FontSize="9"/>
                 </Border>
+                <!-- The area you are in: top-right, the one free corner (the
+                     heatmap's caption has the top-left). In edit mode it names
+                     the area under the cursor instead (MinimapWindow.Area.cs). -->
+                <Border x:Name="AreaPanel"
+                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
+                        Background="#9910151B" CornerRadius="4" Padding="5,2"
+                        IsHitTestVisible="False" Visibility="Collapsed">
+                    <TextBlock x:Name="AreaText" Foreground="#ECF2F8" FontSize="9"/>
+                </Border>
             </Grid>
 
             <!-- Footer: view (+ zoom when centered) · nearest waypoint distance and ETA; built in code. -->

@@ -168,6 +168,8 @@ public partial class MinimapWindow : OverlayWindowBase
             _hoverFriend = null;
             UpdateFooter();
         }
+        _hoverSpot = null; // locked: the pill is about where YOU are again
+        UpdateAreaPill();
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);
@@ -214,6 +216,7 @@ public partial class MinimapWindow : OverlayWindowBase
         RebuildFriendMarkers(); // the friends layer, or a friend's map visibility / colour, may have too
         ApplyViewMode();
         UpdateSpeedPill();
+        if (_lastFix is { } fix) NoteAreaFix(fix.Fx, fix.Fy); else UpdateAreaPill(); // just switched on: name the area now, not a poll later
     }
 
     /// <summary>Fresh heatmap bytes from PollService's slow timer; null hides the layer.</summary>
@@ -301,6 +304,7 @@ public partial class MinimapWindow : OverlayWindowBase
             _lastWorld = null;
             _speed.Reset();
             UpdateSpeedPill();
+            ClearAreaFix();
             PlayerArrow.Visibility = Visibility.Collapsed;
             MapStatus.Text = cal is null ? "waiting for map calibration…" : "not in-game";
             MapStatus.Visibility = Visibility.Visible;
@@ -319,12 +323,11 @@ public partial class MinimapWindow : OverlayWindowBase
         if (_config.WaypointVisibility == "nearest") RebuildMarkersIfSetChanged(); // the nearest ten follow the player
         RenderLastFix();
         UpdateSpeedPill();
+        NoteAreaFix(fx, fy);
     }
 
     /// <summary>World cm → map fractions (0–1, y flipped) — mirrors the live-map frontend, pinOffset included.</summary>
-    private static (double Fx, double Fy) ToFraction(MapCalibration cal, double x, double y) =>
-        (Math.Clamp((cal.OffsetX + x * cal.ScaleX + cal.PinOffsetX) / cal.MapSize, 0, 1),
-         Math.Clamp(1 - (cal.OffsetY + y * cal.ScaleY + cal.PinOffsetY) / cal.MapSize, 0, 1));
+    private static (double Fx, double Fy) ToFraction(MapCalibration cal, double x, double y) => cal.ToFraction(x, y);
 
     // ---- Breadcrumb trail + scale bar ----------------------------------------
     private TimeSpan TrailKeep => TimeSpan.FromMinutes(Math.Clamp(_config.MinimapTrailMinutes, 0, 120));

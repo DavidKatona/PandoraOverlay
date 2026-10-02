@@ -225,6 +225,9 @@ public sealed class OverlayConfig
     /// <summary>Show the heading + speed pill in the minimap's bottom-right corner. Checkbox in Settings.</summary>
     public bool MinimapSpeedEnabled { get; set; } = true;
 
+    /// <summary>Show the area you are in (from the bundled area map) in the minimap's top-right corner. Checkbox in Settings.</summary>
+    public bool MinimapAreaEnabled { get; set; } = true;
+
     /// <summary>Edit-mode control panel position; null until first moved (defaults to bottom-center).</summary>
     public double? ControlPanelX { get; set; }
 

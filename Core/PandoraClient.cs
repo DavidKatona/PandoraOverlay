@@ -67,7 +67,13 @@ public sealed record FriendState(
 /// v1.13.0-and-earlier bug. Defaults keep older cached calibrations loading.
 /// </summary>
 public sealed record MapCalibration(double OffsetX, double OffsetY, double ScaleX, double ScaleY, double MapSize,
-                                    double PinOffsetX = 0, double PinOffsetY = 0);
+                                    double PinOffsetX = 0, double PinOffsetY = 0)
+{
+    /// <summary>World cm → map fractions (0–1, y flipped): the one transform behind the arrow, markers, trail and area lookup.</summary>
+    public (double Fx, double Fy) ToFraction(double x, double y) =>
+        (Math.Clamp((OffsetX + x * ScaleX + PinOffsetX) / MapSize, 0, 1),
+         Math.Clamp(1 - (OffsetY + y * ScaleY + PinOffsetY) / MapSize, 0, 1));
+}
 
 /// <summary>
 /// One Prime check result as shown by the live-map page's "Prime Check" box:

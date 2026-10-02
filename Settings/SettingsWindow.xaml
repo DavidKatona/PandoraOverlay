@@ -611,6 +611,9 @@
                       Content="Show scale bar"/>
             <CheckBox x:Name="SpeedCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Show heading and speed"/>
+            <CheckBox x:Name="AreaCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Show the area you are in"
+                      ToolTip="Names the area in the map's top-right corner. In edit mode it names the area under the cursor."/>
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Waypoints:"/>
                 <RadioButton x:Name="WpAll" Style="{StaticResource Radio}" Content="All"

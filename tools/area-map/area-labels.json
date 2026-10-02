@@ -1,0 +1,32 @@
+{
+  "Source": "VulnonaMAP (vulnona.com), Gateway v0.21.772: the 26 area labels. One point per area, where the label sits; Lat/Long x 1000 = world cm (Long = X, Lat = Y). Size and Sea are its label flags (large / small / ocean).",
+  "CopiedOn": "2026-09-30",
+  "Labels": [
+    { "Name": "Delta", "Lat": 33, "Long": 177, "Size": "large", "Sea": false },
+    { "Name": "Delta Bay", "Lat": 175, "Long": 298, "Size": "normal", "Sea": true },
+    { "Name": "East Coast", "Lat": -131, "Long": 564, "Size": "normal", "Sea": false },
+    { "Name": "Eastern Jungle", "Lat": -157, "Long": 398, "Size": "large", "Sea": false },
+    { "Name": "Forks Plains", "Lat": -119, "Long": 246, "Size": "small", "Sea": false },
+    { "Name": "Highland", "Lat": -127, "Long": -80, "Size": "large", "Sea": false },
+    { "Name": "Central Jungle", "Lat": -49, "Long": 71, "Size": "large", "Sea": false },
+    { "Name": "Lagoon", "Lat": 334, "Long": -87, "Size": "normal", "Sea": false },
+    { "Name": "West Bay (Mudflats)", "Lat": 101, "Long": -394, "Size": "small", "Sea": true },
+    { "Name": "NE. Cape", "Lat": -460, "Long": 433, "Size": "normal", "Sea": false },
+    { "Name": "Northern Beach", "Lat": -379, "Long": 114, "Size": "small", "Sea": false },
+    { "Name": "North Plains", "Lat": -345, "Long": 353, "Size": "large", "Sea": false },
+    { "Name": "Northern Jungle", "Lat": -321, "Long": 166, "Size": "large", "Sea": false },
+    { "Name": "Ridges", "Lat": -248, "Long": -153, "Size": "normal", "Sea": false },
+    { "Name": "Port (East port)", "Lat": -308, "Long": 548, "Size": "large", "Sea": false },
+    { "Name": "Rail Beach", "Lat": 6, "Long": -388, "Size": "small", "Sea": false },
+    { "Name": "Sandbank Bay", "Lat": 74, "Long": 399, "Size": "small", "Sea": true },
+    { "Name": "Shallows", "Lat": 270, "Long": 225, "Size": "small", "Sea": false },
+    { "Name": "South Plains", "Lat": 250, "Long": -302, "Size": "large", "Sea": false },
+    { "Name": "Southern Beach", "Lat": 397, "Long": 130, "Size": "small", "Sea": false },
+    { "Name": "Southern Strait", "Lat": 238, "Long": -211, "Size": "small", "Sea": false },
+    { "Name": "Spiky Isle", "Lat": -379, "Long": -295, "Size": "small", "Sea": false },
+    { "Name": "Swamps", "Lat": 273, "Long": 74, "Size": "large", "Sea": false },
+    { "Name": "The Pit", "Lat": 329, "Long": -394, "Size": "large", "Sea": false },
+    { "Name": "West Rail", "Lat": -4, "Long": -238, "Size": "large", "Sea": false },
+    { "Name": "Water Access", "Lat": -214, "Long": 87, "Size": "large", "Sea": false }
+  ]
+}

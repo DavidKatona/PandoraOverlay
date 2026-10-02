@@ -36,24 +36,10 @@ public partial class MinimapWindow
     {
         if (!EditMode || _poll.Calibration is not { } cal) return;
         var pos = e.GetPosition(MapHost);
-        var size = MapHost.Width;
-        if (pos.X < 0 || pos.Y < 0 || pos.X > size || pos.Y > size) return; // footer, not the map
+        if (FractionAt(pos) is not { } spot) return; // footer, not the map
+        var (fx, fy) = spot;
 
-        // Inverse of the calibration transform: panel point → map fraction → world cm.
-        double fx, fy;
-        if (_centered)
-        {
-            var mapSize = size * _zoom;
-            fx = (pos.X - _mapTranslate.X) / mapSize;
-            fy = (pos.Y - _mapTranslate.Y) / mapSize;
-        }
-        else
-        {
-            fx = pos.X / size;
-            fy = pos.Y / size;
-        }
-        fx = Math.Clamp(fx, 0, 1);
-        fy = Math.Clamp(fy, 0, 1);
+        // Inverse of the calibration transform: map fraction → world cm.
         _menuWorld = ((fx * cal.MapSize - cal.OffsetX - cal.PinOffsetX) / cal.ScaleX,
                       ((1 - fy) * cal.MapSize - cal.OffsetY - cal.PinOffsetY) / cal.ScaleY);
 
@@ -80,11 +66,36 @@ public partial class MinimapWindow
         e.Handled = true;
     }
 
-    /// <summary>In edit mode the footer names the marker under the cursor.</summary>
+    /// <summary>
+    /// The map fraction (0–1) under a point of the map square, in either
+    /// view; null outside the square (the footer). Past the map image's own
+    /// edge in the centered view it clamps to that edge.
+    /// </summary>
+    private (double Fx, double Fy)? FractionAt(Point pos)
+    {
+        var size = MapHost.Width;
+        if (pos.X < 0 || pos.Y < 0 || pos.X > size || pos.Y > size) return null;
+        double fx, fy;
+        if (_centered)
+        {
+            var mapSize = size * _zoom;
+            fx = (pos.X - _mapTranslate.X) / mapSize;
+            fy = (pos.Y - _mapTranslate.Y) / mapSize;
+        }
+        else
+        {
+            fx = pos.X / size;
+            fy = pos.Y / size;
+        }
+        return (Math.Clamp(fx, 0, 1), Math.Clamp(fy, 0, 1));
+    }
+
+    /// <summary>In edit mode the footer names the marker under the cursor, and the area pill the area under it.</summary>
     private void Window_MouseMove(object sender, MouseEventArgs e)
     {
         if (!EditMode) return;
         var pos = e.GetPosition(MapHost);
+        SetHoverSpot(FractionAt(pos));
         var friend = FriendHitTest(pos);
         var hit = friend is null ? HitTest(pos) : null;
         if (ReferenceEquals(hit, _hover) && ReferenceEquals(friend, _hoverFriend)) return;
@@ -95,6 +106,7 @@ public partial class MinimapWindow
 
     private void Window_MouseLeave(object sender, MouseEventArgs e)
     {
+        SetHoverSpot(null);
         if (_hover is null && _hoverFriend is null) return;
         _hover = null;
         _hoverFriend = null;

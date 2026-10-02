@@ -169,6 +169,7 @@ public partial class SettingsWindow : Window
         trailRadio.IsChecked = true;
         ScaleBarCheck.IsChecked = config.MinimapScaleBarEnabled;
         SpeedCheck.IsChecked = config.MinimapSpeedEnabled;
+        AreaCheck.IsChecked = config.MinimapAreaEnabled;
         var visibilityRadio = config.WaypointVisibility switch { "tracked" => WpTracked, "nearest" => WpNearest, _ => WpAll };
         visibilityRadio.IsChecked = true;
 
@@ -495,6 +496,7 @@ public partial class SettingsWindow : Window
         var trail = TrailOff.IsChecked == true ? 0 : Trail10.IsChecked == true ? 10 : Trail30.IsChecked == true ? 30 : 60;
         var scaleBar = ScaleBarCheck.IsChecked == true;
         var speed = SpeedCheck.IsChecked == true;
+        var area = AreaCheck.IsChecked == true;
         var visibility = WpTracked.IsChecked == true ? "tracked" : WpNearest.IsChecked == true ? "nearest" : "all";
         if (mode != _config.MinimapMode ||
             Math.Abs(zoom - _config.MinimapZoom) > 0.005 ||
@@ -502,6 +504,7 @@ public partial class SettingsWindow : Window
             trail != _config.MinimapTrailMinutes ||
             scaleBar != _config.MinimapScaleBarEnabled ||
             speed != _config.MinimapSpeedEnabled ||
+            area != _config.MinimapAreaEnabled ||
             visibility != _config.WaypointVisibility)
         {
             _config.MinimapMode = mode;
@@ -510,6 +513,7 @@ public partial class SettingsWindow : Window
             _config.MinimapTrailMinutes = trail;
             _config.MinimapScaleBarEnabled = scaleBar;
             _config.MinimapSpeedEnabled = speed;
+            _config.MinimapAreaEnabled = area;
             _config.WaypointVisibility = visibility;
             MinimapChanged = true;
         }

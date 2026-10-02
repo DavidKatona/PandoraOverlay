@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Area name on the minimap: a pill in the top-right corner names the part
+  of the island you are in (Highland, Delta, Swamps and 23 more), worked
+  out from your own position on an area map that ships with the overlay,
+  with no extra requests. The names are VulnonaMAP's Gateway labels; the
+  borders are the overlay's own estimate, since nobody publishes official
+  ones (see `docs/area-map.jpg`). The name changes only once you are about
+  25 m inside the next area, so it doesn't flicker along a border. In edit
+  mode the pill names the area under the cursor instead. Settings →
+  Minimap → "Show the area you are in" turns it off.
+
 ## [1.28.0] - 2026-10-02
 
 ### Added

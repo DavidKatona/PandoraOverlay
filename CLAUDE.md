@@ -167,7 +167,8 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   into its own window is a possible later refactor).
 - `Stats/` — GrowthTracker, DrainTracker, StaminaTracker, DamageTracker,
   StatsAttention, LowStatAlert, GrowthMilestones.
-- `Minimap/` — MinimapWindow, BreadcrumbTrail, ScaleBar, SpeedTracker, Compass.
+- `Minimap/` — MinimapWindow, BreadcrumbTrail, ScaleBar, SpeedTracker, Compass,
+  AreaMap (+ AreaReadout) and AreaMapAsset (its PNG loader).
 - `Waypoints/` — WaypointLibrary, WaypointPacks, ShareCode.
 - `Friends/` — FriendBook (+ FriendColour), FriendFeed.
 - `Activity/` — ActivityWindow, ActivityLog, SelfActivity (the widget is
@@ -199,6 +200,14 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   gates, caves, air currents, the other food spawns and the zone shapes.
   These packs are user-imported waypoints from a community map — NOT the
   site's zone-overlay images (salt rocks included), which stay unapproved.
+- `tools/area-map/` — NOT part of the app (Oct 2 2026): the PowerShell
+  generator of the area map (`make-area-map.ps1`, Windows PowerShell 5.1
+  with inline C#) and its input `area-labels.json` (VulnonaMAP's 26 area
+  label points + size hints, credited). It writes `Assets/areas.png` +
+  `Assets/areas.json` and, with `-PreviewPath`, the picture for people
+  (`docs/area-map.jpg`). A STARTING POINT, not a build step: corrections
+  are painted into `Assets/areas.png`, and a re-run overwrites them. See
+  AreaMap under Architecture.
 
 The namespace stays ONE flat `PandoraOverlay` on purpose (35 files don't
 earn sub-namespaces; `.editorconfig` silences IDE0130). The SDK-style csproj
@@ -206,7 +215,7 @@ globs subfolders, so moving a file needs no project edit; pack URIs point at
 `Assets/`, which didn't move. Big windows are PARTIAL CLASSES split by
 concern, the way WPF already splits them from their generated `.g.cs`:
 `MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`),
-`MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`),
+`MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`, `.Area.cs`),
 `SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`,
 `.Skins.cs`, `.SkinPictures.cs`) and, since v1.28, the two Core classes that had reached the
 limit: `PandoraClient.cs` + `.Skins.cs`, `PollService.cs` + `.Skins.cs`. Same class, same
@@ -690,7 +699,15 @@ Every overlay window derives from `OverlayWindowBase`.
   + speed pill (`MinimapSpeedEnabled`, default on): bottom-right, the
   scale bar's twin — `Compass.Letter` of the arrow's screen heading (body
   yaw + `MinimapYawOffsetDegrees`, so relative to the dino's body, not
-  the free-look camera) and km/h. Optional heatmap
+  the free-look camera) and km/h. Area pill (`MinimapAreaEnabled`,
+  default on, v1.29, `MinimapWindow.Area.cs`): TOP-RIGHT, the one free
+  corner (owner's choice) — the settled area from `AreaReadout`, hidden
+  at open sea and while not in game; in EDIT MODE it names the area
+  under the CURSOR instead, in the edit orange, and only that (falling
+  back to your own area there would read as "this spot is in my area") —
+  the owner's way to look the borders over without walking the island.
+  `FractionAt` is the one panel-point → map-fraction inverse (the
+  right-click menu uses it too). Optional heatmap
   layer (`HeatmapEnabled`): the site's pre-rendered heatmap PNG (opaque —
   grayscale map, blobs and a player-count caption baked in) as a second
   Image sharing the map image's size and translate transform, blended at
@@ -750,6 +767,50 @@ Every overlay window derives from `OverlayWindowBase`.
   so a sprint or a stop shows within two polls.
 - **Compass.cs** — eight-point letter for a screen heading (0 = north,
   clockwise, matching the arrow's RotateTransform).
+- **AreaMap.cs** — "which area am I in" (v1.29, the owner's idea, Oct 2
+  2026): `Assets/areas.png` is an image the size of the island map with
+  ONE FLAT COLOUR PER NAMED AREA and nothing else (transparent = no
+  area, open sea); `Assets/areas.json` is its legend (colour → name, the
+  label point in world cm, source and dates). Both are embedded
+  resources like `rules.json`. A DATA file, never drawn: your position
+  goes through `MapCalibration.ToFraction` (the arrow's transform, moved
+  onto the record so it is the one copy), `floor(fraction × size)` picks
+  the pixel, the pixel's colour is the area. Purely local — no request,
+  nothing game-side, and our own asset, NOT the site's unapproved zone
+  images. Pure, tested: `AreaLegend.Parse` (tolerant), `AreaMap.FromPixels`
+  (BGRA → one byte per pixel; fully transparent = none, fully opaque in
+  a legend colour = that area, anything else — a soft brush edge, a
+  colour picked by eye — counts in `UnknownPixels` and reads as NO area
+  rather than a wrong one), `IndexAt` / `NameAt`. **AreaReadout** is the
+  no-flicker rule: a new area is taken only once you are CLEARLY inside
+  it — the same area at your spot and at eight points `MarginPixels` (2
+  px ≈ 25 m) around; the first reading of a life is taken as it is, and
+  so is one after a jump (the shown area nowhere around you: no border to
+  wait for); "no area" is a reading like any other. **AreaMapAsset.cs**
+  is the WPF-imaging half: decodes the PNG (colour profile ignored,
+  straight BGRA) once, on first use (~25 ms, a megabyte of grid). THE
+  BORDERS ARE OURS: VulnonaMAP's data holds each of the 26 areas as ONE
+  label point plus a size hint (`large` / `small` / `ocean`) and no
+  bounds, and the map image has none drawn, so `tools/area-map` computes
+  them — sea = the map's navy connected to the border (lakes and rivers
+  stay land); every land pixel goes to the label that reaches it soonest
+  OVER LAND (`large` spreads 1.3×, `small` 0.7×), so an area never jumps
+  a bay; sea labels claim ~1.1 km of water; an offshore label of a land
+  area takes the nearest shore plus the water round the label; islets
+  take the nearest claimed area; a 375 m coastal band follows the land
+  beside it. The owner accepted the generated borders as the first
+  version ("the borders you draw and everything is fine"). Known weak
+  spots: straight borders that ignore rivers and ridges, the central
+  dome split three ways (no label of its own), small areas as round
+  blobs, Port / East Coast claiming big octagons of sea. CORRECTIONS ARE
+  PAINTED into `Assets/areas.png` with the legend's exact colours, hard
+  edges, PNG — which is why it is an image and not polygons — and the
+  bundled-asset tests hold it to that (26 areas, zero unknown pixels,
+  every label point inside its own area). Elevation (a cave under a
+  meadow) was discussed and left out: a second layer with a ceiling
+  height per cave is the route; packing heights into the alpha channel
+  was considered and dropped (no height data, and alpha is awkward to
+  author).
 - **ShareCode.cs** — the share-a-spot text: `pandora:<x>,<y> [name]` in
   METRES (short, no decimals), parsed forgivingly (prefix optional, may
   sit inside a longer message, |value| ≤ 50 km; the rest of the line
@@ -1286,43 +1347,19 @@ locked on the owner's account — and a too-early apply is refused with a
 message stating when the next skin can be applied, shown as the
 server's words). No layout presets beyond the default for now.
 
-Planned, maybe v1.29.0 (owner, Oct 2 2026 — brainstormed, NOT started):
-**"which area am I in"** from a colour-coded AREA MAP. The owner's idea:
-an image the size of `Assets/map.png` with one flat colour per named
-area and nothing else; your world position goes through the same
-world→map transform as the arrow (`ToFraction`), the pixel's colour is
-the area. A data file the code reads — it needs no drawing; showing it
-as a tinted layer on the minimap would be a separate, optional feature.
-Purely local (our own position, no request, nothing game-side), and our
-own asset — NOT the site's unapproved zone images. THE CATCH IS THE
-BORDERS, not the lookup: VulnonaMAP's data holds each of the 26 areas as
-ONE label point plus a size hint (`large` / `small` / `ocean`), no
-bounds (its only shapes are mud pools, caves, roads, air currents and
-the migration / patrol zones), and the map image has no borders drawn,
-so image analysis can't recover them either — they are community names
-without official edges and whatever we ship is our judgement. A
-GENERATED DRAFT exists (Oct 2 2026, on the owner's Desktop in
-`pandora-area-map-draft`: `areas-colour-map.png` 1000×1000, a preview
-over the map, a legend, and the generator script with its input):
-every land pixel goes to the label that reaches it soonest OVER LAND
-(sea = the map's navy connected to the border, so lakes and rivers stay
-land; `large` spreads 1.3×, `small` 0.7×), sea labels claim ~1 km of
-water, an offshore label of a land area takes the nearest shore plus
-the water around it, a ~375 m coastal band follows the land beside it,
-open sea stays empty. Its weak spots, seen on the preview: straight
-borders that ignore rivers and ridges, the central dome split three
-ways (no label of its own), small areas as round blobs, Port / East
-Coast claiming big octagons of sea, sizes that follow label placement.
-The agreed path: (1) the draft, (2) the owner corrects it by PAINTING
-over it — which is why an image beats polygons: it can be authored in
-any paint program, (3) it ships as a dated asset like `rules.json`.
-Rules for the build: PNG with hard edges and exact colours (no
-anti-aliasing, never JPEG), read once into a plain grid behind a pure,
-tested class; the readout changes only once you are clearly past a
-border, so walking along one can't flicker; say "near" rather than "in"
-until the borders are hand-corrected; one pixel is ~12.5 m, plenty.
-Undecided: where the readout shows (the minimap footer is navigation
-only), and whether areas also name auto-created waypoints / share codes.
+Built Oct 2 2026, awaiting in-game verification (target 1.29.0): the
+**area name on the minimap** — "which area am I in" from a bundled
+colour-coded area map (see AreaMap under Architecture and
+`tools/area-map`). The owner's idea; they accepted the generated borders
+as the first version, chose the top-right corner for the pill and asked
+for the edit-mode hover. Verified off-screen: the pill in both views,
+hover, not-in-game, the setting; a walk from the Highland label to the
+Central Jungle label changes the name once. NOT yet checked in game:
+whether the borders feel right where the owner actually stands. Left
+for later, none started: a tinted area layer on the map, "Entered X"
+lines in the Activity feed, area names in new waypoints and share
+codes, hand-corrected borders (painted into `Assets/areas.png`), caves
+and elevation.
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
