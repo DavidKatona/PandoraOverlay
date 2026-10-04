@@ -123,7 +123,9 @@ public partial class MinimapWindow : OverlayWindowBase
         MapImage.Source = bmp;
         MapImage.RenderTransform = _mapTranslate;
         HeatmapImage.RenderTransform = _mapTranslate; // shared: heatmap pans with the map
-        AreaBordersPath.RenderTransform = _mapTranslate; // and the area borders
+        AreaBordersPath.RenderTransform = _mapTranslate; // and the area borders, with their two highlights
+        AreaOwnPath.RenderTransform = _mapTranslate;
+        AreaHoverPath.RenderTransform = _mapTranslate;
         TrailOld.RenderTransform = TrailMid.RenderTransform = TrailNew.RenderTransform = _mapTranslate; // so does the trail
 
         PlayerArrow.RenderTransform = new TransformGroup

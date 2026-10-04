@@ -72,6 +72,7 @@ public partial class MinimapWindow
     /// </summary>
     private void UpdateAreaPill()
     {
+        UpdateAreaOutlines(force: false); // everything that can change the pill can change the two outlines
         var hovering = EditMode && _hoverSpot is not null;
         if (Areas is not { } map || (!hovering && _lastFix is null))
         {
@@ -112,11 +113,56 @@ public partial class MinimapWindow
         {
             AreaBordersPath.Visibility = Visibility.Collapsed;
             AreaBordersPath.Data = null;
+            UpdateAreaOutlines(force: true);
             return;
         }
         var scale = MapImage.Width / map.Size;
         AreaBordersPath.Data = new GeometryGroup { Children = { lines }, Transform = new ScaleTransform(scale, scale) };
         AreaBordersPath.StrokeThickness = BorderScreenPixels / Math.Max(0.1, AppearanceScale(_config));
         AreaBordersPath.Visibility = Visibility.Visible;
+        UpdateAreaOutlines(force: true); // same scale, same widget scale
+    }
+
+    /// <summary>A highlighted outline is a little wider than the borders it lies on.</summary>
+    private const double OutlineScreenPixels = 1.5;
+
+    private int _ownOutline = AreaMap.None;   // the area each highlight path draws now
+    private int _hoverOutline = AreaMap.None;
+
+    /// <summary>
+    /// Two highlights on the border layer, mirroring the pill's two colours:
+    /// YOUR area's outline in a soft light line (where you are and how far
+    /// it reaches — the owner picked it from renders over a bolder navy,
+    /// which vanished on forest, and over orange), and in edit mode the
+    /// outline of the area under the CURSOR in the edit orange (the owner's
+    /// idea). Pointing at your own area, orange wins. Each is the very
+    /// lines of the border layer that have that area on a side
+    /// (AreaMapAsset.OutlineOf), so it sits exactly on them. Only with the
+    /// Areas layer on: the button keeps one meaning. Nothing at open sea.
+    /// </summary>
+    private void UpdateAreaOutlines(bool force)
+    {
+        var map = _config.MinimapAreaBordersEnabled ? AreaMapAsset.Shared : null;
+        var hover = map is not null && EditMode && _hoverSpot is { } spot ? map.IndexAt(spot.Fx, spot.Fy) : AreaMap.None;
+        var own = map is not null && _lastFix is not null ? map.IndexOf(_area) : AreaMap.None;
+        if (own == hover) own = AreaMap.None;
+        var scale = map is null ? 0 : MapImage.Width / map.Size;
+        DrawOutline(AreaOwnPath, own, ref _ownOutline, scale, force);
+        DrawOutline(AreaHoverPath, hover, ref _hoverOutline, scale, force);
+    }
+
+    private void DrawOutline(System.Windows.Shapes.Path path, int area, ref int shown, double scale, bool force)
+    {
+        if (area == shown && !force) return;
+        shown = area;
+        if (AreaMapAsset.OutlineOf(area) is not { } outline)
+        {
+            path.Visibility = Visibility.Collapsed;
+            path.Data = null;
+            return;
+        }
+        path.Data = new GeometryGroup { Children = { outline }, Transform = new ScaleTransform(scale, scale) };
+        path.StrokeThickness = OutlineScreenPixels / Math.Max(0.1, AppearanceScale(_config));
+        path.Visibility = Visibility.Visible;
     }
 }

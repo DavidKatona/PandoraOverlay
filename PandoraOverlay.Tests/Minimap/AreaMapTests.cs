@@ -324,7 +324,9 @@ public sealed class AreaMapTests
 
         var line = Assert.Single(AreaBorders.Trace(map));
 
-        Assert.Equal(new[] { (50.0, 0.0), (50.0, 100.0) }, line); // one straight line along the pixel edge, end to end
+        Assert.Equal(new[] { 0, 1 }, new[] { line.A, line.B }.OrderBy(a => a)); // and it knows what it separates
+
+        Assert.Equal(new[] { (50.0, 0.0), (50.0, 100.0) }, line.Points); // one straight line along the pixel edge, end to end
     }
 
     [Fact]
@@ -332,9 +334,11 @@ public sealed class AreaMapTests
     {
         var strait = Bands((0, Red), (40, null), (60, Green)); // open water between two areas: each has its own edge
 
-        var xs = AreaBorders.Trace(strait).Select(l => l[0].X).OrderBy(x => x);
+        var lines = AreaBorders.Trace(strait);
+        var xs = lines.Select(l => l.Points[0].X).OrderBy(x => x);
 
         Assert.Equal(new[] { 40.0, 60.0 }, xs);
+        Assert.All(lines, l => Assert.True(l.Touches(AreaMap.None))); // each is an area's edge to nothing
     }
 
     [Fact]
@@ -342,7 +346,7 @@ public sealed class AreaMapTests
     {
         var map = Drawn((x, y) => x < y ? Red : Green); // a diagonal border: on the grid, a staircase of 199 steps
 
-        var line = Assert.Single(AreaBorders.Trace(map));
+        var line = Assert.Single(AreaBorders.Trace(map)).Points;
 
         Assert.Equal(2, line.Count);
         Assert.All(line, p => Assert.True(Math.Abs(p.X - p.Y) <= 1)); // both ends on the diagonal
@@ -356,7 +360,10 @@ public sealed class AreaMapTests
         var lines = AreaBorders.Trace(map);
 
         Assert.Equal(3, lines.Count);
-        Assert.All(lines, l => Assert.True(l[0] == (50, 50) || l[^1] == (50, 50)));
+        Assert.All(lines, l => Assert.True(l.Points[0] == (50, 50) || l.Points[^1] == (50, 50)));
+        // Each line separates its own pair, so one area's outline can be picked out: two of the three touch each area.
+        Assert.Equal(3, lines.Select(l => (Math.Min(l.A, l.B), Math.Max(l.A, l.B))).Distinct().Count());
+        Assert.All(new[] { 0, 1, 2 }, area => Assert.Equal(2, lines.Count(l => l.Touches(area))));
     }
 
     [Fact]
@@ -364,7 +371,7 @@ public sealed class AreaMapTests
     {
         var map = Drawn((x, y) => x is >= 30 and < 70 && y is >= 30 and < 70 ? Red : null);
 
-        var loop = Assert.Single(AreaBorders.Trace(map));
+        var loop = Assert.Single(AreaBorders.Trace(map)).Points;
 
         Assert.Equal(loop[0], loop[^1]);
         Assert.True(loop.Count >= 5);                               // its four corners and back, not collapsed
@@ -411,8 +418,10 @@ public sealed class AreaMapTests
         var lines = AreaBorders.Trace(map);
 
         Assert.NotEmpty(lines);
-        Assert.All(lines, l => Assert.True(l.Count >= 2));
-        Assert.All(lines.SelectMany(l => l), p => Assert.True(p.X is >= 0 && p.X <= map.Size && p.Y >= 0 && p.Y <= map.Size));
+        Assert.All(lines, l => Assert.True(l.Points.Count >= 2));
+        Assert.All(lines, l => Assert.NotEqual(l.A, l.B));                                    // a border has two different sides
+        Assert.All(Enumerable.Range(0, map.Areas.Count), a => Assert.Contains(lines, l => l.Touches(a))); // and every area has an outline
+        Assert.All(lines.SelectMany(l => l.Points), p => Assert.True(p.X is >= 0 && p.X <= map.Size && p.Y >= 0 && p.Y <= map.Size));
     }
 
     [Fact]

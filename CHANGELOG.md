@@ -30,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Area borders on the minimap: the control panel's new Areas button (in
   the Minimap group) draws a thin dark outline around every area, its
   coastal water and the bays included, in both views and over the
-  heatmap. Off by default.
+  heatmap. The area you are in is outlined in a soft light line on top,
+  and in edit mode the area under the cursor in orange. Off by default.
 
 ## [1.28.0] - 2026-10-02
 

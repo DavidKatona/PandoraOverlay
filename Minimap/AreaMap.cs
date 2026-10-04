@@ -129,6 +129,16 @@ public sealed class AreaMap
 
     public string? NameAt(double fx, double fy) => NameOf(IndexAt(fx, fy));
 
+    /// <summary>The index of the area with that name, or None.</summary>
+    public int IndexOf(string? name)
+    {
+        for (var i = 0; name is not null && i < Areas.Count; i++)
+        {
+            if (Areas[i].Name == name) return i;
+        }
+        return None;
+    }
+
     /// <summary>The area of one pixel (None outside the map) — for AreaBorders, and for checks that walk the grid.</summary>
     internal int IndexAtPixel(int x, int y) => x < 0 || y < 0 || x >= Size || y >= Size ? None : _grid[y * Size + x] - 1;
 }

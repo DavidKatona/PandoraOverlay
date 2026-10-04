@@ -100,6 +100,21 @@
                           StrokeLineJoin="Round"
                           Visibility="Collapsed"
                           IsHitTestVisible="False"/>
+                    <!-- Two highlights on that layer, in the pill's two colours: the
+                         outline of YOUR area (soft light), and in edit mode the
+                         outline of the area under the cursor (the edit orange). -->
+                    <Path x:Name="AreaOwnPath"
+                          Stroke="#ECF2F8"
+                          Opacity="0.6"
+                          StrokeLineJoin="Round"
+                          Visibility="Collapsed"
+                          IsHitTestVisible="False"/>
+                    <Path x:Name="AreaHoverPath"
+                          Stroke="#FFC864"
+                          Opacity="0.9"
+                          StrokeLineJoin="Round"
+                          Visibility="Collapsed"
+                          IsHitTestVisible="False"/>
                     <!-- Breadcrumb trail, in map-pixel space and panned with the
                          map. Three age bands, oldest faintest: one polyline
                          can't fade along its length. -->

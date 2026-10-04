@@ -402,12 +402,13 @@ public partial class MainWindow : OverlayWindowBase
     /// Which named area you are in, from the bundled area map and your own
     /// position — no request. Kept here, not in the minimap, so the feed's
     /// "Entered …" lines don't depend on that widget being shown; the
-    /// minimap's pill is told the result. Runs per poll and after a
-    /// Settings save; with both uses switched off the map is never loaded.
+    /// minimap's pill (and the border layer's highlight of your area) is told
+    /// the result. Runs per poll and after a
+    /// Settings save; with every use switched off the map is never loaded.
     /// </summary>
     private void UpdateArea()
     {
-        if ((!_config.MinimapAreaEnabled && !_config.ActivityAreaLines) ||
+        if ((!_config.MinimapAreaEnabled && !_config.ActivityAreaLines && !_config.MinimapAreaBordersEnabled) ||
             _me is not { } me || _poll.Calibration is not { } cal || AreaMapAsset.Shared is not { } map)
         {
             _areaJournal.Reset();

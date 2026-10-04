@@ -1,6 +1,17 @@
 namespace PandoraOverlay;
 
 /// <summary>
+/// One traced border: its points (map pixels, at pixel corners) and the two
+/// things it separates — area indices, AreaMap.None for "no area". The same
+/// pair holds along the whole line, which is what lets ONE area's outline be
+/// picked out of the lot (the lines that have it on a side).
+/// </summary>
+public sealed record BorderLine(IReadOnlyList<(double X, double Y)> Points, int A, int B)
+{
+    public bool Touches(int area) => A == area || B == area;
+}
+
+/// <summary>
 /// The borders of an area map as LINES, for the minimap's optional border
 /// layer. ONE RULE, every edge: a border runs between two neighbouring
 /// pixels that belong to different things — another area, or none — so each
@@ -21,7 +32,7 @@ public static class AreaBorders
     /// <summary>How far a drawn line may stray from the pixel edge it stands for: enough to turn a staircase into a line.</summary>
     public const double DefaultTolerance = 0.9;
 
-    public static IReadOnlyList<IReadOnlyList<(double X, double Y)>> Trace(AreaMap map, double tolerance = DefaultTolerance)
+    public static IReadOnlyList<BorderLine> Trace(AreaMap map, double tolerance = DefaultTolerance)
     {
         var n = map.Size;
         var w = n + 1; // corners per row
@@ -57,7 +68,7 @@ public static class AreaBorders
             if (e.Across) acrossDone[e.Edge] = true; else downDone[e.Edge] = true;
         }
 
-        var lines = new List<IReadOnlyList<(double X, double Y)>>();
+        var lines = new List<BorderLine>();
 
         // Follows edges from a corner until the next junction or end (or, on a loop, back to the start).
         void Follow(int start, (int Other, bool Across, int Edge) first)
@@ -75,7 +86,13 @@ public static class AreaBorders
                 if (open.Count == 0) break;
                 edge = open[0];
             }
-            lines.Add(Simplify(chain, tolerance));
+            // What lies on either side of the first edge lies on either side of the whole chain: with no
+            // junction on the way, nothing else can join it.
+            int ex = first.Edge % w, ey = first.Edge / w;
+            var (a, b) = first.Across
+                ? (map.IndexAtPixel(ex, ey - 1), map.IndexAtPixel(ex, ey))
+                : (map.IndexAtPixel(ex - 1, ey), map.IndexAtPixel(ex, ey));
+            lines.Add(new BorderLine(Simplify(chain, tolerance), a, b));
         }
 
         // Chains that begin at a junction or a loose end first, so they run from junction to junction …

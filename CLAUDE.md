@@ -776,7 +776,24 @@ Every overlay window derives from `OverlayWindowBase`.
   move, the stroke doesn't), so the line is ~1.2 screen px at every zoom
   and MinimapScale and stays sharp — and a future big map could reuse it
   as is. `Assets/areas.png` is untouched by this; the borders are no
-  more ACCURATE than its 12.5 m grid, only cleaner. Optional heatmap
+  more ACCURATE than its 12.5 m grid, only cleaner. (5) TWO HIGHLIGHTS
+  on the layer (Oct 4 2026, `UpdateAreaOutlines`), mirroring the pill's
+  two colours: YOUR area's outline in a soft light line (`AreaOwnPath`,
+  #ECF2F8 at 60%, 1.5 px) — where you are and how far it reaches — and
+  in edit mode the area under the CURSOR in the edit orange
+  (`AreaHoverPath`; the owner's idea). Pointing at your own area, orange
+  wins; nothing at open sea; only while the Areas layer is on, so the
+  button keeps one meaning. The owner chose the light line from a
+  side-by-side render over a bolder navy (lost on forest) and over
+  orange for your own area (it would be indistinguishable from the
+  hover), and asked for it softer than rendered. This is why
+  `AreaBorders.Trace` returns `BorderLine`s that know the two things
+  they separate (constant along a junction-free chain):
+  `AreaMapAsset.OutlineOf(area)` is the very lines of the layer that
+  have that area on a side, so a highlight sits exactly on them. A
+  single light outline is NOT the rejected white net. `UpdateArea` also
+  runs for the layer alone, so the highlight works with the pill and
+  the feed lines switched off. Optional heatmap
   layer (`HeatmapEnabled`): the site's pre-rendered heatmap PNG (opaque —
   grayscale map, blobs and a player-count caption baked in) as a second
   Image sharing the map image's size and translate transform, blended at
@@ -1459,7 +1476,9 @@ fade by render) — awaiting the owner's in-game check. Left for later,
 none started: area names in new waypoints and share codes,
 hand-corrected borders (painted into `Assets/areas.png`). Added Oct 4
 on the owner's pick: the area in spawn lines (yours and friends'), the
-pill's blink on a crossing, and Central Dome as a 27th area. Dropped:
+pill's blink on a crossing, Central Dome as a 27th area, and the two
+outline highlights on the border layer (your area, the hovered area).
+Dropped:
 caves and elevation.
 
 Later/maybe: zone overlays

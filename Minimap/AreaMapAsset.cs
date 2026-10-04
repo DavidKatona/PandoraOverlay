@@ -38,7 +38,10 @@ public static class AreaMapAsset
         }
     }
 
-    private static readonly Lazy<Geometry?> BorderLines = new(MakeBorders);
+    private static readonly Lazy<IReadOnlyList<BorderLine>> Traced =
+        new(() => Shared is { } map ? AreaBorders.Trace(map) : Array.Empty<BorderLine>());
+    private static readonly Lazy<Geometry?> BorderLines = new(() => Shared is null ? null : Draw(Traced.Value));
+    private static readonly Dictionary<int, Geometry> Outlines = new();
 
     /// <summary>
     /// The borders of the bundled map as LINES (AreaBorders), in map-pixel
@@ -50,17 +53,29 @@ public static class AreaMapAsset
     /// </summary>
     public static Geometry? Borders => BorderLines.Value;
 
-    private static Geometry? MakeBorders()
+    /// <summary>
+    /// ONE area's outline — the same traced lines, only those with that area
+    /// on a side, so it lies exactly on the borders it highlights. Made on
+    /// first use and kept. Null for "no area" or when there is no map.
+    /// </summary>
+    public static Geometry? OutlineOf(int area)
     {
-        if (Shared is not { } map) return null;
+        if (area < 0 || Shared is null) return null;
+        if (!Outlines.TryGetValue(area, out var outline)) Outlines[area] = outline = Draw(Traced.Value.Where(l => l.Touches(area)));
+        return outline;
+    }
+
+    private static Geometry Draw(IEnumerable<BorderLine> lines)
+    {
         var geometry = new StreamGeometry();
         using (var context = geometry.Open())
         {
-            foreach (var line in AreaBorders.Trace(map))
+            foreach (var line in lines)
             {
-                if (line.Count < 2) continue;
-                context.BeginFigure(new System.Windows.Point(line[0].X, line[0].Y), isFilled: false, isClosed: false);
-                for (var i = 1; i < line.Count; i++) context.LineTo(new System.Windows.Point(line[i].X, line[i].Y), isStroked: true, isSmoothJoin: true);
+                var points = line.Points;
+                if (points.Count < 2) continue;
+                context.BeginFigure(new System.Windows.Point(points[0].X, points[0].Y), isFilled: false, isClosed: false);
+                for (var i = 1; i < points.Count; i++) context.LineTo(new System.Windows.Point(points[i].X, points[i].Y), isStroked: true, isSmoothJoin: true);
             }
         }
         geometry.Freeze();
