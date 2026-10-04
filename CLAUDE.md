@@ -724,7 +724,9 @@ Every overlay window derives from `OverlayWindowBase`.
   word (Oct 2 2026): they asked for something mystical and NEUTRAL, one
   that doesn't claim water ("Uncharted waters" was my pick and was
   turned down for that), since a future map could leave land unnamed.
-  It never reaches the Activity feed. Hidden only while there is no
+  It never reaches the Activity feed. A CROSSING blinks the pill for 3 s
+  (`SetArea` → `PulseBriefly`; Oct 4 2026) — not its first appearance
+  after a spawn, not while it shows the cursor's area. Hidden only while there is no
   position (not in game) or the pill is off; in EDIT MODE it names the area
   under the CURSOR instead, in the edit orange, and only that (falling
   back to your own area there would read as "this spot is in my area") —
@@ -867,14 +869,26 @@ Every overlay window derives from `OverlayWindowBase`.
   area you left); where a life begins is no entry, open sea is never
   announced. Area lines do NOT light a faded Activity panel
   (`ActivityWindow.OnPosted`) — a crossing is worth a line, not a look.
+  The same switch names the area in SPAWN lines (Oct 4 2026, the
+  owner's picks from a list of area ideas): "You spawned as Deino 42% ·
+  Delta" (`SelfActivity.Update`'s `area`, which is why `UpdateArea` runs
+  BEFORE your own lines in `OnSnapshot`) and a friend's "… spawned as
+  Deino 42% · Swamps" / fresh-life line (`FriendFeed.Update`'s `areaAt`,
+  MainWindow's `AreaLookup` — a plain lookup, no border rule), only for
+  a friend the site lets us place (`OnMap`: location shared) and only
+  where an area is named; "Uncharted" never reaches the feed. The area
+  goes LAST in the line, so on a long name it is what the ellipsis cuts.
   `AreaBorders.Trace` gives the borders as lines for the minimap's
   optional layer (every edge of every area, see the border layer above).
   **AreaMapAsset.cs**
   is the WPF-imaging half: decodes the PNG (colour profile ignored,
   straight BGRA) once, on first use (~25 ms, a megabyte of grid). THE
-  BORDERS ARE OURS: VulnonaMAP's data holds each of the 26 areas as ONE
+  BORDERS ARE OURS: VulnonaMAP's data holds each of its 26 areas as ONE
   label point plus a size hint (`large` / `small` / `ocean`) and no
-  bounds, and the map image has none drawn, so `tools/area-map` computes
+  bounds (a 27th, Central Dome, was added Oct 4 2026 from its landmark
+  "Central Dome (Hexagon)" as one more `small` label — INPUT, not a
+  rule: the dome had no area label and was split between three areas;
+  the owner confirmed the name), and the map image has none drawn, so `tools/area-map` computes
   them — sea = the map's navy connected to the border (lakes and rivers
   stay land); every land pixel goes to the label that reaches it soonest
   OVER LAND (`large` spreads 1.3×, `small` 0.7×), so an area never jumps
@@ -883,9 +897,9 @@ Every overlay window derives from `OverlayWindowBase`.
   take the nearest claimed area; a 375 m coastal band follows the land
   beside it. The owner accepted the generated borders as the first
   version ("the borders you draw and everything is fine"). Known weak
-  spots: straight borders that ignore rivers and ridges, the central
-  dome split three ways (no label of its own), small areas as round
-  blobs, Port / East Coast claiming big octagons of sea. CORRECTIONS ARE
+  spots: straight borders that ignore rivers and ridges, small areas as
+  round blobs (Central Dome's is the dome and the land around it, not
+  its walls), Port / East Coast claiming big octagons of sea. CORRECTIONS ARE
   PAINTED into `Assets/areas.png` with the legend's exact colours, hard
   edges, PNG — which is why it is an image and not polygons — and the
   bundled-asset tests hold it to that (only legend colours,
@@ -1443,7 +1457,9 @@ verified off-screen only (the journal's rules by tests; the layer in
 both views, the button, the feed line and that it doesn't wake the
 fade by render) — awaiting the owner's in-game check. Left for later,
 none started: area names in new waypoints and share codes,
-hand-corrected borders (painted into `Assets/areas.png`). Dropped:
+hand-corrected borders (painted into `Assets/areas.png`). Added Oct 4
+on the owner's pick: the area in spawn lines (yours and friends'), the
+pill's blink on a crossing, and Central Dome as a 27th area. Dropped:
 caves and elevation.
 
 Later/maybe: zone overlays

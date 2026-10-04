@@ -10,20 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Area name on the minimap: a pill in the top-right corner names the part
-  of the island you are in (Highland, Delta, Swamps and 23 more), worked
+  of the island you are in (Highland, Delta, Swamps and 24 more), worked
   out from your own position on an area map that ships with the overlay,
   with no extra requests. The names are VulnonaMAP's Gateway labels; the
   borders are the overlay's own estimate, since nobody publishes official
   ones (see `docs/area-map.jpg`). The name changes only once you are about
-  25 m inside the next area, so it doesn't flicker along a border. Where
-  no area is named, out at open sea, it reads "Uncharted". In edit mode
-  the pill names the area under the cursor instead. Settings → Minimap →
-  "Show the area you are in" turns it off.
+  25 m inside the next area, so it doesn't flicker along a border, and the
+  pill blinks briefly when it does. Where no area is named, out at open
+  sea, it reads "Uncharted". In edit mode the pill names the area under
+  the cursor instead. Settings → Minimap → "Show the area you are in"
+  turns it off.
 - Area lines in the Activity feed: "Entered Highland" when you clearly
   cross into another area. At most one such line per half minute, nothing
   for stepping over a border and straight back, and these lines never
   light a faded Activity panel. They work with the minimap hidden.
-  Settings → Activity → "Note when you enter another area" turns them off.
+  Spawn lines say where: "You spawned as Deinosuchus 42% · Delta", and
+  the same for a friend who shares their location. Settings → Activity →
+  "Name the island's areas" turns both off.
 - Area borders on the minimap: the control panel's new Areas button (in
   the Minimap group) draws a thin dark outline around every area, its
   coastal water and the bays included, in both views and over the

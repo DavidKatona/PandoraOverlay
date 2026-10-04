@@ -371,7 +371,7 @@ public partial class MainWindow : OverlayWindowBase
         }
         var now = DateTime.UtcNow;
         _book.Sync(roster, now);
-        var fresh = _feed.Update(roster, _me, (id, site) => _book.DisplayName(id, site), _book.Notifies, now);
+        var fresh = _feed.Update(roster, _me, (id, site) => _book.DisplayName(id, site), _book.Notifies, now, AreaLookup());
         if (_config.ActivityIncludeFriends) _log.Post(fresh);
         // The friend-spawn chime is decided here, like the stats chimes, so it
         // plays whether or not the Activity widget is on screen.
@@ -382,8 +382,9 @@ public partial class MainWindow : OverlayWindowBase
     {
         _me = result.InGame ? result.Player : null;
         UpdateUi(result);
-        _log.Post(_self.Update(result, _config.ActivityDamageLines, DateTime.UtcNow));
-        UpdateArea();
+        UpdateArea(); // before your own lines: a spawn line says where you spawned
+        _log.Post(_self.Update(result, _config.ActivityDamageLines, DateTime.UtcNow,
+                               _config.ActivityAreaLines ? _areaJournal.Current : null));
         UpdateAutoHide(result.InGame && result.Player is not null);
         _tray.SetStatus(result.InGame && result.Player is { } p
             ? $"Pandora Overlay — {p.Dino} · HP {p.Health * 100:0}% · Growth {p.Growth * 100:0.#}%"
@@ -418,6 +419,22 @@ public partial class MainWindow : OverlayWindowBase
         var entered = _areaJournal.Update(map, fx, fy, now);
         if (entered is not null && _config.ActivityAreaLines) _log.Post(SelfActivity.AreaLine(entered, now));
         _minimap?.SetArea(_areaJournal.Current);
+    }
+
+    /// <summary>
+    /// World cm → the named area there, for a friend's spawn line ("… ·
+    /// Swamps"); null while the feed's area naming is off or nothing can be
+    /// placed yet. A plain lookup: the no-flicker rule is for someone
+    /// walking a border, not for one mention of where a friend appeared.
+    /// </summary>
+    private Func<double, double, string?>? AreaLookup()
+    {
+        if (!_config.ActivityAreaLines || _poll.Calibration is not { } cal || AreaMapAsset.Shared is not { } map) return null;
+        return (x, y) =>
+        {
+            var (fx, fy) = cal.ToFraction(x, y);
+            return map.NameAt(fx, fy);
+        };
     }
 
     // ---- Rendering ----------------------------------------------------------

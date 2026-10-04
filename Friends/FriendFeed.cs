@@ -45,10 +45,14 @@ public sealed class FriendFeed
     /// <summary>
     /// Feeds one roster (self already filtered out by PollService). Returns
     /// the lines this roster produced, oldest first, for the caller to post
-    /// to the ActivityLog.
+    /// to the ActivityLog. With areaAt (world cm → the named area there, or
+    /// null) a spawn line also says WHERE: "… spawned as Deino 42% · Swamps"
+    /// — only for a friend who shares their location, and only where an
+    /// area is named.
     /// </summary>
     public IReadOnlyList<FeedLine> Update(IReadOnlyList<FriendState> roster, PlayerState? me,
-                                          Func<string, string?, string> nameOf, Func<string, bool> notify, DateTime now)
+                                          Func<string, string?, string> nameOf, Func<string, bool> notify, DateTime now,
+                                          Func<double, double, string?>? areaAt = null)
     {
         var current = new Dictionary<string, FriendState>();
         foreach (var f in roster)
@@ -85,7 +89,7 @@ public sealed class FriendFeed
 
                 if (c.InGame && !p.InGame)
                 {
-                    if (speak) fresh.Add(SpawnLine(id, name, c, now));
+                    if (speak) fresh.Add(SpawnLine(id, name, c, now, areaAt));
                 }
                 else if (!c.InGame && p.InGame)
                 {
@@ -153,16 +157,19 @@ public sealed class FriendFeed
 
     // ---- Line builders ---------------------------------------------------------
 
-    private FeedLine SpawnLine(string id, string name, FriendState c, DateTime now)
+    private FeedLine SpawnLine(string id, string name, FriendState c, DateTime now, Func<double, double, string?>? areaAt)
     {
+        // Where: only for a friend the site lets us place (in game, location shared), and only a named area.
+        var where = areaAt is not null && c.OnMap && areaAt(c.X!.Value, c.Y!.Value) is { } area ? $" · {area}" : "";
+
         // Same species, lower growth than the last time we saw them alive:
         // a new life of that dino. Not "died" — only the growth drop is known.
         if (_lastLive.TryGetValue(id, out var live) && c.Dino is not null &&
             string.Equals(live.Dino, c.Dino, StringComparison.OrdinalIgnoreCase) && c.Growth < live.Growth - 0.001)
         {
-            return new FeedLine(now, $"{name} started a fresh {c.Dino} {Pct(c.Growth)}", id, FeedKind.NewLife);
+            return new FeedLine(now, $"{name} started a fresh {c.Dino} {Pct(c.Growth)}{where}", id, FeedKind.NewLife);
         }
-        return new FeedLine(now, c.Dino is null ? $"{name} is in game" : $"{name} spawned as {c.Dino} {Pct(c.Growth)}", id, FeedKind.Spawned);
+        return new FeedLine(now, (c.Dino is null ? $"{name} is in game" : $"{name} spawned as {c.Dino} {Pct(c.Growth)}") + where, id, FeedKind.Spawned);
     }
 
     private double? Proximity(string id, FriendState c, PlayerState? me)

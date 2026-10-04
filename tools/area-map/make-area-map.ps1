@@ -112,11 +112,25 @@ public static class AreaMapGenerator
 
     static int N;   // pixels per side of the map picture
 
+    static int ColourDistance(string a, string b)
+    {
+        int d = 0;
+        for (int i = 0; i < 6; i += 2)
+        {
+            int x = Convert.ToInt32(a.Substring(i, 2), 16) - Convert.ToInt32(b.Substring(i, 2), 16);
+            d += x * x;
+        }
+        return d;
+    }
+
+    // Past the hand-picked ones: the first made-up colour that is clearly apart from every colour in use
+    // (the bar is lowered a little with each try, so a map with very many areas still gets one).
     static string ColourFor(int k, HashSet<string> used)
     {
         if (k < Palette.Length) return Palette[k];
         for (int t = 0; ; t++)
         {
+            int apart = Math.Max(0, 90 - t) * Math.Max(0, 90 - t);
             double h = ((k + t) * 0.61803398875) % 1.0, s = 0.55 + 0.2 * ((k + t) % 3), v = 0.95 - 0.25 * ((k + t) % 2);
             double f = h * 6 - Math.Floor(h * 6), p = v * (1 - s), q = v * (1 - f * s), u = v * (1 - (1 - f) * s);
             double r, g, b;
@@ -130,7 +144,10 @@ public static class AreaMapGenerator
                 default: r = v; g = p; b = q; break;
             }
             string hex = string.Format("{0:X2}{1:X2}{2:X2}", (int)Math.Round(r * 255), (int)Math.Round(g * 255), (int)Math.Round(b * 255));
-            if (!used.Contains(hex)) return hex;
+            if (used.Contains(hex)) continue;
+            bool clear = true;
+            foreach (string other in used) if (ColourDistance(hex, other) < apart) { clear = false; break; }
+            if (clear) return hex;
         }
     }
 

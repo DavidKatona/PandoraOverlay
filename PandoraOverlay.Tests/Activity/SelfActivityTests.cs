@@ -120,4 +120,29 @@ public class SelfActivityTests
         var elder = Assert.Single(SelfActivity.PrimeLines(null, new PrimeSnapshot(true, true, Flags(1, 2, 3, 4, 5, 6), T0), T0));
         Assert.Equal("Prime check · 6/10 · Prime Elder", elder.Text);
     }
+
+    [Fact]
+    public void YourSpawnLineSaysWhereWhenTheAreaIsKnown()
+    {
+        var self = new SelfActivity();
+        self.Update(Off, true, T0);
+
+        var line = Assert.Single(self.Update(Live(growth: 0.42), true, T0.AddSeconds(15), area: "Somewhere"));
+
+        Assert.Equal("You spawned as Deinosuchus 42% · Somewhere", line.Text);
+    }
+
+    [Fact]
+    public void AFreshLifeSaysWhereAndNoAreaLeavesTheLineAsItWas()
+    {
+        var self = new SelfActivity();
+        self.Update(Live(growth: 0.61), true, T0);
+        self.Update(Off, true, T0.AddSeconds(3));
+        Assert.Equal("You started a fresh Deinosuchus 20% · Somewhere",
+            Assert.Single(self.Update(Live(growth: 0.2), true, T0.AddSeconds(30), area: "Somewhere")).Text);
+
+        self.Update(Off, true, T0.AddSeconds(60));
+        Assert.Equal("You spawned as Deinosuchus 30%",
+            Assert.Single(self.Update(Live(growth: 0.3), true, T0.AddSeconds(90), area: null)).Text);
+    }
 }

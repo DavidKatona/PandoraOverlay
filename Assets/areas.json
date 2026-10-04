@@ -1,7 +1,7 @@
 {
-  "Source": "Area names: VulnonaMAP (vulnona.com), Gateway v0.21.772: its area labels, one point per area where the label sits (its Lat/Long x 1000 = world cm, Long = X, Lat = Y), with its label flags as Size (large / normal / small) and Sea (ocean). Borders: computed by tools/area-map from the label points and the island map; they are the overlay's own, not from any source.",
+  "Source": "Area names: VulnonaMAP (vulnona.com), Gateway v0.21.772: its area labels, one point per area where the label sits (its Lat/Long x 1000 = world cm, Long = X, Lat = Y), with its label flags as Size (large / normal / small) and Sea (ocean); plus its landmark \"Central Dome (Hexagon)\" as one more area, Central Dome (the dome had no area label of its own and was split between three areas). Borders: computed by tools/area-map from the label points and the island map; they are the overlay's own, not from any source.",
   "CopiedOn": "2026-09-30",
-  "GeneratedOn": "2026-10-02",
+  "GeneratedOn": "2026-10-04",
   "Calibration": { "OffsetX": 1160.9249840132136, "OffsetY": 1223.2852629424794, "ScaleX": 0.0020010632626191725, "ScaleY": -0.0020003567492836005, "MapSize": 2500, "PinOffsetX": -15, "PinOffsetY": 25 },
   "Areas": [
     { "Name": "Delta", "Colour": "#F0A3FF", "X": 177000, "Y": 33000 },
@@ -29,6 +29,7 @@
     { "Name": "Swamps", "Colour": "#990000", "X": 74000, "Y": 273000 },
     { "Name": "The Pit", "Colour": "#FFFF80", "X": -394000, "Y": 329000 },
     { "Name": "West Rail", "Colour": "#DDDDDD", "X": -238000, "Y": -4000 },
-    { "Name": "Water Access", "Colour": "#FF5005", "X": 87000, "Y": -214000 }
+    { "Name": "Water Access", "Colour": "#FF5005", "X": 87000, "Y": -214000 },
+    { "Name": "Central Dome", "Colour": "#0CF2DE", "X": -43000, "Y": 104000 }
   ]
 }

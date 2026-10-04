@@ -21,8 +21,12 @@ public sealed class SelfActivity
     private PlayerState? _lastLive; // your last in-game state
     private DateTime _damageUntil;
 
-    /// <summary>Per poll: spawn / fresh life, fractures taken, damage taken. Oldest first.</summary>
-    public IReadOnlyList<FeedLine> Update(MyLocationResponse result, bool damageLines, DateTime now)
+    /// <summary>
+    /// Per poll: spawn / fresh life, fractures taken, damage taken. Oldest
+    /// first. With an area (the named area you stand in, if any) the spawn
+    /// line also says where: "You spawned as Deino 42% · Delta".
+    /// </summary>
+    public IReadOnlyList<FeedLine> Update(MyLocationResponse result, bool damageLines, DateTime now, string? area = null)
     {
         var lines = new List<FeedLine>();
         var inGame = result.InGame && result.Player is { } p;
@@ -31,7 +35,7 @@ public sealed class SelfActivity
             var me = result.Player!;
             if (_inGame == false)
             {
-                lines.Add(SpawnLine(me, now));
+                lines.Add(SpawnLine(me, now, area));
                 _damageUntil = default;
             }
             else if (_inGame == true && _lastLive is { } was && SameLife(was, me))
@@ -93,14 +97,15 @@ public sealed class SelfActivity
         return lines;
     }
 
-    private FeedLine SpawnLine(PlayerState me, DateTime now)
+    private FeedLine SpawnLine(PlayerState me, DateTime now, string? area)
     {
+        var where = string.IsNullOrWhiteSpace(area) ? "" : $" · {area}";
         if (_lastLive is { } live && me.Dino is not null &&
             string.Equals(live.Dino, me.Dino, StringComparison.OrdinalIgnoreCase) && me.Growth < live.Growth - 0.001)
         {
-            return Mine(now, $"You started a fresh {me.Dino} {Pct(me.Growth)}", FeedKind.NewLife);
+            return Mine(now, $"You started a fresh {me.Dino} {Pct(me.Growth)}{where}", FeedKind.NewLife);
         }
-        return Mine(now, me.Dino is null ? "You spawned in" : $"You spawned as {me.Dino} {Pct(me.Growth)}", FeedKind.Spawned);
+        return Mine(now, (me.Dino is null ? "You spawned in" : $"You spawned as {me.Dino} {Pct(me.Growth)}") + where, FeedKind.Spawned);
     }
 
     /// <summary>Same dino and gender, growth not lower — the trackers' rule; anything else is a new life and compares nothing.</summary>

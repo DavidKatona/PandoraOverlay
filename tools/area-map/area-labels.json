@@ -1,5 +1,5 @@
 {
-  "Source": "VulnonaMAP (vulnona.com), Gateway v0.21.772: its area labels, one point per area where the label sits (its Lat/Long x 1000 = world cm, Long = X, Lat = Y), with its label flags as Size (large / normal / small) and Sea (ocean).",
+  "Source": "VulnonaMAP (vulnona.com), Gateway v0.21.772: its area labels, one point per area where the label sits (its Lat/Long x 1000 = world cm, Long = X, Lat = Y), with its label flags as Size (large / normal / small) and Sea (ocean); plus its landmark \"Central Dome (Hexagon)\" as one more area, Central Dome (the dome had no area label of its own and was split between three areas).",
   "CopiedOn": "2026-09-30",
   "Calibration": { "OffsetX": 1160.9249840132136, "OffsetY": 1223.2852629424794, "ScaleX": 0.0020010632626191725, "ScaleY": -0.0020003567492836005, "MapSize": 2500, "PinOffsetX": -15, "PinOffsetY": 25 },
   "Labels": [
@@ -28,6 +28,7 @@
     { "Name": "Swamps", "X": 74000, "Y": 273000, "Size": "large", "Sea": false },
     { "Name": "The Pit", "X": -394000, "Y": 329000, "Size": "large", "Sea": false },
     { "Name": "West Rail", "X": -238000, "Y": -4000, "Size": "large", "Sea": false },
-    { "Name": "Water Access", "X": 87000, "Y": -214000, "Size": "large", "Sea": false }
+    { "Name": "Water Access", "X": 87000, "Y": -214000, "Size": "large", "Sea": false },
+    { "Name": "Central Dome", "X": -43000, "Y": 104000, "Size": "small", "Sea": false }
   ]
 }

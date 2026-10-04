@@ -205,5 +205,59 @@ public class FriendFeedTests
         Assert.Equal(FeedKind.Roster, line.Kind);
         Assert.StartsWith("In game:", line.Text);
     }
+    // ---- Where a friend spawned -------------------------------------------------
 
+    /// <summary>A stand-in for the area map: everything east of x = 0 is "Eastside", the rest has no name.</summary>
+    private static string? East(double x, double y) => x > 0 ? "Eastside" : null;
+
+    private static IReadOnlyList<FeedLine> FeedWithAreas(FriendFeed feed, DateTime at, params FriendState[] roster) =>
+        feed.Update(roster, Me(), (id, site) => site ?? id, _ => true, at, East);
+
+    [Fact]
+    public void ASpawnLineSaysWhere()
+    {
+        var feed = new FriendFeed();
+        FeedWithAreas(feed, T0, F("a", inGame: false));
+
+        var line = Assert.Single(FeedWithAreas(feed, T0.AddSeconds(6), F("a", growth: 0.42)));
+
+        Assert.Equal("player-a spawned as Deinosuchus 42% · Eastside", line.Text);
+        Assert.Equal(FeedKind.Spawned, line.Kind);
+    }
+
+    [Fact]
+    public void AFreshLifeSaysWhereToo()
+    {
+        var feed = new FriendFeed();
+        FeedWithAreas(feed, T0, F("a", growth: 0.6));
+        FeedWithAreas(feed, T0.AddSeconds(6), F("a", inGame: false));
+
+        var line = FeedWithAreas(feed, T0.AddSeconds(12), F("a", growth: 0.2)).Single(l => l.Kind == FeedKind.NewLife);
+
+        Assert.Equal("player-a started a fresh Deinosuchus 20% · Eastside", line.Text);
+    }
+
+    [Fact]
+    public void NoAreaIsNamedWhereThereIsNoneOrTheFriendHidesTheirLocation()
+    {
+        var feed = new FriendFeed();
+        FeedWithAreas(feed, T0, F("sea", inGame: false), F("hidden", inGame: false), F("nowhere", inGame: false));
+
+        var lines = FeedWithAreas(feed, T0.AddSeconds(6),
+            F("sea", x: -100_000),               // a spot with no named area
+            F("hidden", hide: true),             // in Eastside, but not ours to say
+            F("nowhere", x: null, y: null));     // the site sent no position
+
+        Assert.All(lines, l => Assert.Equal(FeedKind.Spawned, l.Kind));
+        Assert.All(lines, l => Assert.EndsWith("spawned as Deinosuchus 40%", l.Text));
+    }
+
+    [Fact]
+    public void WithoutAnAreaLookupTheLinesAreAsBefore()
+    {
+        var feed = new FriendFeed();
+        Feed(feed, T0, Me(), F("a", inGame: false));
+
+        Assert.Equal("player-a spawned as Deinosuchus 40%", Assert.Single(Feed(feed, T0.AddSeconds(6), Me(), F("a"))).Text);
+    }
 }

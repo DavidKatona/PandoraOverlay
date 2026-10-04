@@ -315,9 +315,11 @@ public sealed class OverlayConfig
     public bool ActivityDamageLines { get; set; }
 
     /// <summary>
-    /// Post "Entered Highland" when you clearly cross into another named
-    /// area (at most one such line per half minute). On by default; these
-    /// lines never light a faded Activity panel.
+    /// Name the island's areas in the feed: "Entered Highland" when you
+    /// clearly cross into another named area (at most one such line per
+    /// half minute; these never light a faded Activity panel), and where a
+    /// spawn happened ("… spawned as Deino 42% · Swamps" — yours, and a
+    /// friend's who shares their location). On by default.
     /// </summary>
     public bool ActivityAreaLines { get; set; } = true;
 

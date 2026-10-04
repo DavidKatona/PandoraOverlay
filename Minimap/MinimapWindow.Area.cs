@@ -29,6 +29,7 @@ public partial class MinimapWindow
     /// </summary>
     private const string Uncharted = "Uncharted";
     private const double UnchartedOpacity = 0.6;
+    private static readonly TimeSpan AreaPulse = TimeSpan.FromSeconds(3); // three blinks; the growth readout gets ten seconds, but a crossing is far more frequent than a stage
 
     private string? _area;                       // where you are, settled (null = no named area / not in game / unknown)
     private (double Fx, double Fy)? _hoverSpot;  // edit mode: the map point under the cursor
@@ -36,12 +37,23 @@ public partial class MinimapWindow
     /// <summary>The bundled map for the hover lookup, decoded on first use — never, with the pill switched off.</summary>
     private AreaMap? Areas => _config.MinimapAreaEnabled ? AreaMapAsset.Shared : null;
 
-    /// <summary>MainWindow's word on where you are, per poll and when this window is created.</summary>
+    /// <summary>
+    /// MainWindow's word on where you are, per poll and when this window is
+    /// created. A CROSSING blinks the pill briefly (the growth readout's
+    /// blink), so it is noticed without reading the feed — not the pill's
+    /// first appearance after a spawn (no position yet when the word
+    /// arrives), and not while the pill is showing the cursor's area.
+    /// </summary>
     public void SetArea(string? name)
     {
         if (name == _area) return;
+        var crossing = _lastFix is not null;
         _area = name;
         UpdateAreaPill();
+        if (crossing && AreaPanel.Visibility == Visibility.Visible && !(EditMode && _hoverSpot is not null))
+        {
+            PulseBriefly(AreaPanel, AreaPulse);
+        }
     }
 
     private void SetHoverSpot((double Fx, double Fy)? spot)
@@ -64,6 +76,7 @@ public partial class MinimapWindow
         if (Areas is not { } map || (!hovering && _lastFix is null))
         {
             AreaPanel.Visibility = Visibility.Collapsed;
+            AreaPanel.BeginAnimation(OpacityProperty, null); // a blink in progress ends with the pill, so it can't reappear mid-blink
             return;
         }
         var name = hovering && _hoverSpot is { } spot ? map.NameAt(spot.Fx, spot.Fy) : _area;
