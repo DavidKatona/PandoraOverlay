@@ -208,7 +208,11 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   writes `Assets/areas.png` + `Assets/areas.json` and, with
   `-PreviewPath`, the picture for people (`docs/area-map.jpg`). A STARTING POINT, not a
   build step: corrections are painted into `Assets/areas.png`, and a
-  re-run overwrites them. See AreaMap under Architecture.
+  re-run overwrites them. THE BUNDLED MAP IS HAND-CORRECTED since Oct 5
+  2026 (the owner painted Central Dome larger to the south-east, ~2,000
+  px, nearly all from Swamps) — so DON'T re-run the generator over it
+  without the owner's word, and `docs/area-map.jpg` shows the map from
+  before that edit. See AreaMap under Architecture.
   **RULE (owner, Oct 2 2026): NOTHING IS WRITTEN FOR ONE NAMED AREA.**
   The generator, the overlay's area code and the tests treat every area
   alike, and everything about a particular map is INPUT — so a new map
@@ -1478,8 +1482,9 @@ verified off-screen only (the journal's rules by tests; the layer in
 both views, the button and the feed line by render) — the owner has
 since seen the feed line in game and had it wake the fade like any
 other line (Oct 5). Left for later,
-none started: area names in new waypoints and share codes,
-hand-corrected borders (painted into `Assets/areas.png`). Added Oct 4
+not started: area names in new waypoints and share codes. Hand
+corrections of the borders (painted into `Assets/areas.png`) began Oct
+5 with the owner's first one, see `tools/area-map/`. Added Oct 4
 on the owner's pick: the area in spawn lines (yours and friends'), the
 pill's blink on a crossing, Central Dome as a 27th area, and the two
 outline highlights on the border layer (your area, the hovered area).
