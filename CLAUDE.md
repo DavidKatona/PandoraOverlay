@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.28.0 is built, working, and approved by the server's
+and settings window. **v1.29.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1468,28 +1468,27 @@ over two days: applying works, all pictures load — served by
 islapandora.eu itself at full size, ~4.7 MB each, 72 available + 15
 locked on the owner's account — and a too-early apply is refused with a
 message stating when the next skin can be applied, shown as the
-server's words). No layout presets beyond the default for now.
+server's words), v1.29.0 (Oct 5 — **areas**, the owner's idea: "which
+area am I in" from a bundled colour-coded area map (see AreaMap under
+Architecture and `tools/area-map`). Three parts: the minimap's area
+pill (top-right, the owner's corner; the area under the cursor in edit
+mode; "Uncharted" where none is named; a blink on a crossing),
+"Entered …" lines plus the area in spawn lines (yours and friends') in
+the Activity feed, and the border layer on the minimap (control panel →
+Areas: vector lines, your area outlined in a soft light line, the
+hovered area in orange). 27 areas: VulnonaMAP's 26 labels plus Central
+Dome, with generated borders the owner accepted as the first version
+and then began correcting by hand (Oct 5, Central Dome painted larger).
+Tried in game by the owner Oct 2–5 — the pill, the feed line (which
+they had wake the fade like any other line) and the borders; the spawn
+lines, the blink, "Uncharted" and the two highlights were checked by
+tests and off-screen renders only when the owner called the release).
+No layout presets beyond the default for now.
 
-Built Oct 2 2026 (target 1.29.0): **areas** — "which area am I in" from
-a bundled colour-coded area map (see AreaMap under Architecture and
-`tools/area-map`). The owner's idea; they accepted the generated borders
-as the first version, chose the top-right corner for the pill and asked
-for the edit-mode hover. Three parts: (1) the minimap's area pill —
-tried in game by the owner the same day ("seems to work well");
-(2) "Entered …" lines in the Activity feed and (3) the border layer on
-the minimap (control panel → Areas), both built right after and
-verified off-screen only (the journal's rules by tests; the layer in
-both views, the button and the feed line by render) — the owner has
-since seen the feed line in game and had it wake the fade like any
-other line (Oct 5). Left for later,
-not started: area names in new waypoints and share codes. Hand
-corrections of the borders (painted into `Assets/areas.png`) began Oct
-5 with the owner's first one, see `tools/area-map/`. Added Oct 4
-on the owner's pick: the area in spawn lines (yours and friends'), the
-pill's blink on a crossing, Central Dome as a 27th area, and the two
-outline highlights on the border layer (your area, the hovered area).
-Dropped:
-caves and elevation.
+Areas, left for later and not started: area names in new waypoints and
+share codes. Further border corrections are painted into
+`Assets/areas.png` (see `tools/area-map/`). Dropped: caves and
+elevation.
 
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
@@ -1558,7 +1557,7 @@ re-propose.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.28.0.
+  minor, fixes bump patch. Current: 1.29.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
