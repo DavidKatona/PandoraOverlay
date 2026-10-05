@@ -211,8 +211,13 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   re-run overwrites them. THE BUNDLED MAP IS HAND-CORRECTED since Oct 5
   2026 (the owner painted Central Dome larger to the south-east, ~2,000
   px, nearly all from Swamps) — so DON'T re-run the generator over it
-  without the owner's word, and `docs/area-map.jpg` shows the map from
-  before that edit. See AreaMap under Architecture.
+  without the owner's word. The picture is drawn by its own script,
+  `preview-area-map.ps1` (Oct 5 2026): it only READS `Assets/map.png`,
+  `areas.png` and `areas.json` and writes `docs/area-map.jpg`, so it is
+  what to run after painting; the generator's `-PreviewPath` calls the
+  same script (one copy of the drawing code). `-FullSize`, `-Title` and
+  `-Hex` are for a one-off picture such as a Discord post. See AreaMap
+  under Architecture.
   **RULE (owner, Oct 2 2026): NOTHING IS WRITTEN FOR ONE NAMED AREA.**
   The generator, the overlay's area code and the tests treat every area
   alike, and everything about a particular map is INPUT — so a new map

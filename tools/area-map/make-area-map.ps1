@@ -27,7 +27,9 @@
 #
 # Corrections are meant to be PAINTED: edit Assets/areas.png with the colours listed in
 # Assets/areas.json (hard edges, no anti-aliasing, save as PNG). Re-running this script
-# OVERWRITES such corrections - it is the starting point, not a build step.
+# OVERWRITES such corrections - it is the starting point, not a build step. After
+# painting, preview-area-map.ps1 redraws the picture for people (docs/area-map.jpg)
+# from the painted map; it only reads. -PreviewPath here calls that same script.
 #
 # Usage (Windows PowerShell 5.1):   .\make-area-map.ps1 [-PreviewPath docs\area-map.jpg]
 param(
@@ -41,7 +43,6 @@ $code = @'
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -206,7 +207,7 @@ public static class AreaMapGenerator
         }
     }
 
-    public static string Run(string mapPath, MapCal cal, AreaLabel[] labels, string outPng, string previewPath)
+    public static string Run(string mapPath, MapCal cal, AreaLabel[] labels, string outPng)
     {
         if (labels.Length == 0) throw new Exception("no labels");
         if (labels.Length > MaxAreas) throw new Exception("more than " + MaxAreas + " labels");
@@ -325,10 +326,6 @@ public static class AreaMapGenerator
         int[] outPx = new int[N * N];
         for (int i = 0; i < N * N; i++) outPx[i] = owner[i] < 0 ? 0 : colours[owner[i]].ToArgb();
         SaveArgb(outPx, outPng);
-        if (!string.IsNullOrEmpty(previewPath))
-        {
-            using (Bitmap id = new Bitmap(outPng)) SavePreview(mapPath, id, owner, labels, colours, km2PerPixel, previewPath);
-        }
 
         for (int k = 0; k < labels.Length; k++)
         {
@@ -337,105 +334,6 @@ public static class AreaMapGenerator
                 a.Name, a.Colour, a.Px, a.Py, a.Sx, a.Sy, a.SeaType ? "sea" : "land", a.W, a.Pixels, a.Pixels * km2PerPixel));
         }
         return log.ToString();
-    }
-
-    // The map with the areas over it, their borders, names and a legend - for people, not for the overlay.
-    static void SavePreview(string mapPath, Bitmap id, int[] owner, AreaLabel[] labels, Color[] colours, double km2PerPixel, string path)
-    {
-        const int LegendW = 470;
-        int side = 2000;                      // the preview's map side, whatever the picture's size
-        float S = side / (float)N;
-        using (Bitmap pv = new Bitmap(side + LegendW, side, PixelFormat.Format32bppArgb))
-        using (Bitmap src = new Bitmap(mapPath))
-        using (Graphics g = Graphics.FromImage(pv))
-        {
-            g.Clear(Color.FromArgb(0x16, 0x1C, 0x23));
-            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            g.DrawImage(src, new Rectangle(0, 0, side, side));
-            g.InterpolationMode = InterpolationMode.NearestNeighbor;
-            g.PixelOffsetMode = PixelOffsetMode.Half;
-            ColorMatrix cm = new ColorMatrix(); cm.Matrix33 = 0.5f;
-            using (ImageAttributes ia = new ImageAttributes())
-            {
-                ia.SetColorMatrix(cm);
-                g.DrawImage(id, new Rectangle(0, 0, side, side), 0, 0, N, N, GraphicsUnit.Pixel, ia);
-            }
-            using (SolidBrush edge = new SolidBrush(Color.FromArgb(200, 10, 12, 16)))
-            {
-                for (int y = 0; y < N - 1; y++)
-                for (int x = 0; x < N - 1; x++)
-                {
-                    int o = owner[y * N + x];
-                    if (o != owner[y * N + x + 1] || o != owner[(y + 1) * N + x]) g.FillRectangle(edge, x * S + S / 2, y * S + S / 2, S, S);
-                }
-            }
-            g.PixelOffsetMode = PixelOffsetMode.Default;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            using (FontFamily ff = new FontFamily("Segoe UI"))
-            using (Pen outline = new Pen(Color.FromArgb(230, 0, 0, 0), 4f))
-            using (StringFormat centre = new StringFormat())
-            {
-                outline.LineJoin = LineJoin.Round;
-                centre.Alignment = StringAlignment.Center; centre.LineAlignment = StringAlignment.Center;
-                for (int k = 0; k < labels.Length; k++)
-                {
-                    AreaLabel a = labels[k];
-                    g.FillEllipse(Brushes.White, a.Px * S - 4, a.Py * S - 4, 8, 8);
-                    g.DrawEllipse(Pens.Black, a.Px * S - 4, a.Py * S - 4, 8, 8);
-                    using (GraphicsPath p = new GraphicsPath())
-                    {
-                        p.AddString(a.Name, ff, (int)FontStyle.Bold, 21f, new PointF(a.Px * S, a.Py * S - 20), centre);
-                        g.DrawPath(outline, p);
-                        g.FillPath(Brushes.White, p);
-                    }
-                }
-                // The legend: as many rows as there are areas, squeezed to fit the height if there are many.
-                int rowHeight = Math.Max(18, Math.Min(46, (side - 150) / labels.Length));
-                using (Font title = new Font(ff, 17f, FontStyle.Bold, GraphicsUnit.Pixel))
-                using (Font row = new Font(ff, Math.Min(16f, rowHeight * 0.36f + 2), FontStyle.Regular, GraphicsUnit.Pixel))
-                using (Font small = new Font(ff, 13f, FontStyle.Regular, GraphicsUnit.Pixel))
-                using (SolidBrush text = new SolidBrush(Color.FromArgb(0xEC, 0xF2, 0xF8)))
-                using (SolidBrush dim = new SolidBrush(Color.FromArgb(0x9A, 0xA7, 0xB0)))
-                {
-                    int lx = side + 24, ly = 28;
-                    g.DrawString("PANDORA OVERLAY - AREAS", title, text, lx, ly); ly += 28;
-                    g.DrawString("Names: the label points (white dots).", small, dim, lx, ly); ly += 18;
-                    g.DrawString("Borders: computed by the overlay's generator.", small, dim, lx, ly); ly += 34;
-                    for (int k = 0; k < labels.Length; k++)
-                    {
-                        AreaLabel a = labels[k];
-                        using (SolidBrush sw = new SolidBrush(colours[k])) g.FillRectangle(sw, lx, ly + 2, 26, Math.Min(18, rowHeight - 4));
-                        g.DrawRectangle(Pens.Black, lx, ly + 2, 26, Math.Min(18, rowHeight - 4));
-                        g.DrawString(a.Name, row, text, lx + 36, ly);
-                        if (rowHeight >= 40) g.DrawString(string.Format("{0}  {1:0.0} km2", a.Colour, a.Pixels * km2PerPixel), small, dim, lx + 36, ly + 20);
-                        ly += rowHeight;
-                    }
-                }
-            }
-            if (path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
-            {
-                // Half size as a JPEG: small enough for the README.
-                using (Bitmap half = new Bitmap(pv.Width / 2, pv.Height / 2, PixelFormat.Format24bppRgb))
-                {
-                    using (Graphics hg = Graphics.FromImage(half))
-                    {
-                        hg.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        hg.DrawImage(pv, new Rectangle(0, 0, half.Width, half.Height));
-                    }
-                    ImageCodecInfo jpeg = null;
-                    foreach (ImageCodecInfo c in ImageCodecInfo.GetImageEncoders()) if (c.MimeType == "image/jpeg") jpeg = c;
-                    using (EncoderParameters ep = new EncoderParameters(1))
-                    {
-                        ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 86L);
-                        half.Save(path, jpeg, ep);
-                    }
-                }
-            }
-            else
-            {
-                pv.Save(path, ImageFormat.Png);
-            }
-        }
     }
 }
 '@
@@ -457,8 +355,7 @@ foreach ($l in $source.Labels) {
 $areas = $labelList.ToArray()
 
 $outDirFull = (Resolve-Path $OutDir).Path
-$preview = if ($PreviewPath) { [IO.Path]::GetFullPath((Join-Path (Get-Location) $PreviewPath)) } else { '' }
-$log = [AreaMapGenerator]::Run((Resolve-Path $Map).Path, $cal, $areas, (Join-Path $outDirFull 'areas.png'), $preview)
+$log = [AreaMapGenerator]::Run((Resolve-Path $Map).Path, $cal, $areas, (Join-Path $outDirFull 'areas.png'))
 
 # The legend the overlay reads beside the image: which colour is which area, where its
 # label point is (world cm - the same coordinates as a waypoint), and the calibration
@@ -479,3 +376,9 @@ $json = "{`n" +
     '  "Areas": [' + "`n" + ($rows -join ",`n") + "`n  ]`n}`n"
 [IO.File]::WriteAllText((Join-Path $outDirFull 'areas.json'), $json, (New-Object Text.UTF8Encoding $false))
 $log
+
+# The picture for people is drawn from the two files just written, by the script that
+# can also redraw it alone (after corrections were painted, when this one must not run).
+if ($PreviewPath) {
+    & "$PSScriptRoot\preview-area-map.ps1" -Out $PreviewPath -Map (Resolve-Path $Map).Path -AreaDir $outDirFull -Labels (Resolve-Path $Labels).Path
+}
