@@ -10,7 +10,10 @@ web dev.**
 1. **Fully external, always.** Never read game memory, inject, hook, enumerate or
    touch the game process in any way. The Isle runs Easy Anti-Cheat. The ONLY data
    source is the islapandora.eu web API. If a feature seems to need game-side data,
-   the answer is no.
+   the answer is no. (One accepted edge, the owner's reading of Oct 5 2026: a
+   third-party installer / updater listing all running programs to find its own
+   copies, as Velopack does on a click — see "Updater TRIAL" under Roadmap. The
+   overlay's own code never looks at any process.)
 2. **Approved endpoints only.** `POST /api/map/mylocation` (the poll),
    `POST /api/map/calibration` (once per launch — static map-transform constants
    for the approved minimap; the live-map page itself loads it on every visit;
@@ -1529,6 +1532,36 @@ update) with a one-time migration. Until the trigger: zip + notifier is
 the right size, don't build an installer. Rejected: rotating (facing-up)
 minimap mode — owner decided it isn't useful enough (Sep 2026); don't
 re-propose.
+
+Updater TRIAL, Oct 5 2026 — the trigger above has fired (126 downloads
+each for 1.27 and 1.28, single digits before the Discord channel), a
+plan for 1.30.0 was drafted in conversation and Velopack 1.2.161 was
+tried LOCALLY, unsigned, on a throwaway branch (nothing pushed, a
+separate "PandoraOverlayTrial" identity, a Desktop folder as the update
+feed). Seen on the owner's PC (SmartScreen on, Bitdefender active,
+Defender and Smart App Control off — so those two are UNTESTED): the
+installer downloaded by a browser gets the SmartScreen prompt once; the
+in-app update got NO prompt (no installed or updated file carries the
+download mark), took ~2 s from start to the overlay being back, and the
+settings kept outside the app folder survived it. Sizes: Setup.exe 11.5
+MB, zip 4.2 MB (Velopack's Update.exe alone is 5 MB). The zip carries
+its own Update.exe; its launcher is named after `--packTitle`, not the
+main exe. vpk wants `--runtime win-x64` (it defaults to x86) and
+`--shortcuts StartMenuRoot` (it defaults to a Desktop shortcut too), and
+warns unless `VelopackApp.Build().Run()` is the first line of a real
+`Main()`. Signing: SignPath Foundation is the free route but signs only
+as a pipeline step, which fits Velopack badly (a project using the pair
+still ships two helpers unsigned inside the update package); Azure
+Artifact Signing is closed to EU individuals.
+**OWNER'S DECISION on hard constraint 1 (Oct 5 2026):** Velopack's
+Setup.exe and Update.exe list EVERY running program on the PC to find
+and stop copies running from the overlay's own folder ("Inspected 335
+running processes" in their log — once per install, three times per
+update), so a running game is among what they look at. The owner
+ACCEPTS this as outside what the rule is meant to stop: it happens only
+on an install / update / uninstall click and compares exe locations
+with our folder. It is not a licence for OUR code: the overlay itself
+still never lists, opens or looks at any process.
 
 ## Conventions
 
