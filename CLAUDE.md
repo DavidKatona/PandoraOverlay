@@ -1544,9 +1544,16 @@ installer downloaded by a browser gets the SmartScreen prompt once; the
 in-app update got NO prompt (no installed or updated file carries the
 download mark), took ~2 s from start to the overlay being back, and the
 settings kept outside the app folder survived it. Sizes: Setup.exe 11.5
-MB, zip 4.2 MB (Velopack's Update.exe alone is 5 MB). The zip carries
-its own Update.exe; its launcher is named after `--packTitle`, not the
-main exe. vpk wants `--runtime win-x64` (it defaults to x86) and
+MB, zip 4.2 MB (Velopack's Update.exe alone is 5 MB). The ZIP UPDATES
+ITSELF in place the same way (tried: SmartScreen once on the first run
+of the downloaded copy, none on the update, and it leaves an installed
+copy's Start menu and installed-apps entries alone); its launcher is
+named after `--packTitle`, not the main exe, so the title must be
+exactly "PandoraOverlay" for "unpack over the old folder" to replace
+the old exe. Installed copy and zip copy share the settings folder.
+UNINSTALL removes the app folder, the Start menu entry and the
+installed-apps entry, and LEAVES the settings folder and Velopack's own
+log folder (`%LocalAppData%\Velopack`). vpk wants `--runtime win-x64` (it defaults to x86) and
 `--shortcuts StartMenuRoot` (it defaults to a Desktop shortcut too), and
 warns unless `VelopackApp.Build().Run()` is the first line of a real
 `Main()`. Signing: SignPath Foundation is the free route but signs only
