@@ -162,12 +162,11 @@ public partial class ActivityWindow : OverlayWindowBase
     /// <summary>The roster changed (or was cleared): the header's counts and the quiet line follow.</summary>
     private void OnFriends(IReadOnlyList<FriendState>? roster) => Render();
 
-    /// <summary>New lines landed in the log: show them and light the widget. (The friend-spawn chime is MainWindow's, like the stats chimes — it must not depend on this widget being shown.)</summary>
+    /// <summary>New lines landed in the log: show them and light the widget — ANY line, no kind is exempt. (The friend-spawn chime is MainWindow's, like the stats chimes — it must not depend on this widget being shown.)</summary>
     private void OnPosted(IReadOnlyList<FeedLine> fresh)
     {
         Render();
-        // Crossing into another area is worth a line, not a look: it must not light a faded panel.
-        if (fresh.Any(line => line.Kind != FeedKind.Area)) Wake();
+        Wake();
     }
 
     private void Wake()

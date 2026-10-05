@@ -884,8 +884,10 @@ Every overlay window derives from `OverlayWindowBase`.
   straight back says nothing more, and staying on the other side is
   caught up when the half minute is over (the feed never ends on an
   area you left); where a life begins is no entry, open sea is never
-  announced. Area lines do NOT light a faded Activity panel
-  (`ActivityWindow.OnPosted`) — a crossing is worth a line, not a look.
+  announced. Area lines light a faded Activity panel like every other
+  line: the first build exempted them ("a crossing is worth a line, not
+  a look") and the owner removed that on trying it in game (Oct 5 2026)
+  — see the rule under ActivityWindow.
   The same switch names the area in SPAWN lines (Oct 4 2026, the
   owner's picks from a list of area ideas): "You spawned as Deino 42% ·
   Delta" (`SelfActivity.Update`'s `area`, which is why `UpdateArea` runs
@@ -1064,6 +1066,8 @@ Every overlay window derives from `OverlayWindowBase`.
   friend's stats live nowhere on the overlay (a footer stats line was
   proposed and REJECTED: the footer is navigation only). Takes part in
   the fade (`Fades => true`): `Posted` lights it 30 s, calm when opened.
+  RULE (owner, Oct 5 2026): ANY new line wakes it — no kind of line is
+  exempt, and no per-kind wake rules are added (`OnPosted`).
   No sounds here: the friend-spawn chime (`FriendsChimeEnabled`) is
   MainWindow's, decided in `OnFriendsRoster` like the stats chimes, so it
   plays with the widget hidden (owner, Sep 28 2026: a friends alert is
@@ -1471,8 +1475,9 @@ tried in game by the owner the same day ("seems to work well");
 (2) "Entered …" lines in the Activity feed and (3) the border layer on
 the minimap (control panel → Areas), both built right after and
 verified off-screen only (the journal's rules by tests; the layer in
-both views, the button, the feed line and that it doesn't wake the
-fade by render) — awaiting the owner's in-game check. Left for later,
+both views, the button and the feed line by render) — the owner has
+since seen the feed line in game and had it wake the fade like any
+other line (Oct 5). Left for later,
 none started: area names in new waypoints and share codes,
 hand-corrected borders (painted into `Assets/areas.png`). Added Oct 4
 on the owner's pick: the area in spawn lines (yours and friends'), the

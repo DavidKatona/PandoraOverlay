@@ -21,9 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the cursor instead. Settings → Minimap → "Show the area you are in"
   turns it off.
 - Area lines in the Activity feed: "Entered Highland" when you clearly
-  cross into another area. At most one such line per half minute, nothing
-  for stepping over a border and straight back, and these lines never
-  light a faded Activity panel. They work with the minimap hidden.
+  cross into another area. At most one such line per half minute and
+  nothing for stepping over a border and straight back. Like every new
+  line, they light a faded Activity panel. They work with the minimap
+  hidden.
   Spawn lines say where: "You spawned as Deinosuchus 42% · Delta", and
   the same for a friend who shares their location. Settings → Activity →
   "Name the island's areas" turns both off.
