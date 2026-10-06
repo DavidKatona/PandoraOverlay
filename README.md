@@ -265,7 +265,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `HideWhenNotInGame` | Hide every widget after ~30 s of not being spawned in, and show them again on the first in-game update. Checkbox in Settings. Default `false`. |
 | `MinimapEnabled` | Show the minimap window (toggled from the control panel). |
 | `MinimapX` / `MinimapY` | Minimap position (empty until first placed: top-right corner in the default layout). |
-| `MinimapScale` | Minimap scale, 0.75–1.5 (default 1 = a 284 px map). Slider in Settings → Minimap. Replaces the old pixel `MinimapSize`, which is converted once on first launch and then ignored. |
+| `MinimapScale` | Minimap scale, 0.75–1.5 (default 1 = a 284 px map). Slider in Settings → Minimap. The pixel `MinimapSize` of versions before 1.25 is ignored. |
 | `MinimapMode` | `island` (whole map, arrow moves) or `centered` (map pans under a fixed arrow). Map view button / Ctrl+F5 toggles it. |
 | `MinimapZoom` | Centered-view magnification, clamped to 1.25–6 (default 5). Mouse wheel in edit mode adjusts it. |
 | `MinimapYawOffsetDegrees` | Rotation added to the raw yaw for the arrow. Default 90 matches the current map. |

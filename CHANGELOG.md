@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- A fresh install started the minimap at 81% while every other widget
+  started at 100%: the one-time conversion of the old pixel map size, meant
+  for settings files from before 1.25, was applied to the default as well.
+  All four size sliders now simply default to 100%. Existing settings keep
+  their saved sizes.
+
 ## [1.29.0] - 2026-10-05
 
 ### Added

@@ -205,7 +205,7 @@ public partial class MinimapWindow : OverlayWindowBase
     }
 
     /// <summary>Its own scale, like every widget (v1.25 — it was sized in pixels before; OverlayConfig.Load migrates that).</summary>
-    protected override double AppearanceScale(OverlayConfig config) => config.MinimapScale ?? 1.0;
+    protected override double AppearanceScale(OverlayConfig config) => config.MinimapScale;
 
     /// <summary>Re-reads view mode, zoom, scale, waypoint policy and appearance from config after the settings dialog saves.</summary>
     public void ApplySettings()

@@ -143,19 +143,13 @@ public sealed class OverlayConfig
     public double? MinimapY { get; set; }
 
     /// <summary>
-    /// LEGACY (pre-v1.25): the map's edge length in DIPs (160–400). Load()
-    /// turns it into MinimapScale once (230 px, the old default, becomes
-    /// ~0.81 of the new 284 px map). Kept only so older configs migrate.
-    /// </summary>
-    public double MinimapSize { get; set; } = 230;
-
-    /// <summary>
     /// Minimap scale, clamped 0.75–1.5 — since v1.25 every widget is sized
     /// in percent through the same layout transform, the minimap included
-    /// (before, it was the one widget sized in pixels). Null only in configs
-    /// written before it existed: Load() seeds it from MinimapSize.
+    /// (before, it was the one widget sized in pixels: "MinimapSize", a key
+    /// files from before 1.25 still carry and the loader ignores). Defaults
+    /// to 1.0 like every scale: a fresh install starts every widget at 100%.
     /// </summary>
-    public double? MinimapScale { get; set; }
+    public double MinimapScale { get; set; } = 1.0;
 
     /// <summary>
     /// Minimap view: "island" (whole map, the arrow moves) or "centered"
@@ -165,7 +159,7 @@ public sealed class OverlayConfig
     public string MinimapMode { get; set; } = "island";
 
     /// <summary>
-    /// Centered-mode magnification: the map is rendered at MinimapSize × zoom.
+    /// Centered-mode magnification: the map is rendered at the map's size × zoom.
     /// Clamped to 1.25–6 at runtime (the source image is 1000 px, so the top
     /// of the range upscales slightly). Mouse wheel over the minimap adjusts
     /// it while in edit mode.
@@ -294,10 +288,9 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Activity widget scale, clamped 0.75–1.5 — every widget has its own size
-    /// control. Null in configs written before it existed: Load() seeds it
-    /// from PrimeScale, the widget it docks under.
+    /// control, and all of them default to 1.0.
     /// </summary>
-    public double? ActivityScale { get; set; }
+    public double ActivityScale { get; set; } = 1.0;
 
     /// <summary>
     /// Post your friends' events (spawned, left, fresh life, dino change,
@@ -352,11 +345,9 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Prime tracker scale, clamped 0.75–1.5 — every widget has its own size
-    /// control. Null only in configs written before it existed: Load() seeds
-    /// it from UiScale, which the widget followed until then, so an update
-    /// never resizes anyone's widget.
+    /// control, and all of them default to 1.0.
     /// </summary>
-    public double? PrimeScale { get; set; }
+    public double PrimeScale { get; set; } = 1.0;
 
     /// <summary>Opacity of the dark glass behind the panels (text stays crisp). Clamped 0.3–1.</summary>
     public double BackgroundOpacity { get; set; } = 0.8;
@@ -434,9 +425,6 @@ public sealed class OverlayConfig
         }
 
         cfg.SkinChoices ??= new(); // a hand-edited "SkinChoices": null must not cost the first apply
-        cfg.PrimeScale ??= cfg.UiScale;
-        cfg.ActivityScale ??= cfg.PrimeScale;
-        cfg.MinimapScale ??= MinimapScaleFromSize(cfg.MinimapSize);
 
         // Waypoint slots: always three (a hand-edited array is padded or
         // trimmed), and the pre-v1.20 single waypoint becomes the blue one.
@@ -454,18 +442,6 @@ public sealed class OverlayConfig
 
         cfg.Save();
         return cfg;
-    }
-
-    /// <summary>
-    /// The v1.25 migration from the pixel map size to a scale of the new
-    /// 284 px map, rounded to 2 decimals and clamped to the slider's range —
-    /// so an existing minimap keeps its size: 230 px → 0.81, 400 → 1.41; only
-    /// the old minimum clips (160 → 0.75 = 213 px).
-    /// </summary>
-    internal static double MinimapScaleFromSize(double px)
-    {
-        if (double.IsNaN(px) || px <= 0) return 1.0;
-        return Math.Clamp(Math.Round(px / 284, 2), 0.75, 1.5);
     }
 
     /// <summary>Decrypts and returns the stored cookie, or "" if none/undecryptable.</summary>

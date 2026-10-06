@@ -269,9 +269,9 @@ public partial class MainWindow : OverlayWindowBase
     {
         var screen = GetScreenBoundsDips();
         var p = DefaultLayout.Columns(screen,
-            prime: Frame(WidgetFrame.LargeHeight, _config.PrimeScale ?? _config.UiScale),
-            activity: Frame(WidgetFrame.SmallHeight, _config.ActivityScale ?? _config.PrimeScale ?? _config.UiScale),
-            minimap: Frame(WidgetFrame.LargeHeight, _config.MinimapScale ?? 1.0),
+            prime: Frame(WidgetFrame.LargeHeight, _config.PrimeScale),
+            activity: Frame(WidgetFrame.SmallHeight, _config.ActivityScale),
+            minimap: Frame(WidgetFrame.LargeHeight, _config.MinimapScale),
             stats: Frame(WidgetFrame.SmallHeight, _config.UiScale));
 
         if (_config.WindowX is null || _config.WindowY is null)

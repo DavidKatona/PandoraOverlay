@@ -109,7 +109,7 @@ public partial class ActivityWindow : OverlayWindowBase
     protected override bool Fades => true;
 
     /// <summary>Its own size control, like every widget; seeded from the Prime tracker it docks under.</summary>
-    protected override double AppearanceScale(OverlayConfig config) => config.ActivityScale ?? config.PrimeScale ?? config.UiScale;
+    protected override double AppearanceScale(OverlayConfig config) => config.ActivityScale;
 
     /// <summary>Reapplies scale/opacity and the feed choices after a settings save.</summary>
     public void ApplySettingsFromConfig()

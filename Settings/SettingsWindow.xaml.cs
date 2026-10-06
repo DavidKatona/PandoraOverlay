@@ -153,7 +153,7 @@ public partial class SettingsWindow : Window
         LowStatChimeCheck.IsChecked = config.LowStatChimeEnabled;
         GrowthChimeCheck.IsChecked = config.GrowthChimeEnabled;
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
-        PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale ?? config.UiScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
+        PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
         FadeCheck.IsChecked = config.FadeEnabled;
         FadeSlider.Value = Math.Clamp(config.FadeIdleOpacity, FadeSlider.Minimum, FadeSlider.Maximum);
@@ -163,7 +163,7 @@ public partial class SettingsWindow : Window
         ModeCentered.IsChecked = centered;
         ModeIsland.IsChecked = !centered;
         ZoomSlider.Value = Math.Clamp(config.MinimapZoom, ZoomSlider.Minimum, ZoomSlider.Maximum);
-        MinimapScaleSlider.Value = Math.Clamp(config.MinimapScale ?? 1.0, MinimapScaleSlider.Minimum, MinimapScaleSlider.Maximum);
+        MinimapScaleSlider.Value = Math.Clamp(config.MinimapScale, MinimapScaleSlider.Minimum, MinimapScaleSlider.Maximum);
         // A hand-edited in-between value shows as the next option up.
         var trailRadio = config.MinimapTrailMinutes switch { <= 0 => TrailOff, <= 10 => Trail10, <= 30 => Trail30, _ => Trail60 };
         trailRadio.IsChecked = true;
@@ -180,7 +180,7 @@ public partial class SettingsWindow : Window
         WaypointList.SizeChanged += (_, _) => AlignWaypointHeader();
 
         // Activity
-        ActivityScaleSlider.Value = Math.Clamp(config.ActivityScale ?? config.PrimeScale ?? config.UiScale, ActivityScaleSlider.Minimum, ActivityScaleSlider.Maximum);
+        ActivityScaleSlider.Value = Math.Clamp(config.ActivityScale, ActivityScaleSlider.Minimum, ActivityScaleSlider.Maximum);
         ActivityFriendsCheck.IsChecked = config.ActivityIncludeFriends;
         ActivityDamageCheck.IsChecked = config.ActivityDamageLines;
         ActivityAreaCheck.IsChecked = config.ActivityAreaLines;
@@ -474,8 +474,8 @@ public partial class SettingsWindow : Window
         var fade = FadeCheck.IsChecked == true;
         var fadeOpacity = Math.Round(FadeSlider.Value, 2);
         if (Math.Abs(scale - _config.UiScale) > 0.001 ||
-            Math.Abs(primeScale - (_config.PrimeScale ?? _config.UiScale)) > 0.001 ||
-            Math.Abs(activityScale - (_config.ActivityScale ?? _config.PrimeScale ?? _config.UiScale)) > 0.001 ||
+            Math.Abs(primeScale - (_config.PrimeScale)) > 0.001 ||
+            Math.Abs(activityScale - (_config.ActivityScale)) > 0.001 ||
             Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001 ||
             timeLeft != _config.StatTimeLeftEnabled ||
             fade != _config.FadeEnabled ||
@@ -501,7 +501,7 @@ public partial class SettingsWindow : Window
         var visibility = WpTracked.IsChecked == true ? "tracked" : WpNearest.IsChecked == true ? "nearest" : "all";
         if (mode != _config.MinimapMode ||
             Math.Abs(zoom - _config.MinimapZoom) > 0.005 ||
-            Math.Abs(mapScale - (_config.MinimapScale ?? 1.0)) > 0.001 ||
+            Math.Abs(mapScale - _config.MinimapScale) > 0.001 ||
             trail != _config.MinimapTrailMinutes ||
             scaleBar != _config.MinimapScaleBarEnabled ||
             speed != _config.MinimapSpeedEnabled ||

@@ -631,9 +631,9 @@ Every overlay window derives from `OverlayWindowBase`.
   tooltip reads "hidden until you spawn" meanwhile. Runtime-only, like
   the manual hide. Every widget is scaled in percent through the same
   LayoutTransform: `UiScale` (stats + control panel), `MinimapScale`
-  (v1.25 — the minimap was the one widget sized in pixels, `MinimapSize`
-  160–400, migrated by `OverlayConfig.MinimapScaleFromSize`),
-  `PrimeScale`, `ActivityScale`. The stats panel sits on the SMALL frame
+  (v1.25 — before that the minimap was the one widget sized in pixels;
+  the pixel key `MinimapSize` in old files is ignored since Oct 6 2026,
+  see Conventions), `PrimeScale`, `ActivityScale`. The stats panel sits on the SMALL frame
   (WidgetFrame): DockPanel with the header on top, the status line and
   the fracture row docked at the bottom, the bars filling. `UpdateUi` is a 3-state machine:
   not-set-up / not-in-game / live (health bar recolors at <50% amber, <25% red;
@@ -1084,8 +1084,8 @@ Every overlay window derives from `OverlayWindowBase`.
   MainWindow's, decided in `OnFriendsRoster` like the stats chimes, so it
   plays with the widget hidden (owner, Sep 28 2026: a friends alert is
   not a widget option — it sits on the Friends page, not Activity).
-  Derives OverlayWindowBase; own `ActivityScale` (seeded from
-  `PrimeScale`), `ActivityEnabled` (default ON — unlike Prime it costs
+  Derives OverlayWindowBase; own `ActivityScale` (default 1.0),
+  `ActivityEnabled` (default ON — unlike Prime it costs
   requests, see constraint #2), `ActivityX/Y` nullable; first show = the
   `suggested` point under the Prime tracker (MainWindow computes it),
   else left edge centred.
@@ -1197,8 +1197,7 @@ Every overlay window derives from `OverlayWindowBase`.
   rows a Grid of equal star rows filling the middle, so it is one size
   in every state and the minimap's twin.
   Derives OverlayWindowBase (drag/snap/clamp; sized by its own `PrimeScale`
-  via the `AppearanceScale` override — seeded from `UiScale` in
-  `OverlayConfig.Load` for configs that predate it); first
+  via the `AppearanceScale` override, default 1.0); first
   show docks to the left screen edge (16 px inset), vertically centered;
   position persists (`PrimeX/Y`, nullable), visibility via `PrimeEnabled`
   (default on — a visible widget costs zero requests until clicked).
@@ -1600,8 +1599,18 @@ still never lists, opens or looks at any process.
 - Every distinct widget gets its OWN size slider in Settings (owner's rule,
   Sep 2026): stats panel `UiScale`, minimap `MinimapScale` (percent since
   v1.25, pixels before), prime tracker
-  `PrimeScale`, activity `ActivityScale` — a new widget ships with one, seeded so an update never
-  resizes anything (override `AppearanceScale`). Sliders are independent:
+  `PrimeScale`, activity `ActivityScale` — a new widget ships with one
+  (override `AppearanceScale`). ALL FOUR BEHAVE ALIKE (owner, Oct 6
+  2026): plain numbers defaulting to 1.0, no seeding from another widget,
+  no migration. Until then each new scale was seeded in `Load()` from an
+  older one (Prime from UiScale, Activity from Prime, the minimap from
+  its pre-1.25 pixel size) so an update never resized anyone's widget —
+  and the last of those also ran on a FRESH config, where the pixel
+  default of 230 over the 284 px map put a new install's minimap at 81%
+  while the other widgets started at 100% (the owner noticed Oct 6).
+  Dropped altogether: every player on a public release already has all
+  four scales saved; only friends-era files from before v1.15 / v1.24 /
+  v1.25 see a one-time size change. Sliders are independent:
   no global scale multiplier on top (considered and dropped — Windows
   display scaling already does it, two multiplying sliders confuse, and
   scaling everything at once breaks docked/snapped layouts).
