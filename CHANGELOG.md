@@ -18,14 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Update to vX.Y.Z and restart" entry downloads the update, closes the
   overlay and brings it back on the new version a few seconds later. Nothing
   ever updates by itself. The plain zip keeps the old notice that opens the
-  download page. Settings → General gets "Check for updates at launch" (off
-  = no request to GitHub at all) and a "Check for updates now" button.
+  download page. Settings gets an About page: the version and how this copy
+  was installed, "Check for updates at launch" (off = no request to GitHub
+  at all) and a "Check for updates now" button, where your settings live
+  with an "Open folder" button, and links to the releases, the issues and
+  the Discord.
 - Settings moved to `%AppData%\PandoraOverlay`: config.json with the
   encrypted cookie, waypoints.json, friends.json and the skin-picture
   cache, outside the app folder that an update replaces. The first start
   copies them over from the old place (next to the exe, or the folder you
   unpacked the new zip over); nothing is moved or deleted. Settings →
-  Account has "Import from an older copy…" for a fresh install elsewhere,
+  About has "Import from an older copy…" for a fresh install elsewhere
+  (its Account page points there until a cookie is stored),
   and a "Start with Windows" entry left by an older copy is pointed at the
   copy you actually run.
 

@@ -254,7 +254,7 @@ concern, the way WPF already splits them from their generated `.g.cs`:
 `MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`, `.Updates.cs`),
 `MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`, `.Area.cs`),
 `SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`,
-`.Skins.cs`, `.SkinPictures.cs`) and, since v1.28, the two Core classes that had reached the
+`.Skins.cs`, `.SkinPictures.cs`, `.About.cs`) and, since v1.28, the two Core classes that had reached the
 limit: `PandoraClient.cs` + `.Skins.cs`, `PollService.cs` + `.Skins.cs`. Same class, same
 fields, no behaviour change — a reading aid, not decoupling; the pure
 helper classes are the real decoupling. Keep each part under ~500 lines;
@@ -695,7 +695,7 @@ Every overlay window derives from `OverlayWindowBase`.
   an exception's type name at most. NOTHING HERE RUNS ON A TIMER: the
   launch check is gated by `UpdateCheckEnabled` (default on; off = no
   GitHub request at all), the download and the restart happen only for a
-  click (the tray entry, or Settings → General's button) — the update
+  click (the tray entry, or Settings → About's button) — the update
   policy decided Sep 2026, see Roadmap. `MainWindow.Updates.cs` is the
   glue: `CheckForUpdateAsync` at Loaded, `OfferUpdate` (status line +
   tray), `ApplyUpdateAsync` (busy tray entry, "Downloading the update…",
@@ -721,7 +721,7 @@ Every overlay window derives from `OverlayWindowBase`.
   `current\` inside the old folder), the folder of the exe the Run key
   points at (an old copy elsewhere, when Setup.exe put this one under
   AppData). Never a move, never a delete: the old folder keeps working
-  as it was, and the user removes it. Settings → Account's "Import from
+  as it was, and the user removes it. Settings → About's "Import from
   an older copy…" (`ImportFrom`, an `OpenFolderDialog`) is the safety net
   for a fresh install that found nothing; it REPLACES what is in the
   folder, so the page then disables Save (which would write the stale
@@ -1282,7 +1282,7 @@ Every overlay window derives from `OverlayWindowBase`.
   recoloured in code by `SetPage`) and ONE page visible at a time on the
   right — Account / Controls / General (APP-WIDE ONLY) / Stats panel /
   Minimap / Prime tracker / Activity / Friends / Waypoints / Skins (see
-  Patreon skins) / Server rules, widget pages in the control panel's order, each holding that
+  Patreon skins) / Server rules / About (this copy: version, updates, the settings folder, links — `SettingsWindow.About.cs`), widget pages in the control panel's order, each holding that
   widget's Scale-or-Size slider and its own options; a new widget adds a
   nav entry + page. Server rules page (`SettingsWindow.Rules.cs`, Sep 29
   2026): a REFERENCE page, nothing saved — the bundled RulesDocument
@@ -1400,15 +1400,21 @@ Every overlay window derives from `OverlayWindowBase`.
   Changed flags; MainWindow hot-applies each (RebuildClient / re-register
   with fallback / minimap ApplySettings / ApplyAppearance)
   — no restart, ever. General = Start with Windows, the not-in-game
-  auto-hide checkbox (no flag: MainWindow reads it live), "Check for
-  updates at launch" (`UpdateCheckEnabled`, read at the next launch) with
-  the "Check for updates now" button beside the version and flavour line
-  (v1.30, through `UpdateHooks`: one check, then the button becomes
-  "Update to vX and restart" — or "Open download page" for a plain
-  folder — and hands over to MainWindow), background
+  auto-hide checkbox (no flag: MainWindow reads it live), background
   opacity (30–100%), the fade row (20–80%) and "Reset positions" (v1.25:
-  arms `PositionsReset`, applied on Save — positions only); Account also
-  holds "Import from an older copy…" (v1.30, see DataFolder); Stats panel = scale
+  arms `PositionsReset`, applied on Save — positions only). ABOUT page
+  (`SettingsWindow.About.cs`, v1.30 — the owner's choice over an "Updates"
+  page, which would have floated three controls): THIS COPY of the
+  overlay — version and flavour (installed / zip / plain folder, from
+  `UpdateHooks`), "Check for updates at launch" (`UpdateCheckEnabled`,
+  read at the next launch) and "Check for updates now" (one check, then
+  the button becomes "Update to vX and restart" — or "Open download
+  page" for a plain folder — and hands over to MainWindow), the settings
+  folder's path with "Open folder" and "Import from an older copy…" (see
+  DataFolder; a successful import disables Save and asks for a restart),
+  and the Releases / Report a problem / Discord buttons. A fresh install
+  still lands on Account, which shows ONE pointer line to About while no
+  cookie is stored; Stats panel = scale
   (75–150%), the View radios (Survival / Combat — the owner's names; the
   default view, the hotkey flips it mid-game), the time-left checkbox (hunger, thirst and
   stamina labels) and the two chime

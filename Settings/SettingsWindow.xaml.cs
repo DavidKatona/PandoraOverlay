@@ -146,9 +146,7 @@ public partial class SettingsWindow : Window
         // General
         _initialStartup = StartupRegistration.IsEnabled();
         StartupCheck.IsChecked = _initialStartup;
-        UpdateCheck.IsChecked = config.UpdateCheckEnabled;
-        UpdateButton.IsEnabled = _updates is not null;
-        UpdateText.Text = _updates is null ? "" : $"Version {_updates.Version} · {_updates.Flavour}";
+        InitAboutPage(config); // version, the update check, the settings folder (SettingsWindow.About.cs)
         TimeLeftCheck.IsChecked = config.StatTimeLeftEnabled;
         var combatView = string.Equals(config.StatsView, "combat", StringComparison.OrdinalIgnoreCase);
         StatsViewCombat.IsChecked = combatView;
@@ -242,58 +240,6 @@ public partial class SettingsWindow : Window
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
-
-    // ---- Updates (v1.30) ----------------------------------------------------
-
-    private readonly UpdateHooks? _updates;
-    private string? _offeredUpdate;
-
-    /// <summary>
-    /// "Check for updates now": one request through MainWindow's updater. Found
-    /// one, the button becomes the install (or, for a plain folder, "open the
-    /// download page") and a second click hands over to MainWindow.
-    /// </summary>
-    private async void UpdateButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_updates is null) return;
-        if (_offeredUpdate is { } offered)
-        {
-            _updates.Apply(offered);
-            return;
-        }
-        UpdateButton.IsEnabled = false;
-        UpdateText.Text = "Checking…";
-        var found = await _updates.Check();
-        UpdateButton.IsEnabled = true;
-        if (found is null)
-        {
-            UpdateText.Text = $"Version {_updates.Version} · {_updates.Flavour} · no newer version found";
-            return;
-        }
-        _offeredUpdate = found;
-        UpdateText.Text = $"Update available: v{found}";
-        UpdateButton.Content = _updates.CanUpdate ? $"Update to v{found} and restart" : "Open download page";
-    }
-
-    /// <summary>
-    /// Settings → Account: copy an older copy's files into the data folder. The
-    /// overlay keeps running on what it loaded at start, so the page asks for a
-    /// restart — and switches Save off, which would otherwise write the old
-    /// values straight back over the import.
-    /// </summary>
-    private void ImportSettings_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Pick the folder of your older Pandora Overlay copy" };
-        if (dialog.ShowDialog(this) != true) return;
-        var result = DataFolder.ImportFrom(dialog.FolderName);
-        if (!result.Ok)
-        {
-            ImportSettingsText.Text = result.Message;
-            return;
-        }
-        ImportSettingsText.Text = result.Message + " Exit the overlay from its tray menu and start it again to use them. Save is off now, so nothing here can overwrite them.";
-        SaveButton.IsEnabled = false;
-    }
 
     // ---- Account ------------------------------------------------------------
     private void OpenMap_Click(object sender, RoutedEventArgs e)

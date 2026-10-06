@@ -402,6 +402,7 @@
                     <Button Content="Waypoints" Tag="Waypoints" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Skins" Tag="Skins" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Server rules" Tag="Rules" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="About" Tag="About" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                 </StackPanel>
 
                 <Border Grid.Column="1" BorderBrush="#33FFFFFF" BorderThickness="1,0,0,0" Padding="16,0,0,0">
@@ -453,16 +454,12 @@
             <TextBlock x:Name="HintText" Visibility="Collapsed"
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
                        Margin="0,6,0,0"/>
-            <!-- v1.30: settings live in %AppData%\PandoraOverlay. A fresh install can
-                 fetch them from an older copy's folder (the first start does so by
-                 itself when it finds one next to the exe). -->
-            <DockPanel Margin="0,16,0,0">
-                <Button x:Name="ImportSettingsButton" DockPanel.Dock="Left" Content="Import from an older copy…" Click="ImportSettings_Click"
-                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
-                <TextBlock x:Name="ImportSettingsText"
-                           Text="Used the overlay before 1.30? Pick its old folder to bring over your cookie, waypoints and friends. Settings now live in %AppData%\PandoraOverlay."
-                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
-            </DockPanel>
+            <!-- A fresh install lands here: the one pointer to the About page's import
+                 (settings live in %AppData%\PandoraOverlay since 1.30). Shown only
+                 while no cookie is stored. -->
+            <TextBlock x:Name="ImportPointer" Style="{StaticResource Link}" Visibility="Collapsed"
+                       Text="&#x25B8; Used the overlay before? Bring over your settings from the About page" Margin="0,16,0,0"
+                       MouseLeftButtonDown="ImportPointer_Click"/>
             </StackPanel>
 
             <!-- ============================ Controls ======================= -->
@@ -525,14 +522,6 @@
             <CheckBox x:Name="StartupCheck" Style="{StaticResource Check}" Content="Start with Windows"/>
             <CheckBox x:Name="HideNotInGameCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Hide the overlay while not in-game"/>
-            <!-- v1.30: the launch check is one request to GitHub; installing is always a click. -->
-            <CheckBox x:Name="UpdateCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Check for updates at launch (one request to GitHub)"/>
-            <DockPanel Margin="0,10,0,0">
-                <Button x:Name="UpdateButton" DockPanel.Dock="Left" Content="Check for updates now" Click="UpdateButton_Click"
-                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
-                <TextBlock x:Name="UpdateText" Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
-            </DockPanel>
             <DockPanel Margin="0,10,0,0">
                 <TextBlock Style="{StaticResource SliderLabel}" Text="Background opacity:"/>
                 <TextBlock x:Name="OpacityLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
@@ -855,6 +844,56 @@
                 </StackPanel>
                 <TextBlock Text="A copy of the website's rules page, kept with the app. When in doubt, the Discord rules win."
                            Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            </DockPanel>
+            </StackPanel>
+
+            <!-- ============================ About ========================= -->
+            <!-- This copy of the overlay: version and flavour, updates, where the
+                 settings live, the links (SettingsWindow.About.cs). -->
+            <StackPanel Tag="About" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="ABOUT"/>
+
+            <TextBlock x:Name="AboutVersion" Foreground="#ECF2F8" FontSize="13" FontWeight="SemiBold"/>
+            <TextBlock Text="A fully external overlay for The Isle: Evrima on Isla Pandora. Everything it shows comes from the islapandora.eu website's own requests; it never touches the game."
+                       Foreground="#9AA7B0" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+            <TextBlock Text="UPDATES" Foreground="#7B8790" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,4"/>
+            <!-- The launch check is one request to GitHub; installing is always a click. -->
+            <CheckBox x:Name="UpdateCheck" Style="{StaticResource Check}"
+                      Content="Check for updates at launch (one request to GitHub)"/>
+            <DockPanel Margin="0,8,0,0">
+                <Button x:Name="UpdateButton" DockPanel.Dock="Left" Content="Check for updates now" Click="UpdateButton_Click"
+                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
+                <TextBlock x:Name="UpdateText" Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"
+                           Text="Installing an update is always your click: the overlay downloads it, closes and comes back on the new version."/>
+            </DockPanel>
+
+            <TextBlock Text="YOUR SETTINGS" Foreground="#7B8790" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,4"/>
+            <TextBlock x:Name="DataFolderText" Foreground="#C7D1DA" FontSize="11" TextWrapping="Wrap" FontFamily="Consolas"/>
+            <DockPanel Margin="0,8,0,0">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Open folder" Click="OpenDataFolder_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button x:Name="ImportSettingsButton" Content="Import from an older copy…" Click="ImportSettings_Click"
+                            Style="{StaticResource NeutralButtonStyle}"/>
+                </StackPanel>
+                <TextBlock x:Name="ImportSettingsText"
+                           Text="Settings with the encrypted cookie, waypoints, friends and the skin pictures. Import brings them over from a folder an older copy used."
+                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </DockPanel>
+
+            <TextBlock Text="LINKS" Foreground="#7B8790" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,4"/>
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Releases" Click="OpenReleases_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button Content="Report a problem" Click="OpenIssues_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button Content="Discord" Click="OpenDiscord_Click"
+                            Style="{StaticResource NeutralButtonStyle}"/>
+                </StackPanel>
+                <TextBlock Text="Free and open source. Questions, bugs and ideas go to the GitHub issues."
+                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
             </StackPanel>
 
