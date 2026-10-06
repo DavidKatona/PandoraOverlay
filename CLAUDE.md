@@ -1672,8 +1672,18 @@ no code signing (SignPath Foundation may be applied for separately —
 the owner's side). Plan for shipping: tag `v1.30.0-rc.1` (pre-release;
 the owner installs fresh AND unpacks over the old folder; a few
 volunteers, one on Defender), then `rc.2` to click the update, then
-`v1.30.0`. Not verified before the rc: Defender, Smart App Control, a
-clean PC without .NET, GitHub as the update source.
+`v1.30.0`. THE RC ROUNDS (Oct 6 2026): rc.1 installed over the moved
+settings and found them; rc.2 was the first update from GitHub to an
+installed copy — the 80 KB delta, applied in ~2 s, and the update CREATED
+the newly listed Desktop shortcut; rc.3 changed the title to "Pandora
+Overlay" and the update RENAMED both shortcuts in place (an install that
+lived through the rename keeps the old launcher exe beside the new one;
+harmless, only rc.1/rc.2 installs have it). The owner then tried rc.1 →
+rc.3 on two more PCs, a Windows 10 and a Windows 11 one, BOTH ON DEFENDER:
+the SmartScreen box once on the installer, nothing on the updates, no
+block — so Defender, the biggest open risk, is cleared. Still unverified:
+Smart App Control (nobody had it on), a PC without .NET 8 (the installer's
+runtime fetch).
 
 ## Conventions
 
