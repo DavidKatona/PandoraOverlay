@@ -1730,7 +1730,7 @@ clean PC without .NET, GitHub as the update source.
   title both `PandoraOverlay` — the title names the zip's launcher, so it
   must equal the exe's name for "unpack over the old folder" to replace
   the old exe; `--runtime win-x64`, `--framework net8.0-x64-desktop`,
-  `--shortcuts StartMenuRoot`), renames Setup.exe and the self-updating
+  `--shortcuts Desktop,StartMenuRoot` — the owner wants a Desktop shortcut too, Oct 6 2026), renames Setup.exe and the self-updating
   zip to `PandoraOverlay-vX.Y.Z-Setup.exe` / `PandoraOverlay-vX.Y.Z-win-x64.zip`
   and attaches everything in `Releases/` — the full and delta `.nupkg`,
   `releases.win.json`, `RELEASES`, `assets.win.json` are what the

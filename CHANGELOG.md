@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - One-click updates. Each release now comes as an installer
-  (`PandoraOverlay-vX.Y.Z-Setup.exe`: no admin rights, a Start menu entry,
+  (`PandoraOverlay-vX.Y.Z-Setup.exe`: no admin rights, Start menu and Desktop shortcuts,
   fetches .NET 8 if missing), a zip that updates itself
   (`PandoraOverlay-vX.Y.Z-win-x64.zip`, unpack it over your old folder as
   always) and the plain zip without an updater

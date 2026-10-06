@@ -26,7 +26,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 
 Every release on the [Releases page](../../releases) comes in three forms; pick one:
 
-- **`PandoraOverlay-vX.Y.Z-Setup.exe`** installs the overlay for your Windows user (no admin rights) with a Start menu entry, and fetches the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) if it is missing. New versions then install with **one click** from the tray menu.
+- **`PandoraOverlay-vX.Y.Z-Setup.exe`** installs the overlay for your Windows user (no admin rights) with Start menu and Desktop shortcuts, and fetches the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) if it is missing. New versions then install with **one click** from the tray menu.
 - **`PandoraOverlay-vX.Y.Z-win-x64.zip`** is for people who prefer a folder of their own: unzip it anywhere (or over an older copy). It updates itself with one click too.
 - **`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`** has no updater inside. The tray still tells you when a new version is out, and you download it yourself.
 

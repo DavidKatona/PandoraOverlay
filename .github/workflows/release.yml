@@ -68,7 +68,7 @@ jobs:
         run: >
           vpk pack --packId PandoraOverlay --packVersion ${{ steps.version.outputs.version }}
           --packDir publish --mainExe PandoraOverlay.exe --packTitle PandoraOverlay --packAuthors DavidKatona
-          --icon Assets\app.ico --runtime win-x64 --framework net8.0-x64-desktop --shortcuts StartMenuRoot
+          --icon Assets\app.ico --runtime win-x64 --framework net8.0-x64-desktop --shortcuts Desktop,StartMenuRoot
           --outputDir Releases
 
       # Human-facing names carry the version; the update files keep the names the updater expects.
@@ -90,7 +90,7 @@ jobs:
           generate_release_notes: true
           body: |
             **Which file?**
-            - `PandoraOverlay-${{ github.ref_name }}-Setup.exe` installs the overlay (no admin rights needed). It updates itself with one click from the tray menu.
+            - `PandoraOverlay-${{ github.ref_name }}-Setup.exe` installs the overlay (no admin rights needed) with Start menu and Desktop shortcuts. It updates itself with one click from the tray menu.
             - `PandoraOverlay-${{ github.ref_name }}-win-x64.zip` is for unpacking over your old folder, as always. From then on it updates itself with one click too.
             - `PandoraOverlay-${{ github.ref_name }}-win-x64-plain.zip` has no updater inside: you keep downloading new versions by hand.
 
