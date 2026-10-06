@@ -453,6 +453,16 @@
             <TextBlock x:Name="HintText" Visibility="Collapsed"
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
                        Margin="0,6,0,0"/>
+            <!-- v1.30: settings live in %AppData%\PandoraOverlay. A fresh install can
+                 fetch them from an older copy's folder (the first start does so by
+                 itself when it finds one next to the exe). -->
+            <DockPanel Margin="0,16,0,0">
+                <Button x:Name="ImportSettingsButton" DockPanel.Dock="Left" Content="Import from an older copy…" Click="ImportSettings_Click"
+                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
+                <TextBlock x:Name="ImportSettingsText"
+                           Text="Used the overlay before 1.30? Pick its old folder to bring over your cookie, waypoints and friends. Settings now live in %AppData%\PandoraOverlay."
+                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </DockPanel>
             </StackPanel>
 
             <!-- ============================ Controls ======================= -->
@@ -515,6 +525,14 @@
             <CheckBox x:Name="StartupCheck" Style="{StaticResource Check}" Content="Start with Windows"/>
             <CheckBox x:Name="HideNotInGameCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Hide the overlay while not in-game"/>
+            <!-- v1.30: the launch check is one request to GitHub; installing is always a click. -->
+            <CheckBox x:Name="UpdateCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Check for updates at launch (one request to GitHub)"/>
+            <DockPanel Margin="0,10,0,0">
+                <Button x:Name="UpdateButton" DockPanel.Dock="Left" Content="Check for updates now" Click="UpdateButton_Click"
+                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
+                <TextBlock x:Name="UpdateText" Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </DockPanel>
             <DockPanel Margin="0,10,0,0">
                 <TextBlock Style="{StaticResource SliderLabel}" Text="Background opacity:"/>
                 <TextBlock x:Name="OpacityLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>

@@ -63,7 +63,7 @@ public sealed class WaypointLibrary
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
-    public static string FilePath { get; } = Path.Combine(AppContext.BaseDirectory, "waypoints.json");
+    public static string FilePath { get; } = DataFolder.FileIn("waypoints.json");
 
     private readonly List<Waypoint> _items = new();
 

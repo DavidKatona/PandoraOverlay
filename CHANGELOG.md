@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- One-click updates. Each release now comes as an installer
+  (`PandoraOverlay-vX.Y.Z-Setup.exe`: no admin rights, a Start menu entry,
+  fetches .NET 8 if missing), a zip that updates itself
+  (`PandoraOverlay-vX.Y.Z-win-x64.zip`, unpack it over your old folder as
+  always) and the plain zip without an updater
+  (`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`). With the first two, the tray's
+  "Update to vX.Y.Z and restart" entry downloads the update, closes the
+  overlay and brings it back on the new version a few seconds later. Nothing
+  ever updates by itself. The plain zip keeps the old notice that opens the
+  download page. Settings → General gets "Check for updates at launch" (off
+  = no request to GitHub at all) and a "Check for updates now" button.
+- Settings moved to `%AppData%\PandoraOverlay`: config.json with the
+  encrypted cookie, waypoints.json, friends.json and the skin-picture
+  cache, outside the app folder that an update replaces. The first start
+  copies them over from the old place (next to the exe, or the folder you
+  unpacked the new zip over); nothing is moved or deleted. Settings →
+  Account has "Import from an older copy…" for a fresh install elsewhere,
+  and a "Start with Windows" entry left by an older copy is pointed at the
+  copy you actually run.
+
 ### Fixed
 
 - A fresh install started the minimap at 81% while every other widget

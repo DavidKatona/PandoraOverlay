@@ -23,7 +23,7 @@ public static class SkinThumbnails
 
     public static readonly TimeSpan KeepFor = TimeSpan.FromDays(30);
 
-    public static string DefaultFolder { get; } = Path.Combine(AppContext.BaseDirectory, "cache", "skins");
+    public static string DefaultFolder { get; } = Path.Combine(DataFolder.Path, DataFolder.Cache, "skins");
 
     /// <summary>The cache file for an address: a hash, so no part of a URL ever becomes a path.</summary>
     public static string FileNameFor(Uri address) =>

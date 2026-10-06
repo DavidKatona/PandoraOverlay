@@ -54,8 +54,9 @@ web dev.**
    to whatever address the list names, from a separate client that sends
    NO cookie and none of the site headers.
    The zone overlays are NOT cleared for use (see Permissions). The
-   launch-time update check calls the GitHub releases API — not an
-   islapandora endpoint, so it sits outside this constraint.
+   launch-time update check calls the GitHub releases API (and, since
+   v1.30, a CLICK on the update entry downloads the update package from
+   GitHub) — not islapandora endpoints, so they sit outside this constraint.
 3. **Poll interval >= 2 s** (default 3 s, matching the website's own cadence).
    Server-side rate limit is 300/window. Never add endpoints or frequency without
    the owner's explicit okay — the dev specifically praised the polling restraint.
@@ -147,14 +148,18 @@ is bundled as `Assets/map.png` (WPF Resource).
 
 ## Stack & build
 
-- .NET 8, WPF, x64. One NuGet dep: `System.Security.Cryptography.ProtectedData`.
+- .NET 8, WPF, x64. Two NuGet deps: `System.Security.Cryptography.ProtectedData`
+  and, since v1.30, `Velopack` (1.2.161 — the SAME version as the `vpk` packer
+  the release workflow installs; bump both together).
   WinForms interop (`UseWindowsForms`) enabled solely for the tray NotifyIcon.
   App icon `Assets/app.ico` (generated: dark rounded square + orange arrow).
 - `dotnet build -c Release` → `bin/Release/net8.0-windows/PandoraOverlay.exe`.
   `PandoraOverlay.sln` at the root also carries **PandoraOverlay.Tests**
   (xUnit; `dotnet test`; CI runs it on every push). The app csproj globs the
   repo root, so the test subtree is `Compile Remove`d from it.
-- `config.json` is created next to the exe on first run.
+- `config.json`, `waypoints.json`, `friends.json` and `cache\skins` live in
+  `%AppData%\PandoraOverlay` (`DataFolder`, v1.30) — next to the exe before;
+  the first start copies them over from there (see DataFolder under Architecture).
 
 ## Layout (Sep 26 2026)
 
@@ -162,7 +167,9 @@ Files are grouped BY FEATURE, not by layer — every feature here is a widget
 plus its pure helpers plus a Settings page, so that is how the folders cut:
 
 - `Core/` — zero-WPF plumbing: PandoraClient, PollService, OverlayConfig,
-  HotkeySpec, StartupRegistration, UpdateChecker.
+  HotkeySpec, StartupRegistration, UpdateChecker, DataFolder (where the
+  user's files live, v1.30) and Updater (Velopack, v1.30 — the one Core
+  file with a package dependency besides DPAPI).
 - `Shell/` — what every widget stands on: OverlayWindowBase, WidgetFrame,
   DefaultLayout, SnapResolver,
   SnapGuideWindow, ControlPanelWindow, TrayIcon, and MainWindow (the
@@ -181,7 +188,9 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   its requests and gating are the `Core/PandoraClient.Skins.cs` and
   `Core/PollService.Skins.cs` parts). `Settings/` — SettingsWindow.
 - `Assets/` unchanged; `App.xaml` (StartupUri now `Shell/MainWindow.xaml`),
-  csproj, sln and the docs stay at the root. `PandoraOverlay.Tests/` mirrors
+  `Program.cs` (the entry point since v1.30: Velopack's start-up call, then
+  WPF — `<StartupObject>` in the csproj), csproj, sln and the docs stay at
+  the root. `PandoraOverlay.Tests/` mirrors
   the folders.
 - `packs/` — DATA, not code (Sep 30 2026): five ready-made waypoint packs
   users download and import (`gateway-areas` 26, `gateway-water` 27,
@@ -242,7 +251,7 @@ earn sub-namespaces; `.editorconfig` silences IDE0130). The SDK-style csproj
 globs subfolders, so moving a file needs no project edit; pack URIs point at
 `Assets/`, which didn't move. Big windows are PARTIAL CLASSES split by
 concern, the way WPF already splits them from their generated `.g.cs`:
-`MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`),
+`MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`, `.Updates.cs`),
 `MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`, `.Area.cs`),
 `SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`,
 `.Skins.cs`, `.SkinPictures.cs`) and, since v1.28, the two Core classes that had reached the
@@ -653,15 +662,74 @@ Every overlay window derives from `OverlayWindowBase`.
   rules under Conventions;
   double-click = edit mode. Hover tooltip shows live stats (`SetStatus`,
   127-char NotifyIcon cap); the Edit mode entry's hotkey label follows config.
-  `ShowUpdateAvailable` reveals a hidden menu entry (opens the Releases page)
-  and appends the tag to the tooltip; `ShowHotkeyConflict`/`ClearHotkeyConflict`
+  `ShowUpdateAvailable(tag, label, onClick)` reveals a hidden menu entry
+  whose text and click are the caller's — "Update to vX and restart"
+  installing it (v1.30), or "open download page" where this copy can't
+  update itself — and appends the tag to the tooltip; `SetUpdateBusy`
+  greys it while the download runs; `ShowHotkeyConflict`/`ClearHotkeyConflict`
   do the same for combos another app holds (entry opens Settings) — the
   status-line warning alone is overwritten by the next poll. Disposed on
   shutdown.
-- **UpdateChecker.cs** — one fail-soft GET to the GitHub releases API at
-  launch (the only non-islapandora network call); a newer tag surfaces via
-  the status line (once) and the tray (for the session). Never re-checks,
-  never pops anything up; offline/errors read as "no update".
+- **UpdateChecker.cs** — one fail-soft GET to the GitHub releases API
+  (`/releases/latest`, so pre-releases never count); a newer tag surfaces
+  via the status line (once) and the tray (for the session). Never
+  re-checks, never pops anything up; offline/errors read as "no update".
+  Since v1.30 it is the FALLBACK for a copy Velopack didn't put on the PC
+  (the plain zip, a build from the IDE) — everything else goes through
+  Updater.
+- **Updater.cs** (v1.30) — Velopack's `UpdateManager` against this repo's
+  GitHub releases (`GithubSource`), for a copy Setup.exe installed
+  (`%LocalAppData%\PandoraOverlay\current`) or the self-updating zip
+  unpacked (`.portable` marker beside `Update.exe`); `CanUpdate` is
+  Velopack's `IsInstalled`, `Flavour` says installed / zip / plain
+  folder for the Settings page. `CheckAsync` is one GitHub request (the
+  release list, then the `releases.win.json` asset), `DownloadAsync`
+  fetches the package (the small delta where one exists) into Velopack's
+  `packages` folder, `ApplyOnExit` hands it to `Update.exe`, which waits
+  for the process to exit, swaps `current` and starts the overlay again
+  — so MainWindow leaves through its NORMAL exit path and saves state
+  first (`WaitExitThenApplyUpdates`, not `ApplyUpdatesAndRestart`). A
+  pre-release build (SemVer "-rc.1", read off the informational version,
+  pure `AcceptsPreReleases`) also sees pre-releases: testers on rc.1 are
+  offered rc.2, everyone else only full releases. Fail soft: `Note` holds
+  an exception's type name at most. NOTHING HERE RUNS ON A TIMER: the
+  launch check is gated by `UpdateCheckEnabled` (default on; off = no
+  GitHub request at all), the download and the restart happen only for a
+  click (the tray entry, or Settings → General's button) — the update
+  policy decided Sep 2026, see Roadmap. `MainWindow.Updates.cs` is the
+  glue: `CheckForUpdateAsync` at Loaded, `OfferUpdate` (status line +
+  tray), `ApplyUpdateAsync` (busy tray entry, "Downloading the update…",
+  then `Shutdown()`; a failure re-offers), `UpdateHooks` for Settings
+  (version, flavour, a check and an apply). The entry point is
+  `Program.Main`: `VelopackApp.Build().Run()` FIRST — it answers the
+  installer's / updater's hook calls into the exe (`--veloapp-install`,
+  `-updated`, `-obsolete`, `-uninstall`) and exits for those, so no
+  window or poll ever starts during an update — then WPF as the generated
+  `App.Main` would. The trial that preceded this and the owner's reading
+  of hard constraint 1 for Velopack's process scan are under Roadmap.
+- **DataFolder.cs** (v1.30) — where the user's files live:
+  `%AppData%\PandoraOverlay` (Roaming, as Velopack's docs suggest for
+  files that must survive an uninstall; the install itself is under
+  `%LocalAppData%`), created on first use. `OverlayConfig.FilePath`,
+  `WaypointLibrary.FilePath`, `FriendBook.FilePath` and
+  `SkinThumbnails.DefaultFolder` all resolve through it. The MOVE from
+  next-to-exe (1.29 and before): `App.OnStartup` calls `MigrateLegacy()`
+  before MainWindow loads anything — only while the new folder has NO
+  config.json, it COPIES config / waypoints / friends (+ the cache) from
+  the nearest of three candidates: next to the exe (the plain zip
+  unpacked over the old folder), one level up (the self-updating zip's
+  `current\` inside the old folder), the folder of the exe the Run key
+  points at (an old copy elsewhere, when Setup.exe put this one under
+  AppData). Never a move, never a delete: the old folder keeps working
+  as it was, and the user removes it. Settings → Account's "Import from
+  an older copy…" (`ImportFrom`, an `OpenFolderDialog`) is the safety net
+  for a fresh install that found nothing; it REPLACES what is in the
+  folder, so the page then disables Save (which would write the stale
+  in-memory config straight back) and asks for a restart. Pure IO, zero
+  WPF, tested with temp folders (`ImportIfEmpty`, `Import`); messages
+  name an exception's type at most. `StartupRegistration.RepointToThisExe`
+  (at Loaded) rewrites a Run entry that points at another exe, so an old
+  copy's "Start with Windows" doesn't keep starting the old copy.
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow, on the
   LARGE frame (WidgetFrame, v1.25): a Grid of the 284 px `MapSize` square
   and the footer centred in the rest; sized by `MinimapScale` through the
@@ -1332,9 +1400,15 @@ Every overlay window derives from `OverlayWindowBase`.
   Changed flags; MainWindow hot-applies each (RebuildClient / re-register
   with fallback / minimap ApplySettings / ApplyAppearance)
   — no restart, ever. General = Start with Windows, the not-in-game
-  auto-hide checkbox (no flag: MainWindow reads it live), background
+  auto-hide checkbox (no flag: MainWindow reads it live), "Check for
+  updates at launch" (`UpdateCheckEnabled`, read at the next launch) with
+  the "Check for updates now" button beside the version and flavour line
+  (v1.30, through `UpdateHooks`: one check, then the button becomes
+  "Update to vX and restart" — or "Open download page" for a plain
+  folder — and hands over to MainWindow), background
   opacity (30–100%), the fade row (20–80%) and "Reset positions" (v1.25:
-  arms `PositionsReset`, applied on Save — positions only); Stats panel = scale
+  arms `PositionsReset`, applied on Save — positions only); Account also
+  holds "Import from an older copy…" (v1.30, see DataFolder); Stats panel = scale
   (75–150%), the View radios (Survival / Combat — the owner's names; the
   default view, the hotkey flips it mid-game), the time-left checkbox (hunger, thirst and
   stamina labels) and the two chime
@@ -1352,8 +1426,12 @@ Every overlay window derives from `OverlayWindowBase`.
   the status line by MainWindow, not swallowed.
 - **StartupRegistration.cs** — Start-with-Windows via HKCU Run; the registry
   entry IS the state (deliberately no config field to drift). Fail-soft.
+  `RegisteredExePath` / `RepointToThisExe` (v1.30): the entry follows the
+  copy actually run, see DataFolder.
 - **App.xaml.cs** — single-instance mutex: a second launch shows a notice and
-  exits (protects constraint #3 from silently doubled polling).
+  exits (protects constraint #3 from silently doubled polling); then the
+  settings move (`DataFolder.MigrateLegacy`, v1.30). Started from
+  `Program.Main`, not the generated `App.Main` (Velopack first).
 - In-UI icons are font glyphs (✕ ♂ ♀, text badges); the only image assets are
   `Assets/map.png` and `Assets/app.ico`.
 
@@ -1578,6 +1656,25 @@ on an install / update / uninstall click and compares exe locations
 with our folder. It is not a licence for OUR code: the overlay itself
 still never lists, opens or looks at any process.
 
+BUILT Oct 6 2026 for 1.30.0 (the owner: "I'd bundle step 1 and 2 together"
+— the settings move and the updater in one release, rehearsed as
+pre-releases first): `DataFolder` + the migration and the Account page's
+import button; `Updater` + `MainWindow.Updates.cs` + `Program.Main`; the
+tray entry that installs; Settings → General's checkbox and button; the
+release workflow packing three files (see Conventions). Decisions taken
+with it, against the Sep 2026 text above: the ZIP UPDATES ITSELF too
+(the trial showed it can, and "unpack over your old folder as always"
+is the smoothest last manual update — "portable stays fully manual" is
+superseded; the plain zip remains for anyone who wants that); settings
+in `%AppData%\PandoraOverlay` for EVERY flavour, copied, never moved;
+`UpdateChecker` stays as the plain copy's notice instead of retiring;
+no code signing (SignPath Foundation may be applied for separately —
+the owner's side). Plan for shipping: tag `v1.30.0-rc.1` (pre-release;
+the owner installs fresh AND unpacks over the old folder; a few
+volunteers, one on Defender), then `rc.2` to click the update, then
+`v1.30.0`. Not verified before the rc: Defender, Smart App Control, a
+clean PC without .NET, GitHub as the update source.
+
 ## Conventions
 
 - Code-behind over MVVM — deliberate at this size; don't introduce frameworks.
@@ -1623,8 +1720,28 @@ still never lists, opens or looks at any process.
   minor, fixes bump patch. Current: 1.29.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
-  a `vX.Y.Z` tag triggers the workflow that builds and attaches the zip) —
-  never a random commit. No standing release/version branches.
+  a `vX.Y.Z` tag triggers the workflow that builds, tests and attaches the
+  files) — never a random commit. No standing release/version branches.
+  THE RELEASE FILES (v1.30, `.github/workflows/release.yml`): the workflow
+  first checks that the tag equals the csproj `<Version>` (else it fails),
+  publishes, zips the plain copy (`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`,
+  today's artifact under a new name), then `vpk download github` (the
+  previous release, for a delta; allowed to fail) and `vpk pack` (id and
+  title both `PandoraOverlay` — the title names the zip's launcher, so it
+  must equal the exe's name for "unpack over the old folder" to replace
+  the old exe; `--runtime win-x64`, `--framework net8.0-x64-desktop`,
+  `--shortcuts StartMenuRoot`), renames Setup.exe and the self-updating
+  zip to `PandoraOverlay-vX.Y.Z-Setup.exe` / `PandoraOverlay-vX.Y.Z-win-x64.zip`
+  and attaches everything in `Releases/` — the full and delta `.nupkg`,
+  `releases.win.json`, `RELEASES`, `assets.win.json` are what the
+  updater reads and keep Velopack's names. A tag containing "-"
+  (`v1.30.0-rc.1`) is published as a PRE-RELEASE: players' overlays never
+  see it (the old checker uses `/releases/latest`, Updater passes
+  `prerelease: false` for a release build), only a pre-release build
+  offers it — that is how a release is rehearsed with testers before the
+  real tag. The release body names the three files for people. A pre-release
+  tag also needs the csproj `<Version>` set to `1.30.0-rc.1` (SemVer; the
+  SDK derives assembly version 1.30.0.0 from it).
 - Never move or re-tag an existing tag. If a release ships broken, fix forward
   and tag the next patch version.
 - Hotfixing an old release while main holds unreleased work:

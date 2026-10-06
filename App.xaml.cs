@@ -21,6 +21,10 @@ public partial class App : Application
             Shutdown();
             return;
         }
+        // v1.30: settings live in %AppData%\PandoraOverlay now. The first launch
+        // after the move copies an older copy's files over (MainWindow loads
+        // them next) — a copy, so the old folder keeps working as it was.
+        DataFolder.MigrateLegacy();
         base.OnStartup(e);
     }
 

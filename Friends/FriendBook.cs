@@ -80,7 +80,7 @@ public sealed class FriendBook
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
-    public static string FilePath { get; } = Path.Combine(AppContext.BaseDirectory, "friends.json");
+    public static string FilePath { get; } = DataFolder.FileIn("friends.json");
 
     private readonly List<FriendEntry> _items = new();
 

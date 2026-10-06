@@ -129,6 +129,7 @@ public partial class MainWindow : OverlayWindowBase
 
         Loaded += (_, _) =>
         {
+            StartupRegistration.RepointToThisExe(); // an older copy's "Start with Windows" entry would start the older copy
             _ = CheckForUpdateAsync();
             FillDefaultPositions(); // before the other windows exist: they read their positions from config
             if (!_config.StatsEnabled) Hide();
@@ -177,7 +178,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
         try
         {
-            var dialog = new SettingsWindow(_config, _library, _book, _poll, _me?.Dino, page) { Topmost = true };
+            var dialog = new SettingsWindow(_config, _library, _book, _poll, _me?.Dino, page, UpdateHooksForSettings()) { Topmost = true };
             var saved = dialog.ShowDialog() == true;
 
             if (!saved)
@@ -213,18 +214,6 @@ public partial class MainWindow : OverlayWindowBase
             // also covers the cancel path.
             ApplyHotkeysFromConfig();
         }
-    }
-
-    /// <summary>
-    /// One quiet launch-time check: on a newer release, mention it once in the
-    /// status line (the next poll overwrites it) and hand it to the tray,
-    /// which keeps a tooltip note + menu entry for the session.
-    /// </summary>
-    private async Task CheckForUpdateAsync()
-    {
-        if (await UpdateChecker.CheckAsync() is not { } tag) return;
-        SetStatus($"Update available: {tag}");
-        _tray.ShowUpdateAvailable(tag);
     }
 
     /// <summary>

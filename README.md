@@ -24,14 +24,20 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 
 ## Get it
 
-Download the latest zip from the [Releases page](../../releases) and unzip it anywhere — it needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) installed. Or build from source as described below.
+Every release on the [Releases page](../../releases) comes in three forms; pick one:
 
-Windows will likely warn about an **unknown publisher** the first time you run a freshly downloaded version — the releases aren't code-signed, so every update starts with zero trust. See [Troubleshooting](#troubleshooting) for the quick fix.
+- **`PandoraOverlay-vX.Y.Z-Setup.exe`** installs the overlay for your Windows user (no admin rights) with a Start menu entry, and fetches the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) if it is missing. New versions then install with **one click** from the tray menu.
+- **`PandoraOverlay-vX.Y.Z-win-x64.zip`** is for people who prefer a folder of their own: unzip it anywhere (or over an older copy). It updates itself with one click too.
+- **`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`** has no updater inside. The tray still tells you when a new version is out, and you download it yourself.
+
+Or build from source as described below. Your settings, waypoints and cookie live in `%AppData%\PandoraOverlay`, whichever form you use — see [Installing and updating](#installing-and-updating).
+
+Windows will likely warn about an **unknown publisher** the first time you run a freshly downloaded installer or zip — the releases aren't code-signed. One-click updates don't trigger that warning again. See [Troubleshooting](#troubleshooting) for the quick fix.
 
 ## Requirements
 
 - Windows 10/11, x64
-- The [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) to run a release
+- The [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) to run a release (the installer fetches it when it is missing; the zips don't)
 - .NET 8 SDK (`winget install Microsoft.DotNet.SDK.8`) — only needed when building from source
 - An Isla Pandora account, logged in via Discord on islapandora.eu
 - The Isle running in **borderless windowed** mode (overlays cannot draw over exclusive fullscreen)
@@ -226,11 +232,13 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 **Do I have to paste the cookie again after a restart or an update?** No. It is saved and renews itself while you use the overlay. Normally you only need a new one if you log out on the website or stay away for about a month.
 
-**How do I update?** The tray icon tells you when a new version is out. Exit the overlay, download the new zip, unblock it (see [Troubleshooting](#troubleshooting)) and unpack it over the old folder. Your settings, cookie, waypoints and friend nicknames live in files of their own next to the app and are kept.
+**How do I update?** The tray icon tells you when a new version is out (a single check at launch; Settings → General can switch it off or run it on demand). With the installer or the self-updating zip, click the tray entry: the overlay downloads the update, closes and comes back on the new version a few seconds later. Nothing ever updates by itself. With the plain zip, the entry opens the download page instead: exit the overlay, download the new zip, unblock it (see [Troubleshooting](#troubleshooting)) and unpack it over the old folder.
 
-**Windows warns about an unknown publisher, or blocks it.** Expected for every new version: see the last entry under [Troubleshooting](#troubleshooting).
+**Where are my settings?** Since 1.30 in `%AppData%\PandoraOverlay` (paste that into Explorer's address bar): `config.json` with the encrypted cookie, `waypoints.json`, `friends.json` and the skin-picture cache. Before 1.30 they sat next to the app; the first start of a newer version copies them over from there, and Settings → Account has "Import from an older copy…" if you installed fresh somewhere else. Nothing deletes the old folder: remove it yourself once everything is there.
 
-**How do I uninstall it?** Exit it and delete its folder. If "Start with Windows" is ticked (Settings → General), untick it first, or Windows keeps a startup entry pointing at the deleted app.
+**Windows warns about an unknown publisher, or blocks it.** Expected when you run a downloaded installer or zip for the first time; one-click updates don't trigger it. See the last entry under [Troubleshooting](#troubleshooting).
+
+**How do I uninstall it?** Installed: Windows Settings → Apps → Installed apps → PandoraOverlay → Uninstall. From a zip: exit it and delete its folder; if "Start with Windows" is ticked (Settings → General), untick it first. Either way your settings stay in `%AppData%\PandoraOverlay` — delete that folder too if you want them gone.
 
 ### More
 
@@ -248,9 +256,11 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - **Overlay not visible over the game** → make sure the game is borderless windowed, not fullscreen. The [FAQ](#faq) has the full checklist.
 - **The hotkey does nothing** → another app grabbed it; pick a different combination in Settings (tray icon → Settings…) — the capture box checks availability as you press.
 - **Bars frozen** → check the timestamp in the status line; it updates on every successful poll.
-- **Windows blocks the app / "unknown publisher"** → expected for every new version, not just the first install: the releases aren't code-signed, and Windows trusts exact files, not app names — each update is new files with no reputation yet. Either click **More info → Run anyway** on the SmartScreen warning, or cleaner: right-click the downloaded **zip** → Properties → tick **Unblock** → OK *before* extracting, which clears every file inside. If the dialog names `PandoraOverlay.dll` and offers no "Run anyway" button, that's Windows 11's **Smart App Control**, which blocks all unsigned apps machine-wide with no per-app exception — it can only be switched off entirely in Windows Security (App & browser control), and that switch is one-way.
+- **Windows blocks the app / "unknown publisher"** → expected the first time you run a downloaded installer or zip: the releases aren't code-signed, and Windows checks files a browser downloaded. One-click updates aren't browser downloads, so they don't bring the warning back. Either click **More info → Run anyway** on the SmartScreen warning, or cleaner for a zip: right-click the downloaded **zip** → Properties → tick **Unblock** → OK *before* extracting, which clears every file inside. If the dialog names `PandoraOverlay.dll` and offers no "Run anyway" button, that's Windows 11's **Smart App Control**, which blocks all unsigned apps machine-wide with no per-app exception — it can only be switched off entirely in Windows Security (App & browser control), and that switch is one-way.
 
 ## Configuration (`config.json`)
+
+The file lives in `%AppData%\PandoraOverlay` (since 1.30; next to the app before, from where the first start copies it). Everything in it is set from the Settings dialog; this table is for the curious and for hand edits.
 
 | Field | Meaning |
 |---|---|
@@ -263,6 +273,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 | `StatsView` | Which view the stats panel shows: `survival` (health, stamina, hunger, thirst and growth) or `combat` (health, stamina, damage taken in this fight, speed). Radio in Settings → Stats panel; Ctrl+F9 or the control panel's View button flips it. Default `survival`. |
 | `StatsEnabled` | Show the stats panel (toggled from the control panel). |
 | `HideWhenNotInGame` | Hide every widget after ~30 s of not being spawned in, and show them again on the first in-game update. Checkbox in Settings. Default `false`. |
+| `UpdateCheckEnabled` | One check of GitHub's releases at launch, to tell you of a newer version; `false` = no request to GitHub at all. Installing is always your click. Checkbox in Settings → General. Default `true`. |
 | `MinimapEnabled` | Show the minimap window (toggled from the control panel). |
 | `MinimapX` / `MinimapY` | Minimap position (empty until first placed: top-right corner in the default layout). |
 | `MinimapScale` | Minimap scale, 0.75–1.5 (default 1 = a 284 px map). Slider in Settings → Minimap. The pixel `MinimapSize` of versions before 1.25 is ignored. |

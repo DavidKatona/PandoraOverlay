@@ -17,6 +17,7 @@ public class ConfigDefaultsTests
         Assert.Equal(1.0, cfg.MinimapScale);
         Assert.Equal(1.0, cfg.PrimeScale);
         Assert.Equal(1.0, cfg.ActivityScale);
+        Assert.True(cfg.UpdateCheckEnabled, "the launch update check is on until switched off");
     }
 
     /// <summary>A pre-1.25 file's pixel size is just an unknown key now: it does not touch the scale.</summary>

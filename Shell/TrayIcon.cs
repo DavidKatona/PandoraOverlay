@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Windows.Forms;
 using Icon = System.Drawing.Icon;
 
@@ -13,8 +12,9 @@ namespace PandoraOverlay;
 /// to one in v1.19; the slot for hotkey-less actions holds "Server rules…",
 /// which opens Settings on the Rules page). A double-click
 /// toggles edit mode. The hover tooltip carries live stats and,
-/// when a newer release exists, an update note plus a menu entry opening the
-/// download page. WinForms interop, since NotifyIcon has no WPF counterpart.
+/// when a newer release exists, an update note plus a menu entry that installs
+/// it for a click (v1.30) — or opens the download page where this copy can't
+/// update itself. WinForms interop, since NotifyIcon has no WPF counterpart.
 /// Must be disposed on shutdown or the icon lingers in the tray until hovered.
 /// </summary>
 public sealed class TrayIcon : IDisposable
@@ -28,11 +28,12 @@ public sealed class TrayIcon : IDisposable
     private string _status = "Pandora Overlay";
     private string _updateSuffix = "";
     private string _conflictSuffix = "";
+    private Action? _updateClick;
 
     public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action openSettings, Action openRules, Action exit)
     {
         _updateItem = new ToolStripMenuItem { Visible = false };
-        _updateItem.Click += (_, _) => OpenReleasesPage();
+        _updateItem.Click += (_, _) => _updateClick?.Invoke();
         _conflictItem = new ToolStripMenuItem { Visible = false };
         _conflictItem.Click += (_, _) => openSettings();
         _updateSeparator = new ToolStripSeparator { Visible = false };
@@ -86,14 +87,24 @@ public sealed class TrayIcon : IDisposable
         RefreshTooltip();
     }
 
-    /// <summary>Reveals the update menu entry and appends the tag to the tooltip for the session.</summary>
-    public void ShowUpdateAvailable(string tag)
+    /// <summary>Reveals the update menu entry — its text and what a click does are the caller's (install, or open the download page) — and appends the tag to the tooltip for the session.</summary>
+    public void ShowUpdateAvailable(string tag, string label, Action onClick)
     {
-        _updateItem.Text = $"Update available ({tag}) — open download page";
+        _updateItem.Text = label;
+        _updateItem.Enabled = true;
+        _updateClick = onClick;
         _updateItem.Visible = true;
         _updateSeparator.Visible = true;
         _updateSuffix = $" · {tag} available";
         RefreshTooltip();
+    }
+
+    /// <summary>While an update downloads: the entry says so and takes no clicks.</summary>
+    public void SetUpdateBusy(string label)
+    {
+        _updateItem.Text = label;
+        _updateItem.Enabled = false;
+        _updateClick = null;
     }
 
     /// <summary>
@@ -122,18 +133,6 @@ public sealed class TrayIcon : IDisposable
     {
         var text = _status + _conflictSuffix + _updateSuffix;
         _icon.Text = text.Length <= 127 ? text : text[..127];
-    }
-
-    private static void OpenReleasesPage()
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo(UpdateChecker.ReleasesPage) { UseShellExecute = true });
-        }
-        catch
-        {
-            // Fail soft — worst case the user browses to the repo manually.
-        }
     }
 
     private static Icon LoadAppIcon()

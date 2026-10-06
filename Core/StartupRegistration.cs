@@ -25,6 +25,31 @@ public static class StartupRegistration
         }
     }
 
+    /// <summary>The exe the Run entry starts (quotes stripped), or null when off or unreadable.</summary>
+    public static string? RegisteredExePath()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
+            return key?.GetValue(ValueName) is string s && s.Trim().Trim('"') is { Length: > 0 } path ? path : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// v1.30: an entry left by an older copy would start that older copy from
+    /// its old folder. When the entry is on, point it at THIS exe — the one the
+    /// user actually runs — so Windows starts the copy that updates itself.
+    /// </summary>
+    public static void RepointToThisExe()
+    {
+        if (RegisteredExePath() is not { } registered || Environment.ProcessPath is not { } me) return;
+        if (!string.Equals(registered, me, StringComparison.OrdinalIgnoreCase)) SetEnabled(true);
+    }
+
     public static void SetEnabled(bool enabled)
     {
         try

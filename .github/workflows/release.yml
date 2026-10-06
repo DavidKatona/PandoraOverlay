@@ -25,20 +25,76 @@ jobs:
       - name: Test
         run: dotnet test -c Release --no-build
 
-      # The steps below only run on version tags (v1.0.0, v1.1.0, ...):
-      # publish a framework-dependent build, zip it, and attach it to a
-      # GitHub Release. Players need the .NET 8 Desktop Runtime installed.
+      # The steps below only run on version tags (v1.30.0, v1.30.0-rc.1, ...).
+      # The tag must match the csproj's <Version>: that is the one source of
+      # truth, and the packer stamps the number on the update package.
+      - name: Check the version
+        id: version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.Substring(1)
+          if (-not (Select-String -Path PandoraOverlay.csproj -Pattern "<Version>$([regex]::Escape($version))</Version>" -Quiet)) {
+            throw "Tag ${{ github.ref_name }} does not match the <Version> in PandoraOverlay.csproj"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      # A framework-dependent build: players need the .NET 8 Desktop Runtime,
+      # which the installer fetches when it is missing.
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/v')
         run: dotnet publish PandoraOverlay.csproj -c Release -r win-x64 --self-contained false -o publish
 
-      - name: Package
+      # The plain zip, as every release had: no updater inside, updates by download.
+      - name: Package the plain zip
         if: startsWith(github.ref, 'refs/tags/v')
-        run: Compress-Archive -Path publish\* -DestinationPath "PandoraOverlay-${{ github.ref_name }}-win-x64.zip"
+        run: Compress-Archive -Path publish\* -DestinationPath "PandoraOverlay-${{ github.ref_name }}-win-x64-plain.zip"
 
+      # Velopack (v1.30): the installer, the self-updating zip and the update
+      # package the overlay's updater reads. The previous release is fetched
+      # first so this one also gets a small delta package (there is none to
+      # fetch before the first Velopack release, hence continue-on-error).
+      - name: Install Velopack's packer
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: dotnet tool install -g vpk --version 1.2.161
+
+      - name: Fetch the previous release (for the delta)
+        if: startsWith(github.ref, 'refs/tags/v')
+        continue-on-error: true
+        run: vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} --pre
+
+      - name: Pack
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: >
+          vpk pack --packId PandoraOverlay --packVersion ${{ steps.version.outputs.version }}
+          --packDir publish --mainExe PandoraOverlay.exe --packTitle PandoraOverlay --packAuthors DavidKatona
+          --icon Assets\app.ico --runtime win-x64 --framework net8.0-x64-desktop --shortcuts StartMenuRoot
+          --outputDir Releases
+
+      # Human-facing names carry the version; the update files keep the names the updater expects.
+      - name: Name the files
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          Rename-Item Releases\PandoraOverlay-win-Setup.exe "PandoraOverlay-${{ github.ref_name }}-Setup.exe"
+          Rename-Item Releases\PandoraOverlay-win-Portable.zip "PandoraOverlay-${{ github.ref_name }}-win-x64.zip"
+          Get-ChildItem Releases
+
+      # A tag with a "-" (v1.30.0-rc.1) is a pre-release: players' overlays
+      # ignore it, only a pre-release build offers it.
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: PandoraOverlay-*.zip
+          prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
+          body: |
+            **Which file?**
+            - `PandoraOverlay-${{ github.ref_name }}-Setup.exe` installs the overlay (no admin rights needed). It updates itself with one click from the tray menu.
+            - `PandoraOverlay-${{ github.ref_name }}-win-x64.zip` is for unpacking over your old folder, as always. From then on it updates itself with one click too.
+            - `PandoraOverlay-${{ github.ref_name }}-win-x64-plain.zip` has no updater inside: you keep downloading new versions by hand.
+
+            The other files are what the one-click update reads. Your settings, waypoints and cookie now live in `%AppData%\PandoraOverlay`; the first start copies them over from your old folder.
+          files: |
+            PandoraOverlay-*-plain.zip
+            Releases/*

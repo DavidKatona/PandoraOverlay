@@ -6,7 +6,8 @@ using System.Text.Json;
 namespace PandoraOverlay;
 
 /// <summary>
-/// Persistent settings, stored as config.json next to the executable.
+/// Persistent settings, stored as config.json in the data folder (DataFolder:
+/// %AppData%\PandoraOverlay since v1.30; next to the executable before).
 ///
 /// The session cookie is never stored in plaintext. The "Cookie" field is a
 /// paste-here inbox: on the next launch its value is encrypted with Windows
@@ -27,7 +28,7 @@ public sealed class OverlayConfig
     private static readonly byte[] Entropy =
         { 0x50, 0x61, 0x6E, 0x64, 0x6F, 0x72, 0x61, 0x4F, 0x76, 0x65, 0x72, 0x6C, 0x61, 0x79, 0x2E, 0x76, 0x31 };
 
-    public static string FilePath { get; } = Path.Combine(AppContext.BaseDirectory, "config.json");
+    public static string FilePath { get; } = DataFolder.FileIn("config.json");
 
     /// <summary>
     /// PASTE-HERE FIELD ONLY. Put the full "cookie" request-header value here
@@ -126,6 +127,13 @@ public sealed class OverlayConfig
     /// anyone; the Start-with-Windows crowd opts in.
     /// </summary>
     public bool HideWhenNotInGame { get; set; }
+
+    /// <summary>
+    /// One check against GitHub's releases at launch (v1.30), to tell you of a
+    /// newer version; off = no request to GitHub at all. Installing the update
+    /// is always a click of yours, never automatic.
+    /// </summary>
+    public bool UpdateCheckEnabled { get; set; } = true;
 
     /// <summary>Show the minimap window (toggled from the control panel or the tray menu).</summary>
     public bool MinimapEnabled { get; set; } = true;
