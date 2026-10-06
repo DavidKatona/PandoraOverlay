@@ -27,7 +27,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 Every release on the [Releases page](../../releases) comes in three forms; pick one:
 
 - **`PandoraOverlay-vX.Y.Z-Setup.exe`** installs the overlay for your Windows user (no admin rights) with Start menu and Desktop shortcuts, and fetches the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) if it is missing. New versions then install with **one click** from the tray menu.
-- **`PandoraOverlay-vX.Y.Z-win-x64.zip`** is for people who prefer a folder of their own: unzip it anywhere (or over an older copy). It updates itself with one click too.
+- **`PandoraOverlay-vX.Y.Z-win-x64.zip`** is for people who prefer a folder of their own: unzip it anywhere, or over an older copy. It updates itself with one click too. Start it with `Pandora Overlay.exe` at the top of the folder; an old `PandoraOverlay.exe` left from before 1.30 can be deleted.
 - **`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`** has no updater inside. The tray still tells you when a new version is out, and you download it yourself.
 
 Or build from source as described below. Your settings, waypoints and cookie live in `%AppData%\PandoraOverlay`, whichever form you use — see [Installing and updating](#installing-and-updating).
@@ -238,7 +238,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 **Windows warns about an unknown publisher, or blocks it.** Expected when you run a downloaded installer or zip for the first time; one-click updates don't trigger it. See the last entry under [Troubleshooting](#troubleshooting).
 
-**How do I uninstall it?** Installed: Windows Settings → Apps → Installed apps → PandoraOverlay → Uninstall. From a zip: exit it and delete its folder; if "Start with Windows" is ticked (Settings → General), untick it first. Either way your settings stay in `%AppData%\PandoraOverlay` — delete that folder too if you want them gone.
+**How do I uninstall it?** Installed: Windows Settings → Apps → Installed apps → Pandora Overlay → Uninstall. From a zip: exit it and delete its folder; if "Start with Windows" is ticked (Settings → General), untick it first. Either way your settings stay in `%AppData%\PandoraOverlay` — delete that folder too if you want them gone.
 
 ### More
 

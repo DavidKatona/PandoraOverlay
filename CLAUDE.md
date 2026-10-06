@@ -1726,10 +1726,12 @@ clean PC without .NET, GitHub as the update source.
   first checks that the tag equals the csproj `<Version>` (else it fails),
   publishes, zips the plain copy (`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`,
   today's artifact under a new name), then `vpk download github` (the
-  previous release, for a delta; allowed to fail) and `vpk pack` (id and
-  title both `PandoraOverlay` — the title names the zip's launcher, so it
-  must equal the exe's name for "unpack over the old folder" to replace
-  the old exe; `--runtime win-x64`, `--framework net8.0-x64-desktop`,
+  previous release, for a delta; allowed to fail) and `vpk pack` (id `PandoraOverlay`, title "Pandora Overlay" — the title is
+  the name on the shortcuts, in the Start menu and in the installed-apps
+  list, AND the name of the zip's launcher: the owner chose the readable
+  name (Oct 6 2026) over a launcher that replaces the old `PandoraOverlay.exe`
+  when the zip is unpacked over an old folder, so the old exe stays there
+  beside `Pandora Overlay.exe` and the docs say it can be deleted; `--runtime win-x64`, `--framework net8.0-x64-desktop`,
   `--shortcuts Desktop,StartMenuRoot` — the owner wants a Desktop shortcut too, Oct 6 2026), renames Setup.exe and the self-updating
   zip to `PandoraOverlay-vX.Y.Z-Setup.exe` / `PandoraOverlay-vX.Y.Z-win-x64.zip`
   and attaches everything in `Releases/` — the full and delta `.nupkg`,

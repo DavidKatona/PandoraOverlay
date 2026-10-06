@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`PandoraOverlay-vX.Y.Z-Setup.exe`: no admin rights, Start menu and Desktop shortcuts,
   fetches .NET 8 if missing), a zip that updates itself
   (`PandoraOverlay-vX.Y.Z-win-x64.zip`, unpack it over your old folder as
-  always) and the plain zip without an updater
+  always and start `Pandora Overlay.exe`; the old `PandoraOverlay.exe` can go) and the plain zip without an updater
   (`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`). With the first two, the tray's
   "Update to vX.Y.Z and restart" entry downloads the update, closes the
   overlay and brings it back on the new version a few seconds later. Nothing

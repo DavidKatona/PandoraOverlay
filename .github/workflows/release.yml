@@ -67,7 +67,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: >
           vpk pack --packId PandoraOverlay --packVersion ${{ steps.version.outputs.version }}
-          --packDir publish --mainExe PandoraOverlay.exe --packTitle PandoraOverlay --packAuthors DavidKatona
+          --packDir publish --mainExe PandoraOverlay.exe --packTitle "Pandora Overlay" --packAuthors DavidKatona
           --icon Assets\app.ico --runtime win-x64 --framework net8.0-x64-desktop --shortcuts Desktop,StartMenuRoot
           --outputDir Releases
 
@@ -91,7 +91,7 @@ jobs:
           body: |
             **Which file?**
             - `PandoraOverlay-${{ github.ref_name }}-Setup.exe` installs the overlay (no admin rights needed) with Start menu and Desktop shortcuts. It updates itself with one click from the tray menu.
-            - `PandoraOverlay-${{ github.ref_name }}-win-x64.zip` is for unpacking over your old folder, as always. From then on it updates itself with one click too.
+            - `PandoraOverlay-${{ github.ref_name }}-win-x64.zip` is for unpacking over your old folder, as always. From then on it updates itself with one click too. Its launcher is `Pandora Overlay.exe`; an old `PandoraOverlay.exe` left in the folder can be deleted.
             - `PandoraOverlay-${{ github.ref_name }}-win-x64-plain.zip` has no updater inside: you keep downloading new versions by hand.
 
             The other files are what the one-click update reads. Your settings, waypoints and cookie now live in `%AppData%\PandoraOverlay`; the first start copies them over from your old folder.
