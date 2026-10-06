@@ -9,7 +9,8 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 [![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
 [![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
-![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Survival view top-right, and the control panel bottom-center, over a Deinosuchus climbing a grassy slope above a hazy sea; the minimap's top-right pill names the area, "West Rail", with the area borders drawn and the player's own area outlined in a light line, and a caption box names version 1.29.0 and what is new: the minimap names the area you are in, area borders, area lines in the feed, 27 areas](docs/screenshot.png)
+![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Combat view top-right, and the control panel bottom-center, over a Deinosuchus resting on a beach at sunset; the minimap's pill names the area, "South Plains", with the heatmap and the area borders on, the Activity feed reads "You spawned as Deinosuchus 100% · South Plains", and a caption box names version 1.30.0 and what is new: one-click updates, no more unpacking, an installer, a self-updating zip, your settings carried over](docs/screenshot.png)
+
 
 ## Contents
 

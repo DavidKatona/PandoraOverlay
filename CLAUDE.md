@@ -1,8 +1,25 @@
+Smart App Control (nobody had it on), a PC without .NET 8 (the installer's
+runtime fetch). DECISIONS AROUND THE RELEASE (owner, Oct 6): the PLAIN
+ZIP ships with 1.30.0 as the fallback without Velopack's helper files
+and is to be DROPPED in a later release if nobody turned out to need
+it. The update NOTICE stays as designed — the status line once, the
+tray entry and tooltip for the session, no pop-up (the owner asked
+whether that was a bug; a tray balloon at launch is the option if
+people miss the entry). The README's DOWNLOAD BADGE will inflate:
+Velopack's check reads `releases.win.json` from each of the last ten
+releases at every launch (`GitBase.GetReleaseFeed` merges them) — the
+owner chose to ignore that and remove the badge if it gets silly; the
+fix, if ever wanted, is an API-first check (ask GitHub's API for the
+newest tag, which is not a counted download, and let Velopack fetch
+only when it is newer). Read in Velopack's source: `GithubSource`'s
+prerelease flag means pre-releases AND stable releases, newest first —
+so rc installs are offered the final, and `vpk download github --pre`
+in the workflow fetches the newest release of either kind for the delta.
 # PandoraOverlay — CLAUDE.md
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.29.0 is built, working, and approved by the server's
+and settings window. **v1.30.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1573,7 +1590,18 @@ and then began correcting by hand (Oct 5, Central Dome painted larger).
 Tried in game by the owner Oct 2–5 — the pill, the feed line (which
 they had wake the fade like any other line) and the borders; the spawn
 lines, the blink, "Uncharted" and the two highlights were checked by
-tests and off-screen renders only when the owner called the release).
+tests and off-screen renders only when the owner called the release),
+v1.30.0 (Oct 6 — **one-click updates and the settings move**, the
+release that changes how the overlay is distributed: every release is
+now an installer, a self-updating zip and the plain zip (Velopack, see
+Updater and the release files under Conventions); the tray's update
+entry installs for a click; settings live in `%AppData%\PandoraOverlay`
+and are copied over from the old folder on the first start (DataFolder);
+Settings gains the About page; all four size sliders default to 100%
+(a fresh install's minimap had started at 81%). Rehearsed as rc.1–rc.3
+pre-releases on the owner's PC and on two more PCs running Defender
+before the tag; the About page shipped without an rc of its own, tried
+on the repo build only).
 No layout presets beyond the default for now.
 
 Areas, left for later and not started: area names in new waypoints and
@@ -1664,10 +1692,11 @@ still never lists, opens or looks at any process.
 
 BUILT Oct 6 2026 for 1.30.0 (the owner: "I'd bundle step 1 and 2 together"
 — the settings move and the updater in one release, rehearsed as
-pre-releases first): `DataFolder` + the migration and the Account page's
-import button; `Updater` + `MainWindow.Updates.cs` + `Program.Main`; the
-tray entry that installs; Settings → General's checkbox and button; the
-release workflow packing three files (see Conventions). Decisions taken
+pre-releases first): `DataFolder` + the migration; `Updater` +
+`MainWindow.Updates.cs` + `Program.Main`; the tray entry that installs;
+Settings → About (added after rc.3: it took the update checkbox and
+button from General and the import from Account, where they first sat);
+the release workflow packing three files (see Conventions). Decisions taken
 with it, against the Sep 2026 text above: the ZIP UPDATES ITSELF too
 (the trial showed it can, and "unpack over your old folder as always"
 is the smoothest last manual update — "portable stays fully manual" is
@@ -1733,7 +1762,7 @@ runtime fetch).
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.29.0.
+  minor, fixes bump patch. Current: 1.30.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds, tests and attaches the
