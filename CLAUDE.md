@@ -1553,7 +1553,16 @@ exactly "PandoraOverlay" for "unpack over the old folder" to replace
 the old exe. Installed copy and zip copy share the settings folder.
 UNINSTALL removes the app folder, the Start menu entry and the
 installed-apps entry, and LEAVES the settings folder and Velopack's own
-log folder (`%LocalAppData%\Velopack`). vpk wants `--runtime win-x64` (it defaults to x86) and
+log folder (`%LocalAppData%\Velopack`). A SECOND ROUND (Oct 6) fetched
+the update over HTTP from a small server on the owner's PC instead of
+a folder: Velopack's own client (UA `Velopack/1.2.161`) got the release
+list and the 7 KB DELTA package, rebuilt the full package locally,
+applied it in ~2 s, again with no prompt and no download mark on any
+file — so the folder result was not an artefact of the folder. The
+owner also ran the first round on an office PC with SentinelOne as the
+security agent: SmartScreen once on the installer, nothing on the
+update, uninstall clean. Defender and Smart App Control remain
+untested. vpk wants `--runtime win-x64` (it defaults to x86) and
 `--shortcuts StartMenuRoot` (it defaults to a Desktop shortcut too), and
 warns unless `VelopackApp.Build().Run()` is the first line of a real
 `Main()`. Signing: SignPath Foundation is the free route but signs only
