@@ -5,6 +5,37 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Sign in with Discord, inside the overlay. Settings → Account has one
+  button now: it opens the website's own Discord login in a small window
+  (log in there, or scan the QR code with the Discord app), and when
+  Discord sends you back the overlay takes the website session itself.
+  No more DevTools, no more copying a cookie. The window browses in
+  private, so your Discord login is never kept — only the website session,
+  encrypted for your Windows user as before. The window stops before any
+  website page loads, so nothing of the site runs in the background.
+  Signed in, the page shows who you are, whether your Steam account is
+  linked and when you signed in, with "Sign in again" and "Sign out" (which
+  logs you out on the website too). If no Steam account is linked yet, the
+  overlay says so right after signing in and shows your LinkID to type in
+  game chat.
+- When the website session ends, the stats panel says "Session ended ·
+  sign in again from the tray" and the tray menu gets a "Sign in again…"
+  entry, instead of "Disconnected · retrying" for good. Polling stops
+  until you sign in again.
+
+### Changed
+
+- The cookie paste box is gone from Settings. (For emergencies, the
+  `Cookie` field in config.json still works as it always did.)
+- From the first sign-in on, the overlay sends the sign-in window's own
+  browser identity as its User-Agent.
+- The installer also fetches Microsoft's WebView2 Runtime where it is
+  missing (it is part of Windows 11 and on nearly every Windows 10 PC).
+
 ## [1.30.0] - 2026-10-06
 
 ### Added

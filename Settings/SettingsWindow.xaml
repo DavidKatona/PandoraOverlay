@@ -108,6 +108,38 @@
             </Setter>
         </Style>
 
+        <!-- The Account page's one big button (v1.31): Discord's blurple, so it
+             reads as "the Discord login" — which is exactly what it opens. -->
+        <Style x:Key="DiscordButtonStyle" TargetType="Button" BasedOn="{StaticResource NeutralButtonStyle}">
+            <Setter Property="Background" Value="#5865F2"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="22,9"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#4752C4"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Background" Value="#2B2F4A"/>
+                                <Setter Property="Foreground" Value="#7A80A8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Left-hand navigation: the control panel's glow look, left-aligned;
              the selected page's button is recoloured in code. -->
         <Style x:Key="NavButton" TargetType="Button">
@@ -410,50 +442,83 @@
                     <Grid x:Name="Pages">
 
             <!-- ============================ Account ======================== -->
+            <!-- The in-app sign-in (v1.31, SettingsWindow.Account.cs): one button
+                 that opens the website's own Discord login in the overlay's
+                 sign-in window, and afterwards a card saying who is signed in.
+                 The cookie paste box is gone — nobody should learn to copy a
+                 session out of a browser. Signing in and out ACT AT ONCE, not
+                 on Save, like the Skins page; the page says so. -->
             <StackPanel Tag="Account">
             <TextBlock Style="{StaticResource PageTitle}" Text="ACCOUNT"/>
 
-            <TextBlock x:Name="CookieStatus" FontSize="12" TextWrapping="Wrap"/>
+            <TextBlock x:Name="AccountStatus" FontSize="12" TextWrapping="Wrap"/>
 
-            <Button Content="Open live map in browser" Click="OpenMap_Click"
-                    Style="{StaticResource NeutralButtonStyle}"
-                    HorizontalAlignment="Left" Margin="0,8,0,0"/>
+            <!-- Not signed in: the button, and what happens when it is clicked. -->
+            <Border x:Name="SignInCard" Background="#1B222A" BorderBrush="#333C46" BorderThickness="1"
+                    CornerRadius="4" Padding="14" Margin="0,10,0,0">
+                <StackPanel>
+                    <DockPanel>
+                        <Button x:Name="SignInButton" DockPanel.Dock="Left" Content="Sign in with Discord"
+                                Click="SignIn_Click" Style="{StaticResource DiscordButtonStyle}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Opens the website's own login in a small window. About a minute."
+                                   Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    </DockPanel>
+                    <Border Height="1" Background="#333C46" Margin="0,12,0,10"/>
+                    <DockPanel Margin="0,0,0,8">
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#7CC884" Margin="0,2,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Foreground="#C7D1DA" FontSize="11.5" TextWrapping="Wrap"
+                                   Text="You log in on Discord's page, as on islapandora.eu. Your password goes to Discord, never to the overlay — or skip typing it and scan the QR code with the Discord app."/>
+                    </DockPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#7CC884" Margin="0,2,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Foreground="#C7D1DA" FontSize="11.5" TextWrapping="Wrap"
+                                   Text="The overlay keeps only the website session, encrypted for your Windows user. Nothing to copy, nothing on the clipboard."/>
+                    </DockPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#7CC884" Margin="0,2,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Foreground="#C7D1DA" FontSize="11.5" TextWrapping="Wrap"
+                                   Text="Your Steam account must be linked on the website (one LinkID typed in game chat, once)."/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
 
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <TextBlock x:Name="HowToLink" Style="{StaticResource Link}"
-                           Text="&#x25B8; How do I get my cookie?"
-                           MouseLeftButtonDown="HowToLink_Click"/>
-                <!-- Only once a cookie is stored: the paste box is the exception, not the rule. -->
-                <TextBlock x:Name="ReplaceLink" Style="{StaticResource Link}"
-                           Text="&#x25B8; Replace cookie…" Margin="18,0,0,0"
-                           Visibility="Collapsed"
-                           MouseLeftButtonDown="ReplaceLink_Click"/>
-            </StackPanel>
-            <TextBlock x:Name="HowToText" Visibility="Collapsed"
-                       Foreground="#C7D1DA" FontSize="12" TextWrapping="Wrap"
-                       LineHeight="19" Margin="0,4,0,0">
-                1. Click "Open live map in browser" and log in with Discord.<LineBreak/>
-                2. On the live-map page press F12, open the Network tab.<LineBreak/>
-                3. Type "mylocation" into the filter box and click any row.<LineBreak/>
-                4. Under Request Headers, copy the whole value of "cookie".
-            </TextBlock>
-
-            <StackPanel x:Name="CookiePanel">
-                <TextBlock Text="Paste a cookie value to set or replace it:"
-                           Foreground="#9AA7B0" FontSize="11" Margin="0,10,0,4"/>
-                <TextBox x:Name="CookieBox"
-                         Style="{StaticResource TextBoxStyle}"
-                         Height="52"
-                         TextWrapping="Wrap"
-                         AcceptsReturn="False"
-                         VerticalScrollBarVisibility="Auto"
-                         VerticalContentAlignment="Top"
-                         Padding="6" FontSize="11" FontFamily="Consolas"
-                         TextChanged="CookieBox_TextChanged"/>
-            </StackPanel>
-            <TextBlock x:Name="HintText" Visibility="Collapsed"
-                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
-                       Margin="0,6,0,0"/>
+            <!-- Signed in: who, and the two things to do about it. -->
+            <Border x:Name="AccountCard" Background="#1B222A" BorderBrush="#333C46" BorderThickness="1"
+                    CornerRadius="4" Padding="14" Margin="0,10,0,0" Visibility="Collapsed">
+                <StackPanel>
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                            <Button x:Name="SignInAgainButton" Content="Sign in again" Click="SignIn_Click"
+                                    Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                            <Button x:Name="SignOutButton" Content="Sign out" Click="SignOut_Click"
+                                    Style="{StaticResource DangerButtonStyle}"/>
+                        </StackPanel>
+                        <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="20" Background="#5865F2" VerticalAlignment="Center">
+                            <TextBlock x:Name="AccountInitial" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="AccountNameText" Foreground="#ECF2F8" FontSize="15" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="on islapandora.eu" Foreground="#7B8790" FontSize="11"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="84"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Steam" Foreground="#7B8790" FontSize="11.5" Margin="0,0,0,6"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="SteamText" Foreground="#C7D1DA" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Signed in" Foreground="#7B8790" FontSize="11.5"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="SignedInText" Foreground="#C7D1DA" FontSize="11.5" TextWrapping="Wrap"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            <TextBlock x:Name="AccountHint" Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             <!-- A fresh install lands here: the one pointer to the About page's import
                  (settings live in %AppData%\PandoraOverlay since 1.30). Shown only
                  while no cookie is stored. -->

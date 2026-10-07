@@ -152,6 +152,9 @@ public sealed partial class PandoraClient : IDisposable
         // connect.sid so the login keeps rolling across overlay restarts.
         UpdateRollingCookie(response);
 
+        // The site's own "no session" answer is told apart from every other
+        // failure: it is final for this cookie (see PollService.SignedOut).
+        if (IsRefusal((int)response.StatusCode, response.Content.Headers.ContentType?.MediaType)) throw new SessionEndedException();
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);

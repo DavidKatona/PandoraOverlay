@@ -3,18 +3,6 @@ using Xunit;
 
 namespace PandoraOverlay.Tests;
 
-public class CookieCleanTests
-{
-    [Theory]
-    [InlineData("cookie: connect.sid=abc;", "connect.sid=abc")]
-    [InlineData("\"connect.sid=abc\"", "connect.sid=abc")]
-    [InlineData("connect.sid=abc;\r\ncf_clearance=def", "connect.sid=abc; cf_clearance=def")]
-    [InlineData("  connect.sid=abc;;  ", "connect.sid=abc")]
-    [InlineData("connect.sid=abc; cf_clearance=def", "connect.sid=abc; cf_clearance=def")]
-    public void CleansPasteAccidents(string raw, string expected) =>
-        Assert.Equal(expected, SettingsWindow.Clean(raw));
-}
-
 public class CalibrationParsingTests
 {
     [Fact]

@@ -40,6 +40,11 @@
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     <!-- One-click updates (v1.30): the same version as the packer the release workflow installs. -->
     <PackageReference Include="Velopack" Version="1.2.161" />
+    <!-- The in-app sign-in (v1.31): the website's Discord login in a private
+         browser window (SignInWindow). Needs Microsoft's WebView2 Runtime on
+         the PC — part of Windows 11, on nearly every Windows 10, and the
+         installer fetches it where it is missing (release.yml). -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
   </ItemGroup>
 
   <ItemGroup>

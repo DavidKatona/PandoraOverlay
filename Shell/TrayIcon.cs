@@ -24,11 +24,14 @@ public sealed class TrayIcon : IDisposable
     private readonly ToolStripMenuItem _overlayItem;
     private readonly ToolStripMenuItem _updateItem;
     private readonly ToolStripMenuItem _conflictItem;
+    private readonly ToolStripMenuItem _signInItem;
     private readonly ToolStripSeparator _updateSeparator;
     private string _status = "Pandora Overlay";
     private string _updateSuffix = "";
     private string _conflictSuffix = "";
+    private string _signInSuffix = "";
     private Action? _updateClick;
+    private Action? _signInClick;
 
     public TrayIcon(Action toggleEditMode, Action toggleOverlay, Action openSettings, Action openRules, Action exit)
     {
@@ -36,6 +39,9 @@ public sealed class TrayIcon : IDisposable
         _updateItem.Click += (_, _) => _updateClick?.Invoke();
         _conflictItem = new ToolStripMenuItem { Visible = false };
         _conflictItem.Click += (_, _) => openSettings();
+        // The third alert (v1.31): the website session ended — one click opens the sign-in window.
+        _signInItem = new ToolStripMenuItem("Sign in again…") { Visible = false };
+        _signInItem.Click += (_, _) => _signInClick?.Invoke();
         _updateSeparator = new ToolStripSeparator { Visible = false };
         _editItem = new ToolStripMenuItem("Edit mode", null, (_, _) => toggleEditMode())
         {
@@ -47,6 +53,7 @@ public sealed class TrayIcon : IDisposable
         };
 
         var menu = new ContextMenuStrip();
+        menu.Items.Add(_signInItem);
         menu.Items.Add(_updateItem);
         menu.Items.Add(_conflictItem);
         menu.Items.Add(_updateSeparator);
@@ -124,14 +131,39 @@ public sealed class TrayIcon : IDisposable
     public void ClearHotkeyConflict()
     {
         _conflictItem.Visible = false;
-        _updateSeparator.Visible = _updateItem.Visible;
         _conflictSuffix = "";
+        RefreshSeparator();
         RefreshTooltip();
     }
 
+    /// <summary>
+    /// The website session ended (v1.31): a persistent entry that opens the
+    /// sign-in window — the status line alone would be overwritten, and the
+    /// tray is where the fix must live while every widget is locked.
+    /// </summary>
+    public void ShowSignedOut(Action onClick)
+    {
+        _signInClick = onClick;
+        _signInItem.Visible = true;
+        _signInSuffix = " · signed out";
+        RefreshSeparator();
+        RefreshTooltip();
+    }
+
+    public void ClearSignedOut()
+    {
+        _signInItem.Visible = false;
+        _signInSuffix = "";
+        RefreshSeparator();
+        RefreshTooltip();
+    }
+
+    private void RefreshSeparator() =>
+        _updateSeparator.Visible = _updateItem.Visible || _conflictItem.Visible || _signInItem.Visible;
+
     private void RefreshTooltip()
     {
-        var text = _status + _conflictSuffix + _updateSuffix;
+        var text = _status + _signInSuffix + _conflictSuffix + _updateSuffix;
         _icon.Text = text.Length <= 127 ? text : text[..127];
     }
 

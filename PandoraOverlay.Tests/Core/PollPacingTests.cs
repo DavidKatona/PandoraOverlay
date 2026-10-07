@@ -39,6 +39,19 @@ public class PollPacingTests
     }
 }
 
+public class SignedOutRuleTests
+{
+    /// <summary>A dead cookie is final, but one odd answer is not a verdict: two refusals in a row end the session, a success in between resets (the counter lives in PollOnceAsync).</summary>
+    [Fact]
+    public void TwoRefusalsInARowEndTheSession()
+    {
+        Assert.False(PollService.SignedOutAfter(0));
+        Assert.False(PollService.SignedOutAfter(1));
+        Assert.True(PollService.SignedOutAfter(2));
+        Assert.True(PollService.SignedOutAfter(5));
+    }
+}
+
 public class FriendsCadenceTests
 {
     [Fact]

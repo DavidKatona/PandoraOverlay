@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -11,13 +10,14 @@ using System.Windows.Shapes;
 namespace PandoraOverlay;
 
 /// <summary>
-/// Sectioned settings dialog: Account (cookie — an empty box means "keep the
-/// current one"), Controls (edit-mode hotkey with capture + availability
-/// check), General (run at Windows startup), Minimap (view mode + centered
-/// zoom, the same persisted values the in-overlay gestures write). Save
-/// applies config + registry; MainWindow reads the *Changed flags afterwards
-/// to hot-apply cookie/hotkey/minimap without a restart. First run keeps the
-/// old behaviour: Save stays disabled until a valid cookie is pasted.
+/// Sectioned settings dialog: Account (the in-app sign-in, v1.31 — see
+/// SettingsWindow.Account.cs), Controls (edit-mode hotkey with capture +
+/// availability check), General (run at Windows startup), Minimap (view mode
+/// + centered zoom, the same persisted values the in-overlay gestures write).
+/// Save applies config + registry; MainWindow reads the *Changed flags
+/// afterwards to hot-apply hotkey/minimap without a restart (CookieChanged is
+/// read even after Cancel: a sign-in acts at once). First run: Save stays
+/// disabled until signed in.
 /// </summary>
 public partial class SettingsWindow : Window
 {
@@ -55,7 +55,11 @@ public partial class SettingsWindow : Window
     private readonly bool _initialStartup;
     private readonly Dictionary<TextBox, HotkeyEntry> _hotkeyEntries = new();
 
-    /// <summary>True after Save when a new cookie was pasted (client rebuild needed).</summary>
+    /// <summary>
+    /// True once a sign-in or sign-out happened in this dialog — set AT ONCE,
+    /// not on Save, so MainWindow reads it whether the dialog was saved or
+    /// cancelled (a stored session = rebuild the client, none = stop polling).
+    /// </summary>
     public bool CookieChanged { get; private set; }
 
     /// <summary>True after Save when the hotkey differs (re-registration needed).</summary>
@@ -110,16 +114,8 @@ public partial class SettingsWindow : Window
         _draftTrackedFriend = config.TrackedFriendSteamId;
         _firstRun = string.IsNullOrWhiteSpace(config.GetCookie());
 
-        // Account
-        CookieStatus.Text = _firstRun
-            ? "No cookie stored yet — connect your account below."
-            : "Cookie stored ✓ — the session rolls forward automatically.";
-        CookieStatus.Foreground = _firstRun ? HintWarn : HintGood;
-        if (_firstRun) SetHowToVisible(true); // first run: show the walkthrough up front
-        // Once a cookie is stored the paste box is the exception: folded
-        // behind "Replace cookie…" so the everyday dialog stays short.
-        CookiePanel.Visibility = _firstRun ? Visibility.Visible : Visibility.Collapsed;
-        ReplaceLink.Visibility = _firstRun ? Visibility.Collapsed : Visibility.Visible;
+        // Account: the sign-in card, or the signed-in card (SettingsWindow.Account.cs)
+        InitAccountPage();
 
         // Safety net for small screens: the sections scroll rather than the
         // dialog running off the bottom (SizeToContent honours MaxHeight).
@@ -196,7 +192,7 @@ public partial class SettingsWindow : Window
         // Server rules (reference only, nothing to save): the cards are built on the first look
         PrepareRulesPage();
 
-        Validate();
+        GateSave();
         SetPage(_firstRun ? "Account" : page ?? _lastPage);
     }
 
@@ -226,6 +222,7 @@ public partial class SettingsWindow : Window
         // paid for on every opening of the dialog, whichever page shows.
         switch (key)
         {
+            case "Account": OpenAccountPage(); break; // one auth/me per dialog, for the card's live facts
             case "Skins": OpenSkinsPage(); break; // also the one page that talks to the site
             case "Waypoints": OpenWaypointsPage(); break;
             case "Friends": OpenFriendsPage(); break;
@@ -241,93 +238,7 @@ public partial class SettingsWindow : Window
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
 
-    // ---- Account ------------------------------------------------------------
-    private void OpenMap_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo("https://islapandora.eu/live-map")
-            {
-                UseShellExecute = true
-            });
-        }
-        catch
-        {
-            SetHint("Couldn't open the browser — visit islapandora.eu/live-map manually.", HintWarn);
-        }
-    }
-
-    private void HowToLink_Click(object sender, MouseButtonEventArgs e) =>
-        SetHowToVisible(HowToText.Visibility != Visibility.Visible);
-
-    private void ReplaceLink_Click(object sender, MouseButtonEventArgs e)
-    {
-        var show = CookiePanel.Visibility != Visibility.Visible;
-        CookiePanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        ReplaceLink.Text = (show ? "▾" : "▸") + " Replace cookie…";
-        if (!show) CookieBox.Text = ""; // folding it away must not save a hidden paste
-        if (show) CookieBox.Focus();
-    }
-
-    /// <summary>The hint line under the Account section; an empty text takes no room.</summary>
-    private void SetHint(string text, Brush brush)
-    {
-        HintText.Text = text;
-        HintText.Foreground = brush;
-        HintText.Visibility = text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
-    }
-
-    private void SetHowToVisible(bool show)
-    {
-        HowToText.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        HowToLink.Text = (show ? "▾" : "▸") + " How do I get my cookie?";
-    }
-
-    private void CookieBox_TextChanged(object sender, TextChangedEventArgs e) => Validate();
-
-    /// <summary>Fixes the usual paste accidents without changing valid input.</summary>
-    internal static string Clean(string raw)
-    {
-        var s = (raw ?? "").Trim();
-        s = Regex.Replace(s, @"^\s*cookie\s*:\s*", "", RegexOptions.IgnoreCase);
-        s = s.Trim().Trim('"', '\'').Trim();
-        s = Regex.Replace(s, @"\s*[\r\n]+\s*", " ");
-        return s.TrimEnd(';', ' ');
-    }
-
-    private void Validate()
-    {
-        var s = Clean(CookieBox.Text);
-        var hasSid = s.Contains("connect.sid=");
-        var hasCf = s.Contains("cf_clearance=");
-        bool ok;
-
-        if (s.Length == 0)
-        {
-            // With a cookie stored, an empty box needs no commentary — the
-            // box is folded away most of the time anyway.
-            SetHint(_firstRun ? "Waiting for a pasted cookie…" : "", HintNeutral);
-            ok = !_firstRun;
-        }
-        else if (hasSid && hasCf)
-        {
-            SetHint("Looks good ✓ — both session and Cloudflare cookies found.", HintGood);
-            ok = true;
-        }
-        else if (hasSid)
-        {
-            SetHint("cf_clearance is missing. This can still work, but if the overlay " +
-                    "gets blocked, go back and copy the WHOLE cookie value.", HintWarn);
-            ok = true;
-        }
-        else
-        {
-            SetHint("connect.sid not found — that doesn't look like the cookie header. " +
-                    "Make sure you copy the full value of \"cookie\" under Request Headers.", HintBad);
-            ok = false;
-        }
-        SaveButton.IsEnabled = ok;
-    }
+    // ---- Account: SettingsWindow.Account.cs (the in-app sign-in, v1.31) -----
 
     // ---- Controls (hotkey capture) ------------------------------------------
     private void HotkeyBox_GotFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -443,12 +354,7 @@ public partial class SettingsWindow : Window
     // ---- Save ---------------------------------------------------------------
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        var s = Clean(CookieBox.Text);
-        if (s.Length > 0)
-        {
-            _config.SetCookie(s);
-            CookieChanged = true;
-        }
+        // The session is not Save's business: signing in and out acted at once (SettingsWindow.Account.cs).
 
         if (_hotkeyEntries.Any(kv => kv.Value.Chosen != kv.Value.Initial))
         {

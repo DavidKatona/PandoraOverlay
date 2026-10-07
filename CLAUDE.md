@@ -69,7 +69,17 @@ web dev.**
    a click on a pattern button, never a timer; not-in-game and a 15 s
    mash guard answer locally with no request. Tile pictures are plain GETs
    to whatever address the list names, from a separate client that sends
-   NO cookie and none of the site headers.
+   NO cookie and none of the site headers. The ACCOUNT pair (v1.31, the
+   in-app sign-in, under the blanket go-ahead with the owner's okay, Oct 7
+   2026): `POST /api/auth/me` (the "who am I" every site page sends on
+   load; ours once right after a sign-in to confirm the session, and once
+   when Settings → Account is looked at per dialog — never on a timer) and
+   `GET /auth/logout` (the site's own logout link, once for a Sign out
+   click). The sign-in itself is the website's own `/auth/discord` page
+   flow, browsed by the player in the overlay's WebView2 window
+   (SignInWindow): the server redirects to discord.com and back to
+   `/auth/discord/callback`, and the window stops the navigation that
+   follows, so no site page ever renders in it.
    The zone overlays are NOT cleared for use (see Permissions). The
    launch-time update check calls the GitHub releases API (and, since
    v1.30, a CLICK on the update entry downloads the update package from
@@ -117,7 +127,8 @@ web dev.**
   "anything the site can do, we can do too. No need to ask now." So a
   normal player-facing endpoint of islapandora.eu no longer needs a
   per-endpoint ask to the site dev — it needs the OWNER's okay for the
-  feature, as always. First use: the Patreon skins page. What still holds
+  feature, as always. First use: the Patreon skins page; second (Oct 7
+  2026): the in-app sign-in's account pair, `auth/me` + `/auth/logout`. What still holds
   whatever the endpoint: fully external; the cookie is a credential;
   nothing polls faster than the site; a WRITE happens only for a click,
   never on a timer; the admin / staff endpoints (`/api/admin/*`, the
@@ -165,9 +176,14 @@ is bundled as `Assets/map.png` (WPF Resource).
 
 ## Stack & build
 
-- .NET 8, WPF, x64. Two NuGet deps: `System.Security.Cryptography.ProtectedData`
-  and, since v1.30, `Velopack` (1.2.161 — the SAME version as the `vpk` packer
-  the release workflow installs; bump both together).
+- .NET 8, WPF, x64. Three NuGet deps: `System.Security.Cryptography.ProtectedData`,
+  since v1.30 `Velopack` (1.2.161 — the SAME version as the `vpk` packer
+  the release workflow installs; bump both together) and, since v1.31,
+  `Microsoft.Web.WebView2` (1.0.4258.31, the sign-in window; it needs
+  Microsoft's WebView2 Runtime on the PC — part of Windows 11, on nearly
+  every Windows 10 through Edge, and `vpk pack --framework
+  net8.0-x64-desktop,webview2` makes the installer fetch it where missing;
+  the plain zip relies on the one already there).
   WinForms interop (`UseWindowsForms`) enabled solely for the tray NotifyIcon.
   App icon `Assets/app.ico` (generated: dark rounded square + orange arrow).
 - `dotnet build -c Release` → `bin/Release/net8.0-windows/PandoraOverlay.exe`.
@@ -187,6 +203,9 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   HotkeySpec, StartupRegistration, UpdateChecker, DataFolder (where the
   user's files live, v1.30) and Updater (Velopack, v1.30 — the one Core
   file with a package dependency besides DPAPI).
+- `Account/` — the in-app sign-in (v1.31): SignInWindow (the WebView2
+  window, the one Shell-side file with a package dependency) and
+  SignInPolicy (its pure rules).
 - `Shell/` — what every widget stands on: OverlayWindowBase, WidgetFrame,
   DefaultLayout, SnapResolver,
   SnapGuideWindow, ControlPanelWindow, TrayIcon, and MainWindow (the
@@ -271,8 +290,8 @@ concern, the way WPF already splits them from their generated `.g.cs`:
 `MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`, `.Updates.cs`),
 `MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`, `.Area.cs`),
 `SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`,
-`.Skins.cs`, `.SkinPictures.cs`, `.About.cs`) and, since v1.28, the two Core classes that had reached the
-limit: `PandoraClient.cs` + `.Skins.cs`, `PollService.cs` + `.Skins.cs`. Same class, same
+`.Skins.cs`, `.SkinPictures.cs`, `.About.cs`, `.Account.cs`) and, since v1.28, the two Core classes that had reached the
+limit: `PandoraClient.cs` + `.Skins.cs` + `.Account.cs`, `PollService.cs` + `.Skins.cs`. Same class, same
 fields, no behaviour change — a reading aid, not decoupling; the pure
 helper classes are the real decoupling. Keep each part under ~500 lines;
 when one outgrows that, cut another `Window.Topic.cs`, don't extract a
@@ -337,7 +356,20 @@ Every overlay window derives from `OverlayWindowBase`.
   in flight, the connection is healthy and the last roster is older than
   one poll interval — else it just marks the next poll due, so toggling
   the widget can't become a request per click. A failed `mylocation`
-  poll never triggers a friends fetch.
+  poll never triggers a friends fetch. SIGNED OUT (v1.31):
+  `PandoraClient.FetchAsync` turns the site's own "no session" answer
+  (401/403 WITH a JSON body — a Cloudflare block is a 403 with HTML and
+  stays an ordinary failure; pure `IsRefusal`, verified Oct 7 2026: a dead
+  or missing cookie gets `403 {"error":"Forbidden"}`) into
+  `SessionEndedException`; two in a row (`SignedOutAfter`, pure) set
+  `IsSignedOut`, STOP the timers (a dead cookie answers 403 forever — no
+  retry every minute for good) and raise `SignedOut`; the next
+  `RebuildClient` starts over. The sign-out path: `FetchAccountAsync`
+  (one auth/me for the Account page's first look), `SignOutAsync` (stop
+  FIRST, so the dying cookie's refusals don't read as "session ended",
+  then the site's logout once) and `ForgetSession` (a client with no
+  cookie, timers stopped, roster and skins forgotten, so `CurrentCookie`
+  is empty and the exit save keeps nothing).
 - **OverlayWindowBase.cs** — shared Win32 interop (click-through / no-activate /
   toolwindow styles via SetWindowLongPtr, x64), `EditMode` state, shared
   edit-border brushes, `ApplyAppearance` (UI scale as a LayoutTransform +
@@ -454,6 +486,13 @@ Every overlay window derives from `OverlayWindowBase`.
   too); `OnMap` = in game && !hideLocation && both coordinates, the site's
   own draw rule. Entries without a steamId or unparseable are dropped, a
   missing list is an empty roster, `success:false` is null (a miss).
+  `PandoraClient.Account.cs` (v1.31): `FetchAccountAsync` / `ParseAccount`
+  (pure + tested — authenticated, username, steamId, the Steam LinkID,
+  hasMapAccess, isVerified, into `AccountInfo`; a `user` object alone
+  counts as signed in, like the frontend; a refusal reads as
+  `AccountInfo.None`; Discord ids, avatars and roles are left out) and
+  `SignOutAsync` (the site's logout GET on its own no-redirect client —
+  the answer is a redirect to the home page, not worth a download).
 - **GrowthTracker.cs** — pure class fed from the snapshot stream: 15-min
   sliding window of (time, growth) samples → slope → in-game ETA to full
   growth. Needs a ≥5-min baseline before showing anything; a full baseline
@@ -556,7 +595,11 @@ Every overlay window derives from `OverlayWindowBase`.
 - **OverlayConfig.cs** — config.json persistence + DPAPI vault. Plaintext `Cookie`
   field is a paste-inbox only: `Load()` encrypts it into `CookieProtected`
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
-  any failure; nothing in this class ever throws.
+  any failure; nothing in this class ever throws. Since v1.31 the inbox
+  is the UNDOCUMENTED EMERGENCY ROUTE — the UI has no paste box — and
+  `ApplySignIn` (cookie encrypted, the sign-in browser's UA copied into
+  `UserAgent`, `AccountName`, `SignedInUtc`; tested) / `ClearSignIn` are
+  what a sign-in's outcome and a Sign out do.
 - **MainWindow.xaml(.cs)** — orchestrator: owns the config, the PollService,
   the WaypointLibrary (loaded at startup; `MigrateWaypointSlots` turns
   v1.20's three config slots into Blue/Green/Purple entries once and
@@ -668,7 +711,13 @@ Every overlay window derives from `OverlayWindowBase`.
   never resize the panel (v1.25; before, the row collapsed and the panel
   grew on the first fracture); health/hunger/thirst fills pulse below 25% — stamina
   deliberately excluded, it drains by design). Fires one `UpdateChecker` call
-  on Loaded, feeding the status line + tray.
+  on Loaded, feeding the status line + tray. THE SESSION (v1.31):
+  `ApplySession` runs whenever Settings reports `CookieChanged` — read
+  BEFORE the saved/cancelled branch, since a sign-in acts at once — or the
+  tray's sign-in finished: a stored session rebuilds the client, none
+  calls `ForgetSession`, zeroes the panel and shows the not-signed-in
+  state; `OnSignedOut` (PollService gave up on the cookie) says "Session
+  ended · sign in again from the tray" and reveals the tray entry.
 - **TrayIcon.cs** — WinForms NotifyIcon wrapper owned by MainWindow: the only
   always-visible affordance (windows are click-through, no taskbar/Alt-Tab).
   Right-click menu, deliberately short = edit mode / hide-show overlay |
@@ -685,8 +734,10 @@ Every overlay window derives from `OverlayWindowBase`.
   update itself — and appends the tag to the tooltip; `SetUpdateBusy`
   greys it while the download runs; `ShowHotkeyConflict`/`ClearHotkeyConflict`
   do the same for combos another app holds (entry opens Settings) — the
-  status-line warning alone is overwritten by the next poll. Disposed on
-  shutdown.
+  status-line warning alone is overwritten by the next poll.
+  `ShowSignedOut`/`ClearSignedOut` (v1.31) are the third alert: "Sign in
+  again…" opens the sign-in window straight away (`MainWindow.OpenSignIn`),
+  no Settings in between. Disposed on shutdown.
 - **UpdateChecker.cs** — one fail-soft GET to the GitHub releases API
   (`/releases/latest`, so pre-releases never count); a newer tag surfaces
   via the status line (once) and the tray (for the session). Never
@@ -747,6 +798,45 @@ Every overlay window derives from `OverlayWindowBase`.
   name an exception's type at most. `StartupRegistration.RepointToThisExe`
   (at Loaded) rewrites a Run entry that points at another exe, so an old
   copy's "Start with Windows" doesn't keep starting the old copy.
+  `BrowserFolder` (v1.31) is the sign-in window's WebView2 user data
+  folder, `%LocalAppData%\PandoraOverlay\WebView2` — local, not roaming (a
+  browser cache is nobody's content), and not WebView2's default, which
+  would land next to the exe inside the folder an update replaces;
+  `ClearBrowserFolder` drops it on a Sign out.
+- **SignInWindow.xaml(.cs)** (v1.31, `Account/`) — the in-app sign-in:
+  the website's own Discord login inside a WebView2 that browses IN
+  PRIVATE (`IsInPrivateModeEnabled`: Discord's login lives in memory and
+  dies with the window). The ONE dialog of ours without
+  `AllowsTransparency` (WebView2 is an HwndHost: blank inside a layered
+  window), so it draws its own title bar through WindowChrome. Flow
+  (rehearsed as a spike Oct 7 2026 — `Desktop\Pandora Overlay
+  Files\pandora-webview-sign-in\PLAN.md`): navigate to
+  `SignInPolicy.StartUrl`; `NavigationStarting` holds every top-level
+  navigation to the allowlist (`IsAllowed`: the site's `/auth/` and
+  `/cdn-cgi/` paths, discord.com and its subdomains, about:blank — a
+  clicked link elsewhere opens in the real browser, a redirect is just
+  stopped; popups likewise); the first site navigation outside those
+  paths (`IsSignedInLanding` — in practice the server's redirect to `/`
+  after the callback) is CANCELLED, so no site page and none of its
+  polling ever runs in the window, and the capture begins: the browser's
+  own cookies for the site (HttpOnly included — it is the jar, not page
+  script) → `CookieHeader` (connect.sid + cf_clearance if any, nothing
+  else), the WebView's UA, then one `auth/me` through a throwaway
+  `PandoraClient` to confirm the session and read the name (the renewed
+  cookie is kept). Result screens replace the browser (HIDDEN, not
+  covered — an HwndHost draws over everything): Steam linked = done,
+  auto-closes in 3 s; Steam not linked = signed in but explained, with
+  the account's LinkID shown big when the site gave one (the code typed
+  in game chat; never logged); failed = reason + Try again; no WebView2
+  Runtime = a screen with Microsoft's download link. The address strip is
+  read-only and always shows the real host: the password is typed into a
+  window that is ours, and that line plus Discord's QR option are what
+  make it honest. `Run(owner)` is modal (owned by Settings, or topmost
+  from the tray); `Outcome` (cookie, UA, AccountInfo) survives a ✕ after
+  success. Nothing here logs, shows or keeps the cookie's value.
+- **SignInPolicy.cs** — the window's rules, pure + tested: `IsAllowed`,
+  `IsSignedInLanding`, `StepLabel` ("Step 1 of 2 · Discord login" / "Step
+  2 of 2 · Allow the website"), `CookieHeader`, `HasSession`.
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow, on the
   LARGE frame (WidgetFrame, v1.25): a Grid of the 284 px `MapSize` square
   and the footer centred in the rest; sized by `MinimapScale` through the
@@ -1394,13 +1484,20 @@ Every overlay window derives from `OverlayWindowBase`.
   every slider starts on the same x; a checkbox that owns a slider sits
   on the slider's row ("Fade idle panels to [slider]", slider IsEnabled
   bound to the box).
-  Cookie box is a replace-inbox: empty = keep the
-  current cookie; once a cookie is stored the box is folded behind a
-  "▸ Replace cookie…" link (`CookiePanel`; folding it clears the box so a
-  hidden paste can't be saved) and the hint line hides while empty; first
-  run shows the box + walkthrough up front and gates Save on a valid paste (`Clean()` strips
-  `cookie:` prefix, quotes, newlines, trailing `;`; live validation needs
-  `connect.sid`, warns if `cf_clearance` missing). Six hotkey capture boxes
+  ACCOUNT PAGE (v1.31, `SettingsWindow.Account.cs`): the in-app sign-in
+  replaced the cookie paste box and its DevTools walkthrough (v1.0–1.30;
+  `Clean()` and the validation went with them). Not signed in: one
+  "Sign in with Discord" button (`DiscordButtonStyle`, Discord's blurple)
+  that runs `SignInWindow.Run(this)`, and three lines on what happens;
+  signed in: a card — initial, name, Steam linked / not, when the session
+  was taken — with "Sign in again" and "Sign out" (two clicks, like Delete
+  all: it logs the site out too). THE SECOND PAGE THAT ACTS AT ONCE: a
+  sign-in or sign-out is applied and saved on the spot and sets
+  `CookieChanged`, which MainWindow reads before the saved/cancelled
+  branch (signing in and closing with ✕ keeps the sign-in). The card's
+  live facts come from ONE auth/me on the page's first look per dialog
+  (`OpenAccountPage`); offline it shows what is saved. `GateSave`: first
+  run, Save stays off until signed in. Six hotkey capture boxes
   (edit / hide-overlay / minimap-view / heatmap / Check Prime / stats view) share the capture UX: combos are
   availability-tested via a throwaway RegisterHotKey on the dialog's hwnd
   and cross-duplicates rejected. MainWindow suspends its six
@@ -1468,7 +1565,9 @@ Every overlay window derives from `OverlayWindowBase`.
   does NOT appear to pause when starving/dehydrated. GrowthTracker measures
   the effective rate, so none of this needs configuring.
 - Status line shows last-update timestamp; "Disconnected · retrying (TypeName)"
-  on errors. Persistent 401/403 → user pastes a fresh cookie via ⚙.
+  on errors. The site's own refusal (403 with a JSON body) twice running
+  → "Session ended · sign in again from the tray" and the tray's "Sign in
+  again…" entry (v1.31; before, the user pasted a fresh cookie via ⚙).
 
 ## Roadmap
 
@@ -1719,6 +1818,31 @@ the SmartScreen box once on the installer, nothing on the updates, no
 block — so Defender, the biggest open risk, is cleared. Still unverified:
 Smart App Control (nobody had it on), a PC without .NET 8 (the installer's
 runtime fetch).
+
+BUILT Oct 7 2026 for 1.31.0 (NOT released, NOT bumped — the owner runs
+the release pass): **the in-app sign-in**, replacing the DevTools cookie
+copy (the owner: tricky for non-tech-savvy users and not the most secure
+option). Settings → Account's "Sign in with Discord" opens SignInWindow —
+the website's own Discord login in a private WebView2 — and the overlay
+takes the site's session from the browser when Discord sends the player
+back; the tray's "Sign in again…" does the same when the session ends.
+Decisions (owner, Oct 7): the owner's okay suffices for `auth/me` +
+`/auth/logout` under the blanket go-ahead; the window browses in private
+(Discord's login is never on disk); the cookie paste box is CUT from the
+UI — the `config.json` `Cookie` inbox stays as the undocumented emergency
+route; Sign out also logs out on the website; Steam-not-linked is
+explained (with the LinkID) rather than walked through site pages;
+signing in acts at once, not on Save. Phase 0 spike on the owner's PC
+(`Desktop\Pandora Overlay Files\pandora-webview-sign-in\`, PLAN.md §10):
+Discord's login works in the private WebView2; the callback 302s to `/`,
+and connect.sid — the ONLY site cookie, HttpOnly, 30 days — is set by
+then; NO cf_clearance exists; a plain HttpClient passes with the
+WebView's UA and the old one alike; a dead or missing session is `403
+{"error":"Forbidden"}`; `vpk --framework webview2` is accepted. Untested
+so far: `/auth/logout` (the spike's optional test was not clicked), a PC
+without the WebView2 Runtime, and the whole thing in game — the rc round.
+The README's first-run section was rewritten; its three setup screenshots
+need retaking by the owner.
 
 ## Conventions
 

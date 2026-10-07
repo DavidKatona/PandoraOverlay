@@ -108,6 +108,7 @@ public partial class MainWindow : OverlayWindowBase
         _poll = new PollService(_config);
         _poll.SnapshotReceived += OnSnapshot;
         _poll.PollFailed += OnPollFailed;
+        _poll.SignedOut += OnSignedOut;
         _poll.FriendsChanged += OnFriendsRoster;
         _poll.PrimeCheckStarted += () => _primeBefore = _config.Prime; // PollService swaps in the new result before PrimeChecked
         _poll.PrimeChecked += result =>
@@ -181,17 +182,13 @@ public partial class MainWindow : OverlayWindowBase
             var dialog = new SettingsWindow(_config, _library, _book, _poll, _me?.Dino, page, UpdateHooksForSettings()) { Topmost = true };
             var saved = dialog.ShowDialog() == true;
 
+            // A sign-in or sign-out acted at once (like the Skins page), so it
+            // holds whether the dialog was saved or cancelled.
+            if (dialog.CookieChanged) ApplySession();
             if (!saved)
             {
                 if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState();
                 return;
-            }
-            if (dialog.CookieChanged)
-            {
-                DinoText.Text = "Connecting…";
-                SetStatus("");
-                SetAttention(true);
-                _poll.RebuildClient();
             }
             if (dialog.MinimapChanged || dialog.AppearanceChanged || dialog.FriendsChanged) _minimap?.ApplySettings();
             UpdateArea(); // the pill or the feed's area lines may have been switched on: name the area now, not a poll later
@@ -236,9 +233,59 @@ public partial class MainWindow : OverlayWindowBase
 
     private void ShowNoCookieState()
     {
-        DinoText.Text = "Not set up yet";
-        SetStatus("Open Settings from the tray icon to connect your account");
+        DinoText.Text = "Not signed in";
+        SetStatus("Open Settings from the tray icon to sign in");
         SetAttention(true);
+    }
+
+    // ---- The session (v1.31) ---------------------------------------------------
+
+    /// <summary>
+    /// The stored session changed — a sign-in (Settings, or the tray's "Sign
+    /// in again…") or a sign-out: the poll follows it. A session = a fresh
+    /// client and polling from now; none = polling stops and the panel says
+    /// so, and nothing of the old account stays in the service.
+    /// </summary>
+    private void ApplySession()
+    {
+        _tray.ClearSignedOut();
+        if (string.IsNullOrWhiteSpace(_config.GetCookie()))
+        {
+            _poll.ForgetSession();
+            UpdateUi(new MyLocationResponse(false, null)); // bars to zero, trackers reset
+            ShowNoCookieState();
+            _tray.SetStatus("Pandora Overlay — not signed in");
+            return;
+        }
+        DinoText.Text = "Connecting…";
+        SetStatus("");
+        SetAttention(true);
+        _poll.RebuildClient();
+    }
+
+    /// <summary>
+    /// PollService gave up on the cookie (the site refused it twice running):
+    /// say so in words instead of "Disconnected · retrying" for good, and put
+    /// the fix where it survives a locked, hidden overlay — the tray.
+    /// </summary>
+    private void OnSignedOut()
+    {
+        UpdateUi(new MyLocationResponse(false, null));
+        DinoText.Text = "Not signed in";
+        SetStatus("Session ended · sign in again from the tray");
+        SetAttention(true);
+        _tray.SetStatus("Pandora Overlay — session ended");
+        _tray.ShowSignedOut(OpenSignIn);
+    }
+
+    /// <summary>The tray's "Sign in again…": the sign-in window straight away, no Settings in between.</summary>
+    private void OpenSignIn()
+    {
+        var outcome = SignInWindow.Run(owner: null);
+        if (outcome is null) return;
+        _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow);
+        _config.Save();
+        ApplySession();
     }
 
     /// <summary>The stats panel takes part in the attention fade; its verdict comes from StatsAttention.</summary>

@@ -27,7 +27,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 
 Every release on the [Releases page](../../releases) comes in three forms; pick one:
 
-- **`PandoraOverlay-vX.Y.Z-Setup.exe`** installs the overlay for your Windows user (no admin rights) with Start menu and Desktop shortcuts, and fetches the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) if it is missing. New versions then install with **one click** from the tray menu.
+- **`PandoraOverlay-vX.Y.Z-Setup.exe`** installs the overlay for your Windows user (no admin rights) with Start menu and Desktop shortcuts, and fetches the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) and the WebView2 Runtime if either is missing. New versions then install with **one click** from the tray menu.
 - **`PandoraOverlay-vX.Y.Z-win-x64.zip`** is for people who prefer a folder of their own: unzip it anywhere, or over an older copy. It updates itself with one click too. Start it with `Pandora Overlay.exe` at the top of the folder; an old `PandoraOverlay.exe` left from before 1.30 can be deleted.
 - **`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`** has no updater inside. The tray still tells you when a new version is out, and you download it yourself.
 
@@ -39,6 +39,7 @@ Windows will likely warn about an **unknown publisher** the first time you run a
 
 - Windows 10/11, x64
 - The [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) to run a release (the installer fetches it when it is missing; the zips don't)
+- Microsoft's [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) for the sign-in window — part of Windows 11 and installed with Edge on Windows 10, so it is almost always there already (the installer fetches it too when it is missing)
 - .NET 8 SDK (`winget install Microsoft.DotNet.SDK.8`) — only needed when building from source
 - An Isla Pandora account, logged in via Discord on islapandora.eu
 - The Isle running in **borderless windowed** mode (overlays cannot draw over exclusive fullscreen)
@@ -55,23 +56,20 @@ The exe lands in `bin\Release\net8.0-windows\PandoraOverlay.exe`.
 
 ## First-run setup
 
-1. Run `PandoraOverlay.exe` — the settings window opens automatically with the cookie walkthrough expanded.
+1. Run `PandoraOverlay.exe` — the settings window opens on its Account page.
 
-   ![The Settings dialog on first launch, Account page: the amber "No cookie stored yet" line, the "Open live map in browser" button, the four-step "How do I get my cookie?" walkthrough, the empty paste box with "Waiting for a pasted cookie…" under it, and Save still disabled](docs/setup-settings.png)
+   ![The Settings dialog on first launch, Account page: the amber "Not signed in" line, the blue "Sign in with Discord" button with three lines underneath on what happens, and Save still disabled](docs/setup-settings.png)
 
-2. Click **Open live map in browser** and log in with Discord.
-3. On the live-map page press F12 → Network tab → type `mylocation` into the filter → click any row.
-4. Under **Request Headers**, copy the whole value of `cookie` (right-click the value → **Copy value** gets all of it in one go) and paste it into the Account section's paste box. It validates as you type (it also cleans up stray quotes, a `cookie:` prefix, and line breaks automatically). Hit Save — the overlay connects immediately, no restart needed.
+2. Click **Sign in with Discord**. A small window opens with the website's own Discord login: log in there the way you always do — password, or scan the QR code with the Discord app. The window's address line is read-only and always shows where you are (`discord.com` while you type), and your password goes to Discord, never to the overlay. Only islapandora.eu and discord.com can open in that window; any other link opens in your normal browser.
+3. When Discord sends you back to islapandora.eu, the overlay takes the website session, checks it once and closes the window — "Signed in as …". That's it: the overlay connects immediately, no restart needed. Save is enabled from here on, and Cancel keeps the sign-in too.
 
-   ![The browser's DevTools on the live-map page with the four spots marked: 1 the Network tab, 2 "mylocation" typed into the filter, 3 a mylocation row selected, 4 the Cookie line under Request headers, its value hidden in this screenshot with the tip "right-click it > Copy value"](docs/setup-devtools.png)
+   ![The sign-in window's final screen: a green tick, "Signed in as Dave94Punk", "Steam account linked ✓ · the overlay is connected", three lines on what is kept and what is not, and "This window closes in 3 s…"](docs/setup-signed-in.png)
 
-   ![The Settings dialog after pasting: the paste box holding the cookie (hidden in this screenshot), the green line "Looks good ✓ — both session and Cloudflare cookies found", and Save now enabled](docs/setup-pasted.png)
+   If your Steam account isn't linked to your website account yet, the same screen says so and shows your LinkID: type it in the game's local chat once, and the overlay finds your dino on its next update. No new sign-in needed.
 
-   The cookie is your login: copy it straight from DevTools into the overlay and never post it or a screenshot of it anywhere.
+You can reopen settings any time: right-click the tray icon → **Settings…**, or press the edit-mode hotkey (**Ctrl+F7** by default) and use the control panel's Settings button. The Account page then shows who is signed in, with **Sign in again** (another account, or after a long break) and **Sign out** (which also logs you out on the website).
 
-You can reopen settings any time: right-click the tray icon → **Settings…**, or press the edit-mode hotkey (**Ctrl+F7** by default) and use the control panel's Settings button.
-
-The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows user account) and stored in `config.json` as an opaque blob — it never sits readable on disk, and copying the file to another machine yields nothing usable. The session also rolls forward automatically: every response renews it, and the overlay re-encrypts and saves the refreshed value on exit, so this should be a one-time setup unless you log out or Cloudflare re-challenges the browser.
+What is kept is only the website session, encrypted with **Windows DPAPI** (scoped to your Windows user account) and stored in `config.json` as an opaque blob — it never sits readable on disk, and copying the file to another machine yields nothing usable. Your Discord login is not kept at all: the sign-in window browses in private and forgets it when it closes. The session rolls forward automatically: every response renews it, and the overlay re-encrypts and saves the refreshed value on exit, so this is a one-time setup unless you sign out or stay away for about a month — then the stats panel says "Session ended" and the tray menu offers **Sign in again…**.
 
 ## Usage
 
@@ -90,8 +88,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Tray icon & settings
 
-- A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, Server rules, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (your cookie), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints, Skins, Server rules and About (the version, updates, where your settings live, links).
+- A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, Server rules, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Alerts appear at its top when there is one: an update, a hotkey another program holds, or **Sign in again…** once the website session has ended. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (the sign-in), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints, Skins, Server rules and About (the version, updates, where your settings live, links).
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -113,8 +111,9 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 - Optional **attention fade** (Settings → General → "Fade idle panels to …", off by default): while all is well the stats panel, the Prime tracker and the Activity feed sit at a faded opacity you choose (20–80%), and come back to full when something is worth a look. For the stats panel that is a stat under 50%, a fracture, damage taken, hunger or thirst with under 15 minutes left (in the Combat view instead: health or stamina under 75%, a fracture, or a fight still showing on the Damage row; flipping the view always lights the panel for a few seconds); for the Prime tracker a check in flight, a fresh result, the cooldown ending, or the "as a different dino" cue appearing (each lit for about half a minute); for the Activity feed a new line (also about half a minute). The minimap never fades, and edit mode always shows everything in full. The fade works on top of the background opacity slider, so it can only make a panel fainter than your usual look.
 - Status-line states you'll see:
   - `Not in-game` — you're logged in but not spawned on the server (or the server is restarting). While you aren't spawned the overlay checks less often — every 15 seconds, and once a minute after ten minutes (the status line says so) — so a fresh spawn can take that long to show up. Entering edit mode, un-hiding the overlay or pressing Check Prime makes it look right away.
-  - `Disconnected · retrying` — network/auth problem; it keeps retrying (less often once the failures pile up). If it never recovers, open Settings and paste a fresh cookie.
-  - `Not set up yet` — no cookie stored; open Settings (tray icon → Settings…).
+  - `Disconnected · retrying` — a network or site problem; it keeps retrying (less often once the failures pile up).
+  - `Session ended · sign in again from the tray` — the website no longer accepts the session (you signed out there, or it expired after about a month away); the tray menu has a **Sign in again…** entry, and polling waits for it.
+  - `Not signed in` — nothing stored yet; open Settings (tray icon → Settings…) and sign in.
 
 ### Minimap
 
@@ -211,7 +210,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 **It says "Not in-game", but I'm playing.** The overlay shows what the website's [live map](https://islapandora.eu/live-map) shows, so check that the page shows your dino: you have to be spawned in on Isla Pandora, not in the spawn menu. If you only just spawned, give it a moment. While you aren't spawned the overlay checks only every 15 seconds, and once a minute after ten minutes; pressing Ctrl+F7 makes it check right away.
 
-**It says "Disconnected · retrying".** It retries by itself, so a short network or site hiccup clears up alone. If it stays that way for more than a couple of minutes, your login has most likely expired. Copy a fresh cookie the same way as in [First-run setup](#first-run-setup) and paste it under Settings → Account → **Replace cookie…**.
+**It says "Disconnected · retrying".** It retries by itself, so a short network or site hiccup clears up alone. If the website has stopped accepting your session instead, the line changes to "Session ended" and the tray menu offers **Sign in again…** — one click, log in, and you are back.
 
 **Why are the numbers a few seconds behind the game?** The overlay gets fresh numbers every 3 seconds and deliberately asks no more often than that, out of courtesy to the site. So a hit or a sprint shows up a moment later.
 
@@ -221,7 +220,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 **Can it see other players?** No. It shows your own dino, and the friends from your islapandora.eu friends list who share their location, exactly as the website's live map does.
 
-**Is my cookie safe?** It stays on your PC, encrypted with Windows' own protection for your user account, and it is only ever sent to islapandora.eu, where your browser sends it too. It is your login, though: never post it, or a screenshot of it, anywhere.
+**Is my login safe?** The overlay never sees your Discord password: you type it on Discord's own page, in a window that can only show discord.com and islapandora.eu — or you scan the QR code and type nothing at all. What the overlay keeps is the website session: on your PC, encrypted with Windows' own protection for your user account, and only ever sent to islapandora.eu, where your browser sends it too. Your Discord login itself is not kept. The source is open, so anyone can read the sign-in code.
 
 **Will it lower my FPS?** It shouldn't. It is a small separate program that draws a few panels and makes one small web request every few seconds; it doesn't hook into the game or its rendering.
 
@@ -231,7 +230,7 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ### Installing and updating
 
-**Do I have to paste the cookie again after a restart or an update?** No. It is saved and renews itself while you use the overlay. Normally you only need a new one if you log out on the website or stay away for about a month.
+**Do I have to sign in again after a restart or an update?** No. The session is saved and renews itself while you use the overlay. Normally you only sign in again if you sign out, or stay away for about a month — the tray tells you when.
 
 **How do I update?** The tray icon tells you when a new version is out (a single check at launch; Settings → About can switch it off or run it on demand). With the installer or the self-updating zip, click the tray entry: the overlay downloads the update, closes and comes back on the new version a few seconds later. Nothing ever updates by itself. With the plain zip, the entry opens the download page instead: exit the overlay, download the new zip, unblock it (see [Troubleshooting](#troubleshooting)) and unpack it over the old folder.
 
@@ -253,7 +252,8 @@ The pasted cookie is encrypted with **Windows DPAPI** (scoped to your Windows us
 
 ## Troubleshooting
 
-- **`Disconnected (HttpRequestException)` or 401/403 forever** → your session or `cf_clearance` expired. Redo the cookie copy from DevTools.
+- **`Session ended · sign in again from the tray`** → the website no longer accepts the session. Right-click the tray icon → **Sign in again…**.
+- **The sign-in window says it needs the WebView2 Runtime** → it is part of Windows 11 and comes with Edge on Windows 10, so this is rare; the window's **Get WebView2** button opens Microsoft's free download. The installer fetches it by itself; a plain-zip copy relies on the one already on the PC.
 - **Overlay not visible over the game** → make sure the game is borderless windowed, not fullscreen. The [FAQ](#faq) has the full checklist.
 - **The hotkey does nothing** → another app grabbed it; pick a different combination in Settings (tray icon → Settings…) — the capture box checks availability as you press.
 - **Bars frozen** → check the timestamp in the status line; it updates on every successful poll.
@@ -272,9 +272,10 @@ The file lives in `%AppData%\PandoraOverlay` (since 1.30; next to the app before
 
 | Field | Meaning |
 |---|---|
-| `Cookie` | Paste-here inbox only. Encrypted into `CookieProtected` and blanked on next launch. |
+| `Cookie` | Emergency route only: a full cookie header pasted here is encrypted into `CookieProtected` and blanked on the next launch. The normal way is Settings → Account → Sign in with Discord. |
 | `CookieProtected` | DPAPI-encrypted session cookie (base64). Managed by the app — don't edit, and it's useless off this machine/account. |
-| `UserAgent` | Sent with every request; keep it matching your real browser. |
+| `UserAgent` | Sent with every request; set from the sign-in window's own browser when you sign in. |
+| `AccountName` / `SignedInUtc` | Who the session was signed in as, and when — for the Account page only. Managed by the app. |
 | `PollIntervalSeconds` | Default 3. Don't go below 2 — the site's own page polls at this pace and the API is rate-limited (300/window). This is the in-game pace; while you aren't spawned (or the connection keeps failing) the overlay slows itself to 15 s, then 60 s. |
 | `WindowX` / `WindowY` | Saved stats panel position (empty until first placed: under the minimap in the default layout). |
 | `Hotkey` / `HotkeyHideAll` / `HotkeyMinimapView` / `HotkeyHeatmap` / `HotkeyPrimeCheck` / `HotkeyStatsView` | The six global hotkeys (edit mode `Ctrl+F7`, hide/show overlay `Ctrl+F4`, minimap view toggle `Ctrl+F5`, heatmap toggle `Ctrl+F6`, Check Prime `Ctrl+F8`, stats view toggle `Ctrl+F9`); modifiers + one key. All rebindable in Settings. |
@@ -316,7 +317,7 @@ The file lives in `%AppData%\PandoraOverlay` (since 1.30; next to the app before
 | `LowStatChimeEnabled` / `GrowthChimeEnabled` | Play the Windows "Exclamation" sound when hunger or thirst drops under 20%, and at the 25/50/75/100% growth stages. Checkboxes in Settings → Stats panel. Both default `false`. |
 | `FadeEnabled` / `FadeIdleOpacity` | Attention fade for the stats panel, the Prime tracker and the Activity feed, and the opacity they rest at while nothing needs attention (0.2–0.8, default 0.4). Checkbox + slider in Settings. Default off. |
 
-Most of these are editable from the Settings window; `UserAgent`, `PollIntervalSeconds`, and `MinimapYawOffsetDegrees` are file-only on purpose. "Start with Windows" lives in the registry (HKCU Run entry), not in this file. The waypoint library itself lives in `waypoints.json` next to the app (a `Waypoints` array of `{Id, Name, X, Y, Colour, Visible, Pack}`): user content, kept apart from settings and the cookie, and the file that is exported and imported. Your side of the friends list lives in `friends.json` the same way (a `Friends` array of `{SteamId, Name, Nickname, Colour, ShowOnMap, Notify, LastDino, LastGrowth, LastSeenUtc}`); the list itself comes from the website on every fetch, this file only holds your names, colours and choices for each friend plus when they were last seen.
+Most of these are editable from the Settings window; `PollIntervalSeconds` and `MinimapYawOffsetDegrees` are file-only on purpose (and `UserAgent` is set by the sign-in). "Start with Windows" lives in the registry (HKCU Run entry), not in this file. The waypoint library itself lives in `waypoints.json` next to the app (a `Waypoints` array of `{Id, Name, X, Y, Colour, Visible, Pack}`): user content, kept apart from settings and the cookie, and the file that is exported and imported. Your side of the friends list lives in `friends.json` the same way (a `Friends` array of `{SteamId, Name, Nickname, Colour, ShowOnMap, Notify, LastDino, LastGrowth, LastSeenUtc}`); the list itself comes from the website on every fetch, this file only holds your names, colours and choices for each friend plus when they were last seen.
 
 ## Fair-play notes
 

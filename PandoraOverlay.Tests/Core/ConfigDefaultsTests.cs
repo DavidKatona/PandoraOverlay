@@ -20,6 +20,36 @@ public class ConfigDefaultsTests
         Assert.True(cfg.UpdateCheckEnabled, "the launch update check is on until switched off");
     }
 
+    /// <summary>A sign-in leaves the session (encrypted), the browser identity and the name; a sign-out forgets the first and the last and keeps the identity.</summary>
+    [Fact]
+    public void SignInAndSignOutRoundTrip()
+    {
+        var cfg = new OverlayConfig();
+        var when = new DateTime(2026, 10, 7, 16, 0, 0, DateTimeKind.Utc);
+        cfg.ApplySignIn("connect.sid=s%3Aabc", "  Mozilla/5.0 Test  ", " dave ", when);
+        Assert.Equal("connect.sid=s%3Aabc", cfg.GetCookie());
+        Assert.Equal("", cfg.Cookie); // never the plaintext inbox
+        Assert.Equal("Mozilla/5.0 Test", cfg.UserAgent);
+        Assert.Equal("dave", cfg.AccountName);
+        Assert.Equal(when, cfg.SignedInUtc);
+
+        cfg.ClearSignIn();
+        Assert.Equal("", cfg.GetCookie());
+        Assert.Null(cfg.AccountName);
+        Assert.Null(cfg.SignedInUtc);
+        Assert.Equal("Mozilla/5.0 Test", cfg.UserAgent);
+    }
+
+    [Fact]
+    public void ABlankIdentityOrNameChangesNothingOfTheSort()
+    {
+        var cfg = new OverlayConfig();
+        var before = cfg.UserAgent;
+        cfg.ApplySignIn("connect.sid=x", "   ", "  ", DateTime.UtcNow);
+        Assert.Equal(before, cfg.UserAgent);
+        Assert.Null(cfg.AccountName);
+    }
+
     /// <summary>A pre-1.25 file's pixel size is just an unknown key now: it does not touch the scale.</summary>
     [Fact]
     public void TheOldPixelMinimapSizeIsIgnored()

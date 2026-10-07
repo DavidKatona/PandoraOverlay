@@ -67,6 +67,14 @@ public sealed partial class PollService : IDisposable
     /// <summary>Consecutive friends misses before the layers are told to clear — one blip keeps the last roster.</summary>
     private const int FriendMissesBeforeClear = 2;
 
+    /// <summary>
+    /// Consecutive polls the site refused as "no session" (v1.31) before the
+    /// session is declared over: a dead cookie answers 403 forever, so
+    /// polling stops and a new sign-in is asked for instead of a retry every
+    /// minute for good. Two, not one, so a single odd answer is not it.
+    /// </summary>
+    private const int RefusalsBeforeSignedOut = 2;
+
     private readonly OverlayConfig _config;
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _heatmapTimer;
@@ -80,6 +88,7 @@ public sealed partial class PollService : IDisposable
     private string? _dino;
     private string? _steamId; // yours, once seen; the friends roster may include you
     private int _failStreak;
+    private int _refusals; // consecutive "no session" answers, see RefusalsBeforeSignedOut
     private int _pollsSinceFriends;
     private int _friendMisses;
     private bool _friendsDue;   // a hot trigger arrived while busy or too soon: fetch on the next poll
@@ -102,6 +111,16 @@ public sealed partial class PollService : IDisposable
     public event Action<MyLocationResponse>? SnapshotReceived;
     public event Action<Exception>? PollFailed;
     public event Action<MapCalibration>? CalibrationChanged;
+
+    /// <summary>
+    /// The website session is over (v1.31): the site refused the cookie
+    /// RefusalsBeforeSignedOut polls in a row. Polling has stopped by the
+    /// time this fires; a new sign-in (RebuildClient) starts it again.
+    /// </summary>
+    public event Action? SignedOut;
+
+    /// <summary>True from SignedOut until the next RebuildClient.</summary>
+    public bool IsSignedOut { get; private set; }
 
     /// <summary>Fresh heatmap PNG bytes, or null (disabled / off / fetch failed) → hide the layer.</summary>
     public event Action<byte[]?>? HeatmapChanged;
@@ -171,6 +190,8 @@ public sealed partial class PollService : IDisposable
         _client = new PandoraClient(_config.GetCookie(), _config.UserAgent);
         _calibrationRequested = false; // retry with the fresh session
         _failStreak = 0;               // a fresh session starts the idle clock over
+        _refusals = 0;
+        IsSignedOut = false;
         _lastLiveUtc = DateTime.UtcNow;
         ForgetSkins();                 // another login may see other skins
         Start();
@@ -188,6 +209,7 @@ public sealed partial class PollService : IDisposable
             _dino = result.Player?.Dino;
             _steamId = result.Player?.SteamId ?? _steamId;
             _failStreak = 0;
+            _refusals = 0;
             ApplyPacing(); // before the event, so subscribers read the cadence this snapshot set
             SnapshotReceived?.Invoke(result);
             await MaybeFetchFriendsAsync();
@@ -195,12 +217,63 @@ public sealed partial class PollService : IDisposable
         catch (Exception ex)
         {
             _failStreak++;
+            _refusals = ex is SessionEndedException ? _refusals + 1 : 0;
             ApplyPacing();
             PollFailed?.Invoke(ex);
+            if (SignedOutAfter(_refusals) && !IsSignedOut)
+            {
+                IsSignedOut = true;
+                Stop(); // final for this cookie: the next sign-in restarts the timers
+                SignedOut?.Invoke();
+            }
         }
         finally
         {
             _busy = false;
+        }
+    }
+
+    /// <summary>The sign-out rule, pure for the tests: a run of refusals, not one.</summary>
+    internal static bool SignedOutAfter(int refusals) => refusals >= RefusalsBeforeSignedOut;
+
+    // ---- Account (v1.31) ---------------------------------------------------------
+
+    /// <summary>One "who am I" for the Account page's first look per dialog — never on a timer.</summary>
+    public Task<AccountInfo> FetchAccountAsync() => _client.FetchAccountAsync();
+
+    /// <summary>
+    /// After a sign-out: a client with no session, the timers stopped, the
+    /// roster and the skins forgotten — nothing of the old account stays, and
+    /// CurrentCookie is empty so the exit save keeps nothing either.
+    /// </summary>
+    public void ForgetSession()
+    {
+        Stop();
+        _client.Dispose();
+        _client = new PandoraClient("", _config.UserAgent);
+        _failStreak = 0;
+        _refusals = 0;
+        IsSignedOut = false;
+        ForgetSkins();
+        ClearFriends();
+    }
+
+    /// <summary>
+    /// A Sign out click: polling stops FIRST (the cookie is about to die, and
+    /// a dead cookie's refusals must not read as "session ended"), then the
+    /// site is told once. Fail soft — the caller forgets the session either
+    /// way. True when the site took the logout.
+    /// </summary>
+    public async Task<bool> SignOutAsync()
+    {
+        Stop();
+        try
+        {
+            return await _client.SignOutAsync();
+        }
+        catch
+        {
+            return false;
         }
     }
 

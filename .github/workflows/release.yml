@@ -39,8 +39,9 @@ jobs:
           }
           "version=$version" >> $env:GITHUB_OUTPUT
 
-      # A framework-dependent build: players need the .NET 8 Desktop Runtime,
-      # which the installer fetches when it is missing.
+      # A framework-dependent build: players need the .NET 8 Desktop Runtime
+      # and, since v1.31 (the in-app sign-in), Microsoft's WebView2 Runtime —
+      # the installer fetches either when it is missing.
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/v')
         run: dotnet publish PandoraOverlay.csproj -c Release -r win-x64 --self-contained false -o publish
@@ -68,7 +69,7 @@ jobs:
         run: >
           vpk pack --packId PandoraOverlay --packVersion ${{ steps.version.outputs.version }}
           --packDir publish --mainExe PandoraOverlay.exe --packTitle "Pandora Overlay" --packAuthors DavidKatona
-          --icon Assets\app.ico --runtime win-x64 --framework net8.0-x64-desktop --shortcuts Desktop,StartMenuRoot
+          --icon Assets\app.ico --runtime win-x64 --framework net8.0-x64-desktop,webview2 --shortcuts Desktop,StartMenuRoot
           --outputDir Releases
 
       # Human-facing names carry the version; the update files keep the names the updater expects.

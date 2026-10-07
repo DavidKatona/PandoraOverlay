@@ -31,9 +31,11 @@ public sealed class OverlayConfig
     public static string FilePath { get; } = DataFolder.FileIn("config.json");
 
     /// <summary>
-    /// PASTE-HERE FIELD ONLY. Put the full "cookie" request-header value here
-    /// (must include connect.sid=... and cf_clearance=...). It is encrypted
-    /// and blanked on the next launch.
+    /// The emergency route, not the normal one (v1.31: signing in happens in
+    /// the overlay's own sign-in window). A full "cookie" request-header
+    /// value pasted here (connect.sid=...) is encrypted and blanked on the
+    /// next launch. Undocumented on purpose: nobody should learn to copy
+    /// their session out of a browser.
     /// </summary>
     public string Cookie { get; set; } = "";
 
@@ -41,11 +43,23 @@ public sealed class OverlayConfig
     public string CookieProtected { get; set; } = "";
 
     /// <summary>
-    /// Sent with every request. Keep this matching your real browser's
-    /// User-Agent so the traffic looks like the browser session it belongs to.
+    /// Sent with every request. Since v1.31 it is the sign-in window's own
+    /// browser identity, copied at sign-in, so the overlay's traffic carries
+    /// the identity the session was issued to; the default only serves a
+    /// session that arrived another way.
     /// </summary>
     public string UserAgent { get; set; } =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36";
+
+    /// <summary>
+    /// The Discord username the session was signed in as (v1.31) — for the
+    /// Account page and nothing else; null = no sign-in from the overlay yet
+    /// (a session that arrived another way has no name).
+    /// </summary>
+    public string? AccountName { get; set; }
+
+    /// <summary>When the sign-in window last took a session (UTC); null = never. Display only.</summary>
+    public DateTime? SignedInUtc { get; set; }
 
     /// <summary>Seconds between polls. The site itself polls every few seconds; do not go below 2.</summary>
     public int PollIntervalSeconds { get; set; } = 3;
@@ -467,6 +481,28 @@ public sealed class OverlayConfig
             // Wrong user/machine, or corrupted blob — treat as "no cookie".
             return "";
         }
+    }
+
+    /// <summary>
+    /// What a successful sign-in leaves behind (call Save() afterwards): the
+    /// session, encrypted; the browser identity it was issued to; the name
+    /// and the time for the Account page.
+    /// </summary>
+    public void ApplySignIn(string cookie, string userAgent, string? accountName, DateTime nowUtc)
+    {
+        SetCookie(cookie);
+        if (!string.IsNullOrWhiteSpace(userAgent)) UserAgent = userAgent.Trim();
+        AccountName = string.IsNullOrWhiteSpace(accountName) ? null : accountName.Trim();
+        SignedInUtc = nowUtc;
+    }
+
+    /// <summary>Sign out: forgets the session and the name (call Save() afterwards). The identity string is kept — it is not a secret.</summary>
+    public void ClearSignIn()
+    {
+        Cookie = "";
+        CookieProtected = "";
+        AccountName = null;
+        SignedInUtc = null;
     }
 
     /// <summary>Encrypts and stores the cookie (call Save() afterwards to persist).</summary>

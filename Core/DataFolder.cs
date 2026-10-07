@@ -26,6 +26,23 @@ public static class DataFolder
 
     public static string FileIn(string name) => System.IO.Path.Combine(Path, name);
 
+    /// <summary>
+    /// The sign-in window's browser folder (v1.31): under %LocalAppData%, not
+    /// the roaming data folder — a browser's cache is nobody's content and
+    /// should not travel with a profile. Nothing of the sign-in itself lands
+    /// here: the window browses in private, so Discord's login lives in
+    /// memory only. Left to the default, WebView2 would create this folder
+    /// next to the exe, inside the app folder an update replaces.
+    /// </summary>
+    public static string BrowserFolder { get; } =
+        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Name, "WebView2");
+
+    /// <summary>Sign out: drops the browser folder; anything in it is re-creatable. Fail soft.</summary>
+    public static void ClearBrowserFolder()
+    {
+        try { if (Directory.Exists(BrowserFolder)) Directory.Delete(BrowserFolder, recursive: true); } catch { }
+    }
+
     /// <summary>What <see cref="MigrateLegacy"/> did on this launch, if anything.</summary>
     public static ImportResult? Migration { get; private set; }
 
