@@ -1838,9 +1838,15 @@ Discord's login works in the private WebView2; the callback 302s to `/`,
 and connect.sid — the ONLY site cookie, HttpOnly, 30 days — is set by
 then; NO cf_clearance exists; a plain HttpClient passes with the
 WebView's UA and the old one alike; a dead or missing session is `403
-{"error":"Forbidden"}`; `vpk --framework webview2` is accepted. Untested
-so far: `/auth/logout` (the spike's optional test was not clicked), a PC
-without the WebView2 Runtime, and the whole thing in game — the rc round.
+{"error":"Forbidden"}`; `vpk --framework webview2` is accepted; and
+(clicked later that evening) `GET /auth/logout` answers `302 Found` → `/`
+with a Set-Cookie replacing connect.sid, after which `auth/me` on the old
+cookie is `200 {"ok":false,"authenticated":false}` — a 200 with no `user`,
+NOT a refusal, which is why `ParseAccount` reads `authenticated` and the
+Account page says "session has ended" on it — and `mylocation` is the
+403 JSON refusal, so a session ended on the website is caught like a
+dead one. Untested so far: a PC without the WebView2 Runtime, and the
+whole thing in game — the rc round.
 The README's first-run section was rewritten; its three setup screenshots
 need retaking by the owner.
 
