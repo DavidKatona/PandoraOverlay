@@ -28,7 +28,8 @@ public sealed record SignInOutcome(string CookieHeader, string UserAgent, Accoun
 public partial class SignInWindow : Window
 {
     private const string RuntimeDownloadUrl = "https://developer.microsoft.com/microsoft-edge/webview2/";
-    private static readonly TimeSpan AutoClose = TimeSpan.FromSeconds(3);
+    /// <summary>The done screen's auto-close: long enough to read it (3 s was not — owner, Oct 7 2026); Done is there for the hurried.</summary>
+    private static readonly TimeSpan AutoClose = TimeSpan.FromSeconds(10);
 
     private static readonly Brush Good = new SolidColorBrush(Color.FromRgb(0x7C, 0xC8, 0x84));
     private static readonly Brush Warn = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));

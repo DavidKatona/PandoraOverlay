@@ -825,7 +825,8 @@ Every overlay window derives from `OverlayWindowBase`.
   `PandoraClient` to confirm the session and read the name (the renewed
   cookie is kept). Result screens replace the browser (HIDDEN, not
   covered — an HwndHost draws over everything): Steam linked = done,
-  auto-closes in 3 s; Steam not linked = signed in but explained, with
+  auto-closes in 10 s (3 s read too short in the owner's test; Done is
+  there for the hurried); Steam not linked = signed in but explained, with
   the account's LinkID shown big when the site gave one (the code typed
   in game chat; never logged); failed = reason + Try again; no WebView2
   Runtime = a screen with Microsoft's download link. The address strip is

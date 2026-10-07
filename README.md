@@ -63,7 +63,7 @@ The exe lands in `bin\Release\net8.0-windows\PandoraOverlay.exe`.
 2. Click **Sign in with Discord**. A small window opens with the website's own Discord login: log in there the way you always do — password, or scan the QR code with the Discord app. The window's address line is read-only and always shows where you are (`discord.com` while you type), and your password goes to Discord, never to the overlay. Only islapandora.eu and discord.com can open in that window; any other link opens in your normal browser.
 3. When Discord sends you back to islapandora.eu, the overlay takes the website session, checks it once and closes the window — "Signed in as …". That's it: the overlay connects immediately, no restart needed. Save is enabled from here on, and Cancel keeps the sign-in too.
 
-   ![The sign-in window's final screen: a green tick, "Signed in as Dave94Punk", "Steam account linked ✓ · the overlay is connected", three lines on what is kept and what is not, and "This window closes in 3 s…"](docs/setup-signed-in.png)
+   ![The sign-in window's final screen: a green tick, "Signed in as Dave94Punk", "Steam account linked ✓ · the overlay is connected", three lines on what is kept and what is not, and "This window closes in 10 s…"](docs/setup-signed-in.png)
 
    If your Steam account isn't linked to your website account yet, the same screen says so and shows your LinkID: type it in the game's local chat once, and the overlay finds your dino on its next update. No new sign-in needed.
 
