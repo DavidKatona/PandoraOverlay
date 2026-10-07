@@ -1,25 +1,8 @@
-Smart App Control (nobody had it on), a PC without .NET 8 (the installer's
-runtime fetch). DECISIONS AROUND THE RELEASE (owner, Oct 6): the PLAIN
-ZIP ships with 1.30.0 as the fallback without Velopack's helper files
-and is to be DROPPED in a later release if nobody turned out to need
-it. The update NOTICE stays as designed — the status line once, the
-tray entry and tooltip for the session, no pop-up (the owner asked
-whether that was a bug; a tray balloon at launch is the option if
-people miss the entry). The README's DOWNLOAD BADGE will inflate:
-Velopack's check reads `releases.win.json` from each of the last ten
-releases at every launch (`GitBase.GetReleaseFeed` merges them) — the
-owner chose to ignore that and remove the badge if it gets silly; the
-fix, if ever wanted, is an API-first check (ask GitHub's API for the
-newest tag, which is not a counted download, and let Velopack fetch
-only when it is newer). Read in Velopack's source: `GithubSource`'s
-prerelease flag means pre-releases AND stable releases, newest first —
-so rc installs are offered the final, and `vpk download github --pre`
-in the workflow fetches the newest release of either kind for the delta.
 # PandoraOverlay — CLAUDE.md
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.30.0 is built, working, and approved by the server's
+and settings window. **v1.31.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1701,7 +1684,22 @@ Settings gains the About page; all four size sliders default to 100%
 (a fresh install's minimap had started at 81%). Rehearsed as rc.1–rc.3
 pre-releases on the owner's PC and on two more PCs running Defender
 before the tag; the About page shipped without an rc of its own, tried
-on the repo build only).
+on the repo build only),
+v1.31.0 (Oct 7 — **sign in with Discord inside the overlay**, replacing
+the DevTools cookie copy: Settings → Account's one button opens the
+website's own Discord login in a private WebView2 window (SignInWindow)
+and the overlay takes the site session when Discord sends the player
+back; the paste box and its walkthrough are gone (the config.json
+`Cookie` inbox stays as the undocumented emergency route); the Account
+card with Sign in again / Sign out (which logs out on the website too)
+and the LinkID shown when Steam isn't linked; a session that ends reads
+"Session ended · sign in again from the tray" with a tray entry instead
+of retrying for good; the installer fetches the WebView2 Runtime where
+missing, the plain zip relies on the one already there. Rehearsed the
+same evening as rc.1 (one PC fresh, one over 1.30.0 with its stored
+session) and rc.2 (the in-app update with the WebView2 DLLs in the
+package) on the owner's PCs — all as expected; a PC without the WebView2
+Runtime remains untested).
 No layout presets beyond the default for now.
 
 Areas, left for later and not started: area names in new waypoints and
@@ -1818,10 +1816,26 @@ rc.3 on two more PCs, a Windows 10 and a Windows 11 one, BOTH ON DEFENDER:
 the SmartScreen box once on the installer, nothing on the updates, no
 block — so Defender, the biggest open risk, is cleared. Still unverified:
 Smart App Control (nobody had it on), a PC without .NET 8 (the installer's
-runtime fetch).
+runtime fetch). DECISIONS AROUND THE RELEASE (owner, Oct 6): the PLAIN
+ZIP ships with 1.30.0 as the fallback without Velopack's helper files
+and is to be DROPPED in a later release if nobody turned out to need
+it. The update NOTICE stays as designed — the status line once, the
+tray entry and tooltip for the session, no pop-up (the owner asked
+whether that was a bug; a tray balloon at launch is the option if
+people miss the entry). The README's DOWNLOAD BADGE will inflate:
+Velopack's check reads `releases.win.json` from each of the last ten
+releases at every launch (`GitBase.GetReleaseFeed` merges them) — the
+owner chose to ignore that and remove the badge if it gets silly; the
+fix, if ever wanted, is an API-first check (ask GitHub's API for the
+newest tag, which is not a counted download, and let Velopack fetch
+only when it is newer). Read in Velopack's source: `GithubSource`'s
+prerelease flag means pre-releases AND stable releases, newest first —
+so rc installs are offered the final, and `vpk download github --pre`
+in the workflow fetches the newest release of either kind for the delta.
 
-BUILT Oct 7 2026 for 1.31.0 (NOT released, NOT bumped — the owner runs
-the release pass): **the in-app sign-in**, replacing the DevTools cookie
+BUILT Oct 7 2026 for 1.31.0 (RELEASED the same evening as v1.31.0 after
+the rc.1 / rc.2 round, see the shipped list): **the in-app sign-in**,
+replacing the DevTools cookie
 copy (the owner: tricky for non-tech-savvy users and not the most secure
 option). Settings → Account's "Sign in with Discord" opens SignInWindow —
 the website's own Discord login in a private WebView2 — and the overlay
@@ -1846,8 +1860,9 @@ cookie is `200 {"ok":false,"authenticated":false}` — a 200 with no `user`,
 NOT a refusal, which is why `ParseAccount` reads `authenticated` and the
 Account page says "session has ended" on it — and `mylocation` is the
 403 JSON refusal, so a session ended on the website is caught like a
-dead one. Untested so far: a PC without the WebView2 Runtime, and the
-whole thing in game — the rc round.
+dead one. Tried in game by the owner Oct 7, and the rc round the same
+evening (one fresh install, one over 1.30.0, the rc.1 → rc.2 in-app
+update) passed; still untested: a PC without the WebView2 Runtime.
 The README's first-run section was rewritten; its three setup screenshots
 need retaking by the owner.
 
@@ -1893,7 +1908,7 @@ need retaking by the owner.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.30.0.
+  minor, fixes bump patch. Current: 1.31.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds, tests and attaches the
