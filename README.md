@@ -178,6 +178,8 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 
 ### Dino storage
 
+![The Settings dialog on the Dino storage page: "3 of 6 slots used", a Deinosuchus named "Old Grumpy" opened in place with its Prime, Elder ×1 and 5 mutations badges, its vitals as bars, its mutations, and on the right the island map with a blue diamond where it was stored, "Delta · 4.8 km away", and the Waypoint here, Rename… and Delete… buttons](docs/dino-storage.png)
+
 - **Settings → Dino storage** shows the dinos stored on your islapandora.eu account, the way the website's [Extras page](https://islapandora.eu/extras) lists them: species, sex, the name you gave it, when it was stored, its growth and stage, and the website's badges (Prime, elder stacks, mutations, compensated). The title row says how many of your storage slots are used.
 - **Click a dino** to open it in place: its vitals, its mutations (regular, parent and elder), and where it was stored, on the island map with the area's name and, while you are in game, how far it is from you. One dino is open at a time; click it again to close it.
 - **Waypoint here** adds a waypoint named after the dino where it was stored and tracks it on the minimap. It is added at once and shows up on the Waypoints page too.
