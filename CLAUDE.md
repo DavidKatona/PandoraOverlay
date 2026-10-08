@@ -1475,7 +1475,12 @@ Every overlay window derives from `OverlayWindowBase`.
   (off-screen renders, Oct 8 2026). Rename = the name and description
   boxes in the left column (the website's 40 / 200, live counts, Enter
   saves, Escape cancels; the actions hidden meanwhile; nothing changed =
-  nothing sent); a success rebuilds the card in place, open. Delete =
+  nothing sent); a success rebuilds the card in place, open — removed
+  and inserted, NOT assigned into its slot: WPF refuses an occupied
+  index, and that crashed the first build right after a rename had gone
+  through (Oct 8 2026, the owner's first in-game rename). A redraw after
+  a write the website took is wrapped (`RedrawFailed`): the status says
+  so instead of the async void handler taking the overlay down. Delete =
   armed in place: "Can't be undone." over Delete (red) / Keep, the whole
   question in the status line. "Waypoint here" ACTS AT ONCE: into the
   library (the minimap draws it, MainWindow saves the file) AND the

@@ -391,8 +391,15 @@ public partial class SettingsWindow
                 if (_storageClosed) return;
                 if (result is { Outcome: StorageEditOutcome.Ok, Dino: { } renamed })
                 {
-                    ReplaceStorageCard(card, renamed);
-                    SetStorageStatus($"Saved: {renamed.DisplayName} carries the new name on the website too.", HintGood);
+                    try
+                    {
+                        ReplaceStorageCard(card, renamed);
+                        SetStorageStatus($"Saved: {renamed.DisplayName} carries the new name on the website too.", HintGood);
+                    }
+                    catch (Exception ex)
+                    {
+                        RedrawFailed(ex, "Saved on the website");
+                    }
                     return;
                 }
                 ReportStorageEdit(result, "save the name");
@@ -458,7 +465,11 @@ public partial class SettingsWindow
         var slot = _storageCards.IndexOf(old);
         if (index < 0 || slot < 0) return;
         var fresh = BuildStorageCard(renamed);
-        StorageCards.Children[index] = fresh.Root;
+        // Out, then in: WPF refuses to assign into an occupied slot of the panel
+        // ("Specified index is already in use") — that crashed the first build
+        // right after a rename had gone through (Oct 8 2026).
+        StorageCards.Children.RemoveAt(index);
+        StorageCards.Children.Insert(index, fresh.Root);
         _storageCards[slot] = fresh;
         OpenStorageCard(fresh, scroll: false);
     }
@@ -481,13 +492,20 @@ public partial class SettingsWindow
                 ReportStorageEdit(result, "delete it");
                 return;
             }
-            _storage = _storage?.Without(card.Dino.Id);
-            StorageCards.Children.Remove(card.Root);
-            _storageCards.Remove(card);
-            if (_openDinoId == card.Dino.Id) _openDinoId = null;
-            RenderStorageCount();
-            UpdateFreeSlots();
-            SetStorageStatus($"Deleted {name} from your storage.", HintGood);
+            try
+            {
+                _storage = _storage?.Without(card.Dino.Id);
+                StorageCards.Children.Remove(card.Root);
+                _storageCards.Remove(card);
+                if (_openDinoId == card.Dino.Id) _openDinoId = null;
+                RenderStorageCount();
+                UpdateFreeSlots();
+                SetStorageStatus($"Deleted {name} from your storage.", HintGood);
+            }
+            catch (Exception ex)
+            {
+                RedrawFailed(ex, $"Deleted {name} on the website");
+            }
         }
         finally
         {
@@ -495,4 +513,13 @@ public partial class SettingsWindow
             really.IsEnabled = keep.IsEnabled = true;
         }
     }
+
+    /// <summary>
+    /// A change the website took, but the page failed to draw: say so instead
+    /// of letting the exception take the whole overlay down (these handlers
+    /// are async void, where nothing above would catch it). Opening the page
+    /// again reloads the list.
+    /// </summary>
+    private void RedrawFailed(Exception ex, string done) =>
+        SetStorageStatus($"{done}, but the page couldn't redraw ({ex.GetType().Name}). Open the page again to see it.", HintWarn);
 }
