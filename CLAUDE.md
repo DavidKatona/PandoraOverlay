@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.31.2 is built, working, and approved by the server's
+and settings window. **v1.32.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1797,7 +1797,19 @@ owner's call for a cosmetic patch),
 v1.31.2 (Oct 8 — the minimap no longer waits for a failed calibration
 fetch: a bundled seed stands in until the site answers, and a failed
 fetch is retried after a successful poll at most once a minute — a
-player's report the same day; tests only, no pre-release).
+player's report the same day; tests only, no pre-release),
+v1.32.0 (Oct 8 — **the update card**: the overlay's own centred card at
+launch, once per version, with the release's notes and Install and
+restart (the tray entry's very action, with a progress bar), an Updated
+card once after a version change (by version comparison, so a Setup.exe
+or zip over an old copy counts too), About's What's new; the release
+notes cut from the CHANGELOG into the update package and the GitHub
+release text, GitHub's commit list dropped; the plain zip dropped.
+Rehearsed the same day as rc.1 (installed over 1.31.2: the Updated card)
+and rc.2 (the Available card on rc.1, Later, the tray install, the
+Updated card with "you were on", and the card's own progress bar after
+a reinstall of rc.1 with `UpdateCardShownFor` cleared by hand — the
+settings folder survives an uninstall, so once-per-version did too).
 No layout presets beyond the default for now.
 
 Areas, left for later and not started: area names in new waypoints and
@@ -2007,7 +2019,7 @@ need retaking by the owner.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.31.2.
+  minor, fixes bump patch. Current: 1.32.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds, tests and attaches the
