@@ -242,6 +242,15 @@ public sealed partial class PollService : IDisposable
     public Task<AccountInfo> FetchAccountAsync() => _client.FetchAccountAsync();
 
     /// <summary>
+    /// The Account card's avatar picture (Oct 8 2026): the skin tiles' own path —
+    /// the bare picture client (no cookie, no site headers, a size cap), one
+    /// download per address at a time, a failure remembered for the session
+    /// so a page reopened offline asks nothing. The page saves a small copy
+    /// and asks again only when that is gone; never on a timer.
+    /// </summary>
+    public Task<SkinPicture> GetAvatarAsync(Uri address) => GetSkinPictureAsync(address);
+
+    /// <summary>
     /// After a sign-out: a client with no session, the timers stopped, the
     /// roster and the skins forgotten — nothing of the old account stays, and
     /// CurrentCookie is empty so the exit save keeps nothing either.

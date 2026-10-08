@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Your Discord avatar on the Account page, in the circle that showed your
+  initial. It is downloaded once, from Discord's image server, without
+  your website session or anything else of yours, and kept as a small copy
+  so later visits ask nothing. It is only fetched when you open the
+  Account page, and Sign out deletes the copy. No avatar, or no
+  connection: the initial stays.
+
 ## [1.31.0] - 2026-10-07
 
 ### Added

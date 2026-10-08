@@ -26,16 +26,19 @@ public class ConfigDefaultsTests
     {
         var cfg = new OverlayConfig();
         var when = new DateTime(2026, 10, 7, 16, 0, 0, DateTimeKind.Utc);
-        cfg.ApplySignIn("connect.sid=s%3Aabc", "  Mozilla/5.0 Test  ", " dave ", when);
+        var avatar = new Uri("https://cdn.discordapp.com/avatars/1/abc.png?size=128");
+        cfg.ApplySignIn("connect.sid=s%3Aabc", "  Mozilla/5.0 Test  ", " dave ", when, avatar);
         Assert.Equal("connect.sid=s%3Aabc", cfg.GetCookie());
         Assert.Equal("", cfg.Cookie); // never the plaintext inbox
         Assert.Equal("Mozilla/5.0 Test", cfg.UserAgent);
         Assert.Equal("dave", cfg.AccountName);
+        Assert.Equal(avatar.AbsoluteUri, cfg.AccountAvatar);
         Assert.Equal(when, cfg.SignedInUtc);
 
         cfg.ClearSignIn();
         Assert.Equal("", cfg.GetCookie());
         Assert.Null(cfg.AccountName);
+        Assert.Null(cfg.AccountAvatar);
         Assert.Null(cfg.SignedInUtc);
         Assert.Equal("Mozilla/5.0 Test", cfg.UserAgent);
     }

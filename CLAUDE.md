@@ -62,7 +62,11 @@ web dev.**
    flow, browsed by the player in the overlay's WebView2 window
    (SignInWindow): the server redirects to discord.com and back to
    `/auth/discord/callback`, and the window stops the navigation that
-   follows, so no site page ever renders in it.
+   follows, so no site page ever renders in it. The account's AVATAR
+   (Oct 8 2026, the owner's okay) is the one picture from outside the
+   site: the address auth/me names, on Discord's image server, fetched
+   like a skin tile (no cookie, no site headers) only when the Account
+   page is looked at and no saved copy exists — see the Account page.
    The zone overlays are NOT cleared for use (see Permissions). The
    launch-time update check calls the GitHub releases API (and, since
    v1.30, a CLICK on the update entry downloads the update package from
@@ -473,7 +477,10 @@ Every overlay window derives from `OverlayWindowBase`.
   (pure + tested — authenticated, username, steamId, the Steam LinkID,
   hasMapAccess, isVerified, into `AccountInfo`; a `user` object alone
   counts as signed in, like the frontend; a refusal reads as
-  `AccountInfo.None`; Discord ids, avatars and roles are left out) and
+  `AccountInfo.None`; Discord ids and roles are left out) — plus the
+  avatar's address through the pure, tested `AvatarAddress` (https on
+  Discord's hosts or islapandora.eu only, anything else is null; a
+  Discord address without a size asks for `AvatarSize` 128) and
   `SignOutAsync` (the site's logout GET on its own no-redirect client —
   the answer is a redirect to the home page, not worth a download).
 - **GrowthTracker.cs** — pure class fed from the snapshot stream: 15-min
@@ -785,7 +792,9 @@ Every overlay window derives from `OverlayWindowBase`.
   folder, `%LocalAppData%\PandoraOverlay\WebView2` — local, not roaming (a
   browser cache is nobody's content), and not WebView2's default, which
   would land next to the exe inside the folder an update replaces;
-  `ClearBrowserFolder` drops it on a Sign out.
+  `ClearBrowserFolder` drops it on a Sign out. `AvatarFolder` (Oct 8
+  2026) is the Account card's saved avatar, `cacheccount` beside the
+  skin pictures, emptied on a Sign out.
 - **SignInWindow.xaml(.cs)** (v1.31, `Account/`) — the in-app sign-in:
   the website's own Discord login inside a WebView2 that browses IN
   PRIVATE (`IsInPrivateModeEnabled`: Discord's login lives in memory and
@@ -1480,7 +1489,17 @@ Every overlay window derives from `OverlayWindowBase`.
   `CookieChanged`, which MainWindow reads before the saved/cancelled
   branch (signing in and closing with ✕ keeps the sign-in). The card's
   live facts come from ONE auth/me on the page's first look per dialog
-  (`OpenAccountPage`); offline it shows what is saved. `GateSave`: first
+  (`OpenAccountPage`); offline it shows what is saved. AVATAR (Oct 8
+  2026): the circle shows the account's Discord avatar over the initial
+  (`ShowAvatar`) — a saved copy whenever the card is drawn, a download
+  only after the page's first look (`PollService.GetAvatarAsync`, the
+  skin tiles' cookie-less path and per-session failure memory), saved
+  as an 80 px JPEG flattened onto the circle's blue (a JPEG has no
+  transparency) under `DataFolder.AvatarFolder`, keyed by address, so a
+  new avatar on Discord is a new address and loads by itself; the
+  address is kept in `config.AccountAvatar` for the offline card. No
+  address, a failure or an unreadable picture: the initial stays. Sign
+  out clears the address and the copy. `GateSave`: first
   run, Save stays off until signed in. Six hotkey capture boxes
   (edit / hide-overlay / minimap-view / heatmap / Check Prime / stats view) share the capture UX: combos are
   availability-tested via a throwaway RegisterHotKey on the dialog's hwnd

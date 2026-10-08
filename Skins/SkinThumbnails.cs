@@ -29,15 +29,15 @@ public static class SkinThumbnails
     public static string FileNameFor(Uri address) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(address.AbsoluteUri)))[..32].ToLowerInvariant() + ".jpg";
 
-    /// <summary>The downloaded picture as a frozen thumbnail; null when it isn't something this Windows can decode.</summary>
-    public static BitmapSource? Make(byte[] original)
+    /// <summary>The downloaded picture as a frozen thumbnail <paramref name="width"/> px wide (the skin tiles' size by default — the Account card's avatar asks for less); null when it isn't something this Windows can decode.</summary>
+    public static BitmapSource? Make(byte[] original, int width = Width)
     {
         try
         {
             var image = new BitmapImage();
             image.BeginInit();
             image.CacheOption = BitmapCacheOption.OnLoad;
-            image.DecodePixelWidth = Width;
+            image.DecodePixelWidth = width;
             image.StreamSource = new MemoryStream(original);
             image.EndInit();
             image.Freeze();

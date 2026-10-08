@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace PandoraOverlay;
 
@@ -58,6 +59,7 @@ public partial class SettingsWindow
         AccountCard.Visibility = _signedIn ? Visibility.Visible : Visibility.Collapsed;
         if (!_signedIn)
         {
+            ShowAvatar(null);
             AccountStatus.Text = "Not signed in — sign in once and the overlay shows your dino from then on.";
             AccountStatus.Foreground = HintWarn;
             AccountHint.Text = "";
@@ -67,6 +69,8 @@ public partial class SettingsWindow
         var name = live?.Username ?? _config.AccountName ?? "your account";
         AccountNameText.Text = name;
         AccountInitial.Text = name[..1].ToUpperInvariant();
+        if (live is { Authenticated: true }) _config.AccountAvatar = live.Avatar?.AbsoluteUri; // display only: kept with the next save
+        ShowAvatar(PandoraClient.AvatarAddress(_config.AccountAvatar));
 
         if (live is { Authenticated: false })
         {
@@ -91,6 +95,79 @@ public partial class SettingsWindow
         AccountHint.Text = "Sign in again to switch accounts or after a long break. Sign out forgets the session on this PC and logs it out on the website too.";
     }
 
+    // ---- Avatar (Oct 8 2026) ------------------------------------------------------------
+
+    /// <summary>Saved at twice the card's 40 px circle, for 200 % display scaling.</summary>
+    private const int AvatarPixels = 80;
+
+    private Uri? _avatarWanted; // the address the card should show now
+    private Uri? _avatarShown;  // the address whose picture is on the card
+
+    /// <summary>
+    /// The picture over the initial. A saved copy shows at once, whenever
+    /// the card is drawn; a download happens only once the page has really
+    /// been looked at (the same first look that asks the website), through
+    /// PollService's cookie-less picture path, and is then saved small so
+    /// the next opening asks nothing. No address, a failed download or a
+    /// picture Windows can't read: the initial stays.
+    /// </summary>
+    private async void ShowAvatar(Uri? address)
+    {
+        _avatarWanted = address;
+        if (address is null || (_avatarShown is not null && _avatarShown != address)) PaintAvatar(null, null);
+        if (address is null || _avatarShown == address) return;
+
+        var saved = SkinThumbnails.TryLoad(address, DateTime.UtcNow, DataFolder.AvatarFolder);
+        if (saved is not null)
+        {
+            PaintAvatar(address, saved);
+            return;
+        }
+        if (!_accountLooked) return;
+
+        try
+        {
+            var picture = await _poll.GetAvatarAsync(address);
+            if (picture.Bytes is null || _avatarWanted != address) return;
+            var thumbnail = OnCircleBackground(SkinThumbnails.Make(picture.Bytes, AvatarPixels));
+            if (thumbnail is null) return;
+            SkinThumbnails.TrySave(address, thumbnail, DataFolder.AvatarFolder);
+            if (_avatarWanted == address) PaintAvatar(address, thumbnail);
+        }
+        catch
+        {
+            // fail soft: the initial is a fine answer
+        }
+    }
+
+    /// <summary>
+    /// The saved copy is a JPEG, which has no transparency: a see-through
+    /// avatar would come back with black corners. Flattened onto the
+    /// circle's own Discord blue first, it looks the same saved or not.
+    /// </summary>
+    private static BitmapSource? OnCircleBackground(BitmapSource? picture)
+    {
+        if (picture is null) return null;
+        var size = new Rect(0, 0, picture.PixelWidth, picture.PixelHeight);
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x58, 0x65, 0xF2)), null, size);
+            dc.DrawImage(picture, size);
+        }
+        var flat = new RenderTargetBitmap(picture.PixelWidth, picture.PixelHeight, 96, 96, PixelFormats.Pbgra32);
+        flat.Render(visual);
+        flat.Freeze();
+        return flat;
+    }
+
+    private void PaintAvatar(Uri? address, ImageSource? picture)
+    {
+        _avatarShown = picture is null ? null : address;
+        AccountAvatarBrush.ImageSource = picture;
+        AccountAvatar.Visibility = picture is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
     /// <summary>Save is gated on a session: a fresh install must sign in before anything else is worth saving.</summary>
     private void GateSave() => SaveButton.IsEnabled = !_firstRun || _signedIn;
 
@@ -98,7 +175,7 @@ public partial class SettingsWindow
     {
         var outcome = SignInWindow.Run(this);
         if (outcome is null) return;
-        _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow);
+        _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow, outcome.Account.Avatar);
         _config.Save(); // acts at once
         CookieChanged = true;
         _signedIn = true;
@@ -126,6 +203,7 @@ public partial class SettingsWindow
         _config.Save(); // acts at once
         _poll.ForgetSession();
         DataFolder.ClearBrowserFolder();
+        SkinThumbnails.Clear(DataFolder.AvatarFolder);
         CookieChanged = true;
         _signedIn = false;
         _signOutArmed = false;

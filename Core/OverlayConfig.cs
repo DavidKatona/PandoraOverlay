@@ -58,6 +58,13 @@ public sealed class OverlayConfig
     /// </summary>
     public string? AccountName { get; set; }
 
+    /// <summary>
+    /// The address of the account's avatar picture as the website last gave
+    /// it (Oct 8 2026) — so the Account card can show the saved copy before
+    /// (or without) asking the website. Display only; null = none known.
+    /// </summary>
+    public string? AccountAvatar { get; set; }
+
     /// <summary>When the sign-in window last took a session (UTC); null = never. Display only.</summary>
     public DateTime? SignedInUtc { get; set; }
 
@@ -486,22 +493,24 @@ public sealed class OverlayConfig
     /// <summary>
     /// What a successful sign-in leaves behind (call Save() afterwards): the
     /// session, encrypted; the browser identity it was issued to; the name
-    /// and the time for the Account page.
+    /// the avatar's address and the time for the Account page.
     /// </summary>
-    public void ApplySignIn(string cookie, string userAgent, string? accountName, DateTime nowUtc)
+    public void ApplySignIn(string cookie, string userAgent, string? accountName, DateTime nowUtc, Uri? avatar = null)
     {
         SetCookie(cookie);
         if (!string.IsNullOrWhiteSpace(userAgent)) UserAgent = userAgent.Trim();
         AccountName = string.IsNullOrWhiteSpace(accountName) ? null : accountName.Trim();
+        AccountAvatar = avatar?.AbsoluteUri;
         SignedInUtc = nowUtc;
     }
 
-    /// <summary>Sign out: forgets the session and the name (call Save() afterwards). The identity string is kept — it is not a secret.</summary>
+    /// <summary>Sign out: forgets the session, the name and the avatar (call Save() afterwards). The identity string is kept — it is not a secret.</summary>
     public void ClearSignIn()
     {
         Cookie = "";
         CookieProtected = "";
         AccountName = null;
+        AccountAvatar = null;
         SignedInUtc = null;
     }
 

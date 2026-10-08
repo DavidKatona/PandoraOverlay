@@ -37,6 +37,13 @@ public static class DataFolder
     public static string BrowserFolder { get; } =
         System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Name, "WebView2");
 
+    /// <summary>
+    /// The Account card's saved avatar (Oct 8 2026): a small copy beside the skin
+    /// pictures' cache, in its own folder so a Sign out can drop it without
+    /// touching the skins. Re-downloadable; emptied on Sign out.
+    /// </summary>
+    public static string AvatarFolder { get; } = System.IO.Path.Combine(Path, Cache, "account");
+
     /// <summary>Sign out: drops the browser folder; anything in it is re-creatable. Fail soft.</summary>
     public static void ClearBrowserFolder()
     {

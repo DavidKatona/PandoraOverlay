@@ -11,7 +11,9 @@ namespace PandoraOverlay;
 /// can never find the player), the site's own "may use the live map" flag,
 /// the Discord-server verification Steam linking needs, and the Steam LinkID
 /// (the code typed in game chat to link — shown on the "Steam not linked"
-/// screen only, never logged). Discord ids, avatars and roles are left out.
+/// screen only, never logged), and the avatar picture's address for the
+/// Account card (<see cref="PandoraClient.AvatarAddress"/> decides which
+/// addresses count). Discord ids and roles are left out.
 /// </summary>
 public sealed record AccountInfo(
     bool Authenticated,
@@ -19,7 +21,8 @@ public sealed record AccountInfo(
     string? SteamId,
     string? LinkId,
     bool HasMapAccess,
-    bool IsVerified)
+    bool IsVerified,
+    Uri? Avatar = null)
 {
     public static readonly AccountInfo None = new(false, null, null, null, false, false);
 
@@ -76,14 +79,44 @@ public sealed partial class PandoraClient
 
         var authenticated = IsTruthy(root, "authenticated");
         string? username = null, steamId = null, linkId = null;
+        Uri? avatar = null;
         if (root.TryGetProperty("user", out var user) && user.ValueKind == JsonValueKind.Object)
         {
             authenticated = true;
             username = ReadText(user, "username");
             steamId = ReadText(user, "steamId");
             linkId = ReadText(user, "linkId");
+            avatar = AvatarAddress(ReadText(user, "avatar"));
         }
-        return new AccountInfo(authenticated, username, steamId, linkId, IsTruthy(root, "hasMapAccess"), IsTruthy(root, "isVerified"));
+        return new AccountInfo(authenticated, username, steamId, linkId, IsTruthy(root, "hasMapAccess"), IsTruthy(root, "isVerified"), avatar);
+    }
+
+    /// <summary>The size asked of Discord's image server: the card's 40 px circle at up to 200 % display scaling, a few KB.</summary>
+    internal const int AvatarSize = 128;
+
+    /// <summary>
+    /// The avatar picture worth downloading, or null. The site sends a full
+    /// address on Discord's image server (seen in the spike, Oct 7 2026).
+    /// Only https on Discord's own hosts or the website's is taken — the
+    /// picture is fetched with no cookie and no site headers, but there is
+    /// no reason to let a field of an answer send the overlay anywhere else.
+    /// Discord serves any size on request; without one it sends its default,
+    /// so a missing size is asked for as <see cref="AvatarSize"/>.
+    /// </summary>
+    internal static Uri? AvatarAddress(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || !Uri.TryCreate(raw.Trim(), UriKind.Absolute, out var uri)) return null;
+        if (uri.Scheme != Uri.UriSchemeHttps) return null;
+        var host = uri.Host.ToLowerInvariant();
+        var discord = host is "discordapp.com" or "discord.com" or "discordapp.net"
+            || host.EndsWith(".discordapp.com", StringComparison.Ordinal)
+            || host.EndsWith(".discordapp.net", StringComparison.Ordinal)
+            || host.EndsWith(".discord.com", StringComparison.Ordinal);
+        if (!discord && host != "islapandora.eu") return null;
+        if (!discord || uri.Query.Contains("size=", StringComparison.OrdinalIgnoreCase)) return uri;
+        var builder = new UriBuilder(uri);
+        builder.Query = string.IsNullOrEmpty(uri.Query) ? $"size={AvatarSize}" : $"{uri.Query.TrimStart('?')}&size={AvatarSize}";
+        return builder.Uri;
     }
 
     /// <summary>

@@ -493,10 +493,19 @@
                             <Button x:Name="SignOutButton" Content="Sign out" Click="SignOut_Click"
                                     Style="{StaticResource DangerButtonStyle}"/>
                         </StackPanel>
-                        <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="20" Background="#5865F2" VerticalAlignment="Center">
-                            <TextBlock x:Name="AccountInitial" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+                        <!-- The initial is the fallback: the avatar (SettingsWindow.Account.cs)
+                             is drawn over it once a saved or downloaded copy is there. -->
+                        <Grid DockPanel.Dock="Left" Width="40" Height="40" VerticalAlignment="Center">
+                            <Border CornerRadius="20" Background="#5865F2">
+                                <TextBlock x:Name="AccountInitial" Foreground="#FFFFFF" FontSize="18" FontWeight="Bold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <Ellipse x:Name="AccountAvatar" Visibility="Collapsed">
+                                <Ellipse.Fill>
+                                    <ImageBrush x:Name="AccountAvatarBrush" Stretch="UniformToFill"/>
+                                </Ellipse.Fill>
+                            </Ellipse>
+                        </Grid>
                         <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                             <TextBlock x:Name="AccountNameText" Foreground="#ECF2F8" FontSize="15" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                             <TextBlock Text="on islapandora.eu" Foreground="#7B8790" FontSize="11"/>

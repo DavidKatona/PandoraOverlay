@@ -283,7 +283,7 @@ public partial class MainWindow : OverlayWindowBase
     {
         var outcome = SignInWindow.Run(owner: null);
         if (outcome is null) return;
-        _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow);
+        _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow, outcome.Account.Avatar);
         _config.Save();
         ApplySession();
     }
