@@ -213,6 +213,9 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   `Assets/rules.json`, the seed). `Skins/` — PatreonSkins (the pure half;
   its requests and gating are the `Core/PandoraClient.Skins.cs` and
   `Core/PollService.Skins.cs` parts). `Settings/` — SettingsWindow.
+  `Updates/` (1.32) — UpdateCardWindow (the update card), ReleaseNotes
+  and UpdateCardPolicy (its pure halves); the updater itself stays in
+  `Core/Updater.cs`.
 - `Assets/` unchanged; `App.xaml` (StartupUri now `Shell/MainWindow.xaml`),
   `Program.cs` (the entry point since v1.30: Velopack's start-up call, then
   WPF — `<StartupObject>` in the csproj), csproj, sln and the docs stay at
@@ -779,6 +782,56 @@ Every overlay window derives from `OverlayWindowBase`.
   window or poll ever starts during an update — then WPF as the generated
   `App.Main` would. The trial that preceded this and the owner's reading
   of hard constraint 1 for Velopack's process scan are under Roadmap.
+  Since 1.32 `PendingNotes` hands over the found release's notes
+  (`NotesMarkdown`, from the feed the check already read) and
+  `DownloadAsync(progress)` reports 0–100; `ApplyUpdateAsync(progress)`
+  keeps ONE task (`_applying`), so the tray, the card and Settings join
+  a running download instead of starting another.
+- **UpdateCardWindow.xaml(.cs)** (1.32, `Updates/`, the owner's design of
+  Oct 8 2026 — sketches and PLAN.md in `Desktop\Pandora Overlay
+  Files\pandora-update-card`) — the overlay's own centred card, chosen
+  over a tray balloon (Windows can snooze or swallow those). Settings'
+  frame and button looks kept local like SignInWindow's; FIXED size
+  (460 wide, the notes box scrolls past 200 px — owner's call); topmost,
+  not modal, not in the taskbar, not part of edit mode; ✕ and Escape =
+  Later. Three modes: AVAILABLE (version, "You have vX", What's new,
+  Later / Install and restart — the very same `ApplyUpdateAsync` as the
+  tray entry, then download progress until the overlay exits; a failure
+  brings the buttons back as "Try again"), UPDATED ("Updated ✓", "you
+  were on vY" when known, the notes, OK) and NOTES (Settings → About's
+  "What's new": the running version's notes, OK, modal over Settings).
+  RULES (`UpdateCardPolicy`, pure, tested; owner, Oct 8 2026): the
+  available card comes ONLY from the launch check (off = no card) — at
+  launch, a conscious act, so no in-game rule, no grace, no slow-check
+  guard (all considered and dropped) — never on a first run (no stored
+  session: Settings opens on Account), once per version
+  (`config.UpdateCardShownFor`, recorded when shown, so Later is final
+  for that version), and only where this copy can install (a plain
+  folder — today only an IDE build — keeps the tray notice). The updated
+  card compares the running version with `config.LastRunVersion` (a
+  VERSION COMPARISON, not Velopack's restart hook: it also catches
+  Setup.exe run over an old install and a zip unpacked over an old
+  folder); a config from before 1.32 has none, so the first 1.32 start
+  shows the card without "you were on"; a first run, the same version
+  or a downgrade show nothing. One card per launch: an updated card
+  wins and the tray still offers the newer version. `Compare` is a small
+  SemVer ordering (pre-releases below their release, numeric labels
+  numerically, build metadata ignored). Nothing goes to the Activity
+  feed (the owner: it stays free of chores). The tray entry, its
+  tooltip and the About page stay the update's permanent home.
+- **ReleaseNotes.cs** (1.32, `Updates/`, pure, tested) — the card's
+  What's new. `SectionFor(changelog, version)`: the text from
+  `## [X.Y.Z]` to the next `## `, and for a pre-release the
+  `## [Unreleased]` section (the CHANGELOG stays there until the final)
+  — the release workflow's "Release notes" step cuts the same section
+  in pwsh for `vpk pack --releaseNotes` and the GitHub release text.
+  `Parse`: `### Added` groups, `- ` bullets, indented continuation
+  lines, backticks / bold dropped, a markdown link keeps its words;
+  tolerant. The updated card and About's What's new read the CHANGELOG
+  bundled with the app (EmbeddedResource `CHANGELOG.md`, like
+  rules.json): no request, every flavour; a test holds that the bundled
+  CHANGELOG has notes for the version being built. CHANGELOG ENTRIES
+  ARE PLAYER-FACING TEXT since 1.32: the card shows them.
 - **DataFolder.cs** (v1.30) — where the user's files live:
   `%AppData%\PandoraOverlay` (Roaming, as Velopack's docs suggest for
   files that must survive an uninstall; the install itself is under
@@ -1543,7 +1596,10 @@ Every overlay window derives from `OverlayWindowBase`.
   page" for a plain folder — and hands over to MainWindow), the settings
   folder's path with "Open folder" and "Import from an older copy…" (see
   DataFolder; a successful import disables Save and asks for a restart),
-  and the Releases / Report a problem / Discord buttons. A fresh install
+  and the Releases / Report a problem / Discord buttons; "What's new"
+  (1.32) sits beside "Check for updates now" and opens the update
+  card's notes mode for the running version (the owner picked it over an
+  underlined link on the version line: the dialog has no link look). A fresh install
   still lands on Account, which shows ONE pointer line to About while no
   cookie is stored; Stats panel = scale
   (75–150%), the View radios (Survival / Combat — the owner's names; the
@@ -1861,10 +1917,11 @@ Smart App Control (nobody had it on), a PC without .NET 8 (the installer's
 runtime fetch). DECISIONS AROUND THE RELEASE (owner, Oct 6): the PLAIN
 ZIP ships with 1.30.0 as the fallback without Velopack's helper files
 and is to be DROPPED in a later release if nobody turned out to need
-it. The update NOTICE stays as designed — the status line once, the
-tray entry and tooltip for the session, no pop-up (the owner asked
-whether that was a bug; a tray balloon at launch is the option if
-people miss the entry). The README's DOWNLOAD BADGE will inflate:
+it (DROPPED in 1.32: one download each for 1.30.0 and 1.31.0). The
+update NOTICE stayed as designed — the status line once, the tray entry
+and tooltip for the session, no pop-up — until 1.32's update card
+(see UpdateCardWindow; a tray balloon was considered first and
+dropped, Oct 8 2026). The README's DOWNLOAD BADGE will inflate:
 Velopack's check reads `releases.win.json` from each of the last ten
 releases at every launch (`GitBase.GetReleaseFeed` merges them) — the
 owner chose to ignore that and remove the badge if it gets silly; the
@@ -1957,15 +2014,17 @@ need retaking by the owner.
   files) — never a random commit. No standing release/version branches.
   THE RELEASE FILES (v1.30, `.github/workflows/release.yml`): the workflow
   first checks that the tag equals the csproj `<Version>` (else it fails),
-  publishes, zips the plain copy (`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`,
-  today's artifact under a new name), then `vpk download github` (the
+  publishes, cuts the version's RELEASE NOTES out of CHANGELOG.md (1.32;
+  `## [Unreleased]` for a pre-release tag; a missing or empty section
+  fails the release) into `notes.md` and `release-body.md` (the notes,
+  then the "Which file?" block), then `vpk download github` (the
   previous release, for a delta; allowed to fail) and `vpk pack` (id `PandoraOverlay`, title "Pandora Overlay" — the title is
   the name on the shortcuts, in the Start menu and in the installed-apps
   list, AND the name of the zip's launcher: the owner chose the readable
   name (Oct 6 2026) over a launcher that replaces the old `PandoraOverlay.exe`
   when the zip is unpacked over an old folder, so the old exe stays there
   beside `Pandora Overlay.exe` and the docs say it can be deleted; `--runtime win-x64`, `--framework net8.0-x64-desktop`,
-  `--shortcuts Desktop,StartMenuRoot` — the owner wants a Desktop shortcut too, Oct 6 2026), renames Setup.exe and the self-updating
+  `--shortcuts Desktop,StartMenuRoot` — the owner wants a Desktop shortcut too, Oct 6 2026; `--releaseNotes notes.md` since 1.32, which the update card reads), renames Setup.exe and the self-updating
   zip to `PandoraOverlay-vX.Y.Z-Setup.exe` / `PandoraOverlay-vX.Y.Z-win-x64.zip`
   and attaches everything in `Releases/` — the full and delta `.nupkg`,
   `releases.win.json`, `RELEASES`, `assets.win.json` are what the
@@ -1974,7 +2033,10 @@ need retaking by the owner.
   see it (the old checker uses `/releases/latest`, Updater passes
   `prerelease: false` for a release build), only a pre-release build
   offers it — that is how a release is rehearsed with testers before the
-  real tag. The release body names the three files for people. A pre-release
+  real tag. The release body is `release-body.md` (the notes + the two
+  files for people; GitHub's auto-generated commit list was dropped in
+  1.32 — commit titles are written for the code). The plain zip was
+  dropped in 1.32 too. A pre-release
   tag also needs the csproj `<Version>` set to `1.30.0-rc.1` (SemVer; the
   SDK derives assembly version 1.30.0.0 from it).
 - Never move or re-tag an existing tag. If a release ships broken, fix forward

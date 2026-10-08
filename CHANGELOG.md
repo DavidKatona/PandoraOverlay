@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- When a new version is out, the overlay tells you once when you start it:
+  a card in the middle of the screen with what's new and an "Install and
+  restart" button. "Later" or ✕ hides it for that version; the update
+  stays in the tray menu as before.
+- After an update, the overlay confirms the new version once, with what
+  changed in it.
+- Settings › About has a "What's new" button for the version you are
+  running.
+
+### Changed
+
+- The notes on the GitHub release page are now the same list you see in
+  the overlay.
+- The plain zip without the updater is gone, since nearly nobody used it.
+  Take the installer (Setup.exe), or the zip, which updates itself with
+  one click too.
+
 ## [1.31.2] - 2026-10-08
 
 ### Fixed

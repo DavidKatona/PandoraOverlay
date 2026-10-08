@@ -77,6 +77,19 @@ public partial class SettingsWindow
         SaveButton.IsEnabled = false;
     }
 
+    /// <summary>
+    /// "What's new" (1.32): the running version's notes, read from the CHANGELOG
+    /// bundled with the app (no request), in the update card's notes mode.
+    /// </summary>
+    private void WhatsNew_Click(object sender, RoutedEventArgs e)
+    {
+        var version = UpdateCardPolicy.Bare(_updates?.Version ?? Updater.InformationalVersion ?? "");
+        var notes = ReleaseNotes.SectionFor(ReleaseNotes.LoadBundledChangelog(), version);
+        var card = UpdateCardWindow.Notes(version, notes);
+        card.Owner = this;
+        card.ShowDialog();
+    }
+
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => OpenUrl(DataFolder.Path);
 
     private void OpenReleases_Click(object sender, RoutedEventArgs e) => OpenUrl(UpdateChecker.ReleasesPage);

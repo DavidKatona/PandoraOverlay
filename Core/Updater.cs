@@ -73,6 +73,16 @@ public sealed class Updater
     /// <summary>The newer version found by the last check and not yet applied.</summary>
     public string? Pending => _found?.TargetFullRelease.Version.ToString();
 
+    /// <summary>
+    /// The found version's release notes (1.32): the CHANGELOG section the
+    /// release workflow packs with `vpk pack --releaseNotes`, read from the
+    /// feed the check already fetched — no extra request. Null when none.
+    /// </summary>
+    public string? PendingNotes
+    {
+        get { try { return _found?.TargetFullRelease.NotesMarkdown; } catch { return null; } }
+    }
+
     /// <summary>One request to GitHub: the newer version's number, or null (none, or <see cref="Note"/> says why).</summary>
     public async Task<string?> CheckAsync()
     {
@@ -91,13 +101,13 @@ public sealed class Updater
         }
     }
 
-    /// <summary>Downloads the found update (the small delta where one exists) into Velopack's packages folder.</summary>
-    public async Task<bool> DownloadAsync()
+    /// <summary>Downloads the found update (the small delta where one exists) into Velopack's packages folder; <paramref name="progress"/> gets 0–100.</summary>
+    public async Task<bool> DownloadAsync(Action<int>? progress = null)
     {
         if (_manager is null || _found is null) { Note = "Nothing to download"; return false; }
         try
         {
-            await _manager.DownloadUpdatesAsync(_found).ConfigureAwait(true);
+            await _manager.DownloadUpdatesAsync(_found, progress).ConfigureAwait(true);
             return true;
         }
         catch (Exception e)

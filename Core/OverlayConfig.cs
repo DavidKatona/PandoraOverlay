@@ -156,6 +156,16 @@ public sealed class OverlayConfig
     /// </summary>
     public bool UpdateCheckEnabled { get; set; } = true;
 
+    /// <summary>The version the "update available" card was last shown for (1.32) — it shows once per version.</summary>
+    public string? UpdateCardShownFor { get; set; }
+
+    /// <summary>
+    /// The version that ran last (1.32): a higher running version means this
+    /// copy was updated, and the "updated" card shows once. Null in configs
+    /// from before 1.32.
+    /// </summary>
+    public string? LastRunVersion { get; set; }
+
     /// <summary>Show the minimap window (toggled from the control panel or the tray menu).</summary>
     public bool MinimapEnabled { get; set; } = true;
 

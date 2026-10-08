@@ -25,11 +25,10 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 
 ## Get it
 
-Every release on the [Releases page](../../releases) comes in three forms; pick one:
+Every release on the [Releases page](../../releases) comes in two forms; pick one:
 
 - **`PandoraOverlay-vX.Y.Z-Setup.exe`** installs the overlay for your Windows user (no admin rights) with Start menu and Desktop shortcuts, and fetches the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) and the WebView2 Runtime if either is missing. New versions then install with **one click** from the tray menu.
 - **`PandoraOverlay-vX.Y.Z-win-x64.zip`** is for people who prefer a folder of their own: unzip it anywhere, or over an older copy. It updates itself with one click too. Start it with `Pandora Overlay.exe` at the top of the folder; an old `PandoraOverlay.exe` left from before 1.30 can be deleted.
-- **`PandoraOverlay-vX.Y.Z-win-x64-plain.zip`** has no updater inside. The tray still tells you when a new version is out, and you download it yourself.
 
 Or build from source as described below. Your settings, waypoints and cookie live in `%AppData%\PandoraOverlay`, whichever form you use — see [Installing and updating](#installing-and-updating).
 
@@ -232,7 +231,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 
 **Do I have to sign in again after a restart or an update?** No. The session is saved and renews itself while you use the overlay. Normally you only sign in again if you sign out, or stay away for about a month — the tray tells you when.
 
-**How do I update?** The tray icon tells you when a new version is out (a single check at launch; Settings → About can switch it off or run it on demand). With the installer or the self-updating zip, click the tray entry: the overlay downloads the update, closes and comes back on the new version a few seconds later. Nothing ever updates by itself. With the plain zip, the entry opens the download page instead: exit the overlay, download the new zip, unblock it (see [Troubleshooting](#troubleshooting)) and unpack it over the old folder.
+**How do I update?** The tray icon tells you when a new version is out (a single check at launch; Settings → About can switch it off or run it on demand). Since 1.32 that launch check also shows a card in the middle of the screen, once per new version, with what's new and an **Install and restart** button; **Later** leaves the update in the tray menu. Click either: the overlay downloads the update, closes and comes back on the new version a few seconds later, and a card confirms it once, with what changed. Nothing ever updates by itself. Settings → About's **What's new** shows the notes of the version you are running. (The plain zip without an updater was dropped in 1.32; if you still have one, download the installer or the zip once and it updates itself from then on.)
 
 **Where are my settings?** Since 1.30 in `%AppData%\PandoraOverlay` (paste that into Explorer's address bar): `config.json` with the encrypted cookie, `waypoints.json`, `friends.json` and the skin-picture cache. Before 1.30 they sat next to the app; the first start of a newer version copies them over from there, and Settings → About has "Open folder" and "Import from an older copy…" if you installed fresh somewhere else (a fresh install's Account page points there). Nothing deletes the old folder: remove it yourself once everything is there.
 
@@ -253,12 +252,12 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 ## Troubleshooting
 
 - **`Session ended · sign in again from the tray`** → the website no longer accepts the session. Right-click the tray icon → **Sign in again…**.
-- **The sign-in window says it needs the WebView2 Runtime** → it is part of Windows 11 and comes with Edge on Windows 10, so this is rare; the window's **Get WebView2** button opens Microsoft's free download. The installer fetches it by itself; a plain-zip copy relies on the one already on the PC.
+- **The sign-in window says it needs the WebView2 Runtime** → it is part of Windows 11 and comes with Edge on Windows 10, so this is rare; the window's **Get WebView2** button opens Microsoft's free download. The installer fetches it by itself; the zip relies on the one already on the PC.
 - **Overlay not visible over the game** → make sure the game is borderless windowed, not fullscreen. The [FAQ](#faq) has the full checklist.
 - **The hotkey does nothing** → another app grabbed it; pick a different combination in Settings (tray icon → Settings…) — the capture box checks availability as you press.
 - **Bars frozen** → check the timestamp in the status line; it updates on every successful poll.
 - **Windows blocks the app / "unknown publisher"** → expected the first time you run a downloaded installer or zip: the releases aren't code-signed, and Windows checks files a browser downloaded. One-click updates aren't browser downloads, so they don't bring the warning back. Either click **More info → Run anyway** on the SmartScreen warning, or cleaner for a zip: right-click the downloaded **zip** → Properties → tick **Unblock** → OK *before* extracting, which clears every file inside. If the message mentions **Smart App Control** and has no "Run anyway" button, see the next entry.
-- **"Smart App Control blocked an app that may be unsafe"** → Windows 11's **Smart App Control** blocks every app that isn't code-signed, machine-wide, with no per-app exception: the message may name the installer, `Pandora Overlay.exe` or `PandoraOverlay.dll`, there is no "Run anyway", and the Unblock trick above doesn't apply (the plain zip is blocked the same way). The releases aren't signed, so the only way to run the overlay on such a PC is to switch Smart App Control off. That is a whole-PC decision, not a per-app one: it stops *every* unknown app from running, not just this one — Defender and SmartScreen stay on, which is what every Windows 10 PC and most Windows 11 PCs run with, but weigh it yourself.
+- **"Smart App Control blocked an app that may be unsafe"** → Windows 11's **Smart App Control** blocks every app that isn't code-signed, machine-wide, with no per-app exception: the message may name the installer, `Pandora Overlay.exe` or `PandoraOverlay.dll`, there is no "Run anyway", and the Unblock trick above doesn't apply (the zip is blocked the same way). The releases aren't signed, so the only way to run the overlay on such a PC is to switch Smart App Control off. That is a whole-PC decision, not a per-app one: it stops *every* unknown app from running, not just this one — Defender and SmartScreen stay on, which is what every Windows 10 PC and most Windows 11 PCs run with, but weigh it yourself.
   1. Open **Windows Security** (Start → type "Windows Security", or Settings → Privacy & security → Windows Security) and go to **App & browser control**.
   2. Click **Smart App Control settings**.
   3. Pick **Off** and confirm. You may be asked for an administrator's permission.

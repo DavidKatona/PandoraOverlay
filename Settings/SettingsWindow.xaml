@@ -936,8 +936,13 @@
             <CheckBox x:Name="UpdateCheck" Style="{StaticResource Check}"
                       Content="Check for updates at launch (one request to GitHub)"/>
             <DockPanel Margin="0,8,0,0">
-                <Button x:Name="UpdateButton" DockPanel.Dock="Left" Content="Check for updates now" Click="UpdateButton_Click"
-                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
+                <!-- "What's new" (1.32): the running version's notes in the update card. -->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="UpdateButton" Content="Check for updates now" Click="UpdateButton_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button x:Name="WhatsNewButton" Content="What's new" Click="WhatsNew_Click"
+                            Style="{StaticResource NeutralButtonStyle}"/>
+                </StackPanel>
                 <TextBlock x:Name="UpdateText" Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"
                            Text="Installing an update is always your click: the overlay downloads it, closes and comes back on the new version."/>
             </DockPanel>

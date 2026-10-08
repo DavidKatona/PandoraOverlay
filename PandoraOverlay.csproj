@@ -66,6 +66,10 @@
          same reason as the rules. -->
     <EmbeddedResource Include="Assets\areas.png" LogicalName="areas.png" />
     <EmbeddedResource Include="Assets\areas.json" LogicalName="areas.json" />
+    <!-- The CHANGELOG itself (1.32): the update card's "Updated" mode and the
+         About page's What's new read the running version's section from it,
+         so they need no request and work for every copy. -->
+    <EmbeddedResource Include="CHANGELOG.md" LogicalName="CHANGELOG.md" />
   </ItemGroup>
 
 </Project>
