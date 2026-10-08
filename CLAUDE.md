@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.32.0 is built, working, and approved by the server's
+and settings window. **v1.33.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1901,7 +1901,17 @@ Rehearsed the same day as rc.1 (installed over 1.31.2: the Updated card)
 and rc.2 (the Available card on rc.1, Later, the tray install, the
 Updated card with "you were on", and the card's own progress bar after
 a reinstall of rc.1 with `UpdateCardShownFor` cleared by hand — the
-settings folder survives an uninstall, so once-per-version did too).
+settings folder survives an uninstall, so once-per-version did too),
+v1.33.0 (Oct 8 — **Dino storage**, a few players' request: Settings →
+Dino storage lists the account's stored dinos like the website's
+`/extras` page, as cards that open in place with the vitals, the
+mutations and where each was stored on our own map (area, distance,
+"Waypoint here"); Rename and Delete act at once like the website's
+buttons; the list is asked for on every opening of the page. Tried in
+game by the owner the same day: the list, a rename (whose redraw
+crashed the first build, fixed) and a stored-spot waypoint under
+"Tracked only" (not drawn at first, fixed). Delete was NOT tried for
+real before the release (the owner kept their dino); no pre-release).
 No layout presets beyond the default for now.
 
 Areas, left for later and not started: area names in new waypoints and
@@ -2111,7 +2121,7 @@ need retaking by the owner.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.32.0.
+  minor, fixes bump patch. Current: 1.33.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds, tests and attaches the
