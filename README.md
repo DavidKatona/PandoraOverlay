@@ -9,7 +9,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 [![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
 [![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
-![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Combat view top-right, and the control panel bottom-center, over a Deinosuchus resting on a beach at sunset; the minimap's pill names the area, "South Plains", with the heatmap and the area borders on, the Activity feed reads "You spawned as Deinosuchus 100% · South Plains", and a caption box names version 1.31.0 and what is new: sign in with Discord inside the overlay, no cookie to copy, a private login window, Sign out included](docs/screenshot.png)
+![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Combat view top-right, and the control panel bottom-center, over a Deinosuchus resting on a beach at sunset; the minimap's pill names the area, "South Plains", with the heatmap and the area borders on, the Activity feed reads "You spawned as Deinosuchus 100% · South Plains", and a caption box names version 1.31.1 and what is new: your Discord avatar on the Account page, downloaded once, no session sent, removed on Sign out](docs/screenshot.png)
 
 
 ## Contents
