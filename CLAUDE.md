@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.31.1 is built, working, and approved by the server's
+and settings window. **v1.31.2 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1737,7 +1737,11 @@ v1.31.1 (Oct 8 — the Account card shows the Discord avatar instead of
 the initial: downloaded once from Discord's image server without the
 session, only after the page's first look, kept as a small copy, dropped
 on Sign out — tried by the owner on the repo build; no pre-release, the
-owner's call for a cosmetic patch).
+owner's call for a cosmetic patch),
+v1.31.2 (Oct 8 — the minimap no longer waits for a failed calibration
+fetch: a bundled seed stands in until the site answers, and a failed
+fetch is retried after a successful poll at most once a minute — a
+player's report the same day; tests only, no pre-release).
 No layout presets beyond the default for now.
 
 Areas, left for later and not started: area names in new waypoints and
@@ -1946,7 +1950,7 @@ need retaking by the owner.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.31.1.
+  minor, fixes bump patch. Current: 1.31.2.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds, tests and attaches the
