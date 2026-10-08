@@ -10,9 +10,12 @@ namespace PandoraOverlay;
 /// </summary>
 public sealed class GrowthMilestones
 {
+    /// <summary>GrowthTracker's full-grown line: the server reports a grown dino a hair under 1.</summary>
+    public const double FullyGrown = 0.9995;
+
     private static readonly (double Threshold, int Percent)[] Lines =
     {
-        (0.25, 25), (0.50, 50), (0.75, 75), (0.9995, 100) // 100 uses GrowthTracker's full-grown line
+        (0.25, 25), (0.50, 50), (0.75, 75), (FullyGrown, 100)
     };
 
     private string? _identity;
@@ -55,5 +58,19 @@ public sealed class GrowthMilestones
         50 => "a subadult",
         75 => "an adult",
         _ => "fully grown"
+    };
+
+    /// <summary>
+    /// The stage a growth value sits in, by the same lines: "hatchling" under
+    /// 25%, then "juvenile", "subadult", "adult", and "fully grown" from the
+    /// full-grown line (the Dino storage page's cards).
+    /// </summary>
+    public static string StageAt(double growth) => growth switch
+    {
+        >= FullyGrown => "fully grown",
+        >= 0.75 => "adult",
+        >= 0.50 => "subadult",
+        >= 0.25 => "juvenile",
+        _ => "hatchling"
     };
 }

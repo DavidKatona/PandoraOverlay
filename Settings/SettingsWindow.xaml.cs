@@ -94,7 +94,7 @@ public partial class SettingsWindow : Window
         ResetPositionsButton.IsEnabled = false;
     }
 
-    /// <param name="poll">The shared poll service: the friends roster for the Friends page, and the Skins page's only way to the network.</param>
+    /// <param name="poll">The shared poll service: the friends roster for the Friends page, and the Skins and Dino storage pages' only way to the network.</param>
     /// <param name="currentDino">The live dino when the dialog opened (null if not in game) — the Rules page highlights its pack limit.</param>
     /// <param name="page">A page to open on (the tray's "Server rules…" passes "Rules"); null = the page you were on last.</param>
     public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, PollService poll,
@@ -223,7 +223,8 @@ public partial class SettingsWindow : Window
         switch (key)
         {
             case "Account": OpenAccountPage(); break; // one auth/me per dialog, for the card's live facts
-            case "Skins": OpenSkinsPage(); break; // also the one page that talks to the site
+            case "Skins": OpenSkinsPage(); break; // talks to the site, like Dino storage
+            case "Storage": OpenStoragePage(); break;
             case "Waypoints": OpenWaypointsPage(); break;
             case "Friends": OpenFriendsPage(); break;
             case "Rules": OpenRulesPage(); break;

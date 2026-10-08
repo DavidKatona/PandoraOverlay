@@ -13,8 +13,9 @@ namespace PandoraOverlay;
 /// roster rides every second in-game poll while a friends surface is shown.
 /// Runs entirely on the UI thread via DispatcherTimer, so subscribers may
 /// touch UI directly. The Patreon skins requests (v1.28, click-driven only)
-/// live in PollService.Skins.cs, the map calibration (its seed and retry)
-/// in PollService.Calibration.cs.
+/// live in PollService.Skins.cs, the Dino storage requests (1.33, likewise)
+/// in PollService.Storage.cs, the map calibration (its seed and retry) in
+/// PollService.Calibration.cs.
 /// </summary>
 public sealed partial class PollService : IDisposable
 {
@@ -108,6 +109,9 @@ public sealed partial class PollService : IDisposable
     /// <summary>Last known map calibration: fetched this launch, else the config-cached copy, else the bundled seed.</summary>
     public MapCalibration? Calibration { get; private set; }
 
+    /// <summary>You, as the last successful poll saw you in game; null while not in game (the Dino storage page's distance and arrow).</summary>
+    public PlayerState? LastPlayer { get; private set; }
+
     public event Action<MyLocationResponse>? SnapshotReceived;
     public event Action<Exception>? PollFailed;
     public event Action<MapCalibration>? CalibrationChanged;
@@ -194,6 +198,7 @@ public sealed partial class PollService : IDisposable
         IsSignedOut = false;
         _lastLiveUtc = DateTime.UtcNow;
         ForgetSkins();                 // another login may see other skins
+        ForgetStorage();               // and has another storage
         Start();
     }
 
@@ -206,6 +211,7 @@ public sealed partial class PollService : IDisposable
         {
             var result = await _client.FetchAsync();
             _inGame = result.InGame && result.Player is not null;
+            LastPlayer = _inGame ? result.Player : null;
             _dino = result.Player?.Dino;
             _steamId = result.Player?.SteamId ?? _steamId;
             _failStreak = 0;
@@ -264,7 +270,9 @@ public sealed partial class PollService : IDisposable
         _failStreak = 0;
         _refusals = 0;
         IsSignedOut = false;
+        LastPlayer = null;
         ForgetSkins();
+        ForgetStorage();
         ClearFriends();
     }
 

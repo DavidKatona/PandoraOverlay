@@ -146,3 +146,18 @@ public class LowStatAlertFiredFlagsTests
         Assert.False(a.ThirstFired);
     }
 }
+
+public class GrowthStageTests
+{
+    [Theory]
+    [InlineData(0.0, "hatchling")]
+    [InlineData(0.249, "hatchling")]
+    [InlineData(0.25, "juvenile")]
+    [InlineData(0.5, "subadult")]
+    [InlineData(0.75, "adult")]
+    [InlineData(0.999, "adult")]       // a hair under the full-grown line is still growing
+    [InlineData(0.9995, "fully grown")]
+    [InlineData(1.0, "fully grown")]
+    public void StageFollowsTheMilestoneLines(double growth, string stage) =>
+        Assert.Equal(stage, GrowthMilestones.StageAt(growth));
+}

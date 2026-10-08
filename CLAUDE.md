@@ -70,6 +70,14 @@ web dev.**
    site: the address auth/me names, on Discord's image server, fetched
    like a skin tile (no cookie, no site headers) only when the Account
    page is looked at and no saved copy exists — see the Account page.
+   The DINO STORAGE trio (1.33, a few players' request, the owner's okay
+   Oct 8 2026 under the blanket go-ahead): `POST /api/user/dinos` (the
+   list, empty body; on the first look at Settings → Dino storage per
+   dialog and for Refresh, never twice within 30 s) + `POST
+   /api/user/dinos/rename` (JSON `{dinoId, name, description}`) + `POST
+   /api/user/dinos/delete` (JSON `{dinoId}`) — two more WRITES,
+   CLICK-DRIVEN ONLY (a card's rename Save, the armed Delete), one at a
+   time with a 3 s breather, never a timer; see Dino storage.
    The zone overlays are NOT cleared for use (see Permissions). The
    launch-time update check calls the GitHub releases API (and, since
    v1.30, a CLICK on the update entry downloads the update package from
@@ -118,7 +126,8 @@ web dev.**
   normal player-facing endpoint of islapandora.eu no longer needs a
   per-endpoint ask to the site dev — it needs the OWNER's okay for the
   feature, as always. First use: the Patreon skins page; second (Oct 7
-  2026): the in-app sign-in's account pair, `auth/me` + `/auth/logout`. What still holds
+  2026): the in-app sign-in's account pair, `auth/me` + `/auth/logout`;
+  third (Oct 8 2026): the Dino storage trio. What still holds
   whatever the endpoint: fully external; the cookie is a credential;
   nothing polls faster than the site; a WRITE happens only for a click,
   never on a timer; the admin / staff endpoints (`/api/admin/*`, the
@@ -212,7 +221,10 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
 - `Prime/` — PrimeWindow, PrimeConditions. `Rules/` — ServerRules (+
   `Assets/rules.json`, the seed). `Skins/` — PatreonSkins (the pure half;
   its requests and gating are the `Core/PandoraClient.Skins.cs` and
-  `Core/PollService.Skins.cs` parts). `Settings/` — SettingsWindow.
+  `Core/PollService.Skins.cs` parts). `Storage/` (1.33) — StoredDinos
+  (the pure half of Dino storage; its requests and gating are the
+  `Core/PandoraClient.Storage.cs` and `Core/PollService.Storage.cs`
+  parts). `Settings/` — SettingsWindow.
   `Updates/` (1.32) — UpdateCardWindow (the update card), ReleaseNotes
   and UpdateCardPolicy (its pure halves); the updater itself stays in
   `Core/Updater.cs`.
@@ -283,8 +295,8 @@ concern, the way WPF already splits them from their generated `.g.cs`:
 `MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`, `.Updates.cs`),
 `MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`, `.Area.cs`),
 `SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`,
-`.Skins.cs`, `.SkinPictures.cs`, `.About.cs`, `.Account.cs`) and, since v1.28, the two Core classes that had reached the
-limit: `PandoraClient.cs` + `.Skins.cs` + `.Account.cs`, `PollService.cs` + `.Skins.cs` + `.Calibration.cs`. Same class, same
+`.Skins.cs`, `.SkinPictures.cs`, `.About.cs`, `.Account.cs`, `.Storage.cs`, `.StorageDetail.cs`) and, since v1.28, the two Core classes that had reached the
+limit: `PandoraClient.cs` + `.Skins.cs` + `.Account.cs` + `.Storage.cs`, `PollService.cs` + `.Skins.cs` + `.Calibration.cs` + `.Storage.cs`. Same class, same
 fields, no behaviour change — a reading aid, not decoupling; the pure
 helper classes are the real decoupling. Keep each part under ~500 lines;
 when one outgrows that, cut another `Window.Topic.cs`, don't extract a
@@ -599,6 +611,9 @@ Every overlay window derives from `OverlayWindowBase`.
   a baseline, a gap over two lines reports the higher, death/swap resets.
   MainWindow always `PulseBriefly`s the growth header + `NoteEvent`s the
   fade for it; the chime is gated by `GrowthChimeEnabled` (default off).
+  `StageAt(growth)` (1.33) names the stage a value sits in by the same
+  lines — "hatchling" under 25% — for the Dino storage cards;
+  `FullyGrown` (0.9995) is GrowthTracker's full-grown line, named.
 - **OverlayConfig.cs** — config.json persistence + DPAPI vault. Plaintext `Cookie`
   field is a paste-inbox only: `Load()` encrypts it into `CookieProtected`
   (`DataProtectionScope.CurrentUser`) and blanks it. `GetCookie()` returns "" on
@@ -1402,6 +1417,71 @@ Every overlay window derives from `OverlayWindowBase`.
   isn't watched) and a control-panel button (no widget to group under).
   Later, if the pilot works: a hotkey for "apply my skin", favourites,
   the custom presets (other endpoints).
+- **Dino storage (1.33, a few players' request, built Oct 8 2026)** — the
+  website's `/extras` Dino Storage page rebuilt as Settings → Dino
+  storage, the nav entry right after Skins. The page's sibling there, the
+  Lucky Wheel, is NOT built (owner: ignore it for now). Analysis, plan and
+  mockups came first (Oct 7, `Desktop\Pandora Overlay
+  Files\pandora-dino-storage-sketch`); the owner chose the accordion,
+  Delete in the first version and both extras (Oct 8). Storing and
+  retrieving are not on the website ("Store a dino in-game to see it
+  here"), so not here either. Four parts:
+  **Storage/StoredDinos.cs** (pure, tested against a real answer the owner
+  captured, anonymised): `StoredDino` — the id kept with its JSON type
+  like a skin's; the species from `dinoClass` by the website's own rule
+  (`BP_Herrerasaurus_C` → Herrerasaurus); the name null for the site's
+  "Unnamed"; vitals as `StoredVital` through the website's TWO-SYSTEM
+  rule (a value ≤ 1.5 beside a maximum > 1.5 is a FRACTION of it — the
+  old storage system; the site's changelog: "work with the old and new
+  storage system"); mutations as regular / parent / elder lists, an elder
+  slot an "A + B" pair, "None" empty, and the badge count every filled
+  value, like the site; the position in world cm, none when missing,
+  exactly 0/0 (the site's fallback) or off the island; `storedAt` ISO or
+  ms. Plus `StoredDinoList` (`With` / `Without`), the two bodies,
+  `ParseRename` / `ParseDelete` (server words through `PatreonSkins.Clean`,
+  shown as "The website said: …" like a skin refusal), `GrowthText`
+  ("58% · subadult", rounded down with a hair of slack — 0.58 × 100 is
+  57.999… in floating point, a test caught it) and `StoredText`.
+  **PandoraClient.Storage.cs**: the three POSTs (Referer /extras), every
+  answer's body read whatever the status, like the site; the site's
+  refusal → `SessionEndedException`. **PollService.Storage.cs**: ALL
+  gating — `GetStorageAsync` (a request per look, the session's copy
+  within `StorageListFloor` 30 s of the last ask; NOT the skins list's
+  10 min reuse, because the storage changes with play),
+  `RenameStoredDinoAsync` / `DeleteStoredDinoAsync` (one at a time, a 3 s
+  breather, `IsSignedOut` answered locally, a success patches the
+  session's copy), `ForgetStorage` on a new client or a sign-out;
+  `PollService.LastPlayer` is your last in-game snapshot, for the
+  distance and the arrow. **SettingsWindow.Storage.cs** (the page, the
+  list, the closed cards) + **.StorageDetail.cs** (an open card): a title
+  row with "3 of 10 slots used" and a thin bar, the status line, a 331 px
+  list, a ONE-LINE note (every pixel went to the list), Refresh and a
+  link. A closed card: species, ♂/♀, "· name" in amber or "· unnamed",
+  "stored 23 Sep · 11:42", the growth bar with its stage, the badges
+  (Prime / Elder ×N / N mutations / Compensated); the whole summary is the
+  click. ACCORDION (the owner's pick over a detail view with a back link):
+  one card open at a time, scrolled to the list's top, its open part built
+  on its first opening; a Refresh keeps it open. An open card: left = the
+  description, VITALS (the stats panel's bar colours, plus blood) and
+  MUTATIONS; right = STORED AT (the whole island at 130 px, a blue
+  diamond, your arrow while in game), "<area> · N km away" (AreaMapAsset;
+  "Uncharted" dimmed), "Waypoint here", then Rename… / Delete…. The
+  actions sit under the map BY MEASUREMENT: under the mutations, an open
+  card was ~30 px taller than the list and they fell below the fold
+  (off-screen renders, Oct 8 2026). Rename = the name and description
+  boxes in the left column (the website's 40 / 200, live counts, Enter
+  saves, Escape cancels; the actions hidden meanwhile; nothing changed =
+  nothing sent); a success rebuilds the card in place, open. Delete =
+  armed in place: "Can't be undone." over Delete (red) / Keep, the whole
+  question in the status line. "Waypoint here" ACTS AT ONCE: into the
+  library (the minimap draws it, MainWindow saves the file) AND the
+  Waypoints page's draft (a later Save keeps it, Cancel can't lose it),
+  tracked in both; the same name within 20 m is tracked instead of
+  twinned; the Waypoints rows rebuild on their next look. No Activity
+  feed line for a rename or delete (chores). THE THIRD PAGE THAT ACTS AT
+  ONCE, after Skins and Account. Not built in batches: a list is as long
+  as the account's slots. The page measures 454 px against the Skins
+  page's 456, so the dialog did not grow.
 - **ServerRules.cs** — `RulesDocument` (Source, CopiedOn, Note,
   PackLimits = categories of `PackLimit(Name, Limit)`, Rules; `LimitFor`
   case-insensitive), `ServerRules.LoadBundled` (the `rules.json` embedded
@@ -1449,7 +1529,7 @@ Every overlay window derives from `OverlayWindowBase`.
   recoloured in code by `SetPage`) and ONE page visible at a time on the
   right — Account / Controls / General (APP-WIDE ONLY) / Stats panel /
   Minimap / Prime tracker / Activity / Friends / Waypoints / Skins (see
-  Patreon skins) / Server rules / About (this copy: version, updates, the settings folder, links — `SettingsWindow.About.cs`), widget pages in the control panel's order, each holding that
+  Patreon skins) / Dino storage (see Dino storage) / Server rules / About (this copy: version, updates, the settings folder, links — `SettingsWindow.About.cs`), widget pages in the control panel's order, each holding that
   widget's Scale-or-Size slider and its own options; a new widget adds a
   nav entry + page. Server rules page (`SettingsWindow.Rules.cs`, Sep 29
   2026): a REFERENCE page, nothing saved — the bundled RulesDocument
@@ -1493,7 +1573,7 @@ Every overlay window derives from `OverlayWindowBase`.
   library ~0.9 s). Save never needed the rows. RULE (owner reported the
   dialog opening slowly twice, Oct 1 2026): content built in code is
   built on the page's FIRST LOOK (`SetPage` → `OpenWaypointsPage` /
-  `OpenFriendsPage` / `OpenRulesPage` / `OpenSkinsPage`), and anything
+  `OpenFriendsPage` / `OpenRulesPage` / `OpenSkinsPage` / `OpenStoragePage`), and anything
   long is added IN BATCHES — the first screenful at once, the rest per
   `DispatcherPriority.Background` tick, with a version counter so a newer
   rebuild stops an older one (waypoint rows 12 then 24, skin tiles 9 then

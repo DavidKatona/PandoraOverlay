@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Settings › Dino storage shows the dinos stored on your islapandora.eu
+  account, like the website's Extras page: species, sex, name, growth,
+  Prime, elder stacks and mutations, and how many of your slots are used.
+- Click a stored dino to see its vitals, its mutations and where it was
+  stored on the island map, with the area's name and how far away it is.
+- Rename a stored dino, change its description or delete it, right from
+  the page. Both act at once, like the website's own buttons, and Delete
+  asks once more first.
+- "Waypoint here" on a stored dino adds a waypoint named after it where
+  it was stored, tracked on the minimap.
+
 ## [1.32.0] - 2026-10-08
 
 ### Added

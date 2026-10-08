@@ -433,6 +433,7 @@
                     <Button Content="Friends" Tag="Friends" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Waypoints" Tag="Waypoints" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Skins" Tag="Skins" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Dino storage" Tag="Storage" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Server rules" Tag="Rules" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="About" Tag="About" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                 </StackPanel>
@@ -888,6 +889,47 @@
                         Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0" IsEnabled="False"
                         ToolTip="Discard the saved pictures and download each one again as its tile comes into view (about 5 MB apiece)"/>
                 <Button Content="islapandora.eu/patreon" Click="OpenPatreonPage_Click"
+                        Style="{StaticResource NeutralButtonStyle}"/>
+            </StackPanel>
+            </StackPanel>
+
+            <!-- ============================ Dino storage =================== -->
+            <!-- The website's /extras Dino Storage (SettingsWindow.Storage.cs): the
+                 account's stored dinos as cards that open in place, Rename and
+                 Delete acting at once like the website's own buttons, and where
+                 each was stored on the island map. The cards are built in code
+                 on the page's first look; the list's height keeps the page no
+                 taller than the Skins page, so the dialog doesn't grow. -->
+            <StackPanel Tag="Storage" Visibility="Hidden">
+            <DockPanel Margin="0,4,0,6">
+                <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="StorageCount" Foreground="#7B8790" FontSize="11" HorizontalAlignment="Right"/>
+                    <Border x:Name="StorageSlotBar" Width="90" Height="3" CornerRadius="1.5" Background="#262E37"
+                            HorizontalAlignment="Right" Margin="0,3,0,0" Visibility="Collapsed">
+                        <Border x:Name="StorageSlotFill" Width="0" HorizontalAlignment="Left" CornerRadius="1.5" Background="#7B8790"/>
+                    </Border>
+                </StackPanel>
+                <TextBlock Style="{StaticResource PageTitle}" Text="DINO STORAGE" Margin="0" VerticalAlignment="Center"/>
+            </DockPanel>
+            <!-- The status keeps its height so the list never shifts. -->
+            <DockPanel Height="30" Margin="0,0,0,6">
+                <TextBlock x:Name="StorageStatus" Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
+                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+            </DockPanel>
+            <ScrollViewer x:Name="StorageList" Height="331" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
+                </ScrollViewer.Resources>
+                <StackPanel x:Name="StorageCards" Margin="0,0,6,0"/>
+            </ScrollViewer>
+            <!-- One line on purpose: every pixel of height went to the list, so an open card fits in it. -->
+            <TextBlock Text="Rename and Delete act at once, not on Save, like the website's own buttons."
+                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                <Button x:Name="StorageRefreshButton" Content="Refresh" Click="StorageRefresh_Click"
+                        Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"
+                        ToolTip="Ask the website for your storage again"/>
+                <Button Content="islapandora.eu/extras" Click="OpenExtrasPage_Click"
                         Style="{StaticResource NeutralButtonStyle}"/>
             </StackPanel>
             </StackPanel>

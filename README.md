@@ -1,6 +1,6 @@
 # Pandora Overlay
 
-A small always-on-top overlay for The Isle: Evrima on the Isla Pandora server. While you play it shows your dino's health, stamina, hunger, thirst, growth and fractures, a minimap with your live position, your waypoints and your friends, your Prime status, a feed of what just happened, and the server rules, and it lets you apply your Patreon skins without alt-tabbing.
+A small always-on-top overlay for The Isle: Evrima on the Isla Pandora server. While you play it shows your dino's health, stamina, hunger, thirst, growth and fractures, a minimap with your live position, your waypoints and your friends, your Prime status, a feed of what just happened, and the server rules, and it lets you apply your Patreon skins and look after your stored dinos without alt-tabbing.
 
 It is **fully external**: everything it does goes through the same logged-in HTTPS requests the islapandora.eu website makes in your browser. It never reads game memory, never touches game files, and never interacts with the game process in any way.
 
@@ -19,7 +19,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
   - [Basics](#basics) — edit mode, snapping, hotkeys, hiding
   - [Tray icon & settings](#tray-icon--settings)
   - Widgets: [Stats panel](#stats-panel) · [Minimap](#minimap) · [Prime tracker](#prime-tracker) · [Activity feed](#activity-feed)
-  - Features: [Waypoints](#waypoints) · [Friends](#friends) · [Patreon skins](#patreon-skins) · [Server rules](#server-rules)
+  - Features: [Waypoints](#waypoints) · [Friends](#friends) · [Patreon skins](#patreon-skins) · [Dino storage](#dino-storage) · [Server rules](#server-rules)
 - **Help:** [FAQ](#faq) — can't see the overlay, how to close it, updating, and more · [Troubleshooting](#troubleshooting)
 - **Reference:** [Configuration (config.json)](#configuration-configjson) · [Fair-play notes](#fair-play-notes) · [Roadmap](#roadmap) · [License](#license)
 
@@ -88,7 +88,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, Server rules, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Alerts appear at its top when there is one: an update, a hotkey another program holds, or **Sign in again…** once the website session has ended. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (the sign-in), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints, Skins, Server rules and About (the version, updates, where your settings live, links).
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (the sign-in), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints, Skins, Dino storage, Server rules and About (the version, updates, where your settings live, links).
 - On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
 
 ### Stats panel
@@ -175,6 +175,15 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 - **Apply again:** the overlay remembers the skin and pattern you last applied for each species, and offers it as one button at the top of the page when you are on that species again.
 - A successful apply is noted in the [Activity feed](#activity-feed).
 - Cost: the list is fetched when you open the page and reused for ten minutes (Refresh asks again). The website's pictures are large, several MB each, so a picture is only downloaded once its tile is on screen, and a small copy is then kept in the `cache\skins` folder next to the app for 30 days: reopening the page downloads nothing you have already seen. **Reload pictures** discards those saved copies, for the rare case that the website replaced a picture: each one is then downloaded again when its tile is next on screen, and the picture you already see stays until the new one arrives. Nothing is fetched while the page is closed, and deleting the `cache` folder is harmless.
+
+### Dino storage
+
+- **Settings → Dino storage** shows the dinos stored on your islapandora.eu account, the way the website's [Extras page](https://islapandora.eu/extras) lists them: species, sex, the name you gave it, when it was stored, its growth and stage, and the website's badges (Prime, elder stacks, mutations, compensated). The title row says how many of your storage slots are used.
+- **Click a dino** to open it in place: its vitals, its mutations (regular, parent and elder), and where it was stored, on the island map with the area's name and, while you are in game, how far it is from you. One dino is open at a time; click it again to close it.
+- **Waypoint here** adds a waypoint named after the dino where it was stored and tracks it on the minimap. It is added at once and shows up on the Waypoints page too.
+- **Rename…** changes its name and description; **Delete…** asks once more ("Can't be undone.") before it removes the dino. Both act at once, not on Save: they send the same requests as the website's own buttons, and only for your click.
+- Storing and retrieving a dino aren't on the website, so they aren't in the overlay either.
+- Cost: the list is fetched when you open the page (once per Settings window, and never twice within 30 seconds; Refresh asks again). Nothing is fetched while the page is closed.
 
 ### Server rules
 
@@ -322,7 +331,7 @@ Most of these are editable from the Settings window; `PollIntervalSeconds` and `
 
 - The overlay shows **your own** dino and, since the friends update, the friends the website already shows you on its live map — the same data Isla Pandora displays to you in a browser tab, nothing else. It cannot see other players, and a friend who hides their location on the site is never drawn. Adding, removing and blocking friends stays on the website; the overlay only reads the list.
 - It polls at the same rate as the website itself while you play, slows right down while you aren't spawned in, and respects their rate limit.
-- The one thing it can change is your own dino's skin, from the Patreon skins page: the same request the website's Apply button sends, only when you click, and only for skins the server says your tier includes.
+- It changes only your own things, and only when you click. From the Patreon skins page, your dino's skin: the same request the website's Apply button sends, and only for skins the server says your tier includes. From the Dino storage page, a stored dino's name and description, or the stored dino itself: the same requests as the website's Rename and Delete buttons.
 - It uses Isla Pandora's login-gated website data with the server team's okay. If you build your own tool on that data, ask them too.
 
 ## Roadmap
