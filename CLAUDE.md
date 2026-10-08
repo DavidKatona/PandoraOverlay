@@ -1485,7 +1485,10 @@ Every overlay window derives from `OverlayWindowBase`.
   question in the status line. "Waypoint here" ACTS AT ONCE: into the
   library (the minimap draws it, MainWindow saves the file) AND the
   Waypoints page's draft (a later Save keeps it, Cancel can't lose it),
-  tracked in both; the same name within 20 m is tracked instead of
+  tracked in both, then `Notify` AGAIN — Add's own Changed reaches the
+  minimap before the tracking is set, so under "Tracked only" the new
+  waypoint stayed undrawn (the owner's report, Oct 8 2026); the same
+  name within 20 m is tracked instead of
   twinned; the Waypoints rows rebuild on their next look. No Activity
   feed line for a rename or delete (chores). THE THIRD PAGE THAT ACTS AT
   ONCE, after Skins and Account. Not built in batches: a list is as long

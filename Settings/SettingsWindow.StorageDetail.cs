@@ -326,7 +326,11 @@ public partial class SettingsWindow
         if (!_draft.Any(w => w.Id == existing.Id)) _draft.Add(existing.Clone());
         _config.TrackedWaypointId = existing.Id;
         _draftTracked = existing.Id;
-        if (!added) _library.Notify(); // only the tracking changed: the minimap redraws all the same
+        // ALWAYS, also after Add: Add's own Changed reached the minimap while the
+        // OLD waypoint was still the tracked one, so under "Tracked only" the new
+        // one wasn't drawn at all, and elsewhere it lacked its ring (the owner's
+        // report, Oct 8 2026). This second Changed redraws with the new tracking.
+        _library.Notify();
         _waypointRowsBuilt = false;    // the Waypoints page rebuilds from the draft on its next look
 
         button.Content = added ? "Waypoint added ✓" : "Tracked ✓";
