@@ -87,7 +87,8 @@ public partial class SettingsWindow
     }
 
     private StoredDinoList? _storage;
-    private bool _storageOpened;
+    private bool _storageHooked;        // the dialog's Closed handler is attached (once)
+    private bool _storageLoading;       // a list request from this page is out
     private bool _storageClosed;
     private bool _storageBusy;          // a rename or delete in flight: the page takes one change at a time
     private string? _openDinoId;        // the open card, kept across a Refresh
@@ -96,19 +97,30 @@ public partial class SettingsWindow
 
     // ---- Opening the page ---------------------------------------------------
 
-    /// <summary>First look at the page this dialog: one list request (or the session's copy from moments ago).</summary>
+    /// <summary>
+    /// EVERY look at the page asks the website again, as its own page does on
+    /// every visit (the owner, Oct 8 2026): coming back after storing a dino
+    /// in game shows it. Except while you are in the middle of something — a
+    /// rename form open, a Delete armed, a change on its way — which a reload
+    /// would throw away; Refresh still asks then.
+    /// </summary>
     private async void OpenStoragePage()
     {
-        if (_storageOpened) return;
-        _storageOpened = true;
-        Closed += (_, _) => _storageClosed = true;
+        if (!_storageHooked)
+        {
+            _storageHooked = true;
+            Closed += (_, _) => _storageClosed = true;
+        }
 
         if (StorageBlocked() is { } why)
         {
+            _storage = null; // signed out in this dialog: the old account's dinos go too
+            RenderStorage();
             SetStorageStatus(why, HintWarn);
             StorageRefreshButton.IsEnabled = false;
             return;
         }
+        if (_storageLoading || _storageBusy || _storageCards.Any(c => c.Disarm is not null)) return;
         await LoadStorageAsync();
     }
 
@@ -121,9 +133,19 @@ public partial class SettingsWindow
 
     private async Task LoadStorageAsync()
     {
+        if (_storageLoading) return;
+        _storageLoading = true;
         SetStorageStatus(_storage is null ? "Loading your storage…" : "Refreshing…", HintNeutral);
         StorageRefreshButton.IsEnabled = false;
-        var result = await _poll.GetStorageAsync();
+        StorageListResult result;
+        try
+        {
+            result = await _poll.GetStorageAsync();
+        }
+        finally
+        {
+            _storageLoading = false;
+        }
         if (_storageClosed) return;
         StorageRefreshButton.IsEnabled = true;
 
@@ -164,7 +186,7 @@ public partial class SettingsWindow
     /// <summary>
     /// All cards at once: the list is as long as the account's slots (ten
     /// seen), and a closed card is a dozen elements — the open part is built
-    /// on a card's first opening. A Refresh keeps the card you had open.
+    /// on a card's first opening. A reload keeps the card you had open.
     /// </summary>
     private void RenderStorage()
     {

@@ -72,8 +72,9 @@ web dev.**
    page is looked at and no saved copy exists — see the Account page.
    The DINO STORAGE trio (1.33, a few players' request, the owner's okay
    Oct 8 2026 under the blanket go-ahead): `POST /api/user/dinos` (the
-   list, empty body; on the first look at Settings → Dino storage per
-   dialog and for Refresh, never twice within 30 s) + `POST
+   list, empty body; EVERY time Settings → Dino storage is opened, as
+   the website's page fetches it on every visit — the owner's call — and
+   for Refresh; one at a time) + `POST
    /api/user/dinos/rename` (JSON `{dinoId, name, description}`) + `POST
    /api/user/dinos/delete` (JSON `{dinoId}`) — two more WRITES,
    CLICK-DRIVEN ONLY (a card's rename Save, the armed Delete), one at a
@@ -1445,9 +1446,12 @@ Every overlay window derives from `OverlayWindowBase`.
   **PandoraClient.Storage.cs**: the three POSTs (Referer /extras), every
   answer's body read whatever the status, like the site; the site's
   refusal → `SessionEndedException`. **PollService.Storage.cs**: ALL
-  gating — `GetStorageAsync` (a request per look, the session's copy
-  within `StorageListFloor` 30 s of the last ask; NOT the skins list's
-  10 min reuse, because the storage changes with play),
+  gating — `GetStorageAsync` (a request per call, never two at once; the
+  page calls it on EVERY opening and for Refresh, like the website's page
+  on every visit — the owner, Oct 8 2026, after a first build with a 30 s
+  floor; NOT the skins list's 10 min reuse, the storage changes with
+  play; the page skips an opening's reload while a rename form is open, a
+  Delete armed or a change on its way, so nothing typed is thrown away),
   `RenameStoredDinoAsync` / `DeleteStoredDinoAsync` (one at a time, a 3 s
   breather, `IsSignedOut` answered locally, a success patches the
   session's copy), `ForgetStorage` on a new client or a sign-out;
@@ -1461,7 +1465,7 @@ Every overlay window derives from `OverlayWindowBase`.
   (Prime / Elder ×N / N mutations / Compensated); the whole summary is the
   click. ACCORDION (the owner's pick over a detail view with a back link):
   one card open at a time, scrolled to the list's top, its open part built
-  on its first opening; a Refresh keeps it open. An open card: left = the
+  on its first opening; a reload keeps it open. An open card: left = the
   description, VITALS (the stats panel's bar colours, plus blood) and
   MUTATIONS; right = STORED AT (the whole island at 130 px, a blue
   diamond, your arrow while in game), "<area> · N km away" (AreaMapAsset;

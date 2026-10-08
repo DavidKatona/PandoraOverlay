@@ -6,45 +6,37 @@ public sealed record StorageListResult(StoredDinoList? List, string? Problem = n
 /// <summary>
 /// PollService, Dino storage part (1.33): everything the Dino storage page
 /// asks of the network, gated here so the window stays a pure consumer.
-/// Nothing in this file runs on a timer: the list is fetched when the page
-/// is looked at (once per Settings dialog) or for Refresh, and a rename or
-/// delete is sent only for a click. Unlike the skins list, the storage
-/// changes with play (a dino stored in game), so a new look asks again —
-/// only within StorageListFloor of the last ask is the session's copy
-/// shown instead. Same class as PollService.cs, split for reading; see
-/// CLAUDE.md.
+/// Nothing in this file runs on a timer: the list is fetched every time the
+/// page is opened, as the website's own page fetches it on every visit
+/// (the owner's call, Oct 8 2026 — the storage changes with play), and for
+/// Refresh; a rename or delete is sent only for a click. Same class as
+/// PollService.cs, split for reading; see CLAUDE.md.
 /// </summary>
 public sealed partial class PollService
 {
-    /// <summary>Floor under list requests, Refresh included: reopening the page in a hurry is not a request each time.</summary>
-    private static readonly TimeSpan StorageListFloor = TimeSpan.FromSeconds(30);
-
     /// <summary>The breather after every rename or delete, whatever its outcome: one change at a time, never a burst.</summary>
     private static readonly TimeSpan StorageEditGuard = TimeSpan.FromSeconds(3);
 
     private bool _storageListBusy;
     private bool _storageEditBusy;
-    private DateTime _storageListAskedUtc;
     private DateTime _storageEditGuardUntilUtc;
 
     /// <summary>The last list fetched this session, kept up to date by the page's renames and deletes; null until the page was opened once.</summary>
     public StoredDinoList? Storage { get; private set; }
 
     /// <summary>
-    /// The storage for the page: one request, unless the last one went out
-    /// less than StorageListFloor ago (then the session's copy). A failure
-    /// keeps the last good copy and names the problem.
+    /// The storage for the page: one request per call, but never two at
+    /// once (a call while one is out answers with the session's copy). A
+    /// failure keeps the last good copy and names the problem.
     /// </summary>
     public async Task<StorageListResult> GetStorageAsync()
     {
-        var now = DateTime.UtcNow;
-        if (_storageListBusy || now - _storageListAskedUtc < StorageListFloor)
+        if (_storageListBusy)
         {
-            return new StorageListResult(Storage, Storage is null ? "asked a moment ago, try again shortly" : null);
+            return new StorageListResult(Storage, Storage is null ? "still loading, try again in a moment" : null);
         }
 
         _storageListBusy = true;
-        _storageListAskedUtc = now;
         try
         {
             var answer = await _client.FetchStoredDinosAsync();
@@ -118,9 +110,5 @@ public sealed partial class PollService
     }
 
     /// <summary>A different login has a different storage: forget the list.</summary>
-    private void ForgetStorage()
-    {
-        Storage = null;
-        _storageListAskedUtc = default;
-    }
+    private void ForgetStorage() => Storage = null;
 }

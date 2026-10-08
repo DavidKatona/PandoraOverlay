@@ -183,7 +183,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 - **Waypoint here** adds a waypoint named after the dino where it was stored and tracks it on the minimap. It is added at once and shows up on the Waypoints page too.
 - **Rename…** changes its name and description; **Delete…** asks once more ("Can't be undone.") before it removes the dino. Both act at once, not on Save: they send the same requests as the website's own buttons, and only for your click.
 - Storing and retrieving a dino aren't on the website, so they aren't in the overlay either.
-- Cost: the list is fetched when you open the page (once per Settings window, and never twice within 30 seconds; Refresh asks again). Nothing is fetched while the page is closed.
+- Cost: the list is fetched every time you open the page, just as the website fetches it every time you open its Extras page, and again when you press **Refresh**. Nothing is fetched while the page is closed.
 
 ### Server rules
 

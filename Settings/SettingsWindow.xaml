@@ -897,8 +897,9 @@
             <!-- The website's /extras Dino Storage (SettingsWindow.Storage.cs): the
                  account's stored dinos as cards that open in place, Rename and
                  Delete acting at once like the website's own buttons, and where
-                 each was stored on the island map. The cards are built in code
-                 on the page's first look; the list's height keeps the page no
+                 each was stored on the island map. The list is asked for and
+                 the cards built in code every time the page is opened, like
+                 the website's page; the list's height keeps the page no
                  taller than the Skins page, so the dialog doesn't grow. -->
             <StackPanel Tag="Storage" Visibility="Hidden">
             <DockPanel Margin="0,4,0,6">
