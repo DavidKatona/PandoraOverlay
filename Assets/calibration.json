@@ -1,0 +1,12 @@
+{
+  "Source": "https://islapandora.eu/api/map/calibration",
+  "CopiedOn": "2026-10-08",
+  "Note": "A dated copy of the site's answer, used until the overlay's first successful fetch. The live answer always wins and is cached in config.json.",
+  "success": true,
+  "scaleX": 0.0020010632626191725,
+  "scaleY": -0.0020003567492836005,
+  "offsetX": 1160.9249840132136,
+  "offsetY": 1223.2852629424794,
+  "mapSize": 2500,
+  "pinOffset": { "x": -15, "y": 25 }
+}

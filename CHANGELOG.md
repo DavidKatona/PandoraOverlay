@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The minimap could stay on "waiting for map calibration…" for a whole
+  session on a fresh install. The map's position data was asked for once
+  at launch, and if that one request failed (Start with Windows before the
+  network was up, a short blip), it was never asked again until a restart.
+  Now a failed attempt is retried after the next successful update (at most
+  once a minute), and a fresh install no longer waits at all: the overlay
+  ships a copy of that data and uses it until the website's own answer
+  arrives.
+
 ## [1.31.1] - 2026-10-08
 
 ### Added

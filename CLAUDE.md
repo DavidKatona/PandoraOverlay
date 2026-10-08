@@ -17,7 +17,10 @@ web dev.**
 2. **Approved endpoints only.** `POST /api/map/mylocation` (the poll),
    `POST /api/map/calibration` (once per launch — static map-transform constants
    for the approved minimap; the live-map page itself loads it on every visit;
-   added at the owner's direction, Sep 2026), and the heatmap pair
+   added at the owner's direction, Sep 2026; since Oct 8 2026 a FAILED fetch
+   is retried right after a successful `mylocation` poll, at most once a
+   minute, until one succeeds — and a bundled seed stands in meanwhile),
+   and the heatmap pair
    `GET /map/api/heatmap-status` + `GET /map/heatmap-live.png` (approved by
    the site dev Sep 15 2026; public and fetched WITHOUT a cookie, every 60 s
    and only while the heatmap layer is on and the minimap shown — the site's
@@ -278,7 +281,7 @@ concern, the way WPF already splits them from their generated `.g.cs`:
 `MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`, `.Area.cs`),
 `SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`,
 `.Skins.cs`, `.SkinPictures.cs`, `.About.cs`, `.Account.cs`) and, since v1.28, the two Core classes that had reached the
-limit: `PandoraClient.cs` + `.Skins.cs` + `.Account.cs`, `PollService.cs` + `.Skins.cs`. Same class, same
+limit: `PandoraClient.cs` + `.Skins.cs` + `.Account.cs`, `PollService.cs` + `.Skins.cs` + `.Calibration.cs`. Same class, same
 fields, no behaviour change — a reading aid, not decoupling; the pure
 helper classes are the real decoupling. Keep each part under ~500 lines;
 when one outgrows that, cut another `Window.Topic.cs`, don't extract a
@@ -308,8 +311,19 @@ Every overlay window derives from `OverlayWindowBase`.
   click on a stale not-in-game state poll right away via `PollNowAsync`,
   which re-arms the timer and is floored at the configured interval — the
   spawn-detection lag is the feature's price, these are its relief valves.
-  `IsIdling`/`Interval` feed the status line. Fetches calibration once per
-  launch (retried after a credential swap) and caches it into config. A
+  `IsIdling`/`Interval` feed the status line. Calibration
+  (`PollService.Calibration.cs`, Oct 8 2026): fetched once per launch (and
+  again after a credential swap) and cached into config; until the site's
+  answer arrives, `Calibration` is the cached copy, else the bundled seed
+  `Assets/calibration.json` (a dated copy of the site's answer in its own
+  shape, EmbeddedResource like `rules.json`, read through `FindCalibration`;
+  a test holds it equal to `areas.json`'s calibration). A FAILED fetch is
+  retried after a successful poll, gated by the pure, tested
+  `CalibrationDue` (not yet fetched, none in flight, 60 s since the last
+  try). Before, the one launch-time attempt was all: a failure (Start with
+  Windows before the network, a blip) left a fresh install's minimap
+  "waiting for map calibration…" for the whole session while the heatmap
+  beside it recovered — reported by a player Oct 8 2026. A
   second 60 s timer (`RefreshHeatmapAsync` — also hot-triggered on minimap
   re-show and the heatmap hotkey / control-panel toggle) raises
   `HeatmapChanged(byte[]?)`, gated on `HeatmapEnabled` + `MinimapEnabled`;

@@ -13,7 +13,8 @@ namespace PandoraOverlay;
 /// roster rides every second in-game poll while a friends surface is shown.
 /// Runs entirely on the UI thread via DispatcherTimer, so subscribers may
 /// touch UI directly. The Patreon skins requests (v1.28, click-driven only)
-/// live in PollService.Skins.cs.
+/// live in PollService.Skins.cs, the map calibration (its seed and retry)
+/// in PollService.Calibration.cs.
 /// </summary>
 public sealed partial class PollService : IDisposable
 {
@@ -83,7 +84,6 @@ public sealed partial class PollService : IDisposable
     private bool _busy;
     private bool _heatmapBusy;
     private bool _primeBusy;
-    private bool _calibrationRequested;
     private bool _inGame;
     private string? _dino;
     private string? _steamId; // yours, once seen; the friends roster may include you
@@ -105,7 +105,7 @@ public sealed partial class PollService : IDisposable
     /// <summary>Latest cookie, including any rolled connect.sid (persist on exit).</summary>
     public string CurrentCookie => _client.CurrentCookie;
 
-    /// <summary>Last known map calibration: fetched this launch, else the config-cached copy.</summary>
+    /// <summary>Last known map calibration: fetched this launch, else the config-cached copy, else the bundled seed.</summary>
     public MapCalibration? Calibration { get; private set; }
 
     public event Action<MyLocationResponse>? SnapshotReceived;
@@ -148,7 +148,7 @@ public sealed partial class PollService : IDisposable
     public PollService(OverlayConfig config)
     {
         _config = config;
-        Calibration = config.Calibration;
+        Calibration = config.Calibration ?? BundledCalibration();
         // The server-reported cooldown end survives restarts; configs written
         // before it existed fall back to "last check + default". A value far
         // in the future can only be a clock jump — ignore it rather than lock
@@ -174,7 +174,7 @@ public sealed partial class PollService : IDisposable
         if (!_timer.IsEnabled) _timer.Start();
         if (!_heatmapTimer.IsEnabled) _heatmapTimer.Start();
         _ = PollOnceAsync();
-        _ = FetchCalibrationOnceAsync();
+        _ = FetchCalibrationIfDueAsync();
     }
 
     public void Stop()
@@ -188,7 +188,7 @@ public sealed partial class PollService : IDisposable
     {
         _client.Dispose();
         _client = new PandoraClient(_config.GetCookie(), _config.UserAgent);
-        _calibrationRequested = false; // retry with the fresh session
+        ResetCalibrationFetch();       // ask again with the fresh session
         _failStreak = 0;               // a fresh session starts the idle clock over
         _refusals = 0;
         IsSignedOut = false;
@@ -213,6 +213,7 @@ public sealed partial class PollService : IDisposable
             ApplyPacing(); // before the event, so subscribers read the cadence this snapshot set
             SnapshotReceived?.Invoke(result);
             await MaybeFetchFriendsAsync();
+            await FetchCalibrationIfDueAsync(); // a failed launch-time fetch retries once the connection is known to work
         }
         catch (Exception ex)
         {
@@ -521,29 +522,6 @@ public sealed partial class PollService : IDisposable
         catch
         {
             return DefaultPrimeCooldown;
-        }
-    }
-
-    /// <summary>
-    /// One calibration fetch per launch (or per credential swap) — it is static
-    /// site config. Failure is soft: cached values (if any) stay in effect.
-    /// </summary>
-    private async Task FetchCalibrationOnceAsync()
-    {
-        if (_calibrationRequested) return;
-        _calibrationRequested = true;
-        try
-        {
-            if (await _client.FetchCalibrationAsync() is { } fresh && fresh != Calibration)
-            {
-                Calibration = fresh;
-                _config.Calibration = fresh; // persisted with the next Save()
-                CalibrationChanged?.Invoke(fresh);
-            }
-        }
-        catch
-        {
-            // Keep cached/null calibration; the minimap shows its waiting state.
         }
     }
 
