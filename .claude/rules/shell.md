@@ -34,5 +34,5 @@ paths:
 - Panels use our own button templates (the glow overlay) and font-glyph icons — no stock
   chrome.
 - MainWindow is split by concern (`MainWindow.Topic.cs`), never into "manager" classes.
-  `MainWindow.xaml.cs` is past the ~500-line guideline: when touching it, cut the next
-  topic out into its own part.
+  `MainWindow.xaml.cs` is near the ~500-line guideline (474 lines, Oct 9 2026, after the
+  stats panel's drawing moved to `MainWindow.Stats.cs`): a new topic gets its own part.
