@@ -1,6 +1,7 @@
 <UserControl x:Class="PandoraOverlay.MapCanvas"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PandoraOverlay">
     <!-- The map drawing every map shares (the minimap now, the big map next):
          the island picture and the layers that move with it, then the
          markers and the arrows. It fills its host; the host clips it. -->
@@ -8,7 +9,7 @@
         <!-- Canvas host: measures the image with infinite space, so an
              oversized (zoomed) map never gets layout-clipped (a grid slot
              would clip it BEFORE the pan transform). -->
-        <Canvas>
+        <Canvas x:Name="MapLayer" x:FieldModifier="private">
             <Image x:Name="MapImage" x:FieldModifier="private"
                    Stretch="Fill"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
@@ -57,10 +58,18 @@
                       StrokeLineJoin="Round" Opacity="0.85"/>
         </Canvas>
         <Canvas>
-            <!-- Library waypoints: dots in their colours, the tracked one a
-                 ringed diamond. Shapes are created in code; the layer sits
-                 under the arrows on purpose. -->
-            <Canvas x:Name="MarkerLayer" x:FieldModifier="private"/>
+            <!-- What stays still between zooms: the markers and the names. One
+                 element, so the big map can cache it as one picture. -->
+            <Canvas x:Name="StillMarks" x:FieldModifier="private">
+                <!-- Library waypoints: dots in their colours, the tracked one a
+                     ringed diamond. Shapes are created in code; the layer sits
+                     under the arrows on purpose. -->
+                <Canvas x:Name="MarkerLayer" x:FieldModifier="private"/>
+                <!-- Names: area and waypoint labels (the map's Names layer),
+                     all drawn by this one element (NameLayer); empty on the
+                     minimap. -->
+                <local:NameLayer x:Name="LabelLayer" x:FieldModifier="private"/>
+            </Canvas>
             <!-- In-game friends as smaller arrows in their colours, above the
                  waypoints and under your own arrow. -->
             <Canvas x:Name="FriendLayer" x:FieldModifier="private"/>

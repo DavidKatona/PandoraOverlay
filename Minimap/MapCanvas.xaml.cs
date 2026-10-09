@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -8,16 +9,22 @@ using Path = System.Windows.Shapes.Path;
 
 namespace PandoraOverlay;
 
+/// <summary>A name on the map: its text, where its box's top-left goes (in the canvas's marker space), and its look.</summary>
+public readonly record struct MapLabel(string Text, Point At, bool IsArea, bool Strong);
+
 /// <summary>
 /// The map drawing every map shares (big map plan, phase 2): the island
 /// picture with what moves with it — the heatmap, the area borders and the
 /// two outlines, the breadcrumb trail — and above it the waypoint markers,
-/// the friends' arrows and yours. It draws and glides; it decides nothing:
-/// which waypoints and friends, which view, when to glide and for how long
-/// are its map's business (MinimapWindow; the big map next). It knows no
-/// config, no PollService and no footer. Positions are in its own panel
+/// the names, the friends' arrows and yours. It draws and glides; it decides
+/// nothing: which waypoints and friends, which view, when to glide and for
+/// how long are its map's business (MinimapWindow, BigMapWindow). It knows
+/// no config, no PollService and no footer. Positions are in its own panel
 /// coordinates, which are its host's: it fills the host from the top-left.
 /// Moved out of MinimapWindow without changing a pixel (golden renders).
+/// The big map switches it to MAP SPACE (UseMapSpace): markers, names,
+/// friends and your arrow then ride the map's own translate, so a pan moves
+/// one transform and re-places nothing, and the still layers are cached.
 /// </summary>
 public partial class MapCanvas : UserControl
 {
@@ -47,6 +54,8 @@ public partial class MapCanvas : UserControl
     private readonly TranslateTransform _arrowTranslate = new();
     private int _ownOutline = AreaMap.None;   // the area each highlight path draws now
     private int _hoverOutline = AreaMap.None;
+    private bool _mapSpace;   // markers, names, friends and arrow ride the map's translate (the big map)
+    private int? _glideFps;   // a cap on every glide's frame rate (the big map: 30)
 
     public MapCanvas()
     {
@@ -61,7 +70,40 @@ public partial class MapCanvas : UserControl
         PlayerArrow.RenderTransform = new TransformGroup { Children = { _arrowRotate, _arrowTranslate } };
     }
 
+    private static Brush Frozen(SolidColorBrush brush)
+    {
+        brush.Freeze();
+        return brush;
+    }
+
+    /// <summary>
+    /// The big map's mode, set once before use. Markers, names, friends and
+    /// your arrow live in MAP space — placed at fraction × MapSize, under
+    /// the map's own translate — so a pan moves one transform and nothing is
+    /// re-placed; their hit tests take the pan into account. The two still
+    /// layers (the map with what moves with it; the markers with the names)
+    /// are cached as bitmaps and glides capped at a frame rate: the perf
+    /// spike's choice (Oct 9 2026), about 5% of one core while panning. The
+    /// caches snap to device pixels, so a cached name is never resampled
+    /// between pixels; the names' text is pixel-snapped too.
+    /// </summary>
+    public void UseMapSpace(int glideFrameRate)
+    {
+        _mapSpace = true;
+        _glideFps = glideFrameRate;
+        StillMarks.RenderTransform = _mapTranslate;
+        FriendLayer.RenderTransform = _mapTranslate;
+        PlayerArrow.RenderTransform = new TransformGroup { Children = { _arrowRotate, _arrowTranslate, _mapTranslate } };
+        MapLayer.CacheMode = new BitmapCache { SnapsToDevicePixels = true };
+        StillMarks.CacheMode = new BitmapCache { SnapsToDevicePixels = true };
+        TextOptions.SetTextFormattingMode(LabelLayer, TextFormattingMode.Display);
+        TextOptions.SetTextFormattingMode(FriendLayer, TextFormattingMode.Display);
+    }
+
     // ---- The map ------------------------------------------------------------
+
+    /// <summary>The map picture's own size in pixels (it is square): the sharpness cap counts in these.</summary>
+    public static int PicturePixels => Island.Value.PixelWidth;
 
     /// <summary>The map's rendered side (the picture is square).</summary>
     public double MapSize => MapImage.Width;
@@ -86,7 +128,7 @@ public partial class MapCanvas : UserControl
         set => PlayerArrow.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    /// <summary>Moves your arrow to a panel point: gliding, or at once.</summary>
+    /// <summary>Moves your arrow to a point (panel space; map space with UseMapSpace): gliding, or at once.</summary>
     public void MoveArrow(Point at, TimeSpan? glide) => Move(_arrowTranslate, at, glide);
 
     /// <summary>Turns your arrow to a screen heading; a glide takes the shortest way round.</summary>
@@ -215,9 +257,52 @@ public partial class MapCanvas : UserControl
         TrailOld.Points = oldest;
     }
 
+    /// <summary>
+    /// The trail split into three age bands for a map drawn at a size,
+    /// newest first, in map pixels; each band starts on the previous band's
+    /// last point so they meet. One polyline can't fade along its length,
+    /// so the oldest band is drawn faintest.
+    /// </summary>
+    public static PointCollection[] TrailBands(IReadOnlyList<(DateTime At, double X, double Y)> points, MapCalibration cal,
+                                               double mapSize, TimeSpan keep, DateTime now)
+    {
+        var bands = new[] { new PointCollection(), new PointCollection(), new PointCollection() }; // newest → oldest
+        Point? previous = null;
+        var previousBand = -1;
+        foreach (var (at, x, y) in points)
+        {
+            var (fx, fy) = cal.ToFraction(x, y);
+            var point = new Point(fx * mapSize, fy * mapSize);
+            var band = Math.Clamp((int)((now - at).TotalSeconds / keep.TotalSeconds * 3), 0, 2);
+            if (band != previousBand && previous is { } join) bands[band].Add(join);
+            bands[band].Add(point);
+            previous = point;
+            previousBand = band;
+        }
+        return bands;
+    }
+
+    // ---- Names ------------------------------------------------------------------
+
+    /// <summary>
+    /// The names to draw (already decluttered, LabelLayout), replacing the
+    /// last set; none clears them. All drawn by the one NameLayer: crisp
+    /// outlined text, each name formatted once and reused at every zoom.
+    /// </summary>
+    public void ShowLabels(IEnumerable<MapLabel> labels) =>
+        LabelLayer.Show(labels.Select(l => (l.Text, LabelSize(l.IsArea), l.IsArea || l.Strong, LabelBrush(l.IsArea), l.At)));
+
+    /// <summary>The box a label of this text and kind will take, its outline included: what LabelLayout places.</summary>
+    public static Size MeasureLabel(string text, bool isArea, bool strong, double pixelsPerDip) =>
+        NameLayer.Measure(text, LabelSize(isArea), isArea || strong, LabelBrush(isArea), pixelsPerDip);
+
+    private static double LabelSize(bool isArea) => isArea ? NameLayer.AreaFontSize : NameLayer.NameFontSize;
+
+    private static Brush LabelBrush(bool isArea) => isArea ? NameLayer.AreaBrush : NameLayer.NameBrush;
+
     // ---- Glides ---------------------------------------------------------------
 
-    private static void Move(TranslateTransform transform, Point to, TimeSpan? glide)
+    private void Move(TranslateTransform transform, Point to, TimeSpan? glide)
     {
         if (glide is { } d)
         {
@@ -231,6 +316,10 @@ public partial class MapCanvas : UserControl
         transform.Y = to.Y;
     }
 
-    private static void Animate(Animatable target, DependencyProperty property, double to, TimeSpan duration) =>
-        target.BeginAnimation(property, new DoubleAnimation(to, duration), HandoffBehavior.SnapshotAndReplace);
+    private void Animate(Animatable target, DependencyProperty property, double to, TimeSpan duration)
+    {
+        var animation = new DoubleAnimation(to, duration);
+        if (_glideFps is { } fps) Timeline.SetDesiredFrameRate(animation, fps);
+        target.BeginAnimation(property, animation, HandoffBehavior.SnapshotAndReplace);
+    }
 }

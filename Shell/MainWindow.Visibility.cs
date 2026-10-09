@@ -42,6 +42,11 @@ public partial class MainWindow
     /// </summary>
     private void ToggleHeatmap()
     {
+        if (_bigMap is not null)
+        {
+            _bigMap.ToggleHeatmap(); // the map on screen is the big map: its own layer (D8)
+            return;
+        }
         if (_minimap is null || _overlayHidden || _autoHidden) return;
         _config.HeatmapEnabled = !_config.HeatmapEnabled;
         _ = _poll.RefreshHeatmapAsync(); // delivers fresh bytes, or null to clear the layer
@@ -76,7 +81,7 @@ public partial class MainWindow
     {
         if (_minimap is null)
         {
-            _minimap = new MinimapWindow(_config, _poll, _library, _book);
+            _minimap = new MinimapWindow(_config, _poll, _library, _book, _trail, MapActions); // the trail and the menu actions shared with the big map
             _minimap.Closed += (_, _) => _minimap = null;
             _minimap.SetArea(_areaJournal.Current); // shown mid-session: it starts from where you already are
             _minimap.Show();
@@ -150,6 +155,7 @@ public partial class MainWindow
     /// </summary>
     private void CheckPrime()
     {
+        CloseBigMap(); // the answer shows on the Prime widget
         if (_overlayHidden || _autoHidden) ToggleOverlayVisibility();
         ShowPrime();
         _ = _poll.CheckPrimeAsync();
@@ -162,6 +168,15 @@ public partial class MainWindow
     /// </summary>
     private void ToggleOverlayVisibility()
     {
+        if (_bigMap is not null)
+        {
+            // The map is what is on screen: hide-all closes it and leaves the
+            // screen clear (the widgets stay hidden). Auto-hidden stays that
+            // way rather than turning into a manual hide: never both flags.
+            if (!_autoHidden) _overlayHidden = true;
+            CloseBigMap();
+            return;
+        }
         if (_autoHidden)
         {
             RevealAutoHidden(); // the user wants it back: show, and stay shown until the next spawn
@@ -191,6 +206,7 @@ public partial class MainWindow
 
     private void ShowWindows()
     {
+        if (_bigMap is not null) return; // the big map hides the widgets; closing it brings them back (OnBigMapClosed)
         if (_config.StatsEnabled) Show(); // a deliberately hidden stats panel stays hidden
         _minimap?.Show();
         _prime?.Show();
@@ -241,6 +257,7 @@ public partial class MainWindow
     // ---- Edit mode ----------------------------------------------------------
     private void ToggleEditMode()
     {
+        CloseBigMap(); // editing is about the widgets: they come back first
         if (_overlayHidden || _autoHidden) ToggleOverlayVisibility(); // un-hide first, then edit as usual
 
         var on = !EditMode;

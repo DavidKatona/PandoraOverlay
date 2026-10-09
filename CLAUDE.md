@@ -23,7 +23,11 @@ web dev.**
    and the heatmap pair
    `GET /map/api/heatmap-status` + `GET /map/heatmap-live.png` (approved by
    the site dev Sep 15 2026; public and fetched WITHOUT a cookie, every 60 s
-   and only while the heatmap layer is on and the minimap shown — the site's
+   and only while the heatmap layer is on and the minimap shown — or, since
+   the big map (Oct 9 2026), while the big map is open with ITS Heatmap
+   layer on: the same fetch at the same pace, and a kept copy under 60 s
+   old is reused when the map opens, so opening and closing it in a hurry
+   is never a request per press — the site's
    own page refetches every 10 s per open tab), and the prime pair
    `POST /api/prime/check` + `POST /api/prime/cooldown` (approved Sep 19
    2026, both confirmed covered by the owner; cookie-authed and
@@ -41,8 +45,9 @@ web dev.**
    live-map page sends alongside EVERY mylocation poll at 5 s — ours
    rides every SECOND in-game poll (6 s at the default cadence) and every
    idle poll, only right after a successful `mylocation` poll and only
-   while a friends surface is shown: the Activity widget or the minimap
-   with its friend arrows; both off = zero friends requests. READ-ONLY:
+   while a friends surface is shown: the Activity widget, the minimap
+   with its friend arrows, or the open big map with its Friends layer;
+   all off = zero friends requests. READ-ONLY:
    the friends page's management calls — `/api/friends/data`, requests,
    accept/decline, block, `/api/preferences/*` toggles — are writes or
    roster admin and are NEVER called; friends are managed on the website),
@@ -219,6 +224,9 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
   since the phase 2 refactor the map drawing every map shares — MapCanvas (+
   `.Markers.cs`) — and the shared map-menu pieces MapActions, MapMenuBuilder
   (+ `MapMenuStyles.xaml`) and MapBrushes.
+- `BigMap/` (Oct 9 2026) — BigMapWindow (+ `.Layers.cs`), the big map,
+  and ScrimWindow, its dimmed backdrop; the glue is `Shell/MainWindow.BigMap.cs`
+  and the request gates `Core/PollService.Maps.cs`.
 - `Waypoints/` — WaypointLibrary, WaypointPacks, ShareCode.
 - `Friends/` — FriendBook (+ FriendColour), FriendFeed.
 - `Activity/` — ActivityWindow, ActivityLog, SelfActivity (the widget is
@@ -681,7 +689,7 @@ Every overlay window derives from `OverlayWindowBase`.
   percents, bigger badges) was REJECTED on sight by the owner — size is
   not how this overlay emphasises anything, don't reintroduce it;
   automatic switching on damage was rejected too (content changing by
-  itself is a surprise). Six global hotkeys (RegisterHotKey +
+  itself is a surprise). Seven global hotkeys (RegisterHotKey +
   WM_HOTKEY in WndProc; control-panel/tray labels follow config): edit mode
   (`Hotkey`, Ctrl+F7) toggling every window, hide/show overlay
   (`HotkeyHideAll`, Ctrl+F4 — exits edit mode first; hidden never persists;
@@ -692,8 +700,14 @@ Every overlay window derives from `OverlayWindowBase`.
   checkbox), Check Prime (`HotkeyPrimeCheck`, Ctrl+F8 → `CheckPrime`;
   v1.19, replacing the tray's "Check Prime status" line) and the stats
   view toggle (`HotkeyStatsView`, Ctrl+F9 → `ToggleStatsView`; v1.27,
-  candidates F9/F11/F12/F8/F6/Ctrl+Shift+F9). The heatmap, Prime and
-  stats-view keys arrived after users had customized the earlier ones, so
+  candidates F9/F11/F12/F8/F6/Ctrl+Shift+F9) and the big map
+  (`HotkeyBigMap`, Ctrl+M → `ToggleBigMap`, Oct 9 2026; candidates
+  M/F11/F12/F9/F8/F6/Ctrl+Shift+M — the first letter key among the
+  defaults, safe because a bare M does nothing in The Isle (the owner
+  checked; raw input sees the bare key despite Ctrl), and while the map
+  is open a plain M closes it; the heatmap hotkey then flips the big map's
+  own layer). The heatmap, Prime,
+  stats-view and big-map keys arrived after users had customized the earlier ones, so
   `ResolveLateHotkey` swaps a colliding default for the first free
   candidate (heatmap F6/F8/F9/F11, prime F8/F9/F11/F12/F6 — always one
   more candidate than takers) instead of letting an own-app duplicate
@@ -942,6 +956,91 @@ Every overlay window derives from `OverlayWindowBase`.
   its look is `MenuButton` in `MapMenuStyles.xaml`, merged into the
   window. **MapBrushes.cs** — the waypoint palette, frozen once (the
   Settings and Activity copies are left for the Settings pass).
+  The big map's additions, all off unless asked for (the minimap's golden
+  renders stayed 62 of 62 identical): `UseMapSpace(fps)` puts markers,
+  names (`LabelLayer`, inside `StillMarks` with the markers), friends and
+  your arrow under the map's own translate — a pan moves ONE transform —
+  caches `MapLayer` and `StillMarks` as bitmaps (snapping to device
+  pixels), caps glides at the fps; hit tests take the pan off
+  (`ToMarkerSpace`). NAMES ARE CRISP: Display-mode text (13 px areas, 12 px
+  names) on whole device pixels with a one-pixel dark outline — the text
+  eight times one pixel around, in near-black, under the light text —
+  friends' names alike; the first build's blurred DropShadowEffect made
+  them "blurry and hard to read" (owner, Oct 9) — don't bring a blur
+  effect back. AND CHEAP: **NameLayer.cs** draws every name from ONE
+  element, each distinct name PREPARED ONCE per session as a frozen
+  drawing (formatted, outline and all) and only stamped at new positions
+  per zoom. Measured off-screen on the owner's CPU, one zoom step: 110–140
+  ms with nine TextBlocks per name (zooming felt slow in game), ~35 ms
+  drawing each name's text nine times per step (every DrawText re-runs the
+  formatter), 4–6 ms now — the same as with names off. Don't go back to
+  an element per name or to per-step DrawText.
+  `ShowLabels` / `MeasureLabel` (the box LabelLayout places),
+  `ShowFriends(..., nameOf)` (a friend's name riding their arrow),
+  `TrailBands` (the age bands, shared by both maps) and `PicturePixels`.
+- **BigMapWindow.xaml(.cs)** (+ `.Layers.cs`, `BigMap/`; the big map
+  plan's phase 3, Oct 9 2026; plan and decisions D1–D12 in
+  `Desktop\Pandora Overlay Files\pandora-big-map-sketch\ACTION-PLAN.md`) —
+  the island large in the middle of the screen on the hotkey, over a
+  dimmed backdrop. NEVER CALLED "BIG MAP" WHERE A PLAYER SEES IT (owner,
+  Oct 9 2026): Settings says "Map:", the window "Map", the CHANGELOG "a
+  map of the whole island" / "the map"; "big map" is only the internal
+  name (code, config keys, these notes) — and stays so, the owner's call:
+  don't rename the classes or keys. NOT a widget: no position, no snapping, no scale
+  slider, no Settings page; a square 88% of the monitor's shorter side,
+  on the minimap's monitor (else the stats panel's), opened FITTED TO THE
+  LAND every time (`LandBounds`, `MapViewport.Fit`; the wheel can go out
+  to the whole picture, in to about 3 screen pixels per picture pixel,
+  `ZoomForDensity`). Interactive while open: it takes focus (only OUR
+  window is activated; the game is never touched), drag pans (clamped to
+  the land, `ClampPan`), the wheel zooms around the cursor, Space centres
+  on you, right-click is the shared map menu. It closes on the hotkey, M,
+  Esc, a click on the backdrop, or losing focus. Opaque, owned by
+  **ScrimWindow.cs**: a full-monitor window of 70% black with WPF's own
+  transparency (`AllowsTransparency`), STATIC — it never redraws, so it
+  costs nothing per frame; the map's moving content lives in the opaque
+  window above (the perf spike: one full-monitor transparent window that
+  also redrew the map couldn't keep its frame rate). Never activated; a
+  click on it closes the map. DON'T go back to marking a plain WPF window
+  layered with `SetLayeredWindowAttributes`: WPF ignores it for its own
+  rendering and the game went PITCH BLACK (the owner's report, Oct 9; the
+  spike's brightness check couldn't tell 70% from 100% black at the
+  time — a re-run over a mid-grey screen showed 0 for that and 38 of 128
+  for the fix; cost 2–5% of one core in the spike, plus ~10% of one core
+  of the compositor while the map is open). Offsets snap to whole device
+  pixels, so the cached pictures are never resampled. The cursor readout
+  is placed by a RenderTransform and measured afresh: placed by a MARGIN
+  it jumped to the map's edge (a margin counts in an element's measured
+  size — 84 of 154 test positions wrong), and a direct Measure returns
+  the cached size when only the text changed. Its six header buttons (Areas,
+  Names, Waypoints, Friends, Trail, Heatmap — `BigMap*` in config,
+  remembered, independent of the minimap's; Heatmap off by default) pick
+  the layers: waypoints are every Show-ticked one plus the tracked one
+  (the minimap's visibility policy is a small-map rule); names are area
+  names at the legend's label points (a bigger area first, `PixelCounts`)
+  and waypoint names beside their dots (right, left, above, below),
+  through `LabelLayout`, the tracked waypoint's first; friends follow the
+  server's consent and each friend's Map tick, as on the minimap. The
+  header says "you are in <area>" (MainWindow's AreaJournal, which runs
+  while the map is open whatever else is off), "Uncharted" dimmed, or
+  "not in game"; the cursor readout names the waypoint, friend or area
+  under it and its distance from you — NO walking time (the dino stands
+  still while the map has focus, so there is no pace to go by). The map
+  menu's actions are ONE MapActions shared with the minimap (MainWindow
+  owns it), so tracking on either redraws both; the trail is MainWindow's
+  (D6), fed in its OnSnapshot before any map draws, so closing the
+  minimap no longer clears it. **MainWindow.BigMap.cs** is the glue:
+  opening locks edit mode, hides the widgets and sets
+  `PollService.BigMapOpen`; `ShowWindows` does nothing while the map is
+  open (a spawn after the auto-hide, an un-hide), and closing restores
+  the widgets only when neither hide is in force; the edit and Check
+  Prime hotkeys, the tray's Settings / Server rules / sign-in close the
+  map first; hide-all closes it and leaves the screen clear; `_exiting`
+  stops a closing map from showing widgets during shutdown.
+  **PollService.Maps.cs** holds the gates (`HeatmapWantedFor`,
+  `FriendsWantedFor`, pure and tested) and the kept heatmap picture
+  (`Heatmap`, `RefreshHeatmapAsync(reuseFresh)`), the minimap's own
+  hot paths unchanged.
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow, on the
   LARGE frame (WidgetFrame, v1.25): a Grid of the 284 px `MapSize` square
   and the footer centred in the rest; sized by `MinimapScale` through the
@@ -1717,10 +1816,10 @@ Every overlay window derives from `OverlayWindowBase`.
   address is kept in `config.AccountAvatar` for the offline card. No
   address, a failure or an unreadable picture: the initial stays. Sign
   out clears the address and the copy. `GateSave`: first
-  run, Save stays off until signed in. Six hotkey capture boxes
-  (edit / hide-overlay / minimap-view / heatmap / Check Prime / stats view) share the capture UX: combos are
+  run, Save stays off until signed in. Seven hotkey capture boxes
+  (edit / hide-overlay / minimap-view / heatmap / Check Prime / stats view / big map) share the capture UX: combos are
   availability-tested via a throwaway RegisterHotKey on the dialog's hwnd
-  and cross-duplicates rejected. MainWindow suspends its six
+  and cross-duplicates rejected. MainWindow suspends its seven
   registrations for the dialog's lifetime (WM_HOTKEY is system-level and
   would fire behind the modal dialog; suspension also lets the boxes see
   and reassign our own combos) and restores them in a finally on close.
@@ -1983,9 +2082,14 @@ the minimap's drawing pulled into a shared component with NO visible
 change (pixel-identical, its own release), then the big map. Phase 0
 (harness, spike), phase 1 (the pure helpers above) and phase 2's code
 (MapCanvas and the shared menu, golden renders identical) are done;
-phase 2 waits on the owner's in-game check of the minimap (the glides,
-both views, every menu entry) before its release. Nothing is committed
-yet: the owner commits at the end. The working copy is LF since Oct 9
+the owner's in-game check of the minimap passed (Oct 9). Phase 3's code
+(the big map, BigMapWindow above) is built and its off-screen renders
+look as the sketch did; it waits on the owner's look at those renders
+and an in-game round (focus coming back to the game, the widgets
+returning as they were, FPS, the request counts). Nothing is committed
+yet: the owner commits at the end (the verified phase 1+2 files are
+copied in the sketch folder's `phase2-snapshot\`, should release 1 be
+committed on its own). The working copy is LF since Oct 9
 (`.gitattributes` `eol=lf`, the solution file CRLF), so this PC's
 system-wide `core.autocrlf` no longer warns.
 
@@ -2234,3 +2338,4 @@ need retaking by the owner.
   `git switch -c fix vX.Y.Z` → fix → bump patch in csproj + CHANGELOG →
   tag `vX.Y.(Z+1)` → push the tag (release builds automatically) →
   merge/cherry-pick the fix back to main → delete the branch.
+

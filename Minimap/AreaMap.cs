@@ -139,6 +139,17 @@ public sealed class AreaMap
         return None;
     }
 
+    /// <summary>How many pixels each area covers (index = area): on the big map a bigger area's name wins a crowded spot.</summary>
+    public int[] PixelCounts()
+    {
+        var counts = new int[Areas.Count];
+        foreach (var cell in _grid)
+        {
+            if (cell > 0 && cell <= counts.Length) counts[cell - 1]++;
+        }
+        return counts;
+    }
+
     /// <summary>The area of one pixel (None outside the map) — for AreaBorders, and for checks that walk the grid.</summary>
     internal int IndexAtPixel(int x, int y) => x < 0 || y < 0 || x >= Size || y >= Size ? None : _grid[y * Size + x] - 1;
 }

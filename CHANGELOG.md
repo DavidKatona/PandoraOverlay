@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- A map of the whole island: press Ctrl+M and it opens large in the
+  middle of the screen, over the dimmed game. Scroll to zoom, drag to
+  move it, Space centres it on you. M, Esc or a click outside closes it.
+- It shows what the minimap shows at a size where names fit: area names,
+  waypoint names, your friends with their names, your trail, the area
+  borders and the heatmap. Each has its own button in the map's header,
+  and the map remembers them.
+- Point at a spot to see which area it is and how far it is from you.
+  Right-click gives the same waypoint menu as the minimap.
+- Settings › Controls has a box for the map's key.
+
+### Changed
+
+- Closing the minimap no longer clears your trail. The minimap and the
+  map draw the same trail.
+
 ## [1.33.0] - 2026-10-08
 
 ### Added

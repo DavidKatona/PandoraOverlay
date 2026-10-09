@@ -249,6 +249,9 @@ public abstract class OverlayWindowBase : Window
         return PresentationSource.FromVisual(this)?.CompositionTarget?.TransformFromDevice.Transform(device) ?? device;
     }
 
+    /// <summary>The monitor this window is on, full bounds in DIPs (the big map opens on the HUD's monitor).</summary>
+    internal Rect ScreenBounds => GetScreenBoundsDips();
+
     /// <summary>
     /// The current monitor's FULL bounds in DIPs — deliberately not the work
     /// area: the game runs borderless-fullscreen over the taskbar, so "screen

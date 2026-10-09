@@ -1,0 +1,137 @@
+<Window x:Class="PandoraOverlay.BigMapWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PandoraOverlay"
+        Title="Pandora Map"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="#FF10151B"
+        FontFamily="Segoe UI"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        Deactivated="Window_Deactivated">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- The map menu's entry look (MenuButton), shared with the minimap. -->
+                <ResourceDictionary Source="/PandoraOverlay;component/Minimap/MapMenuStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- A layer switch in the header: bright when on, dim when off, a
+                 glow on hover. Never focusable, so Space stays "centre on me". -->
+            <Style x:Key="LayerButton" TargetType="ToggleButton">
+                <Setter Property="Margin" Value="6,0,0,0"/>
+                <Setter Property="Padding" Value="11,4"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Foreground" Value="#6B7782"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Box" Background="#0FFFFFFF" BorderBrush="#1FFFFFFF" BorderThickness="1" CornerRadius="3">
+                                <Grid>
+                                    <Border x:Name="Glow" Background="#1AFFFFFF" CornerRadius="3" Visibility="Collapsed"/>
+                                    <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Foreground" Value="#ECF2F8"/>
+                                    <Setter TargetName="Box" Property="Background" Value="#2BFFFFFF"/>
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="#40FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Glow" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- The glass of the pills on the map: the minimap's. -->
+            <SolidColorBrush x:Key="PillGlass" Color="#B310151B"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Opaque on purpose (the perf spike): the dim behind it is its own
+         window, the ScrimWindow, which owns this one. -->
+    <Border x:Name="RootPanel" Background="#FF10151B" BorderBrush="#33FFFFFF" BorderThickness="1" Padding="10,6,10,4">
+        <DockPanel>
+            <Grid DockPanel.Dock="Top" Height="38">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Map" FontSize="16" FontWeight="SemiBold" Foreground="#ECF2F8"/>
+                    <TextBlock x:Name="AreaLine" FontSize="12" Margin="12,2,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <ToggleButton x:Name="AreasButton" Content="Areas" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
+                    <ToggleButton x:Name="NamesButton" Content="Names" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
+                    <ToggleButton x:Name="WaypointsButton" Content="Waypoints" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
+                    <ToggleButton x:Name="FriendsButton" Content="Friends" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
+                    <ToggleButton x:Name="TrailButton" Content="Trail" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
+                    <ToggleButton x:Name="HeatmapButton" Content="Heatmap" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid DockPanel.Dock="Bottom" Height="26">
+                <TextBlock x:Name="HintText" FontSize="11" Foreground="#7B8790" VerticalAlignment="Center"/>
+                <TextBlock Text="M or Esc closes" FontSize="11" Foreground="#7B8790"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- The map: the shared MapCanvas in map space. The host clips it;
+                 its background is the picture's own sea, for a view that runs
+                 past the picture's edge. -->
+            <Grid x:Name="MapHost" ClipToBounds="True" Background="#FF0A1D45" Cursor="Arrow"
+                  MouseLeftButtonDown="MapHost_MouseLeftButtonDown"
+                  MouseLeftButtonUp="MapHost_MouseLeftButtonUp"
+                  MouseRightButtonUp="MapHost_MouseRightButtonUp"
+                  MouseMove="MapHost_MouseMove"
+                  MouseLeave="MapHost_MouseLeave"
+                  MouseWheel="MapHost_MouseWheel"
+                  SizeChanged="MapHost_SizeChanged">
+                <local:MapCanvas x:Name="Map"/>
+
+                <!-- What is under the cursor: an area and how far it is from you,
+                     or the waypoint / friend the cursor is on. -->
+                <Border x:Name="Readout" HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Background="#E610151B" BorderBrush="#26FFFFFF" BorderThickness="1"
+                        CornerRadius="4" Padding="8,3,8,4" IsHitTestVisible="False" Visibility="Collapsed">
+                    <TextBlock x:Name="ReadoutText" FontSize="12" Foreground="#ECF2F8"/>
+                </Border>
+
+                <Border x:Name="ScaleBarPanel" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10"
+                        Background="{StaticResource PillGlass}" CornerRadius="4" Padding="8,2,8,6"
+                        IsHitTestVisible="False" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="ScaleBarLabel" Foreground="#ECF2F8" FontSize="11" HorizontalAlignment="Center"/>
+                        <Border x:Name="ScaleBarLine" Height="5" HorizontalAlignment="Center"
+                                BorderBrush="#ECF2F8" BorderThickness="1.5,0,1.5,1.5"/>
+                    </StackPanel>
+                </Border>
+
+                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10"
+                        Background="{StaticResource PillGlass}" CornerRadius="4" Padding="7,3" IsHitTestVisible="False">
+                    <TextBlock x:Name="ZoomText" Foreground="#ECF2F8" FontSize="11"/>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
+
+    <!-- The right-click menu, the minimap's (MapMenuBuilder). A popup is its
+         own window, so it never shifts the map. -->
+    <Window.Tag>
+        <Popup x:Name="MapMenu" StaysOpen="False" AllowsTransparency="True"
+               Placement="MousePoint" PopupAnimation="None">
+            <Border x:Name="MapMenuPanel" Focusable="True" PreviewKeyDown="MapMenu_PreviewKeyDown"
+                    Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
+                    CornerRadius="6" Padding="4" MinWidth="170">
+                <StackPanel x:Name="MapMenuItems"/>
+            </Border>
+        </Popup>
+    </Window.Tag>
+</Window>

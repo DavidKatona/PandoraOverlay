@@ -134,6 +134,8 @@ public partial class SettingsWindow : Window
             HotkeySpec.TryParse(config.HotkeyPrimeCheck) ?? new HotkeySpec(ModifierKeys.Control, Key.F8), "Check Prime");
         _hotkeyEntries[StatsViewHotkeyBox] = new HotkeyEntry(
             HotkeySpec.TryParse(config.HotkeyStatsView) ?? new HotkeySpec(ModifierKeys.Control, Key.F9), "the stats view toggle");
+        _hotkeyEntries[BigMapHotkeyBox] = new HotkeyEntry(
+            HotkeySpec.TryParse(config.HotkeyBigMap) ?? new HotkeySpec(ModifierKeys.Control, Key.M), "the map");
         foreach (var (box, entry) in _hotkeyEntries)
         {
             box.Text = entry.Chosen.ToString();
@@ -365,6 +367,7 @@ public partial class SettingsWindow : Window
             _config.HotkeyHeatmap = _hotkeyEntries[HeatmapHotkeyBox].Chosen.ToString();
             _config.HotkeyPrimeCheck = _hotkeyEntries[PrimeHotkeyBox].Chosen.ToString();
             _config.HotkeyStatsView = _hotkeyEntries[StatsViewHotkeyBox].Chosen.ToString();
+            _config.HotkeyBigMap = _hotkeyEntries[BigMapHotkeyBox].Chosen.ToString();
             HotkeyChanged = true;
         }
 

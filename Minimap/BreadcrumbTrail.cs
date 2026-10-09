@@ -21,6 +21,9 @@ public sealed class BreadcrumbTrail
     private string? _identity;
     private double _lastGrowth;
 
+    /// <summary>How long a point is kept for the trail-length setting (0 = off, at most two hours).</summary>
+    public static TimeSpan KeepFor(int minutes) => TimeSpan.FromMinutes(Math.Clamp(minutes, 0, 120));
+
     /// <summary>Stored positions, oldest first.</summary>
     public IReadOnlyList<(DateTime At, double X, double Y)> Points => _points;
 

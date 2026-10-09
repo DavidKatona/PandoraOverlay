@@ -127,6 +127,30 @@ public sealed class OverlayConfig
     /// </summary>
     public string HotkeyStatsView { get; set; } = "Ctrl+F9";
 
+    /// <summary>
+    /// Open and close the big map — same format as Hotkey. Ctrl+M, M for
+    /// map (the owner's wish): safe because a bare M does nothing in The
+    /// Isle (the owner checked, Oct 9 2026), and raw-input games can see the
+    /// bare key despite Ctrl. A late-added key like the three above. While
+    /// the map is open, a plain M or Esc closes it too — keys in our own
+    /// focused window, no global hook.
+    /// </summary>
+    public string HotkeyBigMap { get; set; } = "Ctrl+M";
+
+    // ---- The big map ----------------------------------------------------------
+    // Its six layer buttons, remembered between openings (the map itself,
+    // not Settings, carries them). Nothing about its size, position or zoom
+    // is saved: it opens fitted to the land every time.
+
+    public bool BigMapAreas { get; set; } = true;
+    public bool BigMapNames { get; set; } = true;
+    public bool BigMapWaypoints { get; set; } = true;
+    public bool BigMapFriends { get; set; } = true;
+    public bool BigMapTrail { get; set; } = true;
+
+    /// <summary>Off until asked for: the layer costs requests (the site's picture, at the minimap's 60 s pace, only while shown).</summary>
+    public bool BigMapHeatmap { get; set; }
+
     // ---- Minimap (v1.1) ---------------------------------------------------
 
     /// <summary>Show the stats panel (toggled from the control panel or the tray menu).</summary>

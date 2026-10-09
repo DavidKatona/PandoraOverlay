@@ -297,9 +297,8 @@ public sealed partial class PollService : IDisposable
 
     // ---- Friends ---------------------------------------------------------------
 
-    /// <summary>A friends surface is on screen: the Activity widget with friends' events included, or the minimap with its friend arrows.</summary>
-    private bool FriendsWanted =>
-        (_config.ActivityEnabled && _config.ActivityIncludeFriends) || (_config.MinimapEnabled && _config.FriendsOnMinimap);
+    /// <summary>A friends surface is on screen: the Activity widget with friends' events included, the minimap with its friend arrows, or the open big map with its Friends layer (PollService.Maps.cs).</summary>
+    private bool FriendsWanted => FriendsWantedFor(_config, BigMapOpen);
 
     /// <summary>The cadence rule, pure for the tests: every idle poll, else every Nth.</summary>
     internal static bool FriendsDue(int pollsSinceFriends, bool idling, bool hotTrigger) =>
@@ -416,35 +415,6 @@ public sealed partial class PollService : IDisposable
             _timer.Start();
         }
         return PollOnceAsync();
-    }
-
-    /// <summary>
-    /// One heatmap fetch — the slow timer and the hot-apply paths (settings
-    /// save, minimap re-show) all land here. Gated on the config toggles, so
-    /// a disabled layer costs zero requests; raises null (hide the layer)
-    /// when off, server-disabled, or the fetch fails — the next tick retries.
-    /// </summary>
-    public async Task RefreshHeatmapAsync()
-    {
-        if (_heatmapBusy) return;
-        if (!_config.HeatmapEnabled || !_config.MinimapEnabled)
-        {
-            HeatmapChanged?.Invoke(null);
-            return;
-        }
-        _heatmapBusy = true;
-        try
-        {
-            HeatmapChanged?.Invoke(await _client.FetchHeatmapAsync());
-        }
-        catch
-        {
-            HeatmapChanged?.Invoke(null);
-        }
-        finally
-        {
-            _heatmapBusy = false;
-        }
     }
 
     /// <summary>

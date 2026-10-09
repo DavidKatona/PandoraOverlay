@@ -71,6 +71,7 @@ public partial class MainWindow : OverlayWindowBase
     private HotkeySpec _hotkeyHeatmap;
     private HotkeySpec _hotkeyPrime;
     private HotkeySpec _hotkeyStatsView;
+    private HotkeySpec _hotkeyBigMap;
     private readonly LowStatAlert _lowStat = new();
     private readonly GrowthMilestones _milestones = new();
     private bool _overlayHidden;
@@ -102,6 +103,8 @@ public partial class MainWindow : OverlayWindowBase
             new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap }, v => _config.HotkeyPrimeCheck = v);
         _hotkeyStatsView = ResolveLateHotkey(_config.HotkeyStatsView, StatsViewHotkeyCandidates,
             new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap, _hotkeyPrime }, v => _config.HotkeyStatsView = v);
+        _hotkeyBigMap = ResolveLateHotkey(_config.HotkeyBigMap, BigMapHotkeyCandidates,
+            new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap, _hotkeyPrime, _hotkeyStatsView }, v => _config.HotkeyBigMap = v);
         ApplyAppearance(_config);
         ApplyStatsView();
 
@@ -147,10 +150,12 @@ public partial class MainWindow : OverlayWindowBase
             _poll.Start();
         };
 
+        Closing += (_, _) => _exiting = true;
         Closed += (_, _) =>
         {
             _tray.Dispose();
             _poll.Stop();
+            _bigMap?.Close();
             PersistState();
             _poll.Dispose();
             _minimap?.Close();
@@ -166,6 +171,7 @@ public partial class MainWindow : OverlayWindowBase
     /// <param name="page">A page to open on ("Rules" from the tray), or null for the one used last.</param>
     private void OpenSettingsOn(string? page)
     {
+        CloseBigMap(); // the dialog opens over the widgets, not over the map
         // Suspend the global hotkeys while the dialog is open: WM_HOTKEY is
         // system-level, so they would fire behind the modal dialog (Ctrl+F4
         // hiding the overlay mid-configuration), and suspension also frees
@@ -177,6 +183,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, HeatmapHotkeyId);
         HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
         HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
+        HotkeySpec.Unregister(hwnd, BigMapHotkeyId);
         try
         {
             var dialog = new SettingsWindow(_config, _library, _book, _poll, _me?.Dino, page, UpdateHooksForSettings()) { Topmost = true };
@@ -190,6 +197,7 @@ public partial class MainWindow : OverlayWindowBase
                 if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState();
                 return;
             }
+            if (TrailKeep <= TimeSpan.Zero) _trail.Reset(); // the trail switched off: forget the path, not just hide it
             if (dialog.MinimapChanged || dialog.AppearanceChanged || dialog.FriendsChanged) _minimap?.ApplySettings();
             UpdateArea(); // the pill or the feed's area lines may have been switched on: name the area now, not a poll later
             ApplyStatsView(); // the default view is a Settings choice; cheap to reapply
@@ -281,6 +289,7 @@ public partial class MainWindow : OverlayWindowBase
     /// <summary>The tray's "Sign in again…": the sign-in window straight away, no Settings in between.</summary>
     private void OpenSignIn()
     {
+        CloseBigMap(); // the sign-in window is topmost too: not under a dimmed screen
         var outcome = SignInWindow.Run(owner: null);
         if (outcome is null) return;
         _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow, outcome.Account.Avatar);
@@ -417,6 +426,8 @@ public partial class MainWindow : OverlayWindowBase
     private void OnSnapshot(MyLocationResponse result)
     {
         _me = result.InGame ? result.Player : null;
+        // The breadcrumb trail is fed here, before any map's own handler draws it.
+        if (_poll.Calibration is not null && _me is { } at && TrailKeep > TimeSpan.Zero) _trail.Add(at, TrailKeep);
         UpdateUi(result);
         UpdateArea(); // before your own lines: a spawn line says where you spawned
         _log.Post(_self.Update(result, _config.ActivityDamageLines, DateTime.UtcNow,
@@ -444,11 +455,12 @@ public partial class MainWindow : OverlayWindowBase
     /// </summary>
     private void UpdateArea()
     {
-        if ((!_config.MinimapAreaEnabled && !_config.ActivityAreaLines && !_config.MinimapAreaBordersEnabled) ||
+        if ((!_config.MinimapAreaEnabled && !_config.ActivityAreaLines && !_config.MinimapAreaBordersEnabled && !_poll.BigMapOpen) ||
             _me is not { } me || _poll.Calibration is not { } cal || AreaMapAsset.Shared is not { } map)
         {
             _areaJournal.Reset();
             _minimap?.SetArea(null);
+            _bigMap?.SetArea(null);
             return;
         }
         var now = DateTime.UtcNow;
@@ -456,6 +468,7 @@ public partial class MainWindow : OverlayWindowBase
         var entered = _areaJournal.Update(map, fx, fy, now);
         if (entered is not null && _config.ActivityAreaLines) _log.Post(SelfActivity.AreaLine(entered, now));
         _minimap?.SetArea(_areaJournal.Current);
+        _bigMap?.SetArea(_areaJournal.Current); // its header's "you are in"
     }
 
     /// <summary>

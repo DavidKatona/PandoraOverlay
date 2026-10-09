@@ -95,7 +95,8 @@ public partial class MinimapWindow
         return _library.Nearest(p.X, p.Y, w => w.Visible);
     }
 
-    private static string Short(string name) =>
+    /// <summary>A name shortened for the footer and the maps' notices: 14 characters.</summary>
+    internal static string Short(string name) =>
         name.Length <= FooterNameLength ? name : name[..(FooterNameLength - 1)] + "…";
 
     /// <summary>

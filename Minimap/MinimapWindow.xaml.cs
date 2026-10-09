@@ -45,7 +45,8 @@ public partial class MinimapWindow : OverlayWindowBase
     private readonly PollService _poll;
     private readonly WaypointLibrary _library;
     private readonly FriendBook _book;
-    private readonly BreadcrumbTrail _trail = new();
+    private readonly BreadcrumbTrail _trail;  // MainWindow's (D6: both maps draw one path); its own only when built alone
+    private readonly bool _ownsTrail;         // built alone: this window feeds its trail itself
 
     // ---- Waypoints, heading/speed, map menu -----------------------------------
     private const int NearestCount = 10;         // the "nearest" visibility policy
@@ -65,7 +66,10 @@ public partial class MinimapWindow : OverlayWindowBase
     private (double Fx, double Fy, double Yaw)? _lastFix; // map fractions (0–1) + screen yaw
     private (double X, double Y)? _lastWorld;             // player world position (cm), for waypoint distance
 
-    public MinimapWindow(OverlayConfig config, PollService poll, WaypointLibrary library, FriendBook book)
+    /// <param name="trail">The shared breadcrumb trail, fed by MainWindow; null = a trail of this window's own, fed here.</param>
+    /// <param name="actions">The menu actions shared with the big map, so tracking on one redraws the other; null = this window's own.</param>
+    public MinimapWindow(OverlayConfig config, PollService poll, WaypointLibrary library, FriendBook book,
+                         BreadcrumbTrail? trail = null, MapActions? actions = null)
     {
         InitializeComponent();
 
@@ -73,6 +77,8 @@ public partial class MinimapWindow : OverlayWindowBase
         _poll = poll;
         _library = library;
         _book = book;
+        _trail = trail ?? new BreadcrumbTrail();
+        _ownsTrail = trail is null;
         _centered = string.Equals(config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
         _zoom = Math.Clamp(config.MinimapZoom, MinZoom, MaxZoom);
 
@@ -93,7 +99,7 @@ public partial class MinimapWindow : OverlayWindowBase
             _notice = null;
             UpdateFooter();
         };
-        _actions = new MapActions(config, library, book, Short);
+        _actions = actions ?? new MapActions(config, library, book, Short);
         _actions.WaypointTracked += OnWaypointTracked;
         _actions.FriendTracked += OnFriendTracked;
         _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), BorderLocked, _actions, FriendBrush,
@@ -118,6 +124,8 @@ public partial class MinimapWindow : OverlayWindowBase
             _poll.FriendsChanged -= OnFriends;
             _library.Changed -= OnLibraryChanged;
             _book.Changed -= OnBookChanged;
+            _actions.WaypointTracked -= OnWaypointTracked; // a shared instance outlives this window
+            _actions.FriendTracked -= OnFriendTracked;
         };
     }
 
@@ -232,7 +240,7 @@ public partial class MinimapWindow : OverlayWindowBase
         _speed.Add(p.X, p.Y); // before the footer renders: the ETA reads it
         var (fx, fy) = ToFraction(cal, p.X, p.Y);
         _lastFix = (fx, fy, p.Yaw + _config.MinimapYawOffsetDegrees);
-        if (TrailKeep > TimeSpan.Zero) _trail.Add(p, TrailKeep);
+        if (_ownsTrail && TrailKeep > TimeSpan.Zero) _trail.Add(p, TrailKeep); // a shared trail is fed by MainWindow, before this handler
         RenderTrail();
         if (_config.WaypointVisibility == "nearest") RebuildMarkersIfSetChanged(); // the nearest ten follow the player
         RenderLastFix();
@@ -256,35 +264,19 @@ public partial class MinimapWindow : OverlayWindowBase
     }
 
     // ---- Breadcrumb trail + scale bar ----------------------------------------
-    private TimeSpan TrailKeep => TimeSpan.FromMinutes(Math.Clamp(_config.MinimapTrailMinutes, 0, 120));
+    private TimeSpan TrailKeep => BreadcrumbTrail.KeepFor(_config.MinimapTrailMinutes);
 
     /// <summary>
     /// Redraws the trail from the tracker — per snapshot, and whenever the
     /// map's rendered size changes (the points live in map-pixel space and
-    /// pan with the map). Split into three age bands, oldest faintest; each
-    /// band starts on the previous band's last point so they meet.
+    /// pan with the map). Three age bands, oldest faintest (MapCanvas.TrailBands).
     /// </summary>
     private void RenderTrail()
     {
-        var bands = new[] { new PointCollection(), new PointCollection(), new PointCollection() }; // newest → oldest
         var keep = TrailKeep;
-        if (keep > TimeSpan.Zero && _lastFix is not null && _poll.Calibration is { } cal && _trail.Points.Count > 1)
-        {
-            var render = Map.MapSize;
-            var now = DateTime.UtcNow;
-            Point? previous = null;
-            var previousBand = -1;
-            foreach (var (at, x, y) in _trail.Points)
-            {
-                var (fx, fy) = ToFraction(cal, x, y);
-                var point = new Point(fx * render, fy * render);
-                var band = Math.Clamp((int)((now - at).TotalSeconds / keep.TotalSeconds * 3), 0, 2);
-                if (band != previousBand && previous is { } join) bands[band].Add(join);
-                bands[band].Add(point);
-                previous = point;
-                previousBand = band;
-            }
-        }
+        var bands = keep > TimeSpan.Zero && _lastFix is not null && _poll.Calibration is { } cal && _trail.Points.Count > 1
+            ? MapCanvas.TrailBands(_trail.Points, cal, Map.MapSize, keep, DateTime.UtcNow)
+            : new[] { new PointCollection(), new PointCollection(), new PointCollection() };
         Map.ShowTrail(bands[0], bands[1], bands[2]);
     }
 

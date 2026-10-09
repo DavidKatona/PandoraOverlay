@@ -90,6 +90,15 @@ public sealed class LandBoundsTests
     }
 
     [Fact]
+    public void EachAreasPixelsAreCounted()
+    {
+        var map = Map((x, y) => x < 30 ? Red : x < 40 ? Green : y < 50 ? "#123456" : null); // a colour outside the legend counts for nobody
+
+        Assert.Equal(new[] { 3000, 1000 }, map.PixelCounts());
+        Assert.Equal(new[] { 0, 0 }, Map((_, _) => null).PixelCounts());
+    }
+
+    [Fact]
     public void TheBundledMapsBoxIsOnTheMapAndHoldsEveryLabelPoint()
     {
         // Holds for any generated map: names no area, counts on nothing about this island.

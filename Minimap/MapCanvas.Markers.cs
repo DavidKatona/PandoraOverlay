@@ -41,6 +41,7 @@ public partial class MapCanvas
         public required FriendState Friend { get; set; }
         public required Path Arrow { get; init; }
         public Ellipse? Ring { get; init; }
+        public UIElement? Name { get; set; } // the map's Names layer: beside the arrow, moving with it
         public RotateTransform Rotate { get; } = new();
         public TranslateTransform Translate { get; } = new();
         public bool Tracked { get; init; }
@@ -49,6 +50,9 @@ public partial class MapCanvas
 
     private readonly Dictionary<Guid, Marker> _markers = new();
     private readonly Dictionary<string, FriendMarker> _friendMarkers = new();
+
+    /// <summary>A panel point in the markers' own space: in map space (UseMapSpace) the pan is taken off.</summary>
+    private Point ToMarkerSpace(Point pos) => _mapSpace ? new Point(pos.X - _mapTranslate.X, pos.Y - _mapTranslate.Y) : pos;
 
     // ---- Waypoints --------------------------------------------------------------
 
@@ -148,6 +152,7 @@ public partial class MapCanvas
     /// <summary>The drawn waypoint within a radius of a panel point, nearest first; the tracked one wins ties.</summary>
     public Waypoint? WaypointAt(Point pos, double radius)
     {
+        pos = ToMarkerSpace(pos);
         Marker? best = null;
         var bestDistance = double.MaxValue;
         foreach (var m in _markers.Values)
@@ -171,8 +176,11 @@ public partial class MapCanvas
     /// filters: in game, sharing their location, the Map tick). A friend
     /// drawn before keeps their arrow's current place and turn, so a rebuild
     /// never makes one jump; a new one is placed at once, later ones glide.
+    /// With <paramref name="nameOf"/> each arrow carries the friend's name
+    /// beside it in their colour, moving with it (the big map's Names).
     /// </summary>
-    public void ShowFriends(IEnumerable<FriendState> drawn, string? trackedId, Func<FriendState, Brush> brushOf)
+    public void ShowFriends(IEnumerable<FriendState> drawn, string? trackedId, Func<FriendState, Brush> brushOf,
+                            Func<FriendState, string>? nameOf = null)
     {
         var old = new Dictionary<string, FriendMarker>(_friendMarkers);
         FriendLayer.Children.Clear();
@@ -210,6 +218,14 @@ public partial class MapCanvas
             }
             if (ring is not null) FriendLayer.Children.Add(ring);
             FriendLayer.Children.Add(arrow);
+            if (nameOf is not null)
+            {
+                // The crisp outlined name (NameLayer), in the friend's colour, gliding with the arrow.
+                var name = new NameLayer { RenderTransform = marker.Translate };
+                name.Show(new[] { (nameOf(f), NameLayer.NameFontSize, true, brush, new Point(RingSize / 2 + 1, -NameLayer.NameFontSize - 1)) });
+                marker.Name = name;
+                FriendLayer.Children.Add(name);
+            }
             _friendMarkers[f.SteamId] = marker;
         }
     }
@@ -238,6 +254,7 @@ public partial class MapCanvas
             var visibility = onScreen ? Visibility.Visible : Visibility.Hidden;
             m.Arrow.Visibility = visibility;
             if (m.Ring is not null) m.Ring.Visibility = visibility;
+            if (m.Name is not null) m.Name.Visibility = visibility;
 
             var angle = m.Friend.Yaw + yawOffset;
             if (glide is { } d && !m.Fresh)
@@ -263,6 +280,7 @@ public partial class MapCanvas
     /// <summary>The drawn friend within a radius of a panel point, nearest first; the tracked one wins ties. Friends sit above waypoints, so a map tests them first.</summary>
     public FriendState? FriendAt(Point pos, double radius)
     {
+        pos = ToMarkerSpace(pos);
         FriendMarker? best = null;
         var bestDistance = double.MaxValue;
         foreach (var m in _friendMarkers.Values)
