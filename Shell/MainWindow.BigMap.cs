@@ -52,7 +52,7 @@ public partial class MainWindow
         _bigMap.Open();
 
         _ = _poll.RefreshFriendsAsync(); // its arrows want a roster (floored at one poll interval)
-        if (_config.BigMapHeatmap) _ = _poll.RefreshHeatmapAsync(reuseFresh: true); // a picture under a minute old costs nothing
+        if (_config.BigMapHeatmap) _ = _poll.RefreshHeatmapAsync(); // a picture under a minute old costs nothing
     }
 
     /// <summary>Closes the big map if it is open; true when it was.</summary>

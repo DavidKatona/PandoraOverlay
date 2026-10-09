@@ -49,7 +49,7 @@ public partial class MainWindow
         }
         if (_minimap is null || _overlayHidden || _autoHidden) return;
         _config.HeatmapEnabled = !_config.HeatmapEnabled;
-        _ = _poll.RefreshHeatmapAsync(); // delivers fresh bytes, or null to clear the layer
+        _ = _poll.RefreshHeatmapAsync(); // the latest picture (fetched only if a minute old), or null to clear the layer
     }
 
     /// <summary>

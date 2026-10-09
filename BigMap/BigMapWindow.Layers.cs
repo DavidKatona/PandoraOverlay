@@ -144,7 +144,7 @@ public partial class BigMapWindow
 
     private void ApplyHeatmapSwitch()
     {
-        if (_config.BigMapHeatmap) _ = _poll.RefreshHeatmapAsync(reuseFresh: true); // a picture under a minute old costs nothing
+        if (_config.BigMapHeatmap) _ = _poll.RefreshHeatmapAsync(); // a picture under a minute old costs nothing
         else Map.ShowHeatmap(null);                                                // the gate narrows at the next tick
     }
 

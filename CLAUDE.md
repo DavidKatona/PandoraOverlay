@@ -25,10 +25,13 @@ web dev.**
    the site dev Sep 15 2026; public and fetched WITHOUT a cookie, every 60 s
    and only while the heatmap layer is on and the minimap shown — or, since
    the big map (Oct 9 2026), while the big map is open with ITS Heatmap
-   layer on: the same fetch at the same pace, and a kept copy under 60 s
-   old is reused when the map opens, so opening and closing it in a hurry
-   is never a request per press — the site's
-   own page refetches every 10 s per open tab), and the prime pair
+   layer on: the same fetch at the same pace. Since Oct 9 2026 two heatmap
+   fetches are NEVER less than a minute apart, whatever is pressed (one
+   rule for every trigger: within a minute of the last fetch the kept
+   picture is shown again, and a fetch restarts the 60 s timer). The
+   site's own page refetches every 10 s per open tab, also only while its
+   heatmap layer is on (re-read Oct 9 2026; its layer is off by default)),
+   and the prime pair
    `POST /api/prime/check` + `POST /api/prime/cooldown` (approved Sep 19
    2026, both confirmed covered by the owner; cookie-authed and
    USER-TRIGGERED ONLY — a control panel click or the Check Prime hotkey
@@ -353,10 +356,15 @@ Every overlay window derives from `OverlayWindowBase`.
   Windows before the network, a blip) left a fresh install's minimap
   "waiting for map calibration…" for the whole session while the heatmap
   beside it recovered — reported by a player Oct 8 2026. A
-  second 60 s timer (`RefreshHeatmapAsync` — also hot-triggered on minimap
-  re-show and the heatmap hotkey / control-panel toggle) raises
-  `HeatmapChanged(byte[]?)`, gated on `HeatmapEnabled` + `MinimapEnabled`;
-  null hides the layer. `CheckPrimeAsync` is the on-demand prime check —
+  second 60 s timer (`RefreshHeatmapAsync` — also called on minimap
+  re-show, the heatmap hotkey / control-panel toggle and by the big map)
+  raises `HeatmapChanged(byte[]?)`, gated on a map showing it
+  (`HeatmapWantedFor`); null hides the layer. ONE RULE for every caller
+  (Oct 9 2026): within a minute of the last fetch's start the kept picture
+  is handed out again, else one fetch that re-arms the timer — so two
+  fetches are never less than a minute apart (before, a hotkey fetch could
+  land seconds before the timer's own: 15 and 32 s in the Oct 9 request
+  log). `CheckPrimeAsync` is the on-demand prime check —
   NO timer may ever call it. All gating lives here: busy guard, the
   cooldown mirror (`PrimeCooldownUntilUtc`) and the last poll's in-game
   state answer locally with no prime request (a stale not-in-game state
@@ -1039,8 +1047,8 @@ Every overlay window derives from `OverlayWindowBase`.
   stops a closing map from showing widgets during shutdown.
   **PollService.Maps.cs** holds the gates (`HeatmapWantedFor`,
   `FriendsWantedFor`, pure and tested) and the kept heatmap picture
-  (`Heatmap`, `RefreshHeatmapAsync(reuseFresh)`), the minimap's own
-  hot paths unchanged.
+  (`Heatmap`, `RefreshHeatmapAsync`, its one rule described under
+  PollService).
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow, on the
   LARGE frame (WidgetFrame, v1.25): a Grid of the 284 px `MapSize` square
   and the footer centred in the rest; sized by `MinimapScale` through the

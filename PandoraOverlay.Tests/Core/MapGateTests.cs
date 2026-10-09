@@ -70,9 +70,11 @@ public sealed class MapGateTests
     [Fact]
     public void AKeptHeatmapIsFreshForOneFetchInterval()
     {
-        Assert.True(PollService.HeatmapFresh(Now - TimeSpan.FromSeconds(59), Now));
-        Assert.False(PollService.HeatmapFresh(Now - TimeSpan.FromSeconds(60), Now)); // the timer's own pace: fetch again
-        Assert.False(PollService.HeatmapFresh(DateTime.MinValue, Now));             // never fetched
+        Assert.True(PollService.HeatmapFresh(Now - TimeSpan.FromSeconds(1), Now));    // a hotkey right after a fetch: no request
+        Assert.True(PollService.HeatmapFresh(Now - TimeSpan.FromSeconds(58.9), Now));
+        Assert.False(PollService.HeatmapFresh(Now - TimeSpan.FromSeconds(59.9), Now)); // the re-armed timer's tick, a hair early by the clock: still fetches
+        Assert.False(PollService.HeatmapFresh(Now - TimeSpan.FromSeconds(60), Now));
+        Assert.False(PollService.HeatmapFresh(DateTime.MinValue, Now));               // never fetched
     }
 
     [Fact]

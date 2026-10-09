@@ -10,15 +10,19 @@ namespace PandoraOverlay;
 /// </summary>
 public sealed partial class PollService
 {
+    /// <summary>A second of slack in the heatmap's minute, so the timer's own tick, re-armed at the last fetch, is never turned away as too early.</summary>
+    private static readonly TimeSpan HeatmapSlack = TimeSpan.FromSeconds(1);
+
+    /// <summary>When the last heatmap fetch began, whatever came of it.</summary>
     private DateTime _heatmapUtc = DateTime.MinValue;
 
     /// <summary>True while the big map is on screen (MainWindow sets it): it widens the heatmap and friends gates.</summary>
     public bool BigMapOpen { get; set; }
 
     /// <summary>
-    /// The last heatmap picture fetched, kept so the big map can open on a
-    /// fresh one without a request (null: none yet, or the last fetch failed
-    /// or the site switched the heatmap off). About a megabyte.
+    /// The last heatmap picture fetched, kept so a map that turns its layer
+    /// on shows it without a request (null: none yet, or the last fetch
+    /// failed or the site switched the heatmap off). About a megabyte.
     /// </summary>
     public byte[]? Heatmap { get; private set; }
 
@@ -30,38 +34,49 @@ public sealed partial class PollService
     internal static bool FriendsWantedFor(OverlayConfig c, bool bigMapOpen) =>
         (c.ActivityEnabled && c.ActivityIncludeFriends) || (c.MinimapEnabled && c.FriendsOnMinimap) || (bigMapOpen && c.BigMapFriends);
 
-    /// <summary>A kept picture younger than the fetch pace is as good as a new one: showing it costs nothing.</summary>
+    /// <summary>Under a minute since the last fetch began (less the slack): no new fetch, the kept picture stands.</summary>
     internal static bool HeatmapFresh(DateTime fetchedUtc, DateTime nowUtc) =>
-        nowUtc - fetchedUtc < TimeSpan.FromSeconds(HeatmapIntervalSeconds);
+        nowUtc - fetchedUtc < TimeSpan.FromSeconds(HeatmapIntervalSeconds) - HeatmapSlack;
 
     /// <summary>
-    /// One heatmap fetch — the slow timer and the hot-apply paths (settings
-    /// save, minimap re-show, the heatmap hotkey) all land here. Gated, so a
-    /// layer nobody shows costs zero requests; raises null (hide the layer)
-    /// when no map wants it, when the site switched it off, or when the fetch
-    /// fails — the next tick retries. With <paramref name="reuseFresh"/> (the
-    /// big map opening, or its layer switched on) a kept picture under 60 s
-    /// old is handed out again instead: opening and closing the map in a
-    /// hurry must not become a request per press.
+    /// THE heatmap rule, for every caller alike — the minute timer, a map
+    /// turning its layer on, the big map opening, the minimap shown again,
+    /// the heatmap hotkey: while no map shows the heatmap, nothing is
+    /// fetched and the maps are told to hide it (the kept picture stays);
+    /// within a minute of the last fetch, the kept picture is handed out
+    /// again (none, after a failed fetch: the next tick retries); otherwise
+    /// one fetch, and the minute starts over, so the timer's next tick
+    /// comes a full minute after it. Two heatmap fetches are therefore never
+    /// less than a minute apart, whatever is pressed (before, an extra fetch
+    /// on a hotkey or the map opening could land seconds before the timer's
+    /// own, which kept its rhythm — the request log of Oct 9 2026 showed 15
+    /// and 32 s). The live-map page refetches every 10 s, also only while
+    /// its heatmap layer is on.
     /// </summary>
-    public async Task RefreshHeatmapAsync(bool reuseFresh = false)
+    public async Task RefreshHeatmapAsync()
     {
         if (_heatmapBusy) return; // the fetch in flight will deliver
         if (!HeatmapWantedFor(_config, BigMapOpen))
         {
-            HeatmapChanged?.Invoke(null); // the kept picture stays, for a quick reopen
+            HeatmapChanged?.Invoke(null);
             return;
         }
-        if (reuseFresh && Heatmap is { } kept && HeatmapFresh(_heatmapUtc, DateTime.UtcNow))
+        var now = DateTime.UtcNow;
+        if (HeatmapFresh(_heatmapUtc, now))
         {
-            HeatmapChanged?.Invoke(kept);
+            HeatmapChanged?.Invoke(Heatmap);
             return;
         }
         _heatmapBusy = true;
+        _heatmapUtc = now;
+        if (_heatmapTimer.IsEnabled)
+        {
+            _heatmapTimer.Stop(); // re-armed: the next tick a full minute from this fetch
+            _heatmapTimer.Start();
+        }
         try
         {
             Heatmap = await _client.FetchHeatmapAsync();
-            _heatmapUtc = DateTime.UtcNow;
             HeatmapChanged?.Invoke(Heatmap);
         }
         catch
