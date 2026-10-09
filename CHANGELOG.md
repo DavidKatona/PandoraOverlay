@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- While the overlay is hidden (hide-all, or hidden because you are not
+  in game), the minimap's heatmap is no longer downloaded. It comes back
+  with the overlay.
+
 ### Fixed
 
 - Two rare cases where the overlay asked the website for the same thing

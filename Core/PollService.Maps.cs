@@ -20,15 +20,25 @@ public sealed partial class PollService
     public bool BigMapOpen { get; set; }
 
     /// <summary>
+    /// True while the overlay is hidden, by hide-all or the not-in-game
+    /// auto-hide (MainWindow sets it): the minimap's heatmap is not fetched
+    /// while nobody can see it (owner, Oct 9 2026; before, about a megabyte a
+    /// minute went to a hidden minimap). The friends roster is NOT narrowed by
+    /// it, on purpose: the friend chime plays and the Activity log keeps its
+    /// ten minutes while the overlay is hidden.
+    /// </summary>
+    public bool OverlayHidden { get; set; }
+
+    /// <summary>
     /// The last heatmap picture fetched, kept so a map that turns its layer
     /// on shows it without a request (null: none yet, or the last fetch
     /// failed or the site switched the heatmap off). About a megabyte.
     /// </summary>
     public byte[]? Heatmap { get; private set; }
 
-    /// <summary>The heatmap is fetched while a map shows it: the minimap with its layer on, or the open big map with its own.</summary>
-    internal static bool HeatmapWantedFor(OverlayConfig c, bool bigMapOpen) =>
-        (c.HeatmapEnabled && c.MinimapEnabled) || (bigMapOpen && c.BigMapHeatmap);
+    /// <summary>The heatmap is fetched while a map shows it: the minimap with its layer on (and the overlay not hidden), or the open big map with its own.</summary>
+    internal static bool HeatmapWantedFor(OverlayConfig c, bool bigMapOpen, bool overlayHidden) =>
+        (c.HeatmapEnabled && c.MinimapEnabled && !overlayHidden) || (bigMapOpen && c.BigMapHeatmap);
 
     /// <summary>The friends roster is fetched while a friends surface is on screen: the Activity feed with friends' events, the minimap's arrows, or the open big map's Friends layer.</summary>
     internal static bool FriendsWantedFor(OverlayConfig c, bool bigMapOpen) =>
@@ -41,7 +51,8 @@ public sealed partial class PollService
     /// <summary>
     /// THE heatmap rule, for every caller alike — the minute timer, a map
     /// turning its layer on, the big map opening, the minimap shown again,
-    /// the heatmap hotkey: while no map shows the heatmap, nothing is
+    /// the heatmap hotkey, the overlay shown again: while no map shows the
+    /// heatmap (a minimap hidden with the overlay shows nothing), nothing is
     /// fetched and the maps are told to hide it (the kept picture stays);
     /// within a minute of the last fetch, the kept picture is handed out
     /// again (none, after a failed fetch: the next tick retries); otherwise
@@ -56,7 +67,7 @@ public sealed partial class PollService
     public async Task RefreshHeatmapAsync()
     {
         if (_heatmapBusy) return; // the fetch in flight will deliver
-        if (!HeatmapWantedFor(_config, BigMapOpen))
+        if (!HeatmapWantedFor(_config, BigMapOpen, OverlayHidden))
         {
             HeatmapChanged?.Invoke(null);
             return;

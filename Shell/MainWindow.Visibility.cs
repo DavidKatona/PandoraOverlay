@@ -167,7 +167,8 @@ public partial class MainWindow
 
     /// <summary>
     /// Hide-all hotkey / tray: hides all four widgets for screenshots or cutscenes.
-    /// Polling continues (the state stays warm); hidden is never persisted —
+    /// Polling continues (the state stays warm; only the minimap's heatmap
+    /// pauses, see OnHiddenChanged); hidden is never persisted —
     /// the app always starts visible.
     /// </summary>
     private void ToggleOverlayVisibility()
@@ -179,6 +180,7 @@ public partial class MainWindow
             // way rather than turning into a manual hide: never both flags.
             if (!_autoHidden) _overlayHidden = true;
             CloseBigMap();
+            OnHiddenChanged(); // after the close, so the map's own layer no longer counts
             return;
         }
         if (_autoHidden)
@@ -191,11 +193,13 @@ public partial class MainWindow
             if (EditMode) ToggleEditMode(); // lock + persist before vanishing
             _overlayHidden = true;
             HideWindows();
+            OnHiddenChanged();
         }
         else
         {
             _overlayHidden = false;
             ShowWindows();
+            OnHiddenChanged();
             _poll.Nudge(); // someone is looking again — don't wait out an idle poll interval
         }
     }
@@ -218,6 +222,18 @@ public partial class MainWindow
     }
 
     /// <summary>
+    /// After hide-all or the auto-hide hides or shows the overlay: the poll
+    /// learns it, so a hidden minimap's heatmap costs no request, and the
+    /// picture comes back with the overlay (the kept one, or one fetch if it
+    /// is a minute old — the heatmap's one-minute rule holds).
+    /// </summary>
+    private void OnHiddenChanged()
+    {
+        _poll.OverlayHidden = _overlayHidden || _autoHidden;
+        _ = _poll.RefreshHeatmapAsync();
+    }
+
+    /// <summary>
     /// The not-in-game auto-hide (`HideWhenNotInGame`), driven by the poll
     /// stream. Hides after AutoHideGrace of consecutive not-in-game polls and
     /// shows again on the first in-game one. Never while editing, and never
@@ -236,6 +252,7 @@ public partial class MainWindow
             {
                 _autoHidden = false;
                 ShowWindows();
+                OnHiddenChanged();
             }
             return;
         }
@@ -246,6 +263,7 @@ public partial class MainWindow
 
         _autoHidden = true;
         HideWindows();
+        OnHiddenChanged();
     }
 
     /// <summary>The user asked for the overlay while it had hidden itself: show it, with a fresh grace period.</summary>
@@ -254,6 +272,7 @@ public partial class MainWindow
         _autoHidden = false;
         _notInGameSince = null;
         ShowWindows();
+        OnHiddenChanged();
         _tray.SetStatus("Pandora Overlay — not in-game");
         _poll.Nudge();
     }

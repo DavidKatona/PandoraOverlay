@@ -18,13 +18,13 @@ public sealed class MapGateTests
     public void TheMinimapsHeatmapGateIsUnchanged()
     {
         var c = Quiet();
-        Assert.False(PollService.HeatmapWantedFor(c, bigMapOpen: false));
+        Assert.False(PollService.HeatmapWantedFor(c, bigMapOpen: false, overlayHidden: false));
 
         c.HeatmapEnabled = true;
-        Assert.True(PollService.HeatmapWantedFor(c, bigMapOpen: false));
+        Assert.True(PollService.HeatmapWantedFor(c, bigMapOpen: false, overlayHidden: false));
 
         c.MinimapEnabled = false; // the layer is on, the widget isn't: nothing to show it on
-        Assert.False(PollService.HeatmapWantedFor(c, bigMapOpen: false));
+        Assert.False(PollService.HeatmapWantedFor(c, bigMapOpen: false, overlayHidden: false));
     }
 
     [Fact]
@@ -33,11 +33,24 @@ public sealed class MapGateTests
         var c = Quiet();
         c.BigMapHeatmap = true;
 
-        Assert.True(PollService.HeatmapWantedFor(c, bigMapOpen: true));
-        Assert.False(PollService.HeatmapWantedFor(c, bigMapOpen: false)); // closed: its layer costs nothing
+        Assert.True(PollService.HeatmapWantedFor(c, bigMapOpen: true, overlayHidden: false));
+        Assert.False(PollService.HeatmapWantedFor(c, bigMapOpen: false, overlayHidden: false)); // closed: its layer costs nothing
 
         c.BigMapHeatmap = false;
-        Assert.False(PollService.HeatmapWantedFor(c, bigMapOpen: true)); // open, layer off: nothing either
+        Assert.False(PollService.HeatmapWantedFor(c, bigMapOpen: true, overlayHidden: false)); // open, layer off: nothing either
+    }
+
+    /// <summary>A minimap hidden with the overlay (hide-all, the auto-hide) shows no heatmap, so none is fetched for it; the friends gate has no such input on purpose (the chime, the Activity log).</summary>
+    [Fact]
+    public void AHiddenOverlaysMinimapWantsNoHeatmap()
+    {
+        var c = Quiet();
+        c.HeatmapEnabled = true;
+        Assert.False(PollService.HeatmapWantedFor(c, bigMapOpen: false, overlayHidden: true));
+        Assert.True(PollService.HeatmapWantedFor(c, bigMapOpen: false, overlayHidden: false)); // shown again: wanted again
+
+        c.BigMapHeatmap = true;
+        Assert.True(PollService.HeatmapWantedFor(c, bigMapOpen: true, overlayHidden: true)); // the open map's own layer is its own surface
     }
 
     [Fact]
