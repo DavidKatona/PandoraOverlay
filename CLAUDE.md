@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server). Shows the
 player's own dino stats in an always-on-top panel, plus a minimap, tray icon,
-and settings window. **v1.33.0 is built, working, and approved by the server's
+and settings window. **v1.34.0 is built, working, and approved by the server's
 web dev.**
 
 ## Hard constraints (never violate)
@@ -1254,8 +1254,8 @@ Every overlay window derives from `OverlayWindowBase`.
   clockwise, matching the arrow's RotateTransform).
 - **The big map's helpers** (Oct 9 2026, phase 1 of the big map plan, see
   Roadmap; pure, tested; since phase 2 the minimap places everything
-  through `ToWorld` and `MapViewport`, while LandBounds and LabelLayout
-  wait for the big map).
+  through `ToWorld` and `MapViewport`; LandBounds and LabelLayout serve
+  the big map, shipped in 1.34).
   `MapCalibration.ToWorld` is `ToFraction` undone, NOT clamped, written
   with exactly the arithmetic the minimap's menu uses inline (a test holds
   the two bit-identical, so the menu can move onto it without shifting a
@@ -2076,30 +2076,35 @@ buttons; the list is asked for on every opening of the page. Tried in
 game by the owner the same day: the list, a rename (whose redraw
 crashed the first build, fixed) and a stored-spot waypoint under
 "Tracked only" (not drawn at first, fixed). Delete was NOT tried for
-real before the release (the owner kept their dino); no pre-release).
+real before the release (the owner kept their dino); no pre-release),
+v1.34.0 (Oct 9 — **the map**, the owner's idea of Oct 2: Ctrl+M opens
+the whole island large in the middle of the screen over the dimmed game,
+with zoom, pan, Space to centre, area / waypoint / friend names, six
+layer buttons of its own, a cursor readout and the minimap's waypoint
+menu; tracking and the trail are shared with the minimap, and closing
+the minimap no longer clears the trail. Built in phases on a plan with
+golden renders: the minimap's drawing moved into the shared MapCanvas
+first, pixel-identical (its own commits, not its own release); the
+heatmap's one rule (never two fetches less than a minute apart) came
+with it. Tried in game by the owner the same day over two rounds: four
+issues from the first fixed (the name — never "big map" for players —,
+blurry names, the readout jumping, a pitch-black backdrop), then slow
+zoom with names on fixed; everything else as expected, a second monitor
+included. The request pace was counted with a temporary request log
+over two rounds (round 1 found heatmap fetches 15 and 32 s apart, fixed
+by the rule; round 2 clean), then removed. Untried: the map's own
+friends rule in a real session (tests only), weaker PCs and high DPI;
+no pre-release and no fresh-eyes review, the owner's call).
 No layout presets beyond the default for now.
 
-IN PROGRESS (Oct 9 2026): **the big map** — a large interactive map
-opened on a hotkey over a dimmed screen, the owner's idea of Oct 2. The
-plan and every decision live OUTSIDE the repo, in `Desktop\Pandora
-Overlay Files\pandora-big-map-sketch\ACTION-PLAN.md` (read it first),
-with Fable's `PLAN.md`, the golden-render harness that guards the
-minimap refactor (`golden-renders\`, run `run-golden.ps1` after every
-step) and the perf spike (`perf-spike\RESULTS.md`). Two releases:
-the minimap's drawing pulled into a shared component with NO visible
-change (pixel-identical, its own release), then the big map. Phase 0
-(harness, spike), phase 1 (the pure helpers above) and phase 2's code
-(MapCanvas and the shared menu, golden renders identical) are done;
-the owner's in-game check of the minimap passed (Oct 9). Phase 3's code
-(the big map, BigMapWindow above) is built and its off-screen renders
-look as the sketch did; it waits on the owner's look at those renders
-and an in-game round (focus coming back to the game, the widgets
-returning as they were, FPS, the request counts). Nothing is committed
-yet: the owner commits at the end (the verified phase 1+2 files are
-copied in the sketch folder's `phase2-snapshot\`, should release 1 be
-committed on its own). The working copy is LF since Oct 9
-(`.gitattributes` `eol=lf`, the solution file CRLF), so this PC's
-system-wide `core.autocrlf` no longer warns.
+The map's plan and decisions (D1–D12) stay OUTSIDE the repo, in
+`Desktop\Pandora Overlay Files\pandora-big-map-sketch\` (`ACTION-PLAN.md`,
+Fable's `PLAN.md`, `perf-spike\RESULTS.md`), with the golden-render
+harness (`golden-renders\`, `run-golden.ps1`) that guards the minimap:
+run it after any change under `Minimap/` (see the release pass
+checklist). The working copy is LF since Oct 9 (`.gitattributes`
+`eol=lf`, the solution file CRLF), so this PC's system-wide
+`core.autocrlf` no longer warns.
 
 Areas, left for later and not started: area names in new waypoints and
 share codes. Further border corrections are painted into
@@ -2325,7 +2330,7 @@ need retaking by the owner.
   (`Window.Topic.cs`, see Layout), not a folder shuffle.
 - Versioning: SemVer. The csproj `<Version>` is the single source of truth;
   bump it each release and tag the commit `vX.Y.Z` (annotated). Features bump
-  minor, fixes bump patch. Current: 1.33.0.
+  minor, fixes bump patch. Current: 1.34.0.
 - Release model: main moves freely between releases; tags mark the stable
   points. Anyone wanting "a version" uses a tag or its GitHub Release (pushing
   a `vX.Y.Z` tag triggers the workflow that builds, tests and attaches the
