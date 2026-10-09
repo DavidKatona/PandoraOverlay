@@ -41,7 +41,7 @@ a file in the folder is touched.
    | `GET /map/api/heatmap-status` + `GET /map/heatmap-live.png` | **no** (the site headers are sent) | only while a heatmap layer is on: the minimap's (the minimap widget switched on and its layer on — hide-all and the auto-hide don't stop it) or the open map's own Heatmap layer | never two fetches less than 60 s apart, whatever triggers them: within a minute the kept picture is reused, and a fetch re-arms the 60 s timer (the site's page: 10 s per tab, while its layer is on) |
    | `POST /api/prime/check` | yes | USER ONLY: the control panel's Check or the Check Prime hotkey, never a timer | the server's cooldown, mirrored locally: cooling down or not in game = no request (a STALE not-in-game state first gets one regular `mylocation` poll); 15 s floor |
    | `POST /api/prime/cooldown` | yes | exactly once after each SUCCESSFUL check (the success answer carries no cooldown, and its length varies with supporter rank; the site button's hard-coded 5 min is only the fallback when this request fails) | once per check |
-   | `POST /api/map/friends` (empty body) | yes | only while a friends surface is switched on (the Activity widget with friends' events included, the minimap's friend arrows, the open map's Friends layer; all off = zero requests; hide-all doesn't stop it): right after a successful `mylocation` poll, or once for a hot trigger (a surface shown, a Settings save) when the last poll succeeded and the last roster is at least one poll interval old | every 2nd in-game poll, every idle poll (the site: with every poll at 5 s); read-only |
+   | `POST /api/map/friends` (empty body) | yes | only while a friends surface is switched on (the Activity widget with friends' events included, the minimap's friend arrows, the open map's Friends layer; all off = zero requests; hide-all doesn't stop it): right after a successful `mylocation` poll, or once for a hot trigger (a surface shown, a Settings save) when the last poll succeeded and the last roster is at least one poll interval old | every 2nd in-game poll, every idle poll, never two within one poll interval (the site: with every poll at 5 s); read-only |
    | `POST /api/skins/patreon-skins` (empty body) | yes | opening Settings → Skins; Refresh | reused 10 min, 30 s floor |
    | `POST /api/skins/apply-patreon` `{skinId, patternIndex}` — **WRITE** | yes | a click on a pattern button | 15 s mash guard; not in game answered locally |
    | `POST /api/auth/me` | yes | once right after a sign-in; once per dialog when Settings → Account is looked at | never on a timer |
@@ -69,8 +69,9 @@ a file in the folder is touched.
    Server-side rate limit is 300/window; the dev specifically praised the
    polling restraint. The cadence is adaptive, DOWNWARDS ONLY: the configured
    interval is the in-game pace; not in-game (or 5 straight failures) idles at
-   15 s, then 60 s after 10 min. Off-schedule polls (user nudges) are floored at
-   the configured interval and re-arm the timer — nothing may ever poll faster.
+   15 s, then 60 s after 10 min. Off-schedule polls (user nudges, a new
+   session's first poll) are floored at the configured interval and re-arm the
+   timer — nothing may ever poll faster.
    A WRITE happens only for a click, never on a timer.
 4. **The cookie is a credential.** Never log it, print it, put it in exceptions,
    window text, or commit it. Error paths surface exception *type* only. It is

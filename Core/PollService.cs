@@ -67,7 +67,10 @@ public sealed partial class PollService : IDisposable
     /// being RefreshFriendsAsync's hot path between polls, which needs the
     /// last poll to have succeeded and the last roster to be at least one
     /// poll interval old — so it can never outrun constraint #3, and only
-    /// while a friends surface is shown (see FriendsWanted).
+    /// while a friends surface is shown (see FriendsWanted). A poll's own
+    /// fetch also waits while the last roster is under one interval old
+    /// (FriendsDue): before Oct 2026 a hot fetch just before an idle tick was
+    /// followed by the tick's own under a second later.
     /// </summary>
     private const int FriendsEveryNthPoll = 2;
 
@@ -181,16 +184,24 @@ public sealed partial class PollService : IDisposable
     }
 
     /// <summary>
-    /// Starts the timers and polls at once — for launch and a new session
-    /// (RebuildClient) only. This poll is not floored and a running timer is
-    /// not re-armed, so it is no refresh path: an on-demand poll goes through
-    /// PollNowAsync behind PollIsStale.
+    /// Starts the timers and polls — for launch and a new session
+    /// (RebuildClient) only; an on-demand poll goes through PollNowAsync.
+    /// The timer is re-armed on the configured interval (the poll's
+    /// ApplyPacing sets the idle cadence again where due), so its next tick
+    /// can't land right behind this poll, and a new session never waits out
+    /// an idle minute. The poll goes out at once unless the last one (the old
+    /// session's) is under one interval old; then the first tick is the new
+    /// session's first poll. (Before Oct 2026 a sign-in from Settings while
+    /// polling polled at once on the running timer, and two polls could land
+    /// under a second apart.)
     /// </summary>
     public void Start()
     {
-        if (!_timer.IsEnabled) _timer.Start();
         if (!_heatmapTimer.IsEnabled) _heatmapTimer.Start();
-        _ = PollOnceAsync();
+        _timer.Stop();
+        _timer.Interval = _activeInterval;
+        _timer.Start();
+        if (PollIsStale) _ = PollOnceAsync();
         _ = FetchCalibrationIfDueAsync();
     }
 
@@ -313,9 +324,9 @@ public sealed partial class PollService : IDisposable
     /// <summary>A friends surface is on screen: the Activity widget with friends' events included, the minimap with its friend arrows, or the open big map with its Friends layer (PollService.Maps.cs).</summary>
     private bool FriendsWanted => FriendsWantedFor(_config, BigMapOpen);
 
-    /// <summary>The cadence rule, pure for the tests: every idle poll, else every Nth.</summary>
-    internal static bool FriendsDue(int pollsSinceFriends, bool idling, bool hotTrigger) =>
-        hotTrigger || idling || pollsSinceFriends >= FriendsEveryNthPoll;
+    /// <summary>The cadence rule, pure for the tests: every idle poll, else every Nth — and never within one poll interval of the last roster.</summary>
+    internal static bool FriendsDue(int pollsSinceFriends, bool idling, bool hotTrigger, TimeSpan sinceLastRoster, TimeSpan interval) =>
+        sinceLastRoster >= interval && (hotTrigger || idling || pollsSinceFriends >= FriendsEveryNthPoll);
 
     /// <summary>Runs after each successful poll, inside the busy guard: fetches the roster when it is due.</summary>
     private async Task MaybeFetchFriendsAsync()
@@ -326,7 +337,8 @@ public sealed partial class PollService : IDisposable
             return;
         }
         _pollsSinceFriends++;
-        if (!FriendsDue(_pollsSinceFriends, IsIdling, _friendsDue)) return;
+        // Too soon after a hot fetch: the flag, if set, waits for the next poll.
+        if (!FriendsDue(_pollsSinceFriends, IsIdling, _friendsDue, DateTime.UtcNow - _lastFriendsUtc, _activeInterval)) return;
         await FetchFriendsAsync();
     }
 
@@ -409,7 +421,10 @@ public sealed partial class PollService : IDisposable
         return idle > active ? idle : active; // a slower configured cadence is never sped up
     }
 
-    private bool PollIsStale => DateTime.UtcNow - _lastPollUtc >= _activeInterval;
+    private bool PollIsStale => IsStale(_lastPollUtc, DateTime.UtcNow, _activeInterval);
+
+    /// <summary>The floor under every off-schedule poll, pure for the tests: at least one configured interval since the last poll began.</summary>
+    internal static bool IsStale(DateTime lastPollUtc, DateTime nowUtc, TimeSpan interval) => nowUtc - lastPollUtc >= interval;
 
     private void ApplyPacing()
     {
