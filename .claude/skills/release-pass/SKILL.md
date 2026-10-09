@@ -8,14 +8,15 @@ when_to_use: When the owner says "do the release pass" (or "a release pass"), or
 
 Run this only when the owner asked for it. A version number in a request
 only says which CHANGELOG section a change belongs to: commit locally,
-report and wait. Never bump, tag or push before the owner has answered
-Part B and said go.
+report and wait. Never bump the version, tag or push the release before
+the owner has answered Part B and said go; any other push happens only
+when the owner asks.
 
 ## Release pass checklist (the owner's, Oct 9 2026)
 
-"Do a release pass" no longer starts with the version bump. FIRST, before
-touching the version, post this checklist to the owner: Part A filled in
-with results, each saying HOW it was checked; Part B as questions. Bump,
+"Do a release pass" starts with this checklist, not with the version bump:
+before touching the version, post it to the owner, Part A filled in with
+results, each saying HOW it was checked, and Part B as questions. Bump,
 commit, tag and push only after the owner has answered Part B and said go.
 Why: the owner doesn't read the code — they question decisions and test
 in game — so what can't be seen in game must be checked and shown here.

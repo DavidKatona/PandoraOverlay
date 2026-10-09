@@ -167,9 +167,11 @@ silences IDE0130); the SDK-style csproj globs subfolders, so moving a file needs
 no project edit. Big classes are PARTIAL CLASSES split by concern
 (`MainWindow.Hotkeys.cs`, `SettingsWindow.Skins.cs`, `PollService.Storage.cs`):
 same class, same fields — a reading aid, not decoupling; the pure helper classes
-are the real decoupling. A feature's requests live in
+are the real decoupling. A feature's requests go in
 `Core/PandoraClient.<Topic>.cs`, its gating in `Core/PollService.<Topic>.cs`,
-its page in `Settings/SettingsWindow.<Topic>.cs`.
+its page in `Settings/SettingsWindow.<Topic>.cs`. The first features predate
+that split: the mylocation, calibration, heatmap, Prime and friends requests
+are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 
 - `Core/` — the plumbing: PandoraClient (HTTP), PollService (the timers and
   EVERY request gate), OverlayConfig (config.json + the DPAPI vault),
@@ -431,8 +433,9 @@ Updates and the account
 - Current: 1.34.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
-- Never bump, tag or push without the owner's explicit "do the release pass";
-  a version number in a request is not that. When they say it, or ask for any
+- Never bump the version or tag a release without the owner's explicit "do
+  the release pass" (a version number in a request is not that); push only
+  when the owner asks. When they say it, or ask for any
   release, pre-release or hotfix, use the `release-pass` skill
   (`.claude/skills/release-pass/SKILL.md`). It starts with a checklist for the
   owner, never with the bump, and holds the release model, rc tags and
