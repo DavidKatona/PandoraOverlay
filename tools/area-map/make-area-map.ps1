@@ -19,7 +19,10 @@
 # areas, the picture's size, how much land there is. So the calibration lives in the input
 # (and is copied into areas.json for the tests), distances are in metres, colours past the
 # hand-picked ones are generated, and the one number about the map PICTURE's style, not the
-# island, is named as such (SeaTolerance).
+# island, is named as such (SeaTolerance). The one thing asked of the picture (owner's call,
+# Oct 9 2026): open sea at its top-left corner, where the sea colour is read (3 px in). Any
+# island map has it; a picture without it needs the sea colour given another way. Nothing
+# else counts on the corner.
 #
 # The label points give the NAMES. The BORDERS are not from any source - nobody
 # publishes them and none are drawn on the map - so they are computed here:
@@ -252,6 +255,7 @@ public static class AreaMapGenerator
         int snap = (int)Math.Round(LabelSnap / metresPerPixel);
 
         // Sea = the colour of the map's corner, connected to the border (so lakes and rivers stay "land").
+        // The picture must have open sea at its top-left corner: the one requirement on it (see the header).
         int c0 = argb[3 * N + 3];
         int r0 = (c0 >> 16) & 255, g0 = (c0 >> 8) & 255, b0 = c0 & 255;
         bool[] navy = new bool[N * N];

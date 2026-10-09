@@ -45,7 +45,9 @@ paths:
   particular map is INPUT: a new map = replace `Assets/map.png` and
   `tools/area-map/area-labels.json`, run the generator, done. No rule, exception or test
   may name an area ("Spiky Isle", "Highland") or count on this island (the number of
-  areas, 1000 px, sea in the corner, how much land there is). Distances are in metres,
+  areas, 1000 px, how much land there is). The one requirement on the map PICTURE (owner,
+  Oct 9 2026): open sea at its top-left corner, where the generator reads the sea colour;
+  nothing else counts on the corner. Distances are in metres,
   turned into pixels by the calibration (which is input, copied into `areas.json` for the
   tests); colours beyond the hand-picked ones are generated; the bundled-map tests check
   only properties any generated map has. The one number about the map PICTURE's style,
