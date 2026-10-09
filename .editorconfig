@@ -2,6 +2,8 @@ root = true
 
 [*]
 charset = utf-8
+# LF, as .gitattributes keeps the working copy (the solution file excepted).
+end_of_line = lf
 indent_style = space
 indent_size = 4
 insert_final_newline = true
@@ -9,6 +11,9 @@ trim_trailing_whitespace = true
 
 [*.{csproj,props,targets,json,yml,yaml}]
 indent_size = 2
+
+[*.sln]
+end_of_line = crlf
 
 [*.md]
 trim_trailing_whitespace = false

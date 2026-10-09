@@ -1,2 +1,7 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Auto detect text files and perform LF normalization.
+# The working copy is LF too, whatever core.autocrlf says on the PC: Git for
+# Windows sets it to true system-wide, which wants CRLF on disk and warned
+# ("LF will be replaced by CRLF") on every LF file. The solution file stays
+# CRLF, the way Visual Studio writes it.
+* text=auto eol=lf
+*.sln text eol=crlf
