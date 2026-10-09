@@ -2106,6 +2106,23 @@ share codes. Further border corrections are painted into
 `Assets/areas.png` (see `tools/area-map/`). Dropped: caves and
 elevation.
 
+PLANNED (owner, Oct 9 2026), design NOT decided: **app-wide logging**.
+- The goal: a local log of the fetch requests and the app's state, so
+  that when a player hits a crash or odd behaviour there is something to
+  go on.
+- How it works (what is logged, where it lives, how big it grows, whether
+  it is on by default, how a player hands it over) is decided in a
+  separate session. Don't build it before then.
+- The model is the temporary request log of Oct 9 2026, used for the big
+  map's in-game request count and removed afterwards. It was a
+  DelegatingHandler around each HttpClient, writing one line per request:
+  the time, the method, the path without the query, the status, the
+  duration and the request gates' state. Notes marked the map opening and
+  closing. Its two rounds caught the heatmap fetches 15 s and 32 s apart
+  (see PollService).
+- Whatever the design, constraint #4 holds: never the cookie, a header or
+  a body. Nothing leaves the PC unless the player sends it.
+
 Later/maybe: zone overlays
 (needs permission; the live-map bundles them as static PNGs — patrols,
 sanctuaries, migrations, salt rocks), official token auth (the nudge went
@@ -2347,3 +2364,73 @@ need retaking by the owner.
   tag `vX.Y.(Z+1)` → push the tag (release builds automatically) →
   merge/cherry-pick the fix back to main → delete the branch.
 
+## Release pass checklist (the owner's, Oct 9 2026)
+
+"Do a release pass" no longer starts with the version bump. FIRST, before
+touching the version, post this checklist to the owner: Part A filled in
+with results, each saying HOW it was checked; Part B as questions. Bump,
+commit, tag and push only after the owner has answered Part B and said go.
+Why: the owner doesn't read the code — they question decisions and test
+in game — so what can't be seen in game must be checked and shown here.
+And "verified" can be wrong: on Oct 9 the map's backdrop was reported
+working by a spike that couldn't tell a 70% dim from black; the owner
+caught it in game. So state the evidence, say first what could NOT be
+checked, and say when a check was a tool or a render rather than an eye.
+
+**Part A — Claude checks and reports.** The diff is
+`git diff <last tag>..HEAD` plus any uncommitted work.
+
+1. **Every network call that is new or changed.** For each, give the
+   endpoint, the method, what triggers it (timer, click or hot path), how
+   often at most, and whether it carries the cookie. Name the hard
+   constraint that allows it: #2 for approved endpoints, #3 for nothing
+   faster, writes only on a click. Find them by grepping the diff for
+   `GetAsync|PostAsync|SendAsync|HttpClient|HttpRequestMessage|WebView2|Navigate`,
+   and by reading what changed in `PandoraClient*`, `PollService*`,
+   `UpdateChecker`, `Updater`, `SignInWindow` and the skin and avatar
+   picture fetchers. "None" is an answer, and is said.
+2. **New timers, loops and retries that can lead to a request**
+   (`DispatcherTimer`, delay loops): each named, with its pace and its gate.
+3. **The cookie.** List every changed line that reads, writes, sends or
+   stores it: GetCookie, SetCookie, CurrentCookie, connect.sid, the Cookie
+   header, config saves. Check that none of it reaches a log, an exception
+   message, window text, a file other than the DPAPI blob, or a commit
+   (constraint #4).
+4. **The game process (anti-cheat).** Grep the overlay's own code (not
+   tests or tools) for `Process`, `GetProcesses`, `OpenProcess`,
+   `ReadProcessMemory`, `EnumWindows`, `FindWindow`, `SetWindowsHookEx`,
+   global keyboard or mouse hooks, and focus calls on windows that aren't
+   ours. There must be none (constraint #1; Velopack's installer scan is
+   the one accepted exception).
+5. **Build and tests.** Give the `dotnet test` count and result, and the
+   Release build. If anything under `Minimap/` changed, run the golden-render
+   harness (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`,
+   `run-golden.ps1`) against its baseline. Re-baseline only after the owner
+   has checked a deliberate visual change in game.
+6. **The release text.**
+   - The CHANGELOG section for the version exists and is written for
+     players, since the update card shows it.
+   - Features are named the way players see them: "the map", never "big map".
+   - The csproj `<Version>` equals the tag: minor for features, patch for
+     fixes.
+   - CLAUDE.md's "Current:" version and the Roadmap's shipped line.
+7. **Offer a fresh-eyes review**: a reviewer that didn't write the code (a
+   fresh subagent or `/code-review`) reading the diff against the hard
+   constraints only. The owner decides whether to spend it. Recommend it
+   when item 1, 3 or 4 has entries.
+
+**Part B — ask the owner.** These can't be checked from here.
+
+1. **In game:** list THIS release's behaviours to try, drawn from the diff
+   (not a generic list), and ask which were tried. Name anything untried in
+   the reply; don't gloss over it.
+2. **Requests**, when A1 or A2 changed anything: was the pace checked in
+   game? A proxy such as Fiddler shows each request, or ask for a temporary
+   request log in a test build.
+3. **A pre-release round:** recommend an rc when the release touches
+   install or update, sign-in, focus or hotkeys, or anything that varies
+   by PC. The owner decides.
+4. **The commits:** how to group them (a refactor can be its own release),
+   with no Claude attribution lines.
+5. **After the tag:** is a Discord announcement or new README screenshots
+   wanted for this one?
