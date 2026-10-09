@@ -1,14 +1,7 @@
-using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using System.Windows.Threading;
-using Path = System.Windows.Shapes.Path;
 
 namespace PandoraOverlay;
 
@@ -35,7 +28,8 @@ namespace PandoraOverlay;
 /// consumer of the shared PollService stream — it never makes requests of
 /// its own. The world→pixel transform mirrors the live-map frontend (see
 /// MapCalibration); movement glides between polls and yaw rotates along the
-/// shortest arc.
+/// shortest arc. The DRAWING is the shared MapCanvas (Map, big map plan
+/// phase 2); this window decides what it shows, in which view, and when.
 /// </summary>
 public partial class MinimapWindow : OverlayWindowBase
 {
@@ -44,7 +38,6 @@ public partial class MinimapWindow : OverlayWindowBase
 
     /// <summary>The map square at 100%: the frame's width minus the 6 px padding and 1 px border each side. MinimapScale multiplies the whole frame.</summary>
     internal const double MapSize = WidgetFrame.Width - 14;
-    private const double WaypointMargin = 8; // edge-clamp inset for the tracked marker's off-screen indicator
     private const double SnapRadius = 12;    // a click / hover this close to a marker means that waypoint
     private const double MaxScaleBarPixels = 80; // the bar takes ≤ 30% of the map's width, and never more than this
 
@@ -53,37 +46,17 @@ public partial class MinimapWindow : OverlayWindowBase
     private readonly WaypointLibrary _library;
     private readonly FriendBook _book;
     private readonly BreadcrumbTrail _trail = new();
-    private readonly RotateTransform _arrowRotate = new();
-    private readonly TranslateTransform _arrowTranslate = new();
-    private readonly TranslateTransform _mapTranslate = new();
 
     // ---- Waypoints, heading/speed, map menu -----------------------------------
-    private static readonly Brush[] PaletteBrushes = WaypointPalette.Colours
-        .Select(c => { var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(c.Hex)); b.Freeze(); return (Brush)b; })
-        .ToArray();
     private const int NearestCount = 10;         // the "nearest" visibility policy
-    private const double DotSize = 6;            // an untracked waypoint
-    private const double DiamondRadius = 5;      // the tracked one (10 px, like the v1.20 slots)
-    private const double RingSize = 16;          // the ring around the tracked one
     private const int FooterNameLength = 14;
     private const double MinClosingMps = 0.3;    // slower than this toward a waypoint = no ETA worth showing
     private static readonly TimeSpan NoticeHold = TimeSpan.FromSeconds(3);
 
-    /// <summary>One drawn waypoint: its shape(s) and the transform that moves them.</summary>
-    private sealed class Marker
-    {
-        public required Waypoint Waypoint { get; init; }
-        public required Shape Shape { get; init; }
-        public Ellipse? Ring { get; init; }
-        public TranslateTransform Translate { get; } = new();
-        public bool Tracked { get; init; }
-    }
-
-    private readonly Dictionary<Guid, Marker> _markers = new();
     private readonly SpeedTracker _speed = new();
     private readonly DispatcherTimer _noticeTimer;
-    private (double X, double Y)? _menuWorld; // the map point under the cursor when the menu opened
-    private Waypoint? _menuHit;               // the waypoint under the cursor when the menu opened
+    private readonly MapActions _actions;          // what the menu's entries do (shared with every map)
+    private readonly MapMenuBuilder _menuBuilder;  // and the entries themselves
     private Waypoint? _hover;                 // the waypoint under the cursor in edit mode (footer shows its name)
     private string? _notice;                  // a brief footer message (copied / pasted / nothing to paste)
     private bool _centered;
@@ -113,25 +86,6 @@ public partial class MinimapWindow : OverlayWindowBase
         MapHost.Width = MapHost.Height = MapSize;
         ApplyAppearance(config);
 
-        // Bundled copy of the site's island map (Assets/map.png) — decoded at
-        // native resolution so the centered view's zoom stays sharp.
-        var bmp = new BitmapImage();
-        bmp.BeginInit();
-        bmp.UriSource = new Uri("pack://application:,,,/Assets/map.png");
-        bmp.EndInit();
-        bmp.Freeze();
-        MapImage.Source = bmp;
-        MapImage.RenderTransform = _mapTranslate;
-        HeatmapImage.RenderTransform = _mapTranslate; // shared: heatmap pans with the map
-        AreaBordersPath.RenderTransform = _mapTranslate; // and the area borders, with their two highlights
-        AreaOwnPath.RenderTransform = _mapTranslate;
-        AreaHoverPath.RenderTransform = _mapTranslate;
-        TrailOld.RenderTransform = TrailMid.RenderTransform = TrailNew.RenderTransform = _mapTranslate; // so does the trail
-
-        PlayerArrow.RenderTransform = new TransformGroup
-        {
-            Children = { _arrowRotate, _arrowTranslate }
-        };
         _noticeTimer = new DispatcherTimer { Interval = NoticeHold };
         _noticeTimer.Tick += (_, _) =>
         {
@@ -139,6 +93,11 @@ public partial class MinimapWindow : OverlayWindowBase
             _notice = null;
             UpdateFooter();
         };
+        _actions = new MapActions(config, library, book, Short);
+        _actions.WaypointTracked += OnWaypointTracked;
+        _actions.FriendTracked += OnFriendTracked;
+        _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), BorderLocked, _actions, FriendBrush,
+                                          () => _lastWorld, () => MapMenu.IsOpen = false, ShowNotice);
 
         RebuildMarkers();
         _friends = poll.Friends; // shown mid-session: start from the current roster
@@ -201,7 +160,7 @@ public partial class MinimapWindow : OverlayWindowBase
         }
         UpdateScaleBar();
         RenderTrail();
-        UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
+        UpdateWaypointVisual(Map.MapOffset.X, Map.MapOffset.Y, glide: null);
     }
 
     /// <summary>Its own scale, like every widget (v1.25 — it was sized in pixels before; OverlayConfig.Load migrates that).</summary>
@@ -223,51 +182,17 @@ public partial class MinimapWindow : OverlayWindowBase
     }
 
     /// <summary>Fresh heatmap bytes from PollService's slow timer; null hides the layer.</summary>
-    private void OnHeatmap(byte[]? png)
-    {
-        if (png is null || !_config.HeatmapEnabled)
-        {
-            HeatmapImage.Visibility = Visibility.Collapsed;
-            HeatmapImage.Source = null;
-            return;
-        }
-        try
-        {
-            using var stream = new MemoryStream(png);
-            var bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.StreamSource = stream;
-            bmp.EndInit();
-            bmp.Freeze();
-            HeatmapImage.Source = bmp;
-            HeatmapImage.Visibility = Visibility.Visible;
-        }
-        catch
-        {
-            HeatmapImage.Visibility = Visibility.Collapsed; // undecodable image: keep the map usable
-        }
-    }
+    private void OnHeatmap(byte[]? png) => Map.ShowHeatmap(_config.HeatmapEnabled ? png : null);
 
     /// <summary>Sizes the map for the current mode, resets transforms, and snap-renders the last fix.</summary>
     private void ApplyViewMode()
     {
-        var size = MapHost.Width;
-        ClearAnimations();
+        var view = View();
+        Map.ClearAnimations();
 
-        if (_centered)
-        {
-            MapImage.Width = MapImage.Height = size * _zoom;
-            _arrowTranslate.X = size / 2;
-            _arrowTranslate.Y = size / 2;
-        }
-        else
-        {
-            MapImage.Width = MapImage.Height = size;
-            _mapTranslate.X = 0;
-            _mapTranslate.Y = 0;
-        }
-        HeatmapImage.Width = HeatmapImage.Height = MapImage.Width;
+        Map.SetMapSize(view.MapSize);
+        if (_centered) Map.MoveArrow(view.Center, glide: null);
+        else Map.MoveMap(new Point(0, 0), glide: null);
         UpdateAreaBorders(); // scaled to the map's rendered size
         UpdateScaleBar();
         RenderTrail(); // map-pixel space: the rendered size just changed
@@ -276,24 +201,9 @@ public partial class MinimapWindow : OverlayWindowBase
         RenderLastFix();
         if (_lastFix is null)
         {
-            UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
+            UpdateWaypointVisual(Map.MapOffset.X, Map.MapOffset.Y, glide: null);
             UpdateFooter();
         }
-    }
-
-    private void ClearAnimations()
-    {
-        _arrowTranslate.BeginAnimation(TranslateTransform.XProperty, null);
-        _arrowTranslate.BeginAnimation(TranslateTransform.YProperty, null);
-        _mapTranslate.BeginAnimation(TranslateTransform.XProperty, null);
-        _mapTranslate.BeginAnimation(TranslateTransform.YProperty, null);
-        foreach (var m in _markers.Values)
-        {
-            m.Translate.BeginAnimation(TranslateTransform.XProperty, null);
-            m.Translate.BeginAnimation(TranslateTransform.YProperty, null);
-        }
-        ClearFriendAnimations();
-        _arrowRotate.BeginAnimation(RotateTransform.AngleProperty, null);
     }
 
     private void OnSnapshot(MyLocationResponse result)
@@ -309,7 +219,7 @@ public partial class MinimapWindow : OverlayWindowBase
             _speed.Reset();
             UpdateSpeedPill();
             UpdateAreaPill(); // no position: nothing to place, not even "Uncharted"
-            PlayerArrow.Visibility = Visibility.Collapsed;
+            Map.ArrowVisible = false;
             MapStatus.Text = cal is null ? "waiting for map calibration…" : "not in-game";
             MapStatus.Visibility = Visibility.Visible;
             RenderTrail(); // hidden with the arrow; the path itself is kept (see BreadcrumbTrail)
@@ -333,6 +243,18 @@ public partial class MinimapWindow : OverlayWindowBase
     /// <summary>World cm → map fractions (0–1, y flipped) — mirrors the live-map frontend, pinOffset included.</summary>
     private static (double Fx, double Fy) ToFraction(MapCalibration cal, double x, double y) => cal.ToFraction(x, y);
 
+    /// <summary>
+    /// The map square as a MapViewport with the map's top-left at (tx, ty):
+    /// the whole map at offset 0 in the island view, the zoomed map in the
+    /// centred one. MapViewport holds the arithmetic, tested bit-identical
+    /// to what this window computed inline before.
+    /// </summary>
+    private MapViewport View(double tx = 0, double ty = 0)
+    {
+        var size = MapHost.Width;
+        return new MapViewport(new Size(size, size), _centered ? size * _zoom : size, new Point(tx, ty));
+    }
+
     // ---- Breadcrumb trail + scale bar ----------------------------------------
     private TimeSpan TrailKeep => TimeSpan.FromMinutes(Math.Clamp(_config.MinimapTrailMinutes, 0, 120));
 
@@ -348,7 +270,7 @@ public partial class MinimapWindow : OverlayWindowBase
         var keep = TrailKeep;
         if (keep > TimeSpan.Zero && _lastFix is not null && _poll.Calibration is { } cal && _trail.Points.Count > 1)
         {
-            var render = MapImage.Width;
+            var render = Map.MapSize;
             var now = DateTime.UtcNow;
             Point? previous = null;
             var previousBand = -1;
@@ -363,9 +285,7 @@ public partial class MinimapWindow : OverlayWindowBase
                 previousBand = band;
             }
         }
-        TrailNew.Points = bands[0];
-        TrailMid.Points = bands[1];
-        TrailOld.Points = bands[2];
+        Map.ShowTrail(bands[0], bands[1], bands[2]);
     }
 
     /// <summary>A round real-world length for the current view; follows mode, zoom and map size.</summary>
@@ -373,7 +293,7 @@ public partial class MinimapWindow : OverlayWindowBase
     {
         var (meters, pixels) = _config.MinimapScaleBarEnabled && _poll.Calibration is { MapSize: > 0 } cal
             // World cm → map units (ScaleX) → rendered pixels; ×100 for metres.
-            ? ScaleBar.Pick(100 * Math.Abs(cal.ScaleX) * MapImage.Width / cal.MapSize,
+            ? ScaleBar.Pick(100 * Math.Abs(cal.ScaleX) * Map.MapSize / cal.MapSize,
                             Math.Min(MapHost.Width * 0.3, MaxScaleBarPixels))
             : (0, 0);
         if (meters <= 0)
@@ -391,65 +311,33 @@ public partial class MinimapWindow : OverlayWindowBase
         if (_lastFix is not { } fix) return;
 
         MapStatus.Visibility = Visibility.Collapsed;
-        PlayerArrow.Visibility = Visibility.Visible;
+        Map.ArrowVisible = true;
 
         var size = MapHost.Width;
         var snap = !_hasFix; // first fix after startup/spawn/mode change: no glide
         _hasFix = true;
-        if (snap) ClearAnimations();
+        if (snap) Map.ClearAnimations();
 
         var duration = TimeSpan.FromSeconds(Math.Max(2, _config.PollIntervalSeconds) * 0.9);
+        TimeSpan? glide = snap ? null : duration;
 
         if (_centered)
         {
             // Arrow pinned at the centre; the map pans so the player sits under it.
-            var mapSize = size * _zoom;
-            var tx = size / 2 - fix.Fx * mapSize;
-            var ty = size / 2 - fix.Fy * mapSize;
-            if (snap)
-            {
-                _mapTranslate.X = tx;
-                _mapTranslate.Y = ty;
-                _arrowRotate.Angle = fix.Yaw;
-            }
-            else
-            {
-                Animate(_mapTranslate, TranslateTransform.XProperty, tx, duration);
-                Animate(_mapTranslate, TranslateTransform.YProperty, ty, duration);
-                AnimateYaw(fix.Yaw, duration);
-            }
+            var view = MapViewport.Centered(new Size(size, size), _zoom, fix.Fx, fix.Fy);
+            Map.MoveMap(view.Offset, glide);
+            Map.TurnArrow(fix.Yaw, glide);
             // The markers glide with the same targets/duration so they stay
             // glued to the terrain while the map pans.
-            UpdateWaypointVisual(tx, ty, snap ? null : duration);
+            UpdateWaypointVisual(view.Offset.X, view.Offset.Y, glide);
         }
         else
         {
-            var px = fix.Fx * size;
-            var py = fix.Fy * size;
-            if (snap)
-            {
-                _arrowTranslate.X = px;
-                _arrowTranslate.Y = py;
-                _arrowRotate.Angle = fix.Yaw;
-            }
-            else
-            {
-                Animate(_arrowTranslate, TranslateTransform.XProperty, px, duration);
-                Animate(_arrowTranslate, TranslateTransform.YProperty, py, duration);
-                AnimateYaw(fix.Yaw, duration);
-            }
+            Map.MoveArrow(View().ToPanel(fix.Fx, fix.Fy), glide);
+            Map.TurnArrow(fix.Yaw, glide);
             UpdateWaypointVisual(0, 0, glide: null); // static map, static markers
         }
 
         UpdateFooter();
     }
-
-    private void AnimateYaw(double yaw, TimeSpan duration)
-    {
-        var delta = ((yaw - _arrowRotate.Angle) % 360 + 540) % 360 - 180;
-        Animate(_arrowRotate, RotateTransform.AngleProperty, _arrowRotate.Angle + delta, duration);
-    }
-
-    private static void Animate(Animatable target, DependencyProperty property, double to, TimeSpan duration) =>
-        target.BeginAnimation(property, new DoubleAnimation(to, duration), HandoffBehavior.SnapshotAndReplace);
 }

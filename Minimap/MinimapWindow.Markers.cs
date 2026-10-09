@@ -1,22 +1,13 @@
-using System.IO;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using System.Windows.Threading;
-using Path = System.Windows.Shapes.Path;
 
 namespace PandoraOverlay;
 
 /// <summary>
-/// MinimapWindow, markers part: which library waypoints are drawn and how
-/// (dots, the tracked diamond and ring), their positioning, the footer and
-/// the heading/speed pill. Same class as MinimapWindow.xaml.cs, split for
-/// reading; see CLAUDE.md.
+/// MinimapWindow, markers part: which library waypoints are drawn (the
+/// WaypointVisibility policy) and against which view — the MapCanvas draws
+/// them — then the footer and the heading/speed pill. Same class as
+/// MinimapWindow.xaml.cs, split for reading; see CLAUDE.md.
 /// </summary>
 public partial class MinimapWindow
 {
@@ -59,70 +50,27 @@ public partial class MinimapWindow
     {
         if (TrackedWaypoint is null && _config.TrackedWaypointId is not null) _config.TrackedWaypointId = null; // deleted elsewhere
         RebuildMarkers();
-        UpdateWaypointVisual(_mapTranslate.X, _mapTranslate.Y, glide: null);
+        UpdateWaypointVisual(Map.MapOffset.X, Map.MapOffset.Y, glide: null);
+        UpdateFooter();
+    }
+
+    /// <summary>The tracked waypoint changed (MapActions): the ring, the edge indicator and the footer follow it.</summary>
+    private void OnWaypointTracked()
+    {
+        RebuildMarkers();
+        UpdateWaypointVisual(Map.MapOffset.X, Map.MapOffset.Y, glide: null);
         UpdateFooter();
     }
 
     /// <summary>Under the "nearest" policy the set follows the player: rebuild only when it actually changed.</summary>
     private void RebuildMarkersIfSetChanged()
     {
-        var wanted = ShownWaypoints();
-        if (wanted.Count == _markers.Count && wanted.All(w => _markers.ContainsKey(w.Id))) return;
+        if (Map.ShowsWaypoints(ShownWaypoints())) return;
         RebuildMarkers();
     }
 
-    /// <summary>
-    /// Recreates the marker shapes from the library: a small dot per shown
-    /// waypoint in its colour, the tracked one a diamond with a ring. Each
-    /// gets its own translate so positions can glide with the map.
-    /// </summary>
-    private void RebuildMarkers()
-    {
-        MarkerLayer.Children.Clear();
-        _markers.Clear();
-        var trackedId = _config.TrackedWaypointId;
-        foreach (var w in ShownWaypoints())
-        {
-            var brush = PaletteBrushes[WaypointPalette.Wrap(w.Colour)];
-            var tracked = w.Id == trackedId;
-            Marker marker;
-            if (tracked)
-            {
-                var ring = new Ellipse
-                {
-                    Width = RingSize, Height = RingSize, Stroke = brush, StrokeThickness = 1.5,
-                    Fill = Brushes.Transparent
-                };
-                Canvas.SetLeft(ring, -RingSize / 2);
-                Canvas.SetTop(ring, -RingSize / 2);
-                var diamond = new Path
-                {
-                    Data = Geometry.Parse($"M 0,-{DiamondRadius} L {DiamondRadius},0 L 0,{DiamondRadius} L -{DiamondRadius},0 Z"),
-                    Fill = brush, Stroke = MarkerOutline, StrokeThickness = 1.25
-                };
-                marker = new Marker { Waypoint = w, Shape = diamond, Ring = ring, Tracked = true };
-                ring.RenderTransform = marker.Translate;
-                diamond.RenderTransform = marker.Translate;
-                MarkerLayer.Children.Add(ring);
-                MarkerLayer.Children.Add(diamond);
-            }
-            else
-            {
-                var dot = new Ellipse
-                {
-                    Width = DotSize, Height = DotSize, Fill = brush, Stroke = MarkerOutline, StrokeThickness = 1
-                };
-                Canvas.SetLeft(dot, -DotSize / 2);
-                Canvas.SetTop(dot, -DotSize / 2);
-                marker = new Marker { Waypoint = w, Shape = dot };
-                dot.RenderTransform = marker.Translate;
-                MarkerLayer.Children.Add(dot);
-            }
-            _markers[w.Id] = marker;
-        }
-    }
-
-    private static readonly Brush MarkerOutline = new SolidColorBrush(Color.FromArgb(0x99, 0x0A, 0x15, 0x20));
+    /// <summary>Recreates the markers for the policy's set: a dot per waypoint, the tracked one a ringed diamond (MapCanvas draws them).</summary>
+    private void RebuildMarkers() => Map.ShowWaypoints(ShownWaypoints(), _config.TrackedWaypointId);
 
     /// <summary>
     /// Positions every marker for the given map translation (targets during
@@ -136,50 +84,7 @@ public partial class MinimapWindow
         _mapTargetY = mapTy;
         UpdateFriendVisual(mapTx, mapTy, glide);
         if (_poll.Calibration is not { } cal) return;
-        var size = MapHost.Width;
-        foreach (var m in _markers.Values)
-        {
-            var f = ToFraction(cal, m.Waypoint.X, m.Waypoint.Y);
-            double x, y;
-            var onScreen = true;
-            if (_centered)
-            {
-                var mapSize = size * _zoom;
-                x = f.Fx * mapSize + mapTx;
-                y = f.Fy * mapSize + mapTy;
-                if (m.Tracked)
-                {
-                    x = Math.Clamp(x, WaypointMargin, size - WaypointMargin);
-                    y = Math.Clamp(y, WaypointMargin, size - WaypointMargin);
-                }
-                else
-                {
-                    onScreen = x >= -DotSize && x <= size + DotSize && y >= -DotSize && y <= size + DotSize;
-                }
-            }
-            else
-            {
-                x = f.Fx * size;
-                y = f.Fy * size;
-            }
-
-            var visibility = onScreen ? Visibility.Visible : Visibility.Hidden;
-            m.Shape.Visibility = visibility;
-            if (m.Ring is not null) m.Ring.Visibility = visibility;
-
-            if (glide is { } d)
-            {
-                Animate(m.Translate, TranslateTransform.XProperty, x, d);
-                Animate(m.Translate, TranslateTransform.YProperty, y, d);
-            }
-            else
-            {
-                m.Translate.BeginAnimation(TranslateTransform.XProperty, null);
-                m.Translate.BeginAnimation(TranslateTransform.YProperty, null);
-                m.Translate.X = x;
-                m.Translate.Y = y;
-            }
-        }
+        Map.PlaceWaypoints(cal, _centered ? View(mapTx, mapTy) : View(), edgeIndicator: _centered, glide); // the island view's map never moves
     }
 
     /// <summary>The footer's subject: the tracked waypoint, else the nearest visible one; with metres.</summary>
@@ -244,7 +149,7 @@ public partial class MinimapWindow
         ModeFooter.Inlines.Add(" · ");
         ModeFooter.Inlines.Add(new Run("◆ " + Short(subject.Name))
         {
-            Foreground = PaletteBrushes[WaypointPalette.Wrap(subject.Colour)]
+            Foreground = MapBrushes.Of(subject.Colour)
         });
         if (meters is not { } m) return;
         AppendDistance(subject.X, subject.Y, m);

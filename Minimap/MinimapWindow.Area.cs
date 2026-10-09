@@ -15,9 +15,6 @@ namespace PandoraOverlay;
 /// </summary>
 public partial class MinimapWindow
 {
-    /// <summary>How wide a border line should come out on screen, whatever the view: thin, but not lost.</summary>
-    private const double BorderScreenPixels = 1.2;
-
     private static readonly Brush AreaOwn = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8));
     private static readonly Brush AreaHover = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64)); // the edit-mode accent
 
@@ -96,38 +93,17 @@ public partial class MinimapWindow
 
     /// <summary>
     /// The border layer: a dark outline round every area, over the map (and
-    /// the heatmap) and panning with it. Lines, not the area colours — those
-    /// are picked to be told apart and would bury the terrain. VECTOR lines
-    /// (AreaBorders): the geometry is in map pixels and scaled to the map's
-    /// rendered size through the GEOMETRY's transform, which moves the
-    /// points but leaves the stroke alone — so the line is the same thin
-    /// width at every zoom and stays sharp. (A first build drew a picture of
-    /// the borders, stretched with the map; at 5–6× its pixels showed.) The
-    /// width undoes the widget's own scale, so it is about a screen pixel at
-    /// any MinimapScale. Follows the view, the zoom and the scale
+    /// the heatmap) and panning with it — vector lines a screen pixel wide at
+    /// any zoom and MinimapScale (MapCanvas.ShowBorders has the why). (A first
+    /// build drew a picture of the borders, stretched with the map; at 5–6×
+    /// its pixels showed.) Follows the view, the zoom and the scale
     /// (ApplyViewMode).
     /// </summary>
     private void UpdateAreaBorders()
     {
-        if (!_config.MinimapAreaBordersEnabled || AreaMapAsset.Shared is not { } map || AreaMapAsset.Borders is not { } lines)
-        {
-            AreaBordersPath.Visibility = Visibility.Collapsed;
-            AreaBordersPath.Data = null;
-            UpdateAreaOutlines(force: true);
-            return;
-        }
-        var scale = MapImage.Width / map.Size;
-        AreaBordersPath.Data = new GeometryGroup { Children = { lines }, Transform = new ScaleTransform(scale, scale) };
-        AreaBordersPath.StrokeThickness = BorderScreenPixels / Math.Max(0.1, AppearanceScale(_config));
-        AreaBordersPath.Visibility = Visibility.Visible;
+        Map.ShowBorders(_config.MinimapAreaBordersEnabled, AppearanceScale(_config));
         UpdateAreaOutlines(force: true); // same scale, same widget scale
     }
-
-    /// <summary>A highlighted outline is a little wider than the borders it lies on.</summary>
-    private const double OutlineScreenPixels = 1.5;
-
-    private int _ownOutline = AreaMap.None;   // the area each highlight path draws now
-    private int _hoverOutline = AreaMap.None;
 
     /// <summary>
     /// Two highlights on the border layer, mirroring the pill's two colours:
@@ -146,23 +122,6 @@ public partial class MinimapWindow
         var hover = map is not null && EditMode && _hoverSpot is { } spot ? map.IndexAt(spot.Fx, spot.Fy) : AreaMap.None;
         var own = map is not null && _lastFix is not null ? map.IndexOf(_area) : AreaMap.None;
         if (own == hover) own = AreaMap.None;
-        var scale = map is null ? 0 : MapImage.Width / map.Size;
-        DrawOutline(AreaOwnPath, own, ref _ownOutline, scale, force);
-        DrawOutline(AreaHoverPath, hover, ref _hoverOutline, scale, force);
-    }
-
-    private void DrawOutline(System.Windows.Shapes.Path path, int area, ref int shown, double scale, bool force)
-    {
-        if (area == shown && !force) return;
-        shown = area;
-        if (AreaMapAsset.OutlineOf(area) is not { } outline)
-        {
-            path.Visibility = Visibility.Collapsed;
-            path.Data = null;
-            return;
-        }
-        path.Data = new GeometryGroup { Children = { outline }, Transform = new ScaleTransform(scale, scale) };
-        path.StrokeThickness = OutlineScreenPixels / Math.Max(0.1, AppearanceScale(_config));
-        path.Visibility = Visibility.Visible;
+        Map.ShowOutlines(own, hover, AppearanceScale(_config), force);
     }
 }

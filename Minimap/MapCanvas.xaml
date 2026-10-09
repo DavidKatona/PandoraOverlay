@@ -1,0 +1,75 @@
+<UserControl x:Class="PandoraOverlay.MapCanvas"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- The map drawing every map shares (the minimap now, the big map next):
+         the island picture and the layers that move with it, then the
+         markers and the arrows. It fills its host; the host clips it. -->
+    <Grid>
+        <!-- Canvas host: measures the image with infinite space, so an
+             oversized (zoomed) map never gets layout-clipped (a grid slot
+             would clip it BEFORE the pan transform). -->
+        <Canvas>
+            <Image x:Name="MapImage" x:FieldModifier="private"
+                   Stretch="Fill"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+            <!-- The site's pre-rendered heatmap: an opaque PNG (grayscale map +
+                 blobs + caption baked in), blended at the same 55% the
+                 live-map page uses. Sized and translated in lockstep with
+                 MapImage. -->
+            <Image x:Name="HeatmapImage" x:FieldModifier="private"
+                   Stretch="Fill"
+                   Opacity="0.55"
+                   Visibility="Collapsed"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+            <!-- Optional area borders: a dark outline round every named area,
+                 from the bundled area map, as vector lines (sharp at any
+                 zoom). Scaled to the map in code, translated with it like the
+                 heatmap, and above it. -->
+            <Path x:Name="AreaBordersPath" x:FieldModifier="private"
+                  Stroke="#001430"
+                  Opacity="0.7"
+                  StrokeLineJoin="Round"
+                  Visibility="Collapsed"
+                  IsHitTestVisible="False"/>
+            <!-- Two highlights on that layer: the outline of YOUR area (soft
+                 light), and the outline of the area under the cursor (the edit
+                 orange). -->
+            <Path x:Name="AreaOwnPath" x:FieldModifier="private"
+                  Stroke="#ECF2F8"
+                  Opacity="0.6"
+                  StrokeLineJoin="Round"
+                  Visibility="Collapsed"
+                  IsHitTestVisible="False"/>
+            <Path x:Name="AreaHoverPath" x:FieldModifier="private"
+                  Stroke="#FFC864"
+                  Opacity="0.9"
+                  StrokeLineJoin="Round"
+                  Visibility="Collapsed"
+                  IsHitTestVisible="False"/>
+            <!-- Breadcrumb trail, in map-pixel space and panned with the map.
+                 Three age bands, oldest faintest: one polyline can't fade
+                 along its length. -->
+            <Polyline x:Name="TrailOld" x:FieldModifier="private" Stroke="#FFC864" StrokeThickness="2"
+                      StrokeLineJoin="Round" Opacity="0.3"/>
+            <Polyline x:Name="TrailMid" x:FieldModifier="private" Stroke="#FFC864" StrokeThickness="2"
+                      StrokeLineJoin="Round" Opacity="0.55"/>
+            <Polyline x:Name="TrailNew" x:FieldModifier="private" Stroke="#FFC864" StrokeThickness="2"
+                      StrokeLineJoin="Round" Opacity="0.85"/>
+        </Canvas>
+        <Canvas>
+            <!-- Library waypoints: dots in their colours, the tracked one a
+                 ringed diamond. Shapes are created in code; the layer sits
+                 under the arrows on purpose. -->
+            <Canvas x:Name="MarkerLayer" x:FieldModifier="private"/>
+            <!-- In-game friends as smaller arrows in their colours, above the
+                 waypoints and under your own arrow. -->
+            <Canvas x:Name="FriendLayer" x:FieldModifier="private"/>
+            <Path x:Name="PlayerArrow" x:FieldModifier="private"
+                  Data="M 0,-8 L 6,7 L 0,3.5 L -6,7 Z"
+                  Fill="#FFC864"
+                  Stroke="#991A130A"
+                  StrokeThickness="1"
+                  Visibility="Collapsed"/>
+        </Canvas>
+    </Grid>
+</UserControl>

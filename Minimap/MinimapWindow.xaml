@@ -19,41 +19,8 @@
         MouseWheel="Window_MouseWheel">
 
     <Window.Resources>
-        <!-- Map menu entries: the control panel's glow-overlay look, left-aligned. -->
-        <Style x:Key="MenuButton" TargetType="Button">
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="Margin" Value="0,0,0,1"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="#C7D1DA"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid>
-                            <Border x:Name="HoverGlow" Background="#2EFFFFFF" CornerRadius="2"
-                                    Visibility="Collapsed"/>
-                            <ContentPresenter Margin="{TemplateBinding Padding}"
-                                              HorizontalAlignment="Left"
-                                              VerticalAlignment="Center"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="HoverGlow" Property="Background" Value="#4DFFFFFF"/>
-                                <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#5E6B76"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <!-- The map menu's entry look (MenuButton), shared with every map. -->
+        <ResourceDictionary Source="/PandoraOverlay;component/Minimap/MapMenuStyles.xaml"/>
     </Window.Resources>
 
     <!-- The LARGE frame (WidgetFrame), shared with the Prime tracker: the
@@ -74,72 +41,9 @@
             </Grid.RowDefinitions>
 
             <Grid x:Name="MapHost" Width="284" Height="284" ClipToBounds="True">
-                <!-- Canvas host: measures the image with infinite space, so the
-                     oversized centered-mode map never gets layout-clipped
-                     (a grid slot would clip it BEFORE the pan transform). -->
-                <Canvas>
-                    <Image x:Name="MapImage"
-                           Stretch="Fill"
-                           RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <!-- The site's pre-rendered heatmap: an opaque PNG (grayscale
-                         map + blobs + caption baked in), blended at the same 55%
-                         the live-map page uses. Sized and translated in lockstep
-                         with MapImage, so both views just work. -->
-                    <Image x:Name="HeatmapImage"
-                           Stretch="Fill"
-                           Opacity="0.55"
-                           Visibility="Collapsed"
-                           RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <!-- Optional area borders: a dark outline round every named area,
-                         from the bundled area map, as vector lines (sharp at any
-                         zoom). Scaled to the map in code, translated with it like
-                         the heatmap, and above it. -->
-                    <Path x:Name="AreaBordersPath"
-                          Stroke="#001430"
-                          Opacity="0.7"
-                          StrokeLineJoin="Round"
-                          Visibility="Collapsed"
-                          IsHitTestVisible="False"/>
-                    <!-- Two highlights on that layer, in the pill's two colours: the
-                         outline of YOUR area (soft light), and in edit mode the
-                         outline of the area under the cursor (the edit orange). -->
-                    <Path x:Name="AreaOwnPath"
-                          Stroke="#ECF2F8"
-                          Opacity="0.6"
-                          StrokeLineJoin="Round"
-                          Visibility="Collapsed"
-                          IsHitTestVisible="False"/>
-                    <Path x:Name="AreaHoverPath"
-                          Stroke="#FFC864"
-                          Opacity="0.9"
-                          StrokeLineJoin="Round"
-                          Visibility="Collapsed"
-                          IsHitTestVisible="False"/>
-                    <!-- Breadcrumb trail, in map-pixel space and panned with the
-                         map. Three age bands, oldest faintest: one polyline
-                         can't fade along its length. -->
-                    <Polyline x:Name="TrailOld" Stroke="#FFC864" StrokeThickness="2"
-                              StrokeLineJoin="Round" Opacity="0.3"/>
-                    <Polyline x:Name="TrailMid" Stroke="#FFC864" StrokeThickness="2"
-                              StrokeLineJoin="Round" Opacity="0.55"/>
-                    <Polyline x:Name="TrailNew" Stroke="#FFC864" StrokeThickness="2"
-                              StrokeLineJoin="Round" Opacity="0.85"/>
-                </Canvas>
-                <Canvas>
-                    <!-- Library waypoints: dots in their colours, the tracked one
-                         a ringed diamond. Shapes are created in code from the
-                         library; the layer sits under the arrow on purpose. -->
-                    <Canvas x:Name="MarkerLayer"/>
-                    <!-- In-game friends as smaller arrows in their colours, above
-                         the waypoints and under your own arrow (MinimapWindow.Friends.cs). -->
-                    <Canvas x:Name="FriendLayer"/>
-                    <Path x:Name="PlayerArrow"
-                          Data="M 0,-8 L 6,7 L 0,3.5 L -6,7 Z"
-                          Fill="#FFC864"
-                          Stroke="#991A130A"
-                          StrokeThickness="1"
-                          Visibility="Collapsed"/>
-                </Canvas>
+                <!-- The map drawing shared with every map (MapCanvas): the
+                     island, its layers, the markers and the arrows. -->
+                <local:MapCanvas x:Name="Map"/>
                 <TextBlock x:Name="MapStatus"
                            Text="connecting…"
                            Foreground="#9AA7B0" FontSize="11"

@@ -214,7 +214,11 @@ plus its pure helpers plus a Settings page, so that is how the folders cut:
 - `Stats/` — GrowthTracker, DrainTracker, StaminaTracker, DamageTracker,
   StatsAttention, LowStatAlert, GrowthMilestones.
 - `Minimap/` — MinimapWindow, BreadcrumbTrail, ScaleBar, SpeedTracker, Compass,
-  AreaMap (+ AreaReadout, AreaJournal), AreaBorders and AreaMapAsset (its PNG loader).
+  AreaMap (+ AreaReadout, AreaJournal), AreaBorders and AreaMapAsset (its PNG loader),
+  and the big map's pure helpers MapViewport, LandBounds, LabelLayout (Oct 9 2026);
+  since the phase 2 refactor the map drawing every map shares — MapCanvas (+
+  `.Markers.cs`) — and the shared map-menu pieces MapActions, MapMenuBuilder
+  (+ `MapMenuStyles.xaml`) and MapBrushes.
 - `Waypoints/` — WaypointLibrary, WaypointPacks, ShareCode.
 - `Friends/` — FriendBook (+ FriendColour), FriendFeed.
 - `Activity/` — ActivityWindow, ActivityLog, SelfActivity (the widget is
@@ -295,6 +299,7 @@ globs subfolders, so moving a file needs no project edit; pack URIs point at
 concern, the way WPF already splits them from their generated `.g.cs`:
 `MainWindow.xaml.cs` (+ `.Hotkeys.cs`, `.Visibility.cs`, `.Updates.cs`),
 `MinimapWindow.xaml.cs` (+ `.Menu.cs`, `.Markers.cs`, `.Friends.cs`, `.Area.cs`),
+`MapCanvas.xaml.cs` (+ `.Markers.cs`),
 `SettingsWindow.xaml.cs` (+ `.Waypoints.cs`, `.Friends.cs`, `.Rules.cs`,
 `.Skins.cs`, `.SkinPictures.cs`, `.About.cs`, `.Account.cs`, `.Storage.cs`, `.StorageDetail.cs`) and, since v1.28, the two Core classes that had reached the
 limit: `PandoraClient.cs` + `.Skins.cs` + `.Account.cs` + `.Storage.cs`, `PollService.cs` + `.Skins.cs` + `.Calibration.cs` + `.Storage.cs`. Same class, same
@@ -913,6 +918,30 @@ Every overlay window derives from `OverlayWindowBase`.
 - **SignInPolicy.cs** — the window's rules, pure + tested: `IsAllowed`,
   `IsSignedInLanding`, `StepLabel` ("Step 1 of 2 · Discord login" / "Step
   2 of 2 · Allow the website"), `CookieHeader`, `HasSession`.
+- **MapCanvas.xaml(.cs)** (+ `.Markers.cs`; the big map plan's phase 2,
+  Oct 9 2026) — THE MAP DRAWING EVERY MAP SHARES, pulled out of
+  MinimapWindow without changing a pixel (golden renders, 62 of 62
+  identical): the island picture (decoded once, shared), the heatmap,
+  the border layer and its two outlines, the trail bands, the waypoint
+  markers, the friends' arrows and yours, every glide and the hit tests.
+  It DRAWS; it decides nothing — no config, no PollService, no footer:
+  its map passes the drawn sets (`ShowWaypoints`, `ShowFriends` — the map
+  filters), the view (`MapViewport`) and the glide (`MoveMap`,
+  `MoveArrow`, `TurnArrow`, `PlaceWaypoints` / `PlaceFriends` with
+  `edgeIndicator` for the centred view's clamp-and-cull). `MapOffset` is
+  the map's CURRENT offset (mid-glide), which some redraw paths place
+  against, exactly as before. It touches `AreaMapAsset.Shared` only when
+  the border layer is on or an outline is drawn, so the area map still
+  never loads with the area features off. **MapActions.cs** — what the
+  map menu's entries DO (add / remove / track waypoints, track a friend,
+  copy / paste codes, the clipboard guarded), returning the footer
+  notice; `WaypointTracked` and `FriendTracked` are separate on purpose
+  (tracking one must not redraw — and snap — the other); tested.
+  **MapMenuBuilder.cs** — the menu's entries for a spot (`MapMenuSpot`),
+  with "Copy my position" reading your position when CLICKED, as before;
+  its look is `MenuButton` in `MapMenuStyles.xaml`, merged into the
+  window. **MapBrushes.cs** — the waypoint palette, frozen once (the
+  Settings and Activity copies are left for the Settings pass).
 - **MinimapWindow.xaml(.cs)** — bundled island map + player arrow, on the
   LARGE frame (WidgetFrame, v1.25): a Grid of the 284 px `MapSize` square
   and the footer centred in the rest; sized by `MinimapScale` through the
@@ -1116,6 +1145,35 @@ Every overlay window derives from `OverlayWindowBase`.
   so a sprint or a stop shows within two polls.
 - **Compass.cs** — eight-point letter for a screen heading (0 = north,
   clockwise, matching the arrow's RotateTransform).
+- **The big map's helpers** (Oct 9 2026, phase 1 of the big map plan, see
+  Roadmap; pure, tested; since phase 2 the minimap places everything
+  through `ToWorld` and `MapViewport`, while LandBounds and LabelLayout
+  wait for the big map).
+  `MapCalibration.ToWorld` is `ToFraction` undone, NOT clamped, written
+  with exactly the arithmetic the minimap's menu uses inline (a test holds
+  the two bit-identical, so the menu can move onto it without shifting a
+  waypoint). **MapViewport.cs** — the panel ⇄ map-fraction arithmetic in
+  one record (panel size, the map's rendered side, its top-left offset):
+  `Whole` (= the island view), `Centered` (= the centred view, computed
+  exactly as the minimap computes it, bit for bit, tested), `Fit`,
+  `ToPanel` / `FractionAt` (unclamped), `InPanel` (edges included, plus
+  slack), `ClampIntoPanel` (the tracked marker's edge indicator), `PanBy`,
+  `ZoomAround` (the map point under the cursor stays put; a step the clamp
+  turns into nothing returns the view unchanged, so the wheel can't creep
+  at a limit), `ClampPan` (the view's centre stays on a part of the map)
+  and `ZoomForDensity` (the sharpness cap as picture pixels per panel
+  unit). Zoom = the map's side over the panel's shorter side, the
+  minimap's meaning. **LandBounds.cs** — the box round every pixel with an
+  area on an area map, in fractions (coastal water included, so it keeps a
+  margin of sea); for the big map's opening fit and pan limit;
+  map-agnostic, its bundled-map test checks only that the box is on the
+  map and holds every label point. **LabelLayout.cs** — the generic name
+  declutter: greedy by priority (ties keep the caller's order), each name
+  takes the first of its spots clear of every placed one by a gap, else it
+  is left out and blocks nothing; touching boxes don't overlap; it sees
+  rectangles only, so priorities are the caller's and a marker passed as a
+  top-priority box keeps names off it; a pan needs no new layout, a zoom
+  does.
 - **AreaMap.cs** — "which area am I in" (v1.29, the owner's idea, Oct 2
   2026): `Assets/areas.png` is an image the size of the island map with
   ONE FLAT COLOUR PER NAMED AREA and nothing else (transparent = no
@@ -1913,6 +1971,23 @@ crashed the first build, fixed) and a stored-spot waypoint under
 "Tracked only" (not drawn at first, fixed). Delete was NOT tried for
 real before the release (the owner kept their dino); no pre-release).
 No layout presets beyond the default for now.
+
+IN PROGRESS (Oct 9 2026): **the big map** — a large interactive map
+opened on a hotkey over a dimmed screen, the owner's idea of Oct 2. The
+plan and every decision live OUTSIDE the repo, in `Desktop\Pandora
+Overlay Files\pandora-big-map-sketch\ACTION-PLAN.md` (read it first),
+with Fable's `PLAN.md`, the golden-render harness that guards the
+minimap refactor (`golden-renders\`, run `run-golden.ps1` after every
+step) and the perf spike (`perf-spike\RESULTS.md`). Two releases:
+the minimap's drawing pulled into a shared component with NO visible
+change (pixel-identical, its own release), then the big map. Phase 0
+(harness, spike), phase 1 (the pure helpers above) and phase 2's code
+(MapCanvas and the shared menu, golden renders identical) are done;
+phase 2 waits on the owner's in-game check of the minimap (the glides,
+both views, every menu entry) before its release. Nothing is committed
+yet: the owner commits at the end. The working copy is LF since Oct 9
+(`.gitattributes` `eol=lf`, the solution file CRLF), so this PC's
+system-wide `core.autocrlf` no longer warns.
 
 Areas, left for later and not started: area names in new waypoints and
 share codes. Further border corrections are painted into
