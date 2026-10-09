@@ -306,7 +306,7 @@ public partial class SignInWindow : Window
         AddLine("Install it from Microsoft — free, a minute — then try again.");
         ResultBox.Visibility = Visibility.Visible;
         Buttons(runtime: true, retry: true, cancel: true);
-        FooterNote.Text = "The installer normally fetches it; a plain-zip copy relies on the one already on the PC.";
+        FooterNote.Text = "The installer normally fetches it; the zip relies on the one already on the PC.";
     }
 
     private void Buttons(bool site = false, bool runtime = false, bool retry = false, bool done = false, bool cancel = false)

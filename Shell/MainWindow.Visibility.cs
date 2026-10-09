@@ -74,6 +74,8 @@ public partial class MainWindow
         else
         {
             _config.MinimapEnabled = false;
+            _config.MinimapX = _minimap.Left; // a hidden widget comes back where it was
+            _config.MinimapY = _minimap.Top;
             _minimap.Close();
             _ = _poll.RefreshFriendsAsync(); // stops the friends fetch if the widget is hidden too
         }

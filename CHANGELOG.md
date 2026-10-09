@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   twice within a second: showing a widget just before a scheduled friends
   update, and signing in while the overlay was running. It now always
   keeps its normal pace.
+- The minimap now comes back where you left it when you move it in edit
+  mode and then hide it with the control panel's Show/hide button.
+- The sign-in window's note about Microsoft's WebView2 Runtime no longer
+  mentions the plain zip, which was dropped in 1.32.
 
 ## [1.34.0] - 2026-10-09
 
