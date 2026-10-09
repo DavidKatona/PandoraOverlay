@@ -420,9 +420,11 @@ Updates and the account
 - CHANGELOG entries are player-facing text: the update card and the GitHub
   release show them.
 - Fail soft: config/crypto/HTTP errors degrade to a UI state, never crash.
-- Keep files well under ~500 lines; current style is regions + XML doc
-  comments. A class that outgrows it gets another partial-class part
-  (`Class.Topic.cs`), not a "manager" class and not a folder shuffle.
+- File size (owner, Oct 9 2026): split a class into another partial part
+  (`Class.Topic.cs`) when it holds a second topic that reads on its own,
+  such as a feature's requests or a page's section, not to meet a line
+  count; past about 800 lines, look for such a seam. Never a "manager"
+  class or a folder shuffle. Current style is regions + XML doc comments.
 
 ## Releases
 

@@ -10,7 +10,8 @@ paths:
   Radio, `TextBoxStyle`-based boxes, `DarkScrollBar`); a new kind gets one before it
   ships. Radio rows instead of a ComboBox (stock ComboBox chrome is light and ignores
   Background). Our own nav, not the stock TabControl.
-- One partial file per page (`SettingsWindow.<Page>.cs`), each under ~500 lines. A new
+- One partial file per page (`SettingsWindow.<Page>.cs`); a page splits further only
+  along a topic of its own (CLAUDE.md, Conventions → File size). A new
   widget adds a nav button (Tag = the `SetPage` key) and a page, in the control panel's
   order, holding its own scale slider; General is app-wide only.
 - Content built in code is built on the page's **first look** (`SetPage` →
