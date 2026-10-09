@@ -73,6 +73,17 @@ public sealed record MapCalibration(double OffsetX, double OffsetY, double Scale
     public (double Fx, double Fy) ToFraction(double x, double y) =>
         (Math.Clamp((OffsetX + x * ScaleX + PinOffsetX) / MapSize, 0, 1),
          Math.Clamp(1 - (OffsetY + y * ScaleY + PinOffsetY) / MapSize, 0, 1));
+
+    /// <summary>
+    /// Map fractions → world cm: ToFraction undone (the pinOffset taken off,
+    /// the y flip reversed), for a point picked ON the map — "Waypoint here",
+    /// a cursor readout. The same arithmetic the minimap's menu has always
+    /// used. NOT clamped: a fraction past the map's edge gives a point past
+    /// it, so a caller clamps the fraction first where that matters.
+    /// </summary>
+    public (double X, double Y) ToWorld(double fx, double fy) =>
+        ((fx * MapSize - OffsetX - PinOffsetX) / ScaleX,
+         ((1 - fy) * MapSize - OffsetY - PinOffsetY) / ScaleY);
 }
 
 /// <summary>
