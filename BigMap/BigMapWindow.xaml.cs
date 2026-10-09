@@ -25,6 +25,13 @@ namespace PandoraOverlay;
 /// same requests the minimap's do (PollService.Maps.cs).
 /// Closing: the hotkey (MainWindow), M or Esc, a click on the backdrop, or
 /// focus going elsewhere. Drawing and layers: BigMapWindow.Layers.cs.
+/// No Settings page either: its layers are the header's buttons, its one
+/// setting the hotkey.
+/// NAMING (owner, Oct 9 2026): a player never sees "big map". Settings
+/// calls the hotkey "Map:", the window is "Map", the CHANGELOG says "the
+/// map" / "a map of the whole island". "Big map" is the internal name only
+/// — classes, files, config keys (BigMap*) — and stays so (owner's call):
+/// don't rename them, and don't let the words reach player-facing text.
 /// </summary>
 public partial class BigMapWindow : Window
 {

@@ -12,6 +12,9 @@ namespace PandoraOverlay;
 /// it, in the edit colour, so the borders can be looked over without
 /// walking the island. Same class as MinimapWindow.xaml.cs, split for
 /// reading; see CLAUDE.md.
+/// The pill sits top-right because that is the one free corner (owner's
+/// choice): the heatmap's caption owns the top-left, the scale bar and the
+/// speed pill the bottom.
 /// </summary>
 public partial class MinimapWindow
 {
@@ -23,6 +26,9 @@ public partial class MinimapWindow
     /// 2026: neutral on purpose — it must not claim water, a future map
     /// could leave land unnamed). Shown dimmer than a real name, so it
     /// reads as "nothing is named here" and not as an area called that.
+    /// The owner asked for a word both mystical and neutral; "Uncharted
+    /// waters" was turned down for claiming water. Never reaches the
+    /// Activity feed: open sea is never announced there (AreaJournal).
     /// </summary>
     private const string Uncharted = "Uncharted";
     private const double UnchartedOpacity = 0.6;
@@ -98,6 +104,15 @@ public partial class MinimapWindow
     /// build drew a picture of the borders, stretched with the map; at 5–6×
     /// its pixels showed.) Follows the view, the zoom and the scale
     /// (ApplyViewMode).
+    /// DARK NAVY at 70% (MapCanvas's AreaBordersPath), not the area colours —
+    /// those are picked to be told apart, would bury the terrain and turn to
+    /// mud under the heatmap (owner agreed, Oct 2 2026) — and not light
+    /// lines: the first build's were a white net over the island with
+    /// scalloped rings round the coast, and the owner chose "darker,
+    /// fainter" over outlining only your own area, a muted tint, names on
+    /// the map, or hiding the layer under the heatmap. Don't bring the light
+    /// lines back; the one soft light outline of YOUR area below is not that
+    /// net. Every line, no land mask: see AreaBorders.
     /// </summary>
     private void UpdateAreaBorders()
     {

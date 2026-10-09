@@ -49,6 +49,7 @@ public sealed class FriendEntry
 /// </summary>
 public static class FriendColour
 {
+    // Indices into WaypointPalette.Colours, which may only grow at the end (see its comment).
     private static readonly int[] Defaults = { 0, 1, 2, 4, 5, 6, 7, 8, 9, 11 }; // palette indices minus orange (3) and white (10)
 
     public static int Default(string steamId)
@@ -162,6 +163,9 @@ public sealed class FriendBook
     /// their last-seen dino, growth and time. Returns true — and raises
     /// Changed — only when the membership or a name changed, so a fetch every
     /// few seconds never touches the disk.
+    /// MainWindow calls it first on every roster (it subscribes to the roster
+    /// event before any window exists), so a new friend already has a name
+    /// and colour when the feed and the maps first show them.
     /// </summary>
     public bool Sync(IReadOnlyList<FriendState> roster, DateTime nowUtc)
     {

@@ -30,6 +30,8 @@ public sealed class GrowthTracker
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan MinBaseline = TimeSpan.FromMinutes(5);
     private const double MinDelta = 0.0005;     // real growth over MinBaseline sits well above this
+    // The same full-grown line as GrowthMilestones.FullyGrown (the server reports
+    // a grown dino a hair under 1): keep the two equal.
     private const double FullThreshold = 0.9995;
 
     private readonly List<(DateTime At, double Growth)> _samples = new();

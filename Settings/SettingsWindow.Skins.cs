@@ -18,6 +18,10 @@ namespace PandoraOverlay;
 /// dino's skin in game, like the site's own button. Apply turns into the
 /// six pattern buttons (A–F) in place of the site's pop-up. All requests go
 /// through PollService.Skins, which holds the gating; this file only draws.
+/// The point: a skin applied right after spawning, without alt-tabbing to the
+/// website. A Settings page and nothing more: a widget was turned down (it
+/// needs clicks and isn't watched), and so was a control-panel button (there
+/// is no widget to group it under).
 /// Same class as SettingsWindow.xaml.cs, split for reading; see CLAUDE.md.
 /// </summary>
 public partial class SettingsWindow
@@ -162,6 +166,7 @@ public partial class SettingsWindow
         // Picture well: a quiet dark box that SAYS what it is waiting for or
         // missing. (A first build filled it with the seven colours as stripes;
         // that read as a broken image — the dots below already show the colours.)
+        // The owner's call: don't bring the stripes back.
         var picture = new Image { Stretch = Stretch.UniformToFill };
         var has = _skinPictures.TryGetValue(skin.Id, out var known);
         if (has) picture.Source = known;
@@ -215,6 +220,9 @@ public partial class SettingsWindow
     /// <summary>Apply, which turns into the six pattern buttons — one tile at a time; a locked skin only says so.</summary>
     private Grid BuildApplyArea(PatreonSkin skin)
     {
+        // Enabled while you aren't in game, on purpose: the click is what
+        // refreshes a stale idle state (PollService polls once before it
+        // answers "not spawned in"), so a fresh spawn is never locked out.
         var area = new Grid { Height = 24 };
         var apply = new Button
         {

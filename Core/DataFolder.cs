@@ -8,9 +8,14 @@ namespace PandoraOverlay;
 /// %AppData%\PandoraOverlay, outside the app folder — an update replaces the
 /// app folder whole, so these could no longer live next to the exe (they did
 /// until 1.29). The first launch after the move COPIES an older copy's files
-/// over — never moves or deletes them — and Settings → Account can import
+/// over — never moves or deletes them — and Settings → About can import
 /// them from any folder later. Pure IO, zero WPF, fail soft: a problem is a
 /// message, never an exception, and never the cookie's value.
+/// Roaming, as Velopack's docs suggest for files that must outlive an
+/// uninstall: an uninstall removes the app (under %LocalAppData%\PandoraOverlay)
+/// and leaves this folder behind, as well as Velopack's own log folder,
+/// %LocalAppData%\Velopack (seen in the updater trial, Oct 2026). Every copy
+/// — installed, zip or plain folder — shares this one folder.
 /// </summary>
 public static class DataFolder
 {
@@ -79,7 +84,7 @@ public static class DataFolder
     /// <summary>The first launch after the move: fills an EMPTY data folder from the nearest older copy. Never overwrites.</summary>
     public static void MigrateLegacy() => Migration = ImportIfEmpty(Path, LegacyCandidates());
 
-    /// <summary>Settings → Account: bring the files over from a folder the user picked, replacing what is here.</summary>
+    /// <summary>Settings → About: bring the files over from a folder the user picked, replacing what is here.</summary>
     public static ImportResult ImportFrom(string source) => Import(Path, source);
 
     internal static ImportResult? ImportIfEmpty(string target, IEnumerable<string> candidates)

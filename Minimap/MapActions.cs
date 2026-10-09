@@ -28,6 +28,7 @@ public sealed class MapActions
     }
 
     /// <summary>The tracked waypoint changed: the ring, the edge indicator and the footer follow it.</summary>
+    /// <remarks>Separate from FriendTracked on purpose: tracking one must not redraw — and so snap — the other's markers.</remarks>
     public event Action? WaypointTracked;
 
     /// <summary>The tracked friend changed: the ring, the edge indicator and the footer's first claim follow them.</summary>

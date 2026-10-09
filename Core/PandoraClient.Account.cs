@@ -42,6 +42,9 @@ public sealed class SessionEndedException : Exception
 
 public sealed partial class PandoraClient
 {
+    // Both are the site's own player-facing calls, used under the server owner's
+    // blanket go-ahead with the owner's okay for the sign-in (Oct 7 2026); each
+    // only for a look or a click, never on a timer.
     private const string AccountEndpoint = "https://islapandora.eu/api/auth/me";
     private const string SignOutEndpoint = "https://islapandora.eu/auth/logout";
 
@@ -72,6 +75,11 @@ public sealed partial class PandoraClient
     /// Tolerant like the frontend, which takes either "authenticated" or a
     /// "user" object as signed in. steamId is read as a string or a number;
     /// blanks read as absent.
+    /// "authenticated" is read for a session ended on the website: after its
+    /// logout the old cookie gets 200 {"ok":false,"authenticated":false} here
+    /// (seen Oct 7 2026) — a 200 with no user, NOT a refusal — and the
+    /// Account page says the session has ended. mylocation answers that
+    /// cookie with the 403 JSON refusal, so polling catches it like a dead one.
     /// </summary>
     internal static AccountInfo ParseAccount(JsonElement root)
     {
@@ -132,6 +140,9 @@ public sealed partial class PandoraClient
     /// GET on a Sign out click. Its answer is a redirect to the home page,
     /// which there is no reason to download, so this request goes through
     /// its own client that follows no redirects. True when the site took it.
+    /// The answer (302 to "/", seen Oct 7 2026) carries a Set-Cookie replacing
+    /// connect.sid; it is deliberately NOT spliced in like a rolled cookie (no
+    /// jar, no UpdateRollingCookie) — the caller forgets the session anyway.
     /// </summary>
     public async Task<bool> SignOutAsync(CancellationToken ct = default)
     {

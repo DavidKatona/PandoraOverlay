@@ -8,6 +8,8 @@ namespace PandoraOverlay;
 /// (install, update, uninstall hooks) and exits at once for those, so the
 /// overlay never starts polling or shows a window during an update. Then WPF
 /// starts exactly as the generated App.Main would have started it.
+/// The call must be the first line of a real Main() (vpk pack warns
+/// otherwise), which is why the entry point is this class and not App's.
 /// </summary>
 public static class Program
 {

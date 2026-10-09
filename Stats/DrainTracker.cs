@@ -5,6 +5,8 @@ namespace PandoraOverlay;
 /// rate, from the poll stream — GrowthTracker's endpoint-slope idea over a
 /// shorter window, so a changed rate shows within minutes. (What changes
 /// the rate in-game is unverified; the tracker just measures it.)
+/// Whether sprinting or any other activity drains faster is unknown, so
+/// player-facing text must not claim it.
 /// The drain RATE survives a refill: eating or drinking moves the level, not
 /// the metabolism, so the estimate is back on the next poll instead of after
 /// a fresh baseline (which then replaces it). Session-only; resets on

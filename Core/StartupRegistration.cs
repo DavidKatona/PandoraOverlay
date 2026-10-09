@@ -28,6 +28,8 @@ public static class StartupRegistration
     /// <summary>The exe the Run entry starts (quotes stripped), or null when off or unreadable.</summary>
     public static string? RegisteredExePath()
     {
+        // DataFolder reads this too: the folder an older copy runs from may
+        // hold that copy's settings to copy over.
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);

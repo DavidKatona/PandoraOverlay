@@ -23,7 +23,9 @@ namespace PandoraOverlay;
 /// either. All requests go through PollService.Storage, which holds the
 /// gating; these files only draw. This part is the page, the list and the
 /// closed cards; an open card is SettingsWindow.StorageDetail.cs. Same class
-/// as SettingsWindow.xaml.cs, split for reading; see CLAUDE.md.
+/// as SettingsWindow.xaml.cs, split for reading; see CLAUDE.md. The analysis,
+/// plan and mockups (Oct 7 2026) are in Desktop\Pandora Overlay
+/// Files\pandora-dino-storage-sketch.
 /// </summary>
 public partial class SettingsWindow
 {
@@ -127,6 +129,9 @@ public partial class SettingsWindow
     /// <summary>Why the page can't ask the website right now, or null.</summary>
     private string? StorageBlocked() =>
         !_signedIn ? "Sign in on the Account page first: the storage belongs to your islapandora.eu account."
+        // A sign-in taken in this dialog reaches PollService only once the dialog
+        // closes (MainWindow's ApplySession on CookieChanged), so after a first
+        // sign-in the poll has no cookie to ask with until then.
         : string.IsNullOrEmpty(_poll.CurrentCookie) ? "Signed in just now: close Settings and open it again to see your storage."
         : _poll.IsSignedOut ? "The website session has ended. Sign in again on the Account page."
         : null;
@@ -365,6 +370,7 @@ public partial class SettingsWindow
     /// <summary>One card open at a time: opening one closes the other.</summary>
     private void ToggleStorageCard(StorageCard card)
     {
+        // An accordion was the owner's pick (Oct 8 2026) over a detail view with a back link.
         if (card.IsOpen)
         {
             CloseStorageCard(card);

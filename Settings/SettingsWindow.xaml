@@ -13,10 +13,15 @@
         ShowInTaskbar="True">
 
     <Window.Resources>
+        <!-- RULE: no stock chrome anywhere in this dialog. Stock WPF controls
+             are light, ignore Background and glow on this dark surface, so
+             every control kind used here has its own template below
+             (buttons, checks, radios, text boxes, scrollbars); a new kind
+             gets one before it ships. -->
         <!-- The default button chrome paints the disabled state near-white
              regardless of Background, which glows on this dark dialog — so
-             the Save button (disabled while a pasted cookie is invalid) gets
-             a template with an explicit dark disabled look. -->
+             the Save button (disabled on a first run until signed in, see
+             GateSave) gets a template with an explicit dark disabled look. -->
         <Style x:Key="SaveButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#2E5E38"/>
             <Setter Property="Foreground" Value="#DFF3E2"/>
@@ -46,8 +51,8 @@
             </Setter>
         </Style>
 
-        <!-- Neutral action button (Import/Export, pack Show/Hide all) with the
-             same explicit disabled look. -->
+        <!-- Neutral action button (Cancel, Import/Export, Refresh, a waypoint
+             row's ✕ and most others) with the same explicit disabled look. -->
         <Style x:Key="NeutralButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#2A3038"/>
             <Setter Property="Foreground" Value="#C7D1DA"/>
@@ -289,11 +294,12 @@
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
-        <!-- Waypoint name box: the hotkey box's look, but editable. -->
         <!-- Text boxes: the same dark well as the checkboxes. Stock chrome
              squares the corners and flashes Windows blue on hover, focus and
              selection — exactly when the eye is on the box. Hover lightens
              the border, focus turns it the text colour. -->
+        <!-- VerticalContentAlignment places the content host: Center (set
+             here) for single-line boxes; a wrapping multi-line box sets Top. -->
         <Style x:Key="TextBoxStyle" TargetType="TextBox">
             <Setter Property="Background" Value="#1A2129"/>
             <Setter Property="Foreground" Value="#ECF2F8"/>
@@ -333,8 +339,10 @@
             </Setter>
         </Style>
 
+        <!-- Waypoint name box: the hotkey box's look, but editable. -->
         <Style x:Key="NameBox" TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}">
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <!-- 32 = WaypointLibrary.MaxNameLength and FriendBook.MaxNicknameLength (the friend rows use this box too). -->
             <Setter Property="MaxLength" Value="32"/>
         </Style>
 
@@ -375,7 +383,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Every scrollbar in the dialog (page, list, the cookie box's inner one) takes the dark look. -->
+        <!-- Every scrollbar in the dialog (the page, the lists) takes the dark look. -->
         <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
 
         <Style x:Key="HotkeyBox" TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}">
@@ -405,6 +413,9 @@
             </DockPanel>
 
             <!-- Buttons -->
+            <!-- Docked outside the pages' ScrollViewer like the title bar: on a
+                 small screen (MaxHeight = 92% of the work area) a page scrolls
+                 and Cancel / Save stay in view. -->
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                         HorizontalAlignment="Right" Margin="0,14,0,0">
                 <Button Content="Cancel" Click="Cancel_Click"
@@ -416,6 +427,15 @@
             <!-- Nav on the left, one page on the right. Pages that aren't
                  selected are Hidden (not Collapsed) so the grid keeps the
                  tallest page's height and the dialog never jumps between pages. -->
+            <!-- Our own nav, not the stock TabControl: its light chrome doesn't
+                 theme. Widget pages follow the control panel's order, each with
+                 that widget's own scale slider and options; a new widget adds a
+                 nav button + a page (the Tag is SetPage's key). What belongs in
+                 this dialog: a PREFERENCE — a value, or an on/off decided once.
+                 Something flipped mid-game belongs on the control panel or a
+                 hotkey instead. Everything applies on Save and Cancel drops it,
+                 except the pages that act at once (Account, Skins, Dino
+                 storage), which say so on the page. -->
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="150"/>
@@ -583,6 +603,8 @@
                          GotKeyboardFocus="HotkeyBox_GotFocus"
                          LostKeyboardFocus="HotkeyBox_LostFocus"/>
             </StackPanel>
+            <!-- "Map", never "big map": the internal name never reaches the
+                 player (owner, Oct 9 2026). -->
             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Map:" Width="150"/>
                 <TextBox x:Name="BigMapHotkeyBox" Style="{StaticResource HotkeyBox}"
@@ -612,6 +634,8 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="OpacitySlider_ValueChanged"/>
             </DockPanel>
+            <!-- A checkbox that owns a slider sits on the slider's row, in the
+                 140 px label slot, and the slider's IsEnabled follows it. -->
             <DockPanel Margin="0,8,0,0">
                 <CheckBox x:Name="FadeCheck" Style="{StaticResource Check}" Width="140"
                           Content="Fade idle panels to"/>
@@ -643,6 +667,8 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="ScaleSlider_ValueChanged"/>
             </DockPanel>
+            <!-- The DEFAULT view (Survival / Combat, the owner's names); the
+                 stats view hotkey and the control panel's View flip it mid-game. -->
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="View:"/>
                 <RadioButton x:Name="StatsViewSurvival" Style="{StaticResource Radio}" Content="Survival"
@@ -659,6 +685,9 @@
             </StackPanel>
 
             <!-- ============================ Minimap ======================== -->
+            <!-- No heatmap on/off here (removed Sep 2026): something flipped
+                 mid-game is not a preference — the heatmap hotkey and the
+                 control panel's Heatmap button own it. -->
             <StackPanel Tag="Minimap" Visibility="Hidden">
             <TextBlock Style="{StaticResource PageTitle}" Text="MINIMAP"/>
 
@@ -685,6 +714,7 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="ZoomSlider_ValueChanged"/>
             </DockPanel>
+            <!-- Radio buttons, not a ComboBox: stock ComboBox chrome is light and ignores Background. -->
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Trail:"/>
                 <RadioButton x:Name="TrailOff" Style="{StaticResource Radio}" Content="Off"
@@ -778,6 +808,10 @@
             </StackPanel>
 
             <!-- ============================ Activity ======================= -->
+            <!-- Your own events are ALWAYS in the feed — it is yours; friends'
+                 events are the extra, one checkbox. A "Friends only / Friends
+                 and me" radio pair shipped for a day and was replaced (Sep 28
+                 2026), a leftover of the widget's friends-first origin. -->
             <StackPanel Tag="Activity" Visibility="Hidden">
             <TextBlock Style="{StaticResource PageTitle}" Text="ACTIVITY"/>
 
@@ -811,6 +845,9 @@
             </DockPanel>
             <CheckBox x:Name="FriendsMapCheck" Style="{StaticResource Check}"
                       Content="Show friends on the minimap"/>
+            <!-- The friend-spawn chime lives on this page, not Activity's: a
+                 friends alert is not a widget option, and MainWindow plays it
+                 with the widget hidden (owner, Sep 28 2026). -->
             <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Chime when a friend spawns in"/>
 
@@ -846,10 +883,10 @@
             </StackPanel>
 
             <!-- ============================ Skins ========================== -->
-            <!-- The website's Patreon skins page as tiles (built in code). The
-                 one page that talks to the site, and the only thing in this
-                 dialog that acts at once instead of on Save: Apply changes
-                 your dino's skin in game, like the site's own button. -->
+            <!-- The website's Patreon skins page as tiles (built in code). It
+                 acts at once instead of on Save, like Account and Dino
+                 storage: Apply changes your dino's skin in game, like the
+                 site's own button. -->
             <StackPanel Tag="Skins" Visibility="Hidden">
             <DockPanel Margin="0,4,0,6">
                 <TextBlock x:Name="SkinCount" DockPanel.Dock="Right"
@@ -987,6 +1024,7 @@
                       Content="Check for updates at launch (one request to GitHub)"/>
             <DockPanel Margin="0,8,0,0">
                 <!-- "What's new" (1.32): the running version's notes in the update card. -->
+                <!-- A button: the owner's pick over an underlined link on the version line. -->
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="UpdateButton" Content="Check for updates now" Click="UpdateButton_Click"
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>

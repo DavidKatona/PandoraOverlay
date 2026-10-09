@@ -64,6 +64,7 @@
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="38">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- "Map", never "big map": that is only the internal name (owner, Oct 9 2026). -->
                     <TextBlock Text="Map" FontSize="16" FontWeight="SemiBold" Foreground="#ECF2F8"/>
                     <TextBlock x:Name="AreaLine" FontSize="12" Margin="12,2,0,0" VerticalAlignment="Center"/>
                 </StackPanel>

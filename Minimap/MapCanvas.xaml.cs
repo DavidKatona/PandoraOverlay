@@ -109,6 +109,12 @@ public partial class MapCanvas : UserControl
     public double MapSize => MapImage.Width;
 
     /// <summary>Where the map's top-left sits NOW: mid-glide, the point it has reached, not its target.</summary>
+    /// <remarks>
+    /// Some of the minimap's redraws (a library, tracking or calibration
+    /// change) place the markers against this rather than the glide's target,
+    /// exactly as they did before the drawing moved here; the golden renders
+    /// hold the minimap to that.
+    /// </remarks>
     public Point MapOffset => new(_mapTranslate.X, _mapTranslate.Y);
 
     /// <summary>The map picture's rendered side, the heatmap's with it. The borders, outlines and trail follow through their own calls.</summary>
@@ -204,6 +210,8 @@ public partial class MapCanvas : UserControl
     /// width at every zoom and stays sharp. The width undoes the host's own
     /// scale (<paramref name="hostScale"/>), so it is about a screen pixel at
     /// any widget scale. Call again when the map's size changes.
+    /// <paramref name="on"/> is tested BEFORE AreaMapAsset.Shared on purpose:
+    /// with the area features off, the area map is never decoded.
     /// </summary>
     public void ShowBorders(bool on, double hostScale)
     {

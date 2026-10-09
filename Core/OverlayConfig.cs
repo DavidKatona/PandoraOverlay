@@ -5,19 +5,23 @@ using System.Text.Json;
 
 namespace PandoraOverlay;
 
-/// <summary>
-/// Persistent settings, stored as config.json in the data folder (DataFolder:
-/// %AppData%\PandoraOverlay since v1.30; next to the executable before).
-///
-/// The session cookie is never stored in plaintext. The "Cookie" field is a
-/// paste-here inbox: on the next launch its value is encrypted with Windows
-/// DPAPI (scoped to the current Windows user), moved into "CookieProtected",
-/// and the plaintext field is blanked. Only your Windows account on this
-/// machine can decrypt the blob.
-/// </summary>
 /// <summary>One minimap waypoint slot, world coordinates in cm.</summary>
 public sealed record WaypointSlot(double X, double Y);
 
+/// <summary>
+/// config.json: runtime state, the DPAPI-sealed session among it — kept apart
+/// from the user's own content (waypoints.json, friends.json). Nothing in this
+/// class throws: an unreadable file loads as defaults, an undecryptable blob
+/// reads as no cookie, a failed save is dropped. No WPF reference, on purpose.
+/// The persistent settings live in the data folder (DataFolder:
+/// %AppData%\PandoraOverlay since v1.30; beside the executable before). The
+/// session cookie is never stored in plaintext: the "Cookie" field is a
+/// paste-here inbox (since v1.31 only the emergency route, see Cookie). On
+/// the next launch its value is encrypted with Windows DPAPI (scoped to the
+/// current Windows user), moved into "CookieProtected", and the plaintext
+/// field is blanked. Only your Windows account on this machine can decrypt
+/// the blob.
+/// </summary>
 public sealed class OverlayConfig
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
@@ -68,6 +72,8 @@ public sealed class OverlayConfig
     /// <summary>When the sign-in window last took a session (UTC); null = never. Display only.</summary>
     public DateTime? SignedInUtc { get; set; }
 
+    // PollService floors this at 2 s whatever the file says, and the pace only
+    // ever slows from there (idling); the default 3 s is the website's own.
     /// <summary>Seconds between polls. The site itself polls every few seconds; do not go below 2.</summary>
     public int PollIntervalSeconds { get; set; } = 3;
 
@@ -138,6 +144,8 @@ public sealed class OverlayConfig
     public string HotkeyBigMap { get; set; } = "Ctrl+M";
 
     // ---- The big map ----------------------------------------------------------
+    // "Big map" is the internal name only: players see "the map" (owner,
+    // Oct 9 2026); the BigMap* keys stay as they are.
     // Its six layer buttons, remembered between openings (the map itself,
     // not Settings, carries them). Nothing about its size, position or zoom
     // is saved: it opens fitted to the land every time.
@@ -153,7 +161,10 @@ public sealed class OverlayConfig
 
     // ---- Minimap (v1.1) ---------------------------------------------------
 
-    /// <summary>Show the stats panel (toggled from the control panel or the tray menu).</summary>
+    /// <summary>
+    /// Show the stats panel (toggled from the control panel only: the tray
+    /// carries no per-widget entries, so it never grows with the widgets).
+    /// </summary>
     public bool StatsEnabled { get; set; } = true;
 
     /// <summary>
@@ -190,13 +201,16 @@ public sealed class OverlayConfig
     /// </summary>
     public string? LastRunVersion { get; set; }
 
-    /// <summary>Show the minimap window (toggled from the control panel or the tray menu).</summary>
+    /// <summary>Show the minimap window (toggled from the control panel only; see StatsEnabled).</summary>
     public bool MinimapEnabled { get; set; } = true;
 
     /// <summary>
     /// Overlay the site's pre-rendered activity heatmap on the minimap
     /// (approved by the site dev, Sep 2026). Off by default: opting in adds
     /// two public, cookie-less GETs per minute while the minimap is shown.
+    /// Flipped by HotkeyHeatmap and the control panel's Heatmap button, never
+    /// in Settings — a layer you flip is not a preference (the Settings
+    /// checkbox and the tray entry were removed, Sep 2026).
     /// </summary>
     public bool HeatmapEnabled { get; set; }
 
@@ -217,7 +231,7 @@ public sealed class OverlayConfig
     /// <summary>
     /// Minimap view: "island" (whole map, the arrow moves) or "centered"
     /// (north-up, the map pans under an arrow fixed at the centre).
-    /// The VIEW button on the minimap's edit banner toggles this.
+    /// The control panel's Map view button and HotkeyMinimapView toggle this.
     /// </summary>
     public string MinimapMode { get; set; } = "island";
 
@@ -232,6 +246,8 @@ public sealed class OverlayConfig
     /// <summary>
     /// Degrees added to the raw yaw before rotating the player arrow — corrects
     /// for map-image orientation. Tune here if the arrow points sideways.
+    /// The default 90 was verified in game (Sep 2026): the arrow then matches
+    /// the website's live map.
     /// </summary>
     public double MinimapYawOffsetDegrees { get; set; } = 90;
 
@@ -286,8 +302,9 @@ public sealed class OverlayConfig
     public bool MinimapAreaEnabled { get; set; } = true;
 
     /// <summary>
-    /// Draw the area borders over the minimap: dark lines where one named
-    /// area meets another. Flipped with the control panel's Areas button,
+    /// Draw the area borders over the minimap: dark lines on every edge of
+    /// every area, where it meets another area or open sea (see
+    /// AreaBorders). Flipped with the control panel's Areas button,
     /// like the heatmap — a layer you switch, not a preference. Off by default.
     /// </summary>
     public bool MinimapAreaBordersEnabled { get; set; }
@@ -299,7 +316,11 @@ public sealed class OverlayConfig
 
     // ---- Prime tracker ----------------------------------------------------
 
-    /// <summary>Show the Prime tracker widget (toggled from the control panel or the tray menu).</summary>
+    /// <summary>
+    /// Show the Prime tracker widget (toggled from the control panel only;
+    /// see StatsEnabled). On by default because a shown tracker sends no
+    /// request until a check is clicked.
+    /// </summary>
     public bool PrimeEnabled { get; set; } = true;
 
     /// <summary>Prime widget position; null until first placed (top-left corner in the default layout).</summary>
@@ -373,9 +394,11 @@ public sealed class OverlayConfig
     /// <summary>
     /// Name the island's areas in the feed: "Entered Highland" when you
     /// clearly cross into another named area (at most one such line per
-    /// half minute; these never light a faded Activity panel), and where a
-    /// spawn happened ("… spawned as Deino 42% · Swamps" — yours, and a
-    /// friend's who shares their location). On by default.
+    /// half minute; like every line, these light a faded Activity panel —
+    /// the first build's exemption was removed after a try in game, owner,
+    /// Oct 5 2026; ActivityWindow.OnPosted), and where a spawn happened
+    /// ("… spawned as Deino 42% · Swamps" — yours, and a friend's who
+    /// shares their location). On by default.
     /// </summary>
     public bool ActivityAreaLines { get; set; } = true;
 
@@ -418,7 +441,9 @@ public sealed class OverlayConfig
     /// <summary>
     /// Show the estimated time left on the hunger and thirst bars (once
     /// under ~1 h). A checkbox in Settings — not everyone wants more on the
-    /// stats panel.
+    /// stats panel. It also gates the stamina bar's "~25s" / "full ~40s"
+    /// (StaminaTracker); the trackers run either way, so ticking it shows
+    /// the labels at once.
     /// </summary>
     public bool StatTimeLeftEnabled { get; set; } = true;
 
@@ -477,6 +502,7 @@ public sealed class OverlayConfig
         // defaults (v1.11 introduced F3/F4/F5 edit/hide/view; v1.12 moved
         // to F7/F4/F5 after Ctrl+F3 proved conflict-prone in the wild).
         // Any customized set (even one changed combo) is left untouched.
+        // Ctrl+F8/F9/F7 is the trio shipped up to v1.10.
         var holdsOldDefaults =
             (cfg.Hotkey == "Ctrl+F8" && cfg.HotkeyHideAll == "Ctrl+F9" && cfg.HotkeyMinimapView == "Ctrl+F7") ||
             (cfg.Hotkey == "Ctrl+F3" && cfg.HotkeyHideAll == "Ctrl+F4" && cfg.HotkeyMinimapView == "Ctrl+F5");
@@ -503,6 +529,8 @@ public sealed class OverlayConfig
             cfg.WaypointX = cfg.WaypointY = null;
         }
 
+        // Written back at once, so a pasted plaintext cookie leaves the disk
+        // on the very launch that reads it.
         cfg.Save();
         return cfg;
     }

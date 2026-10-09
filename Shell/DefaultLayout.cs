@@ -26,6 +26,9 @@ public static class DefaultLayout
     /// the left, ping and FPS on the right — about 85 px at 1080p, and it
     /// scales with the resolution), so the columns start under it. 10% is
     /// 108 px at 1080p; Inset is the floor.
+    /// (Owner, Sep 29 2026, measured from a screenshot.) Centring the columns
+    /// vertically was rejected: on a short screen they would run into the
+    /// game's stat hexes bottom-right.
     /// </summary>
     public const double TopFraction = 0.10;
 

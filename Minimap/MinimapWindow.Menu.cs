@@ -24,6 +24,8 @@ public partial class MinimapWindow
     /// timing rule that swallowed the dismissing click was tried and felt
     /// worse — whether the menu closed or moved depended on how long the
     /// button was held.)
+    /// That rule (a 400 ms swallow) was rejected on Sep 25 2026: no timing
+    /// rules here.
     /// </summary>
     private void Window_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
@@ -60,6 +62,9 @@ public partial class MinimapWindow
     /// The map fraction (0–1) under a point of the map square, in either
     /// view; null outside the square (the footer). Past the map image's own
     /// edge in the centered view it clamps to that edge.
+    /// Points are in the map square's nominal units: GetPosition(MapHost)
+    /// already takes MinimapScale's layout transform off, so no map math
+    /// here needs to know the widget's scale.
     /// </summary>
     private (double Fx, double Fy)? FractionAt(Point pos)
     {

@@ -11,6 +11,11 @@ namespace PandoraOverlay;
 /// feed). Plus builders for the events MainWindow's existing rules detect:
 /// a growth stage, a low stat, a Prime check. The first poll of a session
 /// is a baseline: being in game at launch is not "spawning".
+/// Owner's call (Sep 28 2026): the feed is YOURS first and friends' events
+/// are the extra — friend-only lines at a two-friend scale left it empty.
+/// It is for gameplay, not chores: waypoint edits, heatmap toggles,
+/// connection blips, a Dino storage rename or delete and updates are
+/// deliberately never posted.
 /// </summary>
 public sealed class SelfActivity
 {
@@ -99,6 +104,9 @@ public sealed class SelfActivity
 
     private FeedLine SpawnLine(PlayerState me, DateTime now, string? area)
     {
+        // The area goes last, so on a long line it is what the slot's ellipsis
+        // cuts. No named area = nothing added: the pill's "Uncharted" never
+        // reaches the feed.
         var where = string.IsNullOrWhiteSpace(area) ? "" : $" · {area}";
         if (_lastLive is { } live && me.Dino is not null &&
             string.Equals(live.Dino, me.Dino, StringComparison.OrdinalIgnoreCase) && me.Growth < live.Growth - 0.001)

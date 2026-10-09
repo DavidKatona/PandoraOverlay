@@ -45,9 +45,14 @@ public sealed record RulesDocument(
 /// When one exists it replaces this the way calibration does: fetched once
 /// per launch, cached, the seed only a fresh install's first content.
 /// Parse is tolerant and pure; nothing here throws.
+/// Until that endpoint exists, new rules mean a new Assets/rules.json and a
+/// release — and ServerRulesTests pins the bundled copy's shape (rule count,
+/// categories, species count), so the test changes with the copy.
 /// </summary>
 public static class ServerRules
 {
+    // The csproj's EmbeddedResource LogicalName — NOT a WPF Resource, so this
+    // loader stays WPF-free and the tests read the very file that ships.
     public const string ResourceName = "rules.json";
 
     /// <summary>The bundled copy, or null if the resource is missing or unreadable.</summary>

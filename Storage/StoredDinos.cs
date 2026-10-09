@@ -118,6 +118,11 @@ public static class StoredDinos
     }
 
     /// <summary>The website's words for a refusal ("error", else "message"), cleaned; null when it said nothing.</summary>
+    /// <remarks>
+    /// Shown on the page as "The website said: …", like a skin refusal — the
+    /// same deliberate exception to never echoing server text, until the
+    /// website's refusals are known well enough to be mapped to our own.
+    /// </remarks>
     public static string? ServerWords(JsonElement root) =>
         root.ValueKind == JsonValueKind.Object
             ? PatreonSkins.Clean(Text(root, "error") ?? Text(root, "message"), MaxMessageLength)

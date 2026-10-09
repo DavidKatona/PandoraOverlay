@@ -18,6 +18,7 @@ public sealed partial class PandoraClient
     private const string PatreonSkinsEndpoint = "https://islapandora.eu/api/skins/patreon-skins";
     private const string ApplyPatreonSkinEndpoint = "https://islapandora.eu/api/skins/apply-patreon";
     private const string PatreonPage = "https://islapandora.eu/patreon"; // the page these calls come from on the site
+    // The first build capped pictures at 4 MB, which turned the site's real ones away.
     /// <summary>The site serves its skin pictures at full size (4.7 MB seen, Oct 2026); this is a sanity cap, not a budget.</summary>
     private const int MaxPictureBytes = 16 * 1024 * 1024;
 

@@ -13,16 +13,20 @@ namespace PandoraOverlay;
 /// many friends you have and how many are in game) over FeedLines
 /// one-line slots showing the last ten minutes of the ActivityLog — your
 /// own events (SelfActivity: spawned, fresh life, stage, low stat,
-/// fracture, Prime check, damage), always, and your friends' (FriendFeed:
-/// spawned, left, changed dino, reached a stage, took a fracture, came
-/// near) as the extra, newest at the top, fading with age. Every other
-/// cue on the overlay is momentary; this is the one you can read late. With
+/// fracture, Prime check, damage, area entered, skin applied), always,
+/// and your friends' (FriendFeed: spawned, left, changed dino, reached a
+/// stage, took a fracture, came near) as the extra, newest at the top,
+/// fading with age. Every other cue on the overlay is momentary; this is
+/// the one you can read late. With
 /// no recent lines the first slot names who is in game, so it is never
 /// blank. A pure renderer: MainWindow owns the log and the feed, posts
 /// into them and plays the chimes, so the history — and the friend-spawn
 /// chime — survive the widget being hidden. Display-only
 /// and click-through when locked. Its first position comes from the default
 /// layout (under the Prime tracker, left column) and persists via config.
+/// Owner's design (Sep 27 2026): a feed, NOT a row per friend — rows would
+/// resize the widget with the roster, and the map arrows already say who
+/// is where. A friend's stats are shown nowhere on the overlay.
 /// </summary>
 public partial class ActivityWindow : OverlayWindowBase
 {
@@ -108,7 +112,7 @@ public partial class ActivityWindow : OverlayWindowBase
     /// <summary>The widget takes part in the attention fade: a new line lights it for a while.</summary>
     protected override bool Fades => true;
 
-    /// <summary>Its own size control, like every widget; seeded from the Prime tracker it docks under.</summary>
+    /// <summary>Its own size control, like every widget: a plain number defaulting to 1.0, never derived from another widget's (owner, Oct 6 2026).</summary>
     protected override double AppearanceScale(OverlayConfig config) => config.ActivityScale;
 
     /// <summary>Reapplies scale/opacity and the feed choices after a settings save.</summary>
@@ -160,12 +164,15 @@ public partial class ActivityWindow : OverlayWindowBase
     }
 
     /// <summary>The roster changed (or was cleared): the header's counts and the quiet line follow.</summary>
+    /// <remarks>Reads the FriendFeed, which MainWindow has already updated: it subscribes to FriendsChanged before this window exists, so its handler runs first.</remarks>
     private void OnFriends(IReadOnlyList<FriendState>? roster) => Render();
 
     /// <summary>New lines landed in the log: show them and light the widget — ANY line, no kind is exempt. (The friend-spawn chime is MainWindow's, like the stats chimes — it must not depend on this widget being shown.)</summary>
     private void OnPosted(IReadOnlyList<FeedLine> fresh)
     {
         Render();
+        // Owner's rule (Oct 5 2026): area lines were exempt at first, and that
+        // was removed after trying it in game — don't add per-kind wake rules.
         Wake();
     }
 

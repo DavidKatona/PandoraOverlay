@@ -18,6 +18,7 @@ public static class AreaMapAsset
 
     private static readonly Lazy<AreaMap?> Bundled = new(LoadBundled);
 
+    // Decoding takes about 25 ms: the reason it waits for first use (an area feature switched on, or the big map opening).
     /// <summary>The app's one copy (a megabyte of grid): decoded the first time anything asks.</summary>
     public static AreaMap? Shared => Bundled.Value;
 

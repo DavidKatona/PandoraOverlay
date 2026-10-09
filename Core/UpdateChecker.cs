@@ -4,13 +4,18 @@ using System.Text.Json;
 namespace PandoraOverlay;
 
 /// <summary>
-/// One fail-soft check against the GitHub releases API at launch — the only
-/// network call the overlay ever makes besides the two islapandora.eu
-/// endpoints. No result, no error, or no newer version all mean the same
-/// thing to the UI: nothing is shown. Never re-checks during a session.
+/// One fail-soft check against the GitHub releases API at launch — a single
+/// GitHub request, for a copy Velopack did not put on the PC (a plain folder
+/// — today a build from the IDE), whose notice opens the download page; an
+/// installed or zip copy checks through <see cref="Updater"/> instead. Kept
+/// for that, rather than retired, when the updater came. (The overlay's
+/// other network calls are listed in CLAUDE.md's hard constraint 2.) No
+/// result, no error, or no newer version all mean the same thing to the UI:
+/// nothing is shown. Never re-checks during a session.
 /// </summary>
 public static class UpdateChecker
 {
+    // /releases/latest never answers with a pre-release (or a draft), so an rc tag is never offered here.
     private const string LatestReleaseApi = "https://api.github.com/repos/DavidKatona/PandoraOverlay/releases/latest";
 
     /// <summary>Where the tray menu's update entry sends the user.</summary>

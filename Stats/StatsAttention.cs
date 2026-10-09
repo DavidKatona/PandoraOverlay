@@ -24,6 +24,7 @@ namespace PandoraOverlay;
 /// panel blink. Both share the identity and the damage baseline, so flipping
 /// views mid-fight loses nothing. The flip itself lights the panel for a few
 /// seconds (NoteViewFlip); then the new view's rules decide afresh.
+/// The shared state is why this is one class with two rules, not a class per view.
 /// </summary>
 public sealed class StatsAttention
 {
@@ -31,6 +32,8 @@ public sealed class StatsAttention
     private const double CalmAbove = 0.55;
     private const double CombatWakeBelow = 0.75; // owner's call: in a fight, sooner
     private const double CombatCalmAbove = 0.80;
+    // Both combat lines are the owner's numbers (Sep 30 2026). Accepted with them:
+    // a wounded dino keeps the combat view lit until it has healed past CombatCalmAbove.
     private const double DamageStep = 0.005; // a real hit, not the 3-decimal quantization wobble
     private static readonly TimeSpan DamageHold = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan WakeLeftBelow = TimeSpan.FromMinutes(15);
@@ -136,6 +139,10 @@ public sealed class StatsAttention
                 lowest > CalmAbove && !fractured && !damaged && (soonest is null || soonest >= CalmLeftAbove));
     }
 
+    // A fight is DamageTracker's word, not a hold timer of this class's own:
+    // a second timer could disagree with the Damage row. Keeping the combat
+    // view lit all the time was considered and dropped: combat can be the
+    // default view, and the fade would then be silently off for that player.
     private static (bool Wake, bool Calm) CombatRule(PlayerState p, bool fractured, bool inFight)
     {
         var lowest = Math.Min(p.Health, p.Stamina);

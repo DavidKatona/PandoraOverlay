@@ -109,6 +109,12 @@ public sealed record PrimeCheckResult(
 /// frontend's own (mylocation, calibration), plus the public, cookie-less
 /// heatmap GETs. Nothing here touches the game. The Patreon skins calls
 /// (v1.28) live in PandoraClient.Skins.cs.
+/// The account pair (auth/me, logout) is in PandoraClient.Account.cs, the
+/// Dino storage trio in PandoraClient.Storage.cs. The awaits in here use
+/// ConfigureAwait(false); the UI thread is regained only at the outermost
+/// await, in PollService. No WPF reference, on purpose — keep it so. The
+/// site sits behind Cloudflare, yet a plain HttpClient passes (checked with
+/// curl): no TLS impersonation or embedded browser is needed for these calls.
 /// </summary>
 public sealed partial class PandoraClient : IDisposable
 {
@@ -127,6 +133,9 @@ public sealed partial class PandoraClient : IDisposable
     };
 
     private readonly HttpClient _http;
+    // A credential: it goes into the Cookie header of the site's own requests
+    // and out through CurrentCookie (which the config encrypts) — never into
+    // a log, an exception message or window text.
     private string _cookie;
 
     /// <summary>Latest cookie value, including any connect.sid rolled forward by Set-Cookie responses.</summary>
@@ -161,6 +170,8 @@ public sealed partial class PandoraClient : IDisposable
 
         // Express renews the session on every request. Capture the fresh
         // connect.sid so the login keeps rolling across overlay restarts.
+        // Captured before any status check: an answer that fails the check
+        // may still carry the renewal.
         UpdateRollingCookie(response);
 
         // The site's own "no session" answer is told apart from every other
@@ -176,11 +187,15 @@ public sealed partial class PandoraClient : IDisposable
     }
 
     /// <summary>
-    /// Fetches the map calibration constants. Called once per launch (per
-    /// credential swap at most) — static site config. POST with an empty
+    /// Fetches the map calibration constants — static site config. Succeeds
+    /// once per launch (and again per credential swap at most): a FAILED
+    /// fetch is retried after a successful poll, at most once a minute,
+    /// until one succeeds (PollService.Calibration.cs). POST with an empty
     /// body, mirroring the frontend's own fetch (the route is POST-only; GET
     /// returns 404). Parsing is tolerant of wrapping: the first JSON object
-    /// carrying offsetX/…/mapSize anywhere in the response wins.
+    /// carrying offsetX/…/mapSize anywhere in the response wins. Added at the
+    /// owner's direction (Sep 2026); the live-map page itself loads it on
+    /// every visit, and it answers without a session too.
     /// </summary>
     public async Task<MapCalibration?> FetchCalibrationAsync(CancellationToken ct = default)
     {
@@ -208,6 +223,8 @@ public sealed partial class PandoraClient : IDisposable
     /// skip the ~1 MB download. Both URLs are public, so no Cookie header is
     /// sent — this adds no credential path. The cache-buster mirrors the
     /// live-map page's own image refresh.
+    /// PollService paces it (PollService.Maps.cs): only while a map shows the
+    /// layer, and never two fetches less than a minute apart.
     /// </summary>
     public async Task<byte[]?> FetchHeatmapAsync(CancellationToken ct = default)
     {
@@ -464,6 +481,13 @@ public sealed partial class PandoraClient : IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Express renews connect.sid on every answer (a rolling 30-day session),
+    /// so a session in use never expires — provided the renewed value is
+    /// saved: MainWindow re-encrypts CurrentCookie on exit and on leaving
+    /// edit mode. Only connect.sid is replaced or added; the rest of the
+    /// header (cf_clearance, when a pasted cookie has one) stays verbatim.
+    /// </summary>
     private void UpdateRollingCookie(HttpResponseMessage response)
     {
         if (!response.Headers.TryGetValues("Set-Cookie", out var setCookies)) return;

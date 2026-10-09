@@ -26,6 +26,15 @@ public sealed record BorderLine(IReadOnlyList<(double X, double Y)> Points, int 
 /// exactly where they are, so lines still meet. Coordinates are in map
 /// pixels, 0 … Size, at pixel CORNERS (an edge lies between pixels). Pure,
 /// tested; works on whatever map is loaded.
+/// EVERY LINE, on purpose (owner, Oct 2 2026, from side-by-side renders):
+/// cut-down rules were built and dropped — lines only between two areas,
+/// land only through a land mask, a traced shoreline for an area that is
+/// an island of its own, the map picture's dark coastal rim trimmed off the
+/// mask — each answering one complaint (rings round the coast, stubs ending
+/// in the sea, an island with no outline) with one more mechanism. Drawn in
+/// dark navy, the sea lines are faint and read as part of the map, the
+/// layer shows exactly what the pill uses, and there is less to tend when a
+/// new map comes. Don't re-introduce a land mask or per-case outline rules.
 /// </summary>
 public static class AreaBorders
 {

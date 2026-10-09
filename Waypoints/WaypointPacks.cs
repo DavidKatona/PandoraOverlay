@@ -13,6 +13,8 @@ namespace PandoraOverlay;
 /// the rest arrive HIDDEN and tagged with the pack name, so a 200-entry pack
 /// can't bury anyone's map. Pure and tested; the Settings page owns the
 /// file dialogs.
+/// Hidden on arrival is the owner's decision: an import must never bury a
+/// map — the player shows what they want, per pack or per waypoint.
 /// </summary>
 public static class WaypointPacks
 {

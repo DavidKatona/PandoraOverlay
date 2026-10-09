@@ -120,6 +120,7 @@ public partial class MinimapWindow
         // A friend first: the one under the cursor, else the tracked one while
         // they are on the map. Navigation only — name, distance, ETA — never
         // their stats; that line has one job.
+        // (A stats line for the tracked friend was proposed and turned down by the owner, Sep 27 2026.)
         if ((_hoverFriend ?? TrackedFriend) is { X: { } fx, Y: { } fy } friend)
         {
             ModeFooter.Inlines.Add(" · ");
@@ -173,6 +174,10 @@ public partial class MinimapWindow
         : $"{(int)eta.TotalHours} h {eta.Minutes:00} min";
 
     /// <summary>Bottom-right pill: compass letter from the arrow's heading, and km/h once the speed is known.</summary>
+    /// <remarks>
+    /// The arrow's heading is body yaw plus MinimapYawOffsetDegrees, so the
+    /// letter says where the dino's BODY faces, not the free-look camera.
+    /// </remarks>
     private void UpdateSpeedPill()
     {
         if (!_config.MinimapSpeedEnabled || _lastFix is not { } fix)

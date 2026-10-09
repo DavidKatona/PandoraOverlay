@@ -58,7 +58,7 @@ public abstract class OverlayWindowBase : Window
 
     /// <summary>
     /// True for windows that take part in the attention fade (stats panel,
-    /// Prime tracker). The minimap does not: nothing on it can wake it, and
+    /// Prime tracker, Activity feed). The minimap does not: nothing on it can wake it, and
     /// it is consulted, not watched.
     /// </summary>
     protected virtual bool Fades => false;
@@ -137,24 +137,37 @@ public abstract class OverlayWindowBase : Window
     }
 
     /// <summary>
-    /// Applies the shared appearance settings: UI scale as a LayoutTransform
-    /// on the content root (the window resizes with it — a RenderTransform
-    /// would clip), and the panel-glass opacity as the root Border's
-    /// background alpha, leaving text and content fully crisp.
+    /// Scale used by ApplyAppearance: UiScale, the stats panel's and the
+    /// control panel's. The other widgets override it with their own percent
+    /// scale (MinimapScale, PrimeScale, ActivityScale).
     /// </summary>
-    /// <summary>Scale used by ApplyAppearance; the minimap overrides to 1 (it has a native size setting instead).</summary>
+    // Owner's rule: each distinct widget gets its own size slider, a
+    // plain number defaulting to 1.0, never seeded from another one, and no
+    // global multiplier on top (Windows display scaling already does that, two
+    // multiplying sliders confuse, and scaling everything at once breaks
+    // snapped layouts). A new widget ships with its own scale key.
     protected virtual double AppearanceScale(OverlayConfig config) => config.UiScale;
 
+    /// <summary>
+    /// Applies the shared appearance settings: the UI scale as a
+    /// LayoutTransform on the content root (the window resizes with it — a
+    /// RenderTransform would clip), the panel-glass opacity as the root
+    /// Border's background alpha, leaving text and content fully crisp, and
+    /// the attention fade's idle opacity.
+    /// </summary>
     protected void ApplyAppearance(OverlayConfig config)
     {
         if (Content is not Border panel) return;
 
+        // MainWindow.Frame repeats this clamp for the default layout: change both together.
         var scale = Math.Clamp(AppearanceScale(config), 0.75, 1.5);
         panel.LayoutTransform = scale == 1.0 ? null : new ScaleTransform(scale, scale);
 
         var alpha = (byte)Math.Round(Math.Clamp(config.BackgroundOpacity, 0.3, 1.0) * 255);
         panel.Background = new SolidColorBrush(Color.FromArgb(alpha, 0x10, 0x15, 0x1B));
 
+        // Read here, so a Settings save re-applies the fade through the same
+        // Appearance flag as the scale and opacity: no fade flag of its own.
         _idleOpacity = Fades && config.FadeEnabled ? Math.Clamp(config.FadeIdleOpacity, 0.2, 0.8) : 1.0;
         UpdateFade(animate: false);
     }
@@ -183,6 +196,11 @@ public abstract class OverlayWindowBase : Window
     // ---- Edit-mode drag with snapping --------------------------------------
 
     /// <summary>Wire to MouseLeftButtonDown: dragging is an edit-mode-only affair.</summary>
+    // A manual drag rather than DragMove: DragMove runs its own move loop, so
+    // the position could not be snapped (and the guides drawn) while moving.
+    // A left click that closes an open map menu lands here too, so the snap
+    // guides flash and the widget can move a pixel: accepted (owner's call).
+    // A flag swallowing that press was designed and declined; don't add it unasked.
     protected void DragIfEditing(MouseButtonEventArgs e)
     {
         if (!EditMode || e.ButtonState != MouseButtonState.Pressed) return;

@@ -16,6 +16,11 @@ namespace PandoraOverlay;
 /// <item>One card per launch: an Updated card wins over an Available one —
 /// the tray entry still offers the newer version.</item>
 /// </list>
+/// Considered and dropped for the Available card (owner, Oct 8 2026): an
+/// in-game rule, a grace period and a guard against a slow check — the launch
+/// is the moment. The Updated card is a version comparison rather than
+/// Velopack's restart hook on purpose: the hook would miss Setup.exe run over
+/// an old install and a zip unpacked over an old folder.
 /// </summary>
 public static class UpdateCardPolicy
 {

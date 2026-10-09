@@ -173,6 +173,8 @@ public partial class PrimeWindow : OverlayWindowBase
             _notice = null;
             RenderNotice();
         }
+        // Lit for AttentionHold when the cue first appears, not for as long as it
+        // stays amber: a widget lit for good would defeat the fade.
         if (RenderInfo()) Wake(AttentionHold); // the stale cue depends on the live dino — and just appeared
     }
 

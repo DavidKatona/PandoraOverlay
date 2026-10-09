@@ -16,6 +16,7 @@ namespace PandoraOverlay;
 /// stale one; the number is up to one poll old as it is, which the overlay
 /// cannot improve (the poll interval has a floor). Information only: no
 /// pulse, no fade wake, no chime — stamina drains by design.
+/// Built on a player's request.
 /// </summary>
 public sealed class StaminaTracker
 {

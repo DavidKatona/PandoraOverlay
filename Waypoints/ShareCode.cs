@@ -19,6 +19,8 @@ public static class ShareCode
     private static readonly Regex Pattern =
         new(@"(-?\d{1,6})\s*,\s*(-?\d{1,6})[ \t]*([^\r\n]*)", RegexOptions.Compiled);
 
+    // Invariant culture both ways: a code copied on one PC is pasted on
+    // another, whatever either one's locale.
     public static string Format(double xCm, double yCm, string? name = null)
     {
         var code = Prefix +

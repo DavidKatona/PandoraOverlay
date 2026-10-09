@@ -55,6 +55,8 @@ public partial class MainWindow : OverlayWindowBase
     private readonly DamageTracker _damage = new();
     private readonly SpeedTracker _combatSpeed; // a short window: the combat row should follow a sprint or a stop within a couple of polls
     private readonly StatsAttention _attention = new();
+    // The feed's state lives here, not in the Activity widget, so the last ten
+    // minutes survive the widget being hidden or closed.
     private readonly FriendFeed _feed = new();
     private readonly ActivityLog _log = new();
     private readonly SelfActivity _self = new();
@@ -112,6 +114,9 @@ public partial class MainWindow : OverlayWindowBase
         _poll.SnapshotReceived += OnSnapshot;
         _poll.PollFailed += OnPollFailed;
         _poll.SignedOut += OnSignedOut;
+        // Subscribed here, before any widget exists, so this handler runs FIRST:
+        // the book is synced (new friends named and coloured) before the
+        // minimap and the Activity widget see the same roster.
         _poll.FriendsChanged += OnFriendsRoster;
         _poll.PrimeCheckStarted += () => _primeBefore = _config.Prime; // PollService swaps in the new result before PrimeChecked
         _poll.PrimeChecked += result =>
@@ -197,6 +202,8 @@ public partial class MainWindow : OverlayWindowBase
                 if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState();
                 return;
             }
+            // Everything a Save changed is hot-applied from here on: a setting
+            // never needs a restart.
             if (TrailKeep <= TimeSpan.Zero) _trail.Reset(); // the trail switched off: forget the path, not just hide it
             if (dialog.MinimapChanged || dialog.AppearanceChanged || dialog.FriendsChanged) _minimap?.ApplySettings();
             UpdateArea(); // the pill or the feed's area lines may have been switched on: name the area now, not a poll later
@@ -393,6 +400,8 @@ public partial class MainWindow : OverlayWindowBase
     // ---- Poll stream --------------------------------------------------------
     private void OnPollFailed(Exception ex)
     {
+        // The exception's TYPE only, never its message: a message could carry
+        // the cookie, and the cookie never reaches window text.
         SetStatus($"Disconnected · retrying ({ex.GetType().Name})");
         _tray.SetStatus("Pandora Overlay — disconnected");
         SetAttention(true); // a broken connection is worth eyes
@@ -430,6 +439,8 @@ public partial class MainWindow : OverlayWindowBase
         if (_poll.Calibration is not null && _me is { } at && TrailKeep > TimeSpan.Zero) _trail.Add(at, TrailKeep);
         UpdateUi(result);
         UpdateArea(); // before your own lines: a spawn line says where you spawned
+        // Your own lines are always posted — the feed is yours; only friends'
+        // lines have a switch (ActivityIncludeFriends, in OnFriendsRoster).
         _log.Post(_self.Update(result, _config.ActivityDamageLines, DateTime.UtcNow,
                                _config.ActivityAreaLines ? _areaJournal.Current : null));
         UpdateAutoHide(result.InGame && result.Player is not null);
@@ -551,6 +562,7 @@ public partial class MainWindow : OverlayWindowBase
         // The combat view's corner: the game's own word for health under 50%,
         // in the health bar's colour; "Healthy" (quiet) above it, so the slot
         // always answers the question.
+        // "Healthy" is our word for not-wounded; only "Wounded" is the game's.
         ConditionText.Text = p.Health < WoundedBelow ? "Wounded" : "Healthy";
         ConditionText.Foreground = p.Health switch
         {
@@ -654,6 +666,9 @@ public partial class MainWindow : OverlayWindowBase
 
     // ---- Stats views --------------------------------------------------------
 
+    // Anything but "combat" reads as survival, so a config from the first
+    // build (which said "full") still loads; FullView in the XAML is the
+    // Survival view under that old name.
     private bool CombatViewOn => string.Equals(_config.StatsView, "combat", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
@@ -670,6 +685,10 @@ public partial class MainWindow : OverlayWindowBase
     /// follows the view (growth ↔ Wounded/Healthy) and the footer names it,
     /// like the minimap's does. Each view also has its own fade ruleset
     /// (StatsAttention).
+    /// The status line stays in both views: staleness matters most in a
+    /// fight. The view changes only when the player flips it — switching to
+    /// Combat automatically on damage was rejected (content changing by
+    /// itself is a surprise).
     /// </summary>
     private void ApplyStatsView()
     {
@@ -718,6 +737,11 @@ public partial class MainWindow : OverlayWindowBase
     /// own (lightened) colour, so it reads as part of that bar rather than a
     /// second number next to the percent. With no room left on the track it
     /// flips inside the fill's end, dark on the bright colour.
+    /// Rejected before this: widening the 44 px percent column for the label
+    /// (an update must never resize a panel), and white text in a dark pill
+    /// at the track's right end (rejected on sight: the track is nearly
+    /// invisible, so it floated beside the percent like a second, unrelated
+    /// number).
     /// </summary>
     private static void SetBarLabel(System.Windows.Controls.TextBlock label, string? text, double fillWidth, Brush tint)
     {
@@ -739,6 +763,7 @@ public partial class MainWindow : OverlayWindowBase
     }
 
     /// <summary>The Windows "Exclamation" sound — no bundled audio, and it follows the user's sound scheme.</summary>
+    // Owner's call: a custom sound only if players ask for one.
     private static void Chime()
     {
         try

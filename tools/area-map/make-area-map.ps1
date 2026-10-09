@@ -1,5 +1,10 @@
 # Generates the overlay's AREA MAP: Assets/areas.png + Assets/areas.json.
 #
+# DON'T RE-RUN THIS OVER THE BUNDLED MAP WITHOUT THE OWNER'S WORD. Assets/areas.png has
+# been HAND-CORRECTED since Oct 5 2026 (Central Dome painted larger to the south-east,
+# ~2,000 px, nearly all taken from Swamps), and a run overwrites every painted correction.
+# To redraw the picture after painting, run preview-area-map.ps1: it only reads.
+#
 # The map answers "which area am I in": an image the size of the island map with one
 # flat colour per named area and nothing else (transparent = no area, open sea). The
 # overlay reads it as data - your position, through the same transform as the arrow,
@@ -10,6 +15,11 @@
 # point per area, in world cm, with a size hint and a sea flag) and run this script.
 # Nothing here, in the overlay or in its tests names an area or treats one differently
 # from another; how an area comes out depends only on where its label is and on the map.
+# That is the owner's rule (Oct 2 2026), and it covers counting on this island too: how many
+# areas, the picture's size, how much land there is. So the calibration lives in the input
+# (and is copied into areas.json for the tests), distances are in metres, colours past the
+# hand-picked ones are generated, and the one number about the map PICTURE's style, not the
+# island, is named as such (SeaTolerance).
 #
 # The label points give the NAMES. The BORDERS are not from any source - nobody
 # publishes them and none are drawn on the map - so they are computed here:
@@ -22,6 +32,13 @@
 #     also claims the water around the label;
 #   * islets nothing reached take the nearest claimed area; a 375 m band of coastal
 #     water follows the land beside it; open sea stays empty.
+# The owner accepted the computed borders as the first version. Their known weak spots, where
+# painting helps: straight borders that ignore rivers and ridges, a small area as a round blob
+# (the land round a landmark, not its walls), a coastal area claiming a big octagon of sea.
+# Rendered and NOT taken (Oct 2 2026): rounder water shapes - Spread stepping in 16
+# directions instead of 8, so bays aren't angular. Too subtle at actual size to change a map
+# already tried in game; it would live only here, so it can still be added if the angular
+# bays start to bother.
 # Distances are in metres and turned into pixels with the calibration, so they hold for
 # a map of another size or scale.
 #

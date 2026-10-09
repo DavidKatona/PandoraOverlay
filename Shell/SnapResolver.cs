@@ -2,7 +2,7 @@ using System.Windows;
 
 namespace PandoraOverlay;
 
-/// <summary>A snap target that engaged: where its guide line sits, and whether it came from the peer window (vs the screen).</summary>
+/// <summary>A snap target that engaged: where its guide line sits, and whether it came from a peer window (vs the screen).</summary>
 public readonly record struct SnapGuide(double Position, bool FromPeer);
 
 /// <summary>The adjusted position plus the guide that engaged per axis (null = that axis moved freely).</summary>
@@ -11,7 +11,7 @@ public readonly record struct SnapResult(Point Position, SnapGuide? GuideX, Snap
 /// <summary>
 /// Pure snapping math for edit-mode dragging: given a proposed position,
 /// magnetically prefers the screen edges, a comfort inset from them, and
-/// the other overlay window's edges (align or abut — both fall out of the
+/// the other overlay windows' edges (align or abut — both fall out of the
 /// same two candidates per target). Axes snap independently; the caller
 /// decides when to bypass entirely (Alt held). The result reports which
 /// targets engaged so the caller can draw guide lines.

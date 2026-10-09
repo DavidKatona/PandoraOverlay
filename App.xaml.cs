@@ -2,6 +2,10 @@ using System.Windows;
 
 namespace PandoraOverlay;
 
+/// <summary>
+/// Started by Program.Main (Velopack's hook runs first), not by the generated
+/// App.Main; StartupUri in App.xaml still opens MainWindow, after OnStartup.
+/// </summary>
 public partial class App : Application
 {
     private Mutex? _instanceMutex;

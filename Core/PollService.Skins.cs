@@ -137,6 +137,9 @@ public sealed partial class PollService
     /// success is remembered per species in config (persisted with the next
     /// Save) and announced through SkinApplied. The server keeps the final
     /// word on its own cooldown: nothing here assumes its length.
+    /// It may differ by supporter rank, as Prime's does, so it is never
+    /// mirrored locally: the page only says how long ago the last apply was
+    /// and shows the server's refusal.
     /// </summary>
     public async Task<SkinApplyResult> ApplySkinAsync(string skinId, bool idIsNumber, string skinName, int pattern)
     {

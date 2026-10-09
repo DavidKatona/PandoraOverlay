@@ -32,6 +32,8 @@ public partial class SettingsWindow
     /// the same reason: the pictures are served at full size, ~5 MB each and
     /// some ninety of them, so fetching what nobody looks at would cost
     /// hundreds of MB. One loop at a time; never for a page that is hidden.
+    /// No margin of tiles just out of view is preloaded, on purpose: only
+    /// what is actually on screen costs a download.
     /// </summary>
     private async void LoadVisibleSkinPictures()
     {

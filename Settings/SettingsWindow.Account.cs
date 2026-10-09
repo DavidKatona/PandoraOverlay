@@ -17,6 +17,10 @@ namespace PandoraOverlay;
 /// signs in and closes the dialog with ✕ must not lose the sign-in. The
 /// card's live facts come from ONE auth/me on the page's first look per
 /// dialog (never on a timer); offline, it shows what is saved.
+/// Why the paste box went (the owner, Oct 7 2026): copying a cookie out of
+/// DevTools was tricky for players who aren't tech-savvy, and not the safest
+/// way to hand over a session. config.json's Cookie inbox stays, unadvertised,
+/// as the emergency route.
 /// </summary>
 public partial class SettingsWindow
 {
@@ -175,6 +179,7 @@ public partial class SettingsWindow
     {
         var outcome = SignInWindow.Run(this);
         if (outcome is null) return;
+        // The cookie goes straight into the encrypted vault; this page shows the name, never the session.
         _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow, outcome.Account.Avatar);
         _config.Save(); // acts at once
         CookieChanged = true;

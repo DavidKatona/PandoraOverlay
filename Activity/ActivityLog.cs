@@ -22,7 +22,12 @@ public sealed class ActivityLog
     /// <summary>Lines, newest first, unexpired as of the last Expire.</summary>
     public IReadOnlyList<FeedLine> Lines => _lines;
 
-    /// <summary>Raised after each Post with the lines just added, oldest first — the widget wakes and chimes on it.</summary>
+    /// <summary>
+    /// Raised after each Post with the lines just added, oldest first — the
+    /// widget wakes on it. No sound hangs on this: the friend-spawn chime is
+    /// MainWindow's, decided from the roster's lines in OnFriendsRoster, so
+    /// it plays with the widget hidden.
+    /// </summary>
     public event Action<IReadOnlyList<FeedLine>>? Posted;
 
     public void Post(FeedLine line) => Post(new[] { line });

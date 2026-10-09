@@ -14,6 +14,7 @@
 #
 # Usage (Windows PowerShell 5.1):   .\preview-area-map.ps1 [-Out docs\area-map.jpg] [-Hex] [-FullSize]
 #   A .jpg is written at half size (small enough for the README) unless -FullSize; a .png is full size.
+#   -FullSize, -Title and -Hex are for a one-off picture, such as a Discord post.
 param(
     [string]$Out = "$PSScriptRoot\..\..\docs\area-map.jpg",
     [string]$Map = "$PSScriptRoot\..\..\Assets\map.png",

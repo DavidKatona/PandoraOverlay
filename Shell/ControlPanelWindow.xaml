@@ -74,6 +74,8 @@
             <!-- One row, grouped by widget: a caption over each widget's own
                  controls, so labels stay short and a new widget adds a group
                  instead of more loose buttons. -->
+            <!-- ONE row is the owner's call (Sep 2026): a two-row layout was
+                 tried and rejected. -->
             <StackPanel Orientation="Horizontal">
                 <Button Content="Settings…" Click="Settings_Click"
                         Style="{StaticResource PanelButton}"

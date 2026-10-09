@@ -142,6 +142,13 @@ public partial class MinimapWindow : OverlayWindowBase
         UpdateAreaPill();
     }
 
+    /// <summary>
+    /// Edit-mode drag. A left click that closes an open map menu reaches this
+    /// too (or the drag of whichever widget was clicked), so the snap guides
+    /// flash and a moving hand can nudge the widget a pixel. Known and
+    /// accepted (owner's call): a flag swallowing that press was designed and
+    /// declined — don't add it unasked.
+    /// </summary>
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);
 
     private void Window_MouseWheel(object sender, MouseWheelEventArgs e)
@@ -171,7 +178,7 @@ public partial class MinimapWindow : OverlayWindowBase
         UpdateWaypointVisual(Map.MapOffset.X, Map.MapOffset.Y, glide: null);
     }
 
-    /// <summary>Its own scale, like every widget (v1.25 — it was sized in pixels before; OverlayConfig.Load migrates that).</summary>
+    /// <summary>Its own scale, like every widget (v1.25 — it was sized in pixels before; the old "MinimapSize" key is ignored since Oct 6 2026).</summary>
     protected override double AppearanceScale(OverlayConfig config) => config.MinimapScale;
 
     /// <summary>Re-reads view mode, zoom, scale, waypoint policy and appearance from config after the settings dialog saves.</summary>

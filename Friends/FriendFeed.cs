@@ -160,6 +160,7 @@ public sealed class FriendFeed
     private FeedLine SpawnLine(string id, string name, FriendState c, DateTime now, Func<double, double, string?>? areaAt)
     {
         // Where: only for a friend the site lets us place (in game, location shared), and only a named area.
+        // It goes last in the line, so on a long name it is what the slot's ellipsis cuts.
         var where = areaAt is not null && c.OnMap && areaAt(c.X!.Value, c.Y!.Value) is { } area ? $" · {area}" : "";
 
         // Same species, lower growth than the last time we saw them alive:
@@ -174,6 +175,9 @@ public sealed class FriendFeed
 
     private double? Proximity(string id, FriendState c, PlayerState? me)
     {
+        // HideLocation is the friend's consent, given on the site: their
+        // coordinates, should any arrive, are never used — not even for a
+        // distance that names no spot.
         if (me is null || c.X is not { } x || c.Y is not { } y || c.HideLocation)
         {
             return null;
@@ -199,6 +203,8 @@ public sealed class FriendFeed
 
     private static string LeftLine(List<string> names)
     {
+        // Neutral on purpose: a logout, a server restart and a death look the
+        // same from outside, so the line never says which.
         return names.Count switch
         {
             1 => $"{names[0]} is no longer in game",

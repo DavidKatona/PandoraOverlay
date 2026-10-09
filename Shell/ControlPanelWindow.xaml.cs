@@ -11,6 +11,10 @@ namespace PandoraOverlay;
 /// and snapping like every overlay window, but never a snap TARGET (transient
 /// chrome), and permanently interactive while visible. First show defaults to
 /// bottom-center; the position persists via config.
+/// What belongs here: arranging the HUD right now, one widget's controls per
+/// captioned group. A preference set once goes to Settings; a lifeline that
+/// must work while locked goes to the tray; a mid-game action used often
+/// earns a hotkey. Being unreachable while locked is fine for this panel.
 /// </summary>
 public partial class ControlPanelWindow : OverlayWindowBase
 {

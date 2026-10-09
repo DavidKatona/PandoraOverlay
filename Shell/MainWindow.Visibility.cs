@@ -26,7 +26,9 @@ public partial class MainWindow
 
     // ---- Widget visibility -------------------------------------------------
 
-    /// <summary>Control panel / tray: hides or shows the stats panel itself — the app keeps running via tray + hotkeys.</summary>
+    /// <summary>Control panel: hides or shows the stats panel itself — the app keeps running via tray + hotkeys.</summary>
+    // Hide, never Close: the global hotkeys are registered on this window's
+    // hwnd, and its Closed handler shuts the whole overlay down.
     private void ToggleStats()
     {
         _config.StatsEnabled = !_config.StatsEnabled;
@@ -149,9 +151,11 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Control panel / tray: the ONLY trigger for a prime check — user-clicked,
-    /// never timed (the endpoint is approved on that condition). Asking for a
-    /// check implies wanting to see the answer, so the widget is shown first.
+    /// The control panel's Check and the Check Prime hotkey (the tray's entry
+    /// gave way to the hotkey): the ONLY trigger for a prime check —
+    /// user-triggered, never timed (the endpoint is approved on that
+    /// condition). Asking for a check implies wanting to see the answer, so
+    /// the widget is shown first.
     /// </summary>
     private void CheckPrime()
     {
@@ -162,7 +166,7 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Hide-all hotkey / tray: hides both windows for screenshots or cutscenes.
+    /// Hide-all hotkey / tray: hides all four widgets for screenshots or cutscenes.
     /// Polling continues (the state stays warm); hidden is never persisted —
     /// the app always starts visible.
     /// </summary>
@@ -179,7 +183,7 @@ public partial class MainWindow
         }
         if (_autoHidden)
         {
-            RevealAutoHidden(); // the user wants it back: show, and stay shown until the next spawn
+            RevealAutoHidden(); // the user wants it back: show it with a fresh grace (UpdateAutoHide hides it again if still not in game when that runs out)
             return;
         }
         if (!_overlayHidden)

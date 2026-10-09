@@ -24,6 +24,7 @@ public sealed record SignInOutcome(string CookieHeader, string UserAgent, Accoun
 /// shows the real host, since the password is typed into a window that is
 /// ours. Nothing in here logs, shows or keeps the cookie's value. Rehearsed
 /// as a spike Oct 7 2026 (see PLAN.md in the design folder).
+/// The design folder: Desktop\Pandora Overlay Files\pandora-webview-sign-in.
 /// </summary>
 public partial class SignInWindow : Window
 {
@@ -151,8 +152,16 @@ public partial class SignInWindow : Window
     /// <summary>
     /// The site has signed the browser in: read ITS cookies (the HttpOnly
     /// session cookie included — this is the browser's own jar, not page
-    /// script), confirm the session with one auth/me through the same
-    /// client the overlay polls with, and show the result.
+    /// script), confirm the session with one auth/me through a throwaway
+    /// PandoraClient (the class the overlay polls with, not the poll's own
+    /// client), and show the result.
+    /// The header and its renewed form are the session itself: they go only
+    /// into <see cref="Outcome"/> and from there into the encrypted vault
+    /// (OverlayConfig.ApplySignIn) — never into a log, an exception message
+    /// or this window's text; the failure reasons name an exception's type at
+    /// most. The WebView's user agent goes with them as the identity the
+    /// session was issued to (the spike found the site takes the session
+    /// with it and with the old configured one alike).
     /// </summary>
     private async Task CaptureAsync()
     {
@@ -249,6 +258,12 @@ public partial class SignInWindow : Window
         StartAutoClose();
     }
 
+    /// <summary>
+    /// Signed in, but no Steam account is linked: explained here rather than
+    /// walked through the site's pages (owner, Oct 7 2026) — linking is the
+    /// website's job, checked in game, and no site page renders in this
+    /// window. The LinkID is shown for the player to type; it is never logged.
+    /// </summary>
     private void ShowNoSteam(AccountInfo account)
     {
         ShowResult(Warn, "", $"Signed in as {account.Username ?? "your account"}",
@@ -381,6 +396,7 @@ public partial class SignInWindow : Window
 
     private void GetRuntime_Click(object sender, RoutedEventArgs e) => OpenInBrowser(RuntimeDownloadUrl);
 
+    /// <summary>Hands the address to the player's default browser (shell execute): it starts the browser and looks at no running process.</summary>
     private static void OpenInBrowser(string url)
     {
         try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }

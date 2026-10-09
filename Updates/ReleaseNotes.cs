@@ -17,6 +17,9 @@ public sealed record NoteSection(string Title, IReadOnlyList<string> Items);
 /// "### Added" starts a group, "- " starts a bullet, an indented line
 /// continues it; backtick and bold markers are dropped and a markdown link
 /// keeps its words. Pure and tolerant: nothing here throws.
+/// So the CHANGELOG is player-facing text: a version's section is what players
+/// read on the card and as the GitHub release text — written for them, not
+/// for the code.
 /// </summary>
 public static partial class ReleaseNotes
 {

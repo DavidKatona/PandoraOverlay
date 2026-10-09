@@ -28,6 +28,11 @@ public partial class MainWindow
     // Tried in order when a late-added key's combo collides with one the
     // user already gave another action; always one more candidate than
     // takers, so one is always free.
+    // Every candidate stays clear of the game's F2 (recording) and F10 (hide
+    // HUD) — a raw-input game can react to the bare key despite Ctrl — and
+    // of Ctrl+F3, which proved held globally by third-party software in the
+    // wild (see OverlayConfig.Hotkey for the defaults). A new key adds its
+    // own list here, one longer than the last.
     private static readonly HotkeySpec[] HeatmapHotkeyCandidates =
     {
         new(ModifierKeys.Control, Key.F6),
@@ -57,6 +62,9 @@ public partial class MainWindow
     };
 
     // The big-map key (the big map plan, phase 3) is the seventh: six possible takers, seven candidates.
+    // Ctrl+M is the first letter key among the defaults, safe only because a
+    // bare M does nothing in The Isle (the owner checked in game, Oct 9 2026);
+    // any other letter needs the same check first.
     private static readonly HotkeySpec[] BigMapHotkeyCandidates =
     {
         new(ModifierKeys.Control, Key.M),
@@ -109,6 +117,8 @@ public partial class MainWindow
     /// and is written back. (The settings dialog rejects duplicates at
     /// capture time, so this only matters for that upgrade case and
     /// hand-edited configs.)
+    /// The stats-view and big-map keys arrived the same way and go through
+    /// here too; the first three keys never needed it.
     /// </summary>
     private static HotkeySpec ResolveLateHotkey(string configured, HotkeySpec[] candidates, HotkeySpec[] taken, Action<string> writeBack)
     {

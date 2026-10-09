@@ -24,6 +24,9 @@ public partial class SettingsWindow
     /// where it was stored, "Waypoint here", Rename… and Delete… on the
     /// right. The actions sit under the map, not under the mutations: the
     /// left column is the long one, and there an open card outgrew the list.
+    /// Measured in off-screen renders (Oct 8 2026): under the mutations an
+    /// open card was ~30 px taller than the list and the actions fell below
+    /// the fold.
     /// </summary>
     private FrameworkElement BuildStorageDetail(StorageCard card)
     {
@@ -184,6 +187,8 @@ public partial class SettingsWindow
     /// in game, your own arrow; under it the area there and how far it is
     /// from you; then "Waypoint here". All local: the bundled map, the
     /// bundled area map, your last position from the poll.
+    /// Beyond the website's page: this and "Waypoint here" were the owner's
+    /// picks (Oct 8 2026), as was Delete in the first version.
     /// </summary>
     private StackPanel BuildStoredAt(StoredDino d)
     {

@@ -19,6 +19,16 @@ namespace PandoraOverlay;
 /// read even after Cancel: a sign-in acts at once). First run: Save stays
 /// disabled until signed in.
 /// </summary>
+/// <remarks>
+/// Opening cost, measured Oct 2026 with the overlay's windows up (idle PC,
+/// off-screen): ~80 ms a normal opening, ~200 ms the first per launch —
+/// ~60 ms reading the dialog's BAML once, ~55 ms the first layout (control
+/// templates, six framework assemblies), only ~27 ms of it JIT, so
+/// ReadyToRun would barely help. A hidden warm-up (build and lay the dialog
+/// out off-screen once after launch, ~180 ms) would bring the first opening
+/// to ~90 ms; the owner chose NOT to build it ("we can live with this") —
+/// don't re-propose it unasked.
+/// </remarks>
 public partial class SettingsWindow : Window
 {
     private const int TestHotkeyId = 0xA11D; // distinct from MainWindow's real registration
@@ -69,6 +79,7 @@ public partial class SettingsWindow : Window
     public bool MinimapChanged { get; private set; }
 
     /// <summary>True after Save when a scale, the background opacity or the time-left checkbox differ (ApplyAppearance needed).</summary>
+    /// <remarks>The fade row rides it too. The minimap's scale does not: it rides MinimapChanged.</remarks>
     public bool AppearanceChanged { get; private set; }
 
     /// <summary>True after Save when the minimap's friend layer, a friend's preferences or the tracked friend differ.</summary>
@@ -119,9 +130,14 @@ public partial class SettingsWindow : Window
 
         // Safety net for small screens: the sections scroll rather than the
         // dialog running off the bottom (SizeToContent honours MaxHeight).
+        // The title and the Cancel / Save row are docked outside the page
+        // ScrollViewer, so a page scrolls and the buttons are never lost.
         MaxHeight = SystemParameters.WorkArea.Height * 0.92;
 
         // Controls
+        // A new global hotkey needs its box here, its line in Save, and its
+        // Unregister in MainWindow.OpenSettingsOn — unsuspended, it would fire
+        // behind this dialog and its own combo would probe as taken.
         _hotkeyEntries[EditHotkeyBox] = new HotkeyEntry(
             HotkeySpec.TryParse(config.Hotkey) ?? HotkeySpec.Default, "edit mode");
         _hotkeyEntries[HideHotkeyBox] = new HotkeyEntry(
@@ -222,6 +238,13 @@ public partial class SettingsWindow : Window
         // Pages whose content is built in code build it on the first look:
         // hidden pages are still laid out, so anything built up front is
         // paid for on every opening of the dialog, whichever page shows.
+        // The RULE for every page (the owner reported slow openings twice,
+        // Oct 1 2026): build on the first look, here; a long list goes in
+        // batches — the first screenful at once, the rest per Background
+        // tick, a version counter letting a newer build stop an older one
+        // (AddWaypointRowBatch, the skin tiles). The one exception: what
+        // sets a page's HEIGHT stays eager, since the tallest page sets the
+        // dialog's (PrepareRulesPage).
         switch (key)
         {
             case "Account": OpenAccountPage(); break; // one auth/me per dialog, for the card's live facts
@@ -297,6 +320,8 @@ public partial class SettingsWindow : Window
 
         // MainWindow suspends its registrations while this dialog is open,
         // so our own combos probe as free like any other.
+        // It re-registers from config in a finally when the dialog closes,
+        // saved or cancelled.
         if (!IsHotkeyAvailable(spec))
         {
             HotkeyHint.Text = $"{spec} is taken by another app — keeping {entry.Chosen}.";
@@ -355,6 +380,10 @@ public partial class SettingsWindow : Window
     }
 
     // ---- Save ---------------------------------------------------------------
+    // No setting ever needs a restart: each one either sets a *Changed flag
+    // MainWindow hot-applies after the dialog (re-register hotkeys, minimap
+    // ApplySettings, ApplyAppearance, …) or is read live by MainWindow. A new
+    // setting joins one of the two.
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         // The session is not Save's business: signing in and out acted at once (SettingsWindow.Account.cs).

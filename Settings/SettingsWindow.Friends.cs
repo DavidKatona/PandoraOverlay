@@ -14,6 +14,10 @@ namespace PandoraOverlay;
 /// preferences, Cancel drops them. The roster's own facts (who is a friend,
 /// in game now, last seen) are read-only here — they are the site's. Same
 /// class as SettingsWindow.xaml.cs, split for reading; see CLAUDE.md.
+/// The page also holds the friend-spawn chime (FriendsChimeEnabled, in the
+/// XAML, read live by MainWindow): a friends alert is not an Activity
+/// widget option, so it sits here, not on the Activity page (owner, Sep 28
+/// 2026).
 /// </summary>
 public partial class SettingsWindow
 {

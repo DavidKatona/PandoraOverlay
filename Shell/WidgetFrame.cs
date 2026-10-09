@@ -9,6 +9,11 @@ namespace PandoraOverlay;
 /// never changes size" rule is structural, not a discipline, and twin
 /// widgets line up in the two-column default layout. Per-widget scale
 /// sliders multiply the frame as a whole. Outer sizes, border included.
+/// Changing a number here resizes every player's widget on update. That
+/// happened ONCE, when the frames were introduced (Sep 29 2026: Prime wider
+/// and taller, Activity wider, stats taller by the fracture row, the minimap
+/// rounded to a percent), accepted by the owner as a one-time exception to
+/// "an update never resizes a widget" — never again.
 /// </summary>
 public static class WidgetFrame
 {

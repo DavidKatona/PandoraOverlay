@@ -18,6 +18,11 @@ namespace PandoraOverlay;
 /// that for its own rendering and the owner saw the game go pitch black
 /// (Oct 9 2026). It never takes focus (the map keeps it); a click on it —
 /// outside the map — asks for the map to close.
+/// The pitch-black build got past the spike because its brightness check
+/// ran over a dark screen and could not tell 70% from 100% black: check a
+/// dim over a mid-grey screen (there the broken build read 0 of 128, this
+/// one 38). Cost: 2–5% of one core in the spike, plus about 10% of one
+/// core of the compositor while the map is open.
 /// </summary>
 internal sealed class ScrimWindow : Window
 {

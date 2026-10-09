@@ -4,11 +4,13 @@ using System.Windows.Input;
 namespace PandoraOverlay;
 
 /// <summary>
-/// The global edit-mode hotkey: converts between the config string
-/// ("Ctrl+F7") and what Win32 RegisterHotKey wants. WPF's ModifierKeys flag
-/// values equal the Win32 MOD_* flags, so the cast is direct. Also hosts the
-/// RegisterHotKey/UnregisterHotKey p/invokes shared by MainWindow (the real
-/// registration) and SettingsWindow (the availability test during capture).
+/// One global hotkey, any of the seven (edit mode, hide-all, minimap view,
+/// heatmap, Check Prime, stats view, big map): converts between the config
+/// string ("Ctrl+F7") and what Win32 RegisterHotKey wants. WPF's ModifierKeys
+/// flag values equal the Win32 MOD_* flags, so the cast is direct. Also hosts
+/// the RegisterHotKey/UnregisterHotKey p/invokes shared by MainWindow (the
+/// real registration) and SettingsWindow (the availability test during
+/// capture). Default is edit mode's.
 /// </summary>
 public sealed record HotkeySpec(ModifierKeys Modifiers, Key Key)
 {
@@ -25,6 +27,12 @@ public sealed record HotkeySpec(ModifierKeys Modifiers, Key Key)
     [DllImport("user32.dll")]
     private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
+    /// <summary>
+    /// False when the combo is already registered — by another app, or by one
+    /// of our own hotkeys (why MainWindow moves a late-added default off a
+    /// combo the user gave another key). Callers surface a failure, never
+    /// swallow it.
+    /// </summary>
     public static bool Register(IntPtr hwnd, int id, HotkeySpec spec) =>
         RegisterHotKey(hwnd, id, (uint)spec.Modifiers | MOD_NOREPEAT, (uint)KeyInterop.VirtualKeyFromKey(spec.Key));
 

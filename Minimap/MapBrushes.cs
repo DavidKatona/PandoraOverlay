@@ -3,6 +3,7 @@ using System.Windows.Media;
 namespace PandoraOverlay;
 
 /// <summary>The maps' shared brushes: the waypoint palette, frozen once for every map, the menus and the footers.</summary>
+/// <remarks>The Settings Waypoints page and the Activity widget still build their own copies of the palette; moving them here was left for later.</remarks>
 public static class MapBrushes
 {
     public static readonly Brush[] Palette = WaypointPalette.Colours

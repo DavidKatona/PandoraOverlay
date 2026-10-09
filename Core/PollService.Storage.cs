@@ -28,6 +28,10 @@ public sealed partial class PollService
     /// The storage for the page: one request per call, but never two at
     /// once (a call while one is out answers with the session's copy). A
     /// failure keeps the last good copy and names the problem.
+    /// No floor and no reuse, unlike the skins list's 10 minutes: the storage
+    /// changes with play. A first build floored list requests at 30 s; the
+    /// owner dropped that (Oct 8 2026) for asking on every opening, as the
+    /// website does — don't bring a floor back without asking.
     /// </summary>
     public async Task<StorageListResult> GetStorageAsync()
     {
@@ -77,7 +81,10 @@ public sealed partial class PollService
     /// The shared gate of the two writes: one at a time with a short
     /// breather after each, and none while the session is known to be over
     /// (answered locally, nothing sent). A success updates the session's
-    /// copy, so a page reopened within the floor shows the change.
+    /// copy, which is what the page falls back to while a reload is out or
+    /// when one fails, so the change shows either way. Unlike a skin apply,
+    /// neither write raises an event or posts an Activity line: a rename or a
+    /// delete is a chore, not gameplay.
     /// </summary>
     private async Task<StorageEditResult> EditStorageAsync(StoredDino dino, Func<Task<StorageEditResult>> send, bool deletes)
     {

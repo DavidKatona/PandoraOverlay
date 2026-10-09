@@ -46,10 +46,23 @@ public sealed record AreaLegend(string Source, string CopiedOn, IReadOnlyList<Ar
 /// as the arrow (MapCalibration.ToFraction), the pixel there names the
 /// area. Purely local — your own position and a bundled image, no request.
 /// The NAMES are VulnonaMAP's Gateway labels; the BORDERS are the
-/// overlay's own (tools/area-map computes them from the 26 label points —
+/// overlay's own (tools/area-map computes them from the label points —
 /// no source has borders, and none are drawn on the map), so they are a
 /// judgement, not a fact, and are meant to be corrected by painting over
 /// Assets/areas.png. Pure and tested; decoding the PNG is AreaMapAsset's job.
+/// An image, not polygons, so that corrections CAN be painted (the legend's
+/// exact colours, hard edges, PNG). Never shown as it is: the border layer
+/// is lines traced from it (AreaBorders). Our own asset, NOT the site's
+/// zone-overlay images (those are not cleared for use).
+/// MAP-AGNOSTIC (owner's rule, Oct 2 2026): nothing here, in the generator
+/// or in the tests names an area, treats one differently, or counts on this
+/// island (how many areas, the picture's size, how much land) — a new map
+/// is new input files and a generator run.
+/// HEIGHT IS IGNORED: a cave under a meadow reads as the meadow. Dropped,
+/// not deferred (owner, Oct 2 2026: the game's caves are few and small).
+/// Were it ever wanted, a second layer with a ceiling height per cave would
+/// be the route; packing heights into the alpha channel was dismissed (no
+/// height data, and alpha is awkward to paint).
 /// </summary>
 public sealed class AreaMap
 {

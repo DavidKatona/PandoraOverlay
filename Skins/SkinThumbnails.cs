@@ -10,8 +10,8 @@ namespace PandoraOverlay;
 /// downloaded ONCE instead of once per session. The site serves them at full
 /// size — close to 5 MB apiece, some ninety of them — while a tile shows 124
 /// px: the picture is decoded straight down to a 320 px thumbnail, saved as
-/// a JPEG of a few dozen KB under cache/skins next to the app, and the
-/// download is dropped. A copy is trusted for 30 days, then fetched afresh
+/// a JPEG of a few dozen KB under cache\skins in the data folder (see
+/// DefaultFolder), and the download is dropped. A copy is trusted for 30 days, then fetched afresh
 /// — or sooner, when the page's "Reload pictures" clears the folder.
 /// Derived data only: deleting the folder costs nothing but the downloads.
 /// Fail-soft like everything on disk here — nothing in this class throws.
@@ -23,6 +23,7 @@ public static class SkinThumbnails
 
     public static readonly TimeSpan KeepFor = TimeSpan.FromDays(30);
 
+    /// <summary>cache\skins in the data folder (DataFolder), like the user's files — not beside the exe, whose folder an update replaces.</summary>
     public static string DefaultFolder { get; } = Path.Combine(DataFolder.Path, DataFolder.Cache, "skins");
 
     /// <summary>The cache file for an address: a hash, so no part of a URL ever becomes a path.</summary>

@@ -19,6 +19,8 @@ public static class SignInPolicy
     /// <summary>The website's own "Log in with Discord" link.</summary>
     public const string StartUrl = "https://islapandora.eu/auth/discord";
 
+    // Seen in the spike (Oct 7 2026): connect.sid is the only cookie the site
+    // sets — HttpOnly, valid 30 days — and no cf_clearance was issued at all.
     /// <summary>The site's session cookie, then the Cloudflare one if the site ever issues it; nothing else is kept.</summary>
     private static readonly string[] SessionCookies = { "connect.sid", "cf_clearance" };
 
@@ -67,6 +69,8 @@ public static class SignInPolicy
     /// for the site: connect.sid (and cf_clearance if present), in that
     /// order, nothing else. Empty when there is no session cookie — the
     /// sign-in did not happen.
+    /// The result is a credential: it goes to the encrypted vault only,
+    /// never to a log, a message or the screen.
     /// </summary>
     public static string CookieHeader(IEnumerable<KeyValuePair<string, string>> cookies)
     {

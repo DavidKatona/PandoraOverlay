@@ -18,7 +18,7 @@ namespace PandoraOverlay;
 public partial class MapCanvas
 {
     private const double DotSize = 6;            // an untracked waypoint
-    private const double DiamondRadius = 5;      // the tracked one (10 px, like the v1.20 slots)
+    private const double DiamondRadius = 5;      // the tracked one (10 px, like the v1.20 slots; 14 px crowded the arrow, owner's call)
     private const double RingSize = 16;          // the ring around a tracked waypoint or friend
     private const double EdgeMargin = 8;         // inset of a tracked marker's off-panel indicator
     private const string FriendArrowGeometry = "M 0,-6 L 4.5,5 L 0,2.5 L -4.5,5 Z"; // your arrow at three quarters: you stay the anchor

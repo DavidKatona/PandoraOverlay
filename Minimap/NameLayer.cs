@@ -16,6 +16,10 @@ namespace PandoraOverlay;
 /// DrawText runs the text formatter again. The outline is the same text
 /// eight times one device pixel around, in near-black, under the light
 /// text: crisp, never a blur (a blurred shadow was "blurry and hard to read").
+/// Now a zoom step costs 4–6 ms, the same as with names off (measured
+/// off-screen on the owner's CPU). Don't go back to an element per name or
+/// to DrawText per step, and don't bring a blur effect such as a
+/// DropShadowEffect back (owner, Oct 9 2026).
 /// </summary>
 public sealed class NameLayer : FrameworkElement
 {

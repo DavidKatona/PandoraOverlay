@@ -1,7 +1,7 @@
 namespace PandoraOverlay;
 
 /// <summary>
-/// The minimap's breadcrumb trail: the player's recent path in world
+/// The breadcrumb trail both maps draw (MainWindow owns the one instance): the player's recent path in world
 /// coordinates (cm), fed from the poll stream — zero extra requests. Points
 /// expire by age, standing still adds nothing, and the trail belongs to one
 /// life: a death/dino swap clears it, and so does a jump no dino could have

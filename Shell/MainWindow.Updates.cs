@@ -17,6 +17,8 @@ public sealed record UpdateHooks(string Version, string Flavour, bool CanUpdate,
 /// Since 1.32 the launch also brings the update card (UpdateCardWindow,
 /// rules in UpdateCardPolicy): "updated" once after a version change, and
 /// "update available" once per version, with its notes and the same install.
+/// Nothing of it goes to the Activity feed (owner, Oct 8 2026: the feed stays
+/// free of chores).
 /// </summary>
 public partial class MainWindow
 {
@@ -36,7 +38,11 @@ public partial class MainWindow
         if (!_config.UpdateCheckEnabled) return;
         if (await CheckForUpdateNowAsync() is not { } version) return;
         OfferUpdate(version);
+        // The card only where this copy can install it; a plain folder (today
+        // only a build from the IDE) keeps the tray notice alone.
         if (!_updater.CanUpdate || !UpdateCardPolicy.ShowAvailable(version, _config.UpdateCardShownFor, firstRun, updatedShown)) return;
+        // The settings folder survives an uninstall, so a reinstall of the same
+        // version does not bring the card back; clear UpdateCardShownFor by hand to test it.
         _config.UpdateCardShownFor = UpdateCardPolicy.Bare(version); // once per version, whatever the button
         _config.Save();
         UpdateCardWindow.Available(UpdateCardPolicy.Bare(version), UpdateCardPolicy.Bare(_updater.CurrentVersion), _updater.PendingNotes, ApplyUpdateAsync).Show();
@@ -110,6 +116,7 @@ public partial class MainWindow
             else OpenReleasesPage();
         });
 
+    /// <summary>Hands the address to the default browser (shell execute) — it starts the browser and looks at no running process.</summary>
     private static void OpenReleasesPage()
     {
         try { Process.Start(new ProcessStartInfo(UpdateChecker.ReleasesPage) { UseShellExecute = true }); }

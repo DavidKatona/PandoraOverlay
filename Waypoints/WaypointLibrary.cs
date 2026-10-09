@@ -26,13 +26,16 @@ public sealed class Waypoint
 }
 
 /// <summary>
-/// Twelve marker colours, chosen to stay tellable on a 230 px map (owner's
-/// call, Sep 2026). The first three are the v1.20 slot colours, so the
+/// Twelve marker colours, chosen to stay tellable on the minimap's small map
+/// (230 px then, 284 px since v1.25; owner's call, Sep 2026). The first three are the v1.20 slot colours, so the
 /// migrated slots keep their look. WPF-free: hex strings, brushes are made
 /// where they are drawn.
 /// </summary>
 public static class WaypointPalette
 {
+    // Colours are stored BY INDEX (waypoints.json, a friend's colour override
+    // in friends.json) and FriendColour skips orange (3) and white (10) by
+    // index — so append, never reorder or remove, or saved colours change.
     public static readonly (string Name, string Hex)[] Colours =
     {
         ("blue", "#4FC3F7"), ("green", "#81C784"), ("purple", "#CE93D8"), ("orange", "#FFB74D"),
@@ -53,11 +56,16 @@ public static class WaypointPalette
 /// Every mutation validates (bounds, name, colour, capacity) and raises
 /// Changed; the owner (MainWindow) saves on Changed, the minimap redraws.
 /// Session state such as which waypoint is tracked lives in config, not
-/// here. Fail-soft like OverlayConfig: nothing in this class throws.
+/// here. Fail-soft like OverlayConfig: nothing in this class throws, except the
+/// internal FromJson on text that isn't JSON (both callers guard it).
+/// The draw policy is config too (config.WaypointVisibility: all / tracked
+/// only / nearest 10): which entries the minimap draws is not the library's.
 /// </summary>
 public sealed class WaypointLibrary
 {
+    // 256, one byte's worth: the owner's call.
     public const int Capacity = 256;
+    // The Settings NameBox's MaxLength matches (it serves FriendBook.MaxNicknameLength too).
     public const int MaxNameLength = 32;
     private const double MaxMeters = 50_000; // the island spans ~12.5 km; matches ShareCode
 
@@ -103,6 +111,9 @@ public sealed class WaypointLibrary
     }
 
     /// <summary>Parses a library file, dropping anything invalid — the same gate an import will use.</summary>
+    // Unlike FriendBook.FromJson this THROWS on text that isn't JSON at all;
+    // both callers guard it (Load's catch, and WaypointPacks.Parse
+    // deserializes the same text first and returns null on failure).
     internal static WaypointLibrary FromJson(string json)
     {
         var library = new WaypointLibrary();

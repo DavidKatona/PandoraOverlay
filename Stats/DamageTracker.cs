@@ -11,6 +11,12 @@ namespace PandoraOverlay;
 ///
 /// It is a readout, not a combat log: one reading per poll, so a hit that
 /// lands and regenerates inside a single poll interval is undercounted.
+/// Nor can it tell WHO hit you — the API carries no such data — so
+/// player-facing text must claim neither that nor that every hit is caught.
+///
+/// Its threshold is its own on purpose: the fade's damage cue
+/// (StatsAttention) and the feed's "Took damage" line (SelfActivity) keep
+/// theirs, each set for its own job — don't merge them into one.
 /// </summary>
 public sealed class DamageTracker
 {

@@ -16,6 +16,9 @@ namespace PandoraOverlay;
 /// live in PollService.Skins.cs, the Dino storage requests (1.33, likewise)
 /// in PollService.Storage.cs, the map calibration (its seed and retry) in
 /// PollService.Calibration.cs.
+/// The heatmap's one pacing rule (never two fetches less than a minute
+/// apart, whatever asks for one) and the big map's wider gates live in
+/// PollService.Maps.cs.
 /// </summary>
 public sealed partial class PollService : IDisposable
 {
@@ -60,9 +63,11 @@ public sealed partial class PollService : IDisposable
     /// The friends roster rides every Nth in-game poll (every 2nd at the
     /// default 3 s = 6 s, under the live-map page's own 5 s) and every idle
     /// poll (15 s / 60 s — friends matter while you sit in the menu). It is
-    /// only ever fetched right after a successful mylocation poll, so it
-    /// can never outrun constraint #3, and only while a friends surface is
-    /// shown (see FriendsWanted).
+    /// fetched right after a successful mylocation poll — the one exception
+    /// being RefreshFriendsAsync's hot path between polls, which needs the
+    /// last poll to have succeeded and the last roster to be at least one
+    /// poll interval old — so it can never outrun constraint #3, and only
+    /// while a friends surface is shown (see FriendsWanted).
     /// </summary>
     private const int FriendsEveryNthPoll = 2;
 
@@ -82,6 +87,8 @@ public sealed partial class PollService : IDisposable
     private readonly DispatcherTimer _heatmapTimer;
     private readonly TimeSpan _activeInterval;
     private PandoraClient _client;
+    // One request of the poll stream at a time: the poll with its friends and
+    // calibration follow-ups, or a hot friends fetch (RefreshFriendsAsync).
     private bool _busy;
     private bool _heatmapBusy;
     private bool _primeBusy;
@@ -173,6 +180,12 @@ public sealed partial class PollService : IDisposable
         _heatmapTimer.Tick += async (_, _) => await RefreshHeatmapAsync();
     }
 
+    /// <summary>
+    /// Starts the timers and polls at once — for launch and a new session
+    /// (RebuildClient) only. This poll is not floored and a running timer is
+    /// not re-armed, so it is no refresh path: an on-demand poll goes through
+    /// PollNowAsync behind PollIsStale.
+    /// </summary>
     public void Start()
     {
         if (!_timer.IsEnabled) _timer.Start();
@@ -334,6 +347,8 @@ public sealed partial class PollService : IDisposable
         // Not yet polling (startup, no cookie), mid-poll, too soon, or the
         // connection is failing: the next successful poll picks the flag up.
         if (!_timer.IsEnabled || _busy || DateTime.UtcNow - _lastFriendsUtc < _activeInterval || _failStreak > 0) return;
+        // The one friends fetch that does not ride a poll. It takes the poll's
+        // busy guard, so a tick landing meanwhile is skipped, not stacked on it.
         _busy = true;
         try
         {
@@ -378,6 +393,8 @@ public sealed partial class PollService : IDisposable
     /// User activity (edit mode, un-hiding the overlay) hints that the game
     /// may be up again: while idling, poll now rather than up to a minute
     /// late. Never faster than the configured cadence, however often called.
+    /// The Skins page calls it on opening too: an apply wants a fresh in-game
+    /// state.
     /// </summary>
     public void Nudge()
     {
@@ -409,6 +426,9 @@ public sealed partial class PollService : IDisposable
     /// <summary>An off-schedule poll: re-arms the timer first, so the next tick can't land right behind it.</summary>
     private Task PollNowAsync()
     {
+        // Every caller checks PollIsStale first (Nudge, the Check Prime and
+        // skin-apply clicks), so an off-schedule poll is floored at the
+        // configured interval: nothing polls faster, however often asked.
         if (_timer.IsEnabled)
         {
             _timer.Stop();
@@ -452,6 +472,8 @@ public sealed partial class PollService : IDisposable
                 return;
             }
 
+            // config.Prime still holds the previous result here — consumers
+            // snapshot it to diff against — and is replaced before PrimeChecked.
             PrimeCheckStarted?.Invoke();
             var result = await _client.CheckPrimeAsync(_dino);
             switch (result.Outcome)
@@ -474,6 +496,8 @@ public sealed partial class PollService : IDisposable
         catch (Exception ex)
         {
             PrimeCooldownUntilUtc = DateTime.UtcNow + PrimeRetryGuard;
+            // The type's name only, never the message: the reason reaches the
+            // widget, and error paths surface nothing that could carry request details.
             PrimeChecked?.Invoke(new PrimeCheckResult(PrimeCheckOutcome.Failed, Reason: ex.GetType().Name));
         }
         finally

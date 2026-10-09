@@ -84,6 +84,7 @@ public static class PatreonSkins
     /// <summary>
     /// {success, skins:[...]} → the list; entries without an id or a name are
     /// dropped, a missing list reads as empty, anything else as null (a miss).
+    /// A skin's "sv" number is left unread on purpose: nobody knows what it means.
     /// </summary>
     public static IReadOnlyList<PatreonSkin>? ParseList(JsonElement root)
     {
@@ -120,6 +121,9 @@ public static class PatreonSkins
         }
         if (IsTruthy(root, "success")) return new SkinApplyResult(SkinApplyOutcome.Ok, skinName, pattern);
 
+        // Showing the server's words is a deliberate exception to never echoing
+        // server text: it stays until its refusals are known well enough to be
+        // mapped to our own (a too-early apply names when the next one is allowed).
         var said = Clean(Text(root, "message") ?? Text(root, "error"), MaxMessageLength);
         return new SkinApplyResult(SkinApplyOutcome.Refused, skinName, pattern, said);
     }

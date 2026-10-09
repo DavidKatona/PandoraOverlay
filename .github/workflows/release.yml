@@ -28,6 +28,8 @@ jobs:
       # The steps below only run on version tags (v1.30.0, v1.30.0-rc.1, ...).
       # The tag must match the csproj's <Version>: that is the one source of
       # truth, and the packer stamps the number on the update package.
+      # A pre-release tag needs the csproj set to match, e.g. <Version>1.30.0-rc.1</Version>
+      # (SemVer; the SDK derives the assembly version 1.30.0.0 from it).
       - name: Check the version
         id: version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -52,6 +54,8 @@ jobs:
       # app). They go into the update package, where the overlay's update card
       # reads them, and are the GitHub release text. No notes, no release.
       # (The plain zip was dropped in 1.32: one download each for 1.30 and 1.31.)
+      # Players read these on the card, so a CHANGELOG section is written for
+      # them, not for the code.
       - name: Release notes
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
@@ -84,15 +88,40 @@ jobs:
       # package the overlay's updater reads. The previous release is fetched
       # first so this one also gets a small delta package (there is none to
       # fetch before the first Velopack release, hence continue-on-error).
+      # The packer's version equals the Velopack package in PandoraOverlay.csproj:
+      # bump both together.
       - name: Install Velopack's packer
         if: startsWith(github.ref, 'refs/tags/v')
         run: dotnet tool install -g vpk --version 1.2.161
 
+      # --pre: Velopack's prerelease flag means pre-releases AND full releases,
+      # newest first, so the delta is made against the newest release of either kind.
       - name: Fetch the previous release (for the delta)
         if: startsWith(github.ref, 'refs/tags/v')
         continue-on-error: true
         run: vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} --pre
 
+      # The flags, as learned in the updater trial and the rc rounds (Oct 2026):
+      # --runtime win-x64: vpk defaults to x86.
+      # --packTitle is the name on the shortcuts, in the Start menu and in the
+      #   installed-apps list, AND the name of the zip's launcher ("Pandora
+      #   Overlay.exe", not the main exe). The owner chose the readable name
+      #   (Oct 6 2026) over "PandoraOverlay", which would have replaced the old
+      #   exe when the zip is unpacked over an old folder; the old exe stays
+      #   beside it, and the release text says it can be deleted.
+      # --shortcuts Desktop,StartMenuRoot: the owner wants a Desktop shortcut too.
+      #   Changing the title or the shortcuts is safe for installed copies: an
+      #   update renames or creates them in place.
+      # --framework ...,webview2: Setup.exe fetches the .NET 8 Desktop Runtime
+      #   and the WebView2 Runtime where they are missing.
+      # Not code-signed (owner's call): SignPath Foundation, the free route,
+      #   signs only as a pipeline step, which fits Velopack badly (its helpers
+      #   inside the update package would stay unsigned), and Azure Artifact
+      #   Signing is closed to EU individuals. So SmartScreen asks once for a
+      #   downloaded installer or zip; the in-app updates carry no download mark
+      #   and are never prompted. Seen with Bitdefender, SentinelOne and Defender
+      #   (Windows 10 and 11): that one prompt, no block. Untested: Smart App
+      #   Control, and a PC without .NET 8 or WebView2 (the installer's fetch).
       - name: Pack
         if: startsWith(github.ref, 'refs/tags/v')
         run: >
@@ -112,6 +141,8 @@ jobs:
 
       # A tag with a "-" (v1.30.0-rc.1) is a pre-release: players' overlays
       # ignore it, only a pre-release build offers it.
+      # The body is the notes and "Which file?" only: GitHub's generated commit
+      # list stays off — commit titles are written for the code, not for players.
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2

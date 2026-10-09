@@ -8,6 +8,7 @@ namespace PandoraOverlay;
 /// one: a failure at launch (Start with Windows before the network is up, a
 /// blip) left a fresh install's minimap "waiting for map calibration" for the
 /// whole session, while the heatmap beside it recovered on its own timer.
+/// (A player's report, Oct 8 2026.)
 /// Now (1) a dated seed (Assets/calibration.json) stands in until the first
 /// successful fetch, so the arrow is drawn at once, and (2) a failed fetch is
 /// retried right after a successful mylocation poll — never on a timer of

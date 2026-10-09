@@ -11,6 +11,8 @@ namespace PandoraOverlay;
 /// Only friends the server marks as sharing their location are ever drawn
 /// (FriendState.OnMap) — consent is the server's call. Same class as
 /// MinimapWindow.xaml.cs, split for reading; see CLAUDE.md.
+/// Friends stay drawn while YOU are not in game: their positions are still
+/// true (OnSnapshot's not-in-game path leaves this layer alone).
 /// </summary>
 public partial class MinimapWindow
 {

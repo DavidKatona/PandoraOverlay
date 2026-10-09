@@ -24,6 +24,9 @@ public partial class SettingsWindow
     private Guid? _draftTracked;
     private bool _waypointsDirty;
     private bool _deleteAllArmed;
+    // The Dino storage page's "Waypoint here" also writes the draft and its
+    // tracking (it acts at once, SettingsWindow.StorageDetail.cs) and clears
+    // this, so the rows are rebuilt from the draft on the page's next look.
     private bool _waypointRowsBuilt;
 
     /// <summary>
@@ -47,7 +50,7 @@ public partial class SettingsWindow
 
     /// <summary>
     /// The list, grouped: your own waypoints first, then one group per
-    /// imported pack with its own Show all / Hide all / Delete pack. Each
+    /// imported pack with its own band checkbox (show / hide all) and ✕. Each
     /// row: colour dot (click cycles the palette), name box, Show, Track,
     /// delete.
     /// </summary>
@@ -72,6 +75,9 @@ public partial class SettingsWindow
         // templated controls, and a full rebuild (it happens on every Show
         // all, delete or import too) held the dialog for a third of a second
         // with the five packs in the library.
+        // (Since then Show all and the deletes change the list IN PLACE —
+        // SetGroupVisible, DeleteWaypointRow, DeletePack; only Import, Delete
+        // all and the last delete still come here, as they change its shape.)
         var version = ++_waypointRenderVersion;
         var rows = new Queue<Action>();
         AddGroupCard("Your waypoints", pack: null, rows);
@@ -96,6 +102,8 @@ public partial class SettingsWindow
     /// opening doesn't use the time up. Words in the count line on purpose:
     /// a cover over the list was considered and dropped (owner, Oct 2 2026)
     /// — the first screenful is ready at once, and a cover would hide it.
+    /// Measured: the later batches normally take ~0.1–0.2 s. The skin tiles
+    /// share this notice, where a cover would also flash on every search.
     /// </summary>
     private static readonly TimeSpan BuildNoticeAfter = TimeSpan.FromMilliseconds(300);
 
@@ -145,6 +153,8 @@ public partial class SettingsWindow
     /// zebra-striped rows, so every checkbox, radio and ✕ sits on a visible
     /// strip that runs from its name, and the group's own controls have a
     /// home. Stock white glyphs on bare page were tried first and floated.
+    /// So did loose Show all / Hide all / Delete pack buttons, then bare
+    /// caption rows (owner, Sep 26 2026: the controls "floated").
     /// </summary>
     private void AddGroupCard(string title, string? pack, Queue<Action> rows)
     {
@@ -183,13 +193,6 @@ public partial class SettingsWindow
     }
 
     /// <summary>
-    /// The card's caption band, laid out on the same grid as the rows so its
-    /// controls sit in the columns they govern: a checkbox in the Show
-    /// column (ticked = all shown, empty = none, a square = mixed; a click
-    /// shows all, the next hides all) and, for a pack, a ✕ in the delete
-    /// column. Three loose buttons were tried first and looked bolted on.
-    /// </summary>
-    /// <summary>
     /// Keeps the column labels exactly as wide as the list's content: the
     /// header sits outside the scroll area, so it can't share the layout,
     /// and a guessed scrollbar width was wrong both with and without a bar.
@@ -213,6 +216,13 @@ public partial class SettingsWindow
         return shown == members.Count ? true : shown == 0 ? false : null;
     }
 
+    /// <summary>
+    /// The card's caption band, laid out on the same grid as the rows so its
+    /// controls sit in the columns they govern: a checkbox in the Show
+    /// column (ticked = all shown, empty = none, a square = mixed; a click
+    /// shows all, the next hides all) and, for a pack, a ✕ in the delete
+    /// column. Three loose buttons were tried first and looked bolted on.
+    /// </summary>
     private (Border Band, CheckBox GroupCheck) BuildGroupBand(string text, string? pack, List<Waypoint> members, Border card)
     {
         var row = NewRowGrid();

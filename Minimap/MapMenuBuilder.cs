@@ -16,6 +16,8 @@ public sealed record MapMenuSpot((double X, double Y)? World, Waypoint? Waypoint
 /// this spot ("meet here"), my position ("come to me") and Paste, which
 /// makes a waypoint named from the code. An entry closes the menu, then
 /// acts through MapActions; its notice goes back to the map.
+/// No name box in the popup (owner's call): a new waypoint is auto-named,
+/// and names are typed on the Settings Waypoints page.
 /// </summary>
 public sealed class MapMenuBuilder
 {
