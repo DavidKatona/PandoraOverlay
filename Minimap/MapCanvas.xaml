@@ -22,6 +22,22 @@
                    Opacity="0.55"
                    Visibility="Collapsed"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
+            <!-- The zone layers (the map's Layers menu; never on the minimap):
+                 where the game's migration zones, patrol zones and sanctuaries
+                 can be, as vector shapes (ZoneAsset), a soft tint with an edge
+                 of the same hue (MapBrushes; tinted in code). Under the area
+                 borders and the names, so those stay readable; the largest
+                 kind lowest, so a sanctuary is never buried. Mass migrations
+                 have their own path for the dashed edge. Scaled and
+                 translated with the map like the borders. -->
+            <Path x:Name="ZoneMigrationPath" x:FieldModifier="private"
+                  StrokeLineJoin="Round" Visibility="Collapsed" IsHitTestVisible="False"/>
+            <Path x:Name="ZoneMassPath" x:FieldModifier="private"
+                  StrokeLineJoin="Round" StrokeDashArray="4 3" Visibility="Collapsed" IsHitTestVisible="False"/>
+            <Path x:Name="ZonePatrolPath" x:FieldModifier="private"
+                  StrokeLineJoin="Round" Visibility="Collapsed" IsHitTestVisible="False"/>
+            <Path x:Name="ZoneSanctuaryPath" x:FieldModifier="private"
+                  StrokeLineJoin="Round" Visibility="Collapsed" IsHitTestVisible="False"/>
             <!-- Optional area borders: a dark outline round every named area,
                  from the bundled area map, as vector lines (sharp at any
                  zoom). Scaled to the map in code, translated with it like the

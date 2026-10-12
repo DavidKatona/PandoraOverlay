@@ -14,8 +14,9 @@ public readonly record struct MapLabel(string Text, Point At, bool IsArea, bool 
 
 /// <summary>
 /// The map drawing every map shares (big map plan, phase 2): the island
-/// picture with what moves with it — the heatmap, the area borders and the
-/// two outlines, the breadcrumb trail — and above it the waypoint markers,
+/// picture with what moves with it — the heatmap, the zones (the big map's
+/// only), the area borders and the two outlines, the breadcrumb trail — and
+/// above it the waypoint markers,
 /// the names, the friends' arrows and yours. It draws and glides; it decides
 /// nothing: which waypoints and friends, which view, when to glide and for
 /// how long are its map's business (MinimapWindow, BigMapWindow). It knows
@@ -33,6 +34,18 @@ public partial class MapCanvas : UserControl
 
     /// <summary>A highlighted outline is a little wider than the borders it lies on.</summary>
     private const double OutlineScreenPixels = 1.5;
+
+    /// <summary>A zone's edge on screen, at any zoom: the borders' width.</summary>
+    private const double ZoneEdgeScreenPixels = 1.2;
+
+    // How strongly each zone kind tints the map: a first draft, to be tuned in
+    // game (the plan's in-game check). Crimson at a light tint reads brownish
+    // over jungle, hence a little more for patrol zones; sanctuaries are small,
+    // so a stronger tint costs no terrain. The edge is the hue at 80%.
+    private const double MigrationTint = 0.20;
+    private const double PatrolTint = 0.24;
+    private const double SanctuaryTint = 0.35;
+    private const byte ZoneEdgeAlpha = 0xCC;
 
     /// <summary>
     /// The bundled copy of the site's island map (Assets/map.png), decoded
@@ -63,6 +76,10 @@ public partial class MapCanvas : UserControl
         MapImage.Source = Island.Value;
         MapImage.RenderTransform = _mapTranslate;
         HeatmapImage.RenderTransform = _mapTranslate;    // the heatmap pans with the map
+        Tint(ZoneMigrationPath, MapBrushes.MigrationHue, MigrationTint); // and the zones
+        Tint(ZoneMassPath, MapBrushes.MigrationHue, MigrationTint);
+        Tint(ZonePatrolPath, MapBrushes.PatrolHue, PatrolTint);
+        Tint(ZoneSanctuaryPath, MapBrushes.SanctuaryHue, SanctuaryTint);
         AreaBordersPath.RenderTransform = _mapTranslate; // and the area borders, with their two highlights
         AreaOwnPath.RenderTransform = _mapTranslate;
         AreaHoverPath.RenderTransform = _mapTranslate;
@@ -74,6 +91,14 @@ public partial class MapCanvas : UserControl
     {
         brush.Freeze();
         return brush;
+    }
+
+    /// <summary>A zone path's look (its hue as a tint and an edge) and its place in map space.</summary>
+    private void Tint(Path path, Color hue, double tint)
+    {
+        path.Fill = Frozen(new SolidColorBrush(Color.FromArgb((byte)Math.Round(tint * 255), hue.R, hue.G, hue.B)));
+        path.Stroke = Frozen(new SolidColorBrush(Color.FromArgb(ZoneEdgeAlpha, hue.R, hue.G, hue.B)));
+        path.RenderTransform = _mapTranslate;
     }
 
     /// <summary>
@@ -197,6 +222,40 @@ public partial class MapCanvas : UserControl
         catch
         {
             HeatmapImage.Visibility = Visibility.Collapsed; // undecodable image: keep the map usable
+        }
+    }
+
+    /// <summary>
+    /// The zone layers: the kinds in <paramref name="shown"/>, from shapes in
+    /// zone units (ZoneAsset), over the map (and the heatmap) and under the
+    /// area borders, panning with the map. Like the borders, the geometry is
+    /// scaled to the map's rendered size through the GEOMETRY's transform, so
+    /// the edge (and the mass migrations' dashes, counted in edge widths)
+    /// keeps its screen width at any zoom; the width undoes the host's own
+    /// scale. Null shapes, or a kind not shown, hide that layer. Call again
+    /// when the map's size changes. Only the map calls it: the minimap has no
+    /// zones (owner, Oct 12 2026).
+    /// </summary>
+    public void ShowZones(ZoneShapes? shapes, ZoneKinds shown, double hostScale)
+    {
+        var scale = MapImage.Width / ZoneAsset.Units;
+        var edge = ZoneEdgeScreenPixels / Math.Max(0.1, hostScale);
+        Place(ZoneMigrationPath, shapes?.Migrations, ZoneKinds.Migrations);
+        Place(ZoneMassPath, shapes?.MassMigrations, ZoneKinds.Migrations);
+        Place(ZonePatrolPath, shapes?.Patrols, ZoneKinds.Patrols);
+        Place(ZoneSanctuaryPath, shapes?.Sanctuaries, ZoneKinds.Sanctuaries);
+
+        void Place(Path path, Geometry? shape, ZoneKinds kind)
+        {
+            if ((shown & kind) == 0 || shape is null || !(scale > 0))
+            {
+                path.Visibility = Visibility.Collapsed;
+                path.Data = null;
+                return;
+            }
+            path.Data = new GeometryGroup { Children = { shape }, Transform = new ScaleTransform(scale, scale), FillRule = FillRule.Nonzero };
+            path.StrokeThickness = edge;
+            path.Visibility = Visibility.Visible;
         }
     }
 
