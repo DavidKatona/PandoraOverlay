@@ -462,7 +462,9 @@ public partial class BigMapWindow
 
     /// <summary>
     /// What is under the cursor, beside it: the friend or waypoint there by
-    /// name, else the area ("Uncharted", dimmed, where none is named), and how
+    /// name, else the area ("Uncharted", dimmed, where none is named) and the
+    /// zones there whose ticks are on (ZoneSet.ForReadout: a kind once, with
+    /// its hue's ■ — it settles overlapping shapes; never "active"), and how
     /// far it is from you while you are in game. No walking time: with the
     /// map open the dino stands still, so there is no pace to go by.
     /// </summary>
@@ -497,6 +499,15 @@ public partial class BigMapWindow
             var name = AreaMapAsset.Shared?.NameAt(fx, fy);
             ReadoutText.Inlines.Add(new Run(name ?? "Uncharted") { Foreground = name is null ? Grey : Light });
             spot = cal.ToWorld(fx, fy);
+            if (ShownZones is var shown and not ZoneKinds.None && ZoneAsset.Shared is { } zones)
+            {
+                foreach (var zone in ZoneSet.ForReadout(zones.At(spot.X, spot.Y), shown))
+                {
+                    ReadoutText.Inlines.Add(new Run("  ·  ") { Foreground = Grey });
+                    ReadoutText.Inlines.Add(new Run("■ ") { Foreground = MapBrushes.OfZone(zone.Kind) });
+                    ReadoutText.Inlines.Add(new Run(zone.Label) { Foreground = Light });
+                }
+            }
         }
         if (_lastWorld is { } me)
         {
