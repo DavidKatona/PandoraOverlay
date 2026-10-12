@@ -66,6 +66,10 @@
          same reason as the rules. -->
     <EmbeddedResource Include="Assets\areas.png" LogicalName="areas.png" />
     <EmbeddedResource Include="Assets\areas.json" LogicalName="areas.json" />
+    <!-- The map's zone layers: where the game's migration zones, patrol
+         zones and sanctuaries can be, converted from VulnonaMAP's data by
+         tools/zones (a dated copy, never fetched). Embedded like the rules. -->
+    <EmbeddedResource Include="Assets\zones.json" LogicalName="zones.json" />
     <!-- The CHANGELOG itself (1.32): the update card's "Updated" mode and the
          About page's What's new read the running version's section from it,
          so they need no request and work for every copy. -->
