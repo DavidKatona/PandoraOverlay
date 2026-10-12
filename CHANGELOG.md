@@ -7,8 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Zones on the map: where the game's migration zones, patrol zones and
+  sanctuaries can be. Each kind has its own tick in the map's Layers
+  menu, and all three start off. Mass migrations have a dashed edge.
+- The game decides which zone is active for you, and nothing outside the
+  game can see that, so the map shows every zone, never just the active
+  one.
+- Point at a spot on the map and the readout also names the zones there.
+- The zones come from the community-made VulnonaMAP, for game versions
+  0.21.720 to 0.21.772. They ship with the overlay: nothing is downloaded
+  for them.
+
 ### Changed
 
+- The map's six layer buttons are now one Layers menu at the top right.
+  It stays open while you tick, and Esc closes it.
 - While the overlay is hidden (hide-all, or hidden because you are not
   in game), the minimap's heatmap is no longer downloaded. It comes back
   with the overlay.

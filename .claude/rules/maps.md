@@ -3,7 +3,9 @@ paths:
   - "Minimap/**"
   - "BigMap/**"
   - "tools/area-map/**"
+  - "tools/zones/**"
   - "Assets/areas.*"
+  - "Assets/zones.*"
   - "PandoraOverlay.Tests/Minimap/**"
   - "Shell/MainWindow.BigMap.cs"
   - "Core/PollService.Maps.cs"
@@ -52,6 +54,13 @@ paths:
   tests); colours beyond the hand-picked ones are generated; the bundled-map tests check
   only properties any generated map has. The one number about the map PICTURE's style,
   the sea colour tolerance, stays in the generator, named as such.
+- **The zones are input too** (`Assets/zones.json`, from `tools/zones/make-zones.ps1`):
+  the code knows three kinds (migration, patrol, sanctuary) and nothing about where they
+  are; no code, rule or test names or counts a zone, and the bundled-file tests check
+  only properties any converted file has. Never edit `zones.json` by hand: re-run the
+  converter. They are the map's only (never the minimap's), drawn under the area
+  borders as vector shapes in `ZoneAsset.Units`, never as 0–1 fractions (WPF's
+  single-precision geometry and its tolerances fail there), and never called "active".
 - `Assets/areas.png` is **hand-corrected** (since Oct 5 2026): never re-run
   `make-area-map.ps1` over it without the owner's word. Corrections are painted into it
   with the legend's exact colours and hard edges; `preview-area-map.ps1` (which only reads

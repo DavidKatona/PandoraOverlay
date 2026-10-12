@@ -118,7 +118,11 @@ a file in the folder is touched.
   is a credential; nothing polls faster than the site; a WRITE happens only for
   a click; the admin / staff endpoints are never called.
 - **NOT approved:** the zone overlay images (the live-map bundles patrols /
-  sanctuaries / migrations / salt rocks as static PNGs) — ask the dev first. A
+  sanctuaries / migrations / salt rocks as static PNGs) — ask the dev first.
+  The map's zone layers (1.35) don't use them: their shapes are VulnonaMAP's
+  community data (`Assets/zones.json`, converted by `tools/zones/`), the packs'
+  basis, with no request; the site's pictures were also older than the game's
+  layout (Oct 2026). A
   read-only API token feature was pitched to him; if it ships, auth migration
   happens inside `OverlayConfig.GetCookie/SetCookie` + the `PandoraClient`
   header — nothing else changes.
@@ -182,15 +186,15 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   ControlPanelWindow, TrayIcon.
 - `Stats/` — the stats panel's trackers and rules.
 - `Minimap/` — MinimapWindow; MapCanvas (the drawing every map shares) and the
-  shared map menu; the area map (AreaMap, AreaBorders, AreaMapAsset); the pure
-  map helpers.
+  shared map menu; the area map (AreaMap, AreaBorders, AreaMapAsset); the zones
+  (ZoneSet, ZoneAsset; drawn on the map only); the pure map helpers.
 - `BigMap/` — BigMapWindow ("the map" to players) and ScrimWindow, its backdrop.
 - `Waypoints/`, `Friends/`, `Activity/`, `Prime/`, `Rules/`, `Skins/`,
   `Storage/` (Dino storage), `Account/` (the in-app sign-in), `Updates/` (the
   update card), `Settings/` (the paged dialog, one partial per page).
 - `Assets/` — `map.png`, `app.ico` (WPF Resources) and the embedded data
-  (`rules.json`, `calibration.json`, `areas.png` + `areas.json`; the CHANGELOG
-  is embedded too, for the update card).
+  (`rules.json`, `calibration.json`, `areas.png` + `areas.json`, `zones.json`;
+  the CHANGELOG is embedded too, for the update card).
 - `App.xaml(.cs)` (single-instance mutex, the settings move) and `Program.cs`
   (the entry point: Velopack's start-up call first, then WPF).
 - `PandoraOverlay.Tests/` mirrors the folders.
@@ -202,7 +206,8 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   name>"), so a regenerated pack re-imports as duplicates. A credit line in
   each file (`Source`, `CopiedOn`) and in the README is enough (owner's call);
   the overlay never contacts vulnona.com; not in the release. Left out: fence
-  gates, caves, air currents, other food spawns, zone shapes. These are
+  gates, caves, air currents, other food spawns, zone shapes (those became the
+  map's zone layers, below). These are
   user-imported waypoints from a community map — NOT the site's unapproved
   zone-overlay images (salt rocks included).
 - `tools/area-map/` — the area map's generator and preview scripts, not part of
@@ -210,6 +215,13 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   it without the owner's word. And nothing is ever written for one named area —
   everything about a particular map is input (owner's rule; see
   `.claude/rules/maps.md`).
+- `tools/zones/` — `make-zones.ps1` converts a hand-downloaded VulnonaMAP data
+  file into `Assets/zones.json` (the map's zone layers: where migration zones,
+  patrol zones and sanctuaries CAN be; which is active is the game's secret).
+  It makes no request and fails on anything it can't place; a re-run is a
+  no-op. Refresh it after a game patch moves zones (Vulnona's index:
+  vulnona.com/game/map/dat.txt), then a patch release. The plan and the owner's
+  decisions: `Desktop\Pandora Overlay Files\pandora-zones\PLAN.md`.
 - `.claude/rules/` — conventions for writing new code in `Settings/`, the maps
   (`Minimap/`, `BigMap/`, the area tool), `Shell/` and `Core/`; each loads when a
   matching file is touched. `.claude/skills/release-pass/` — the release
@@ -262,6 +274,10 @@ all) — say so when it matters:
   standing in (1.31.2; tests only — a real failure never seen in game).
 - From the areas (1.29): the crossing blink, "Uncharted", and the edit-mode
   hover outline (tests and renders only at release).
+- The map's zones and its Layers menu (1.35; tests and off-screen renders
+  only until the owner's in-game check): the menu's open/close, Esc and focus;
+  whether the zones match the game (the data covers 0.21.720–0.21.772); the
+  tint strengths.
 
 Open: the README's setup screenshots need retaking for the in-app sign-in
 (the owner's, since 1.31).
@@ -284,7 +300,7 @@ PLANNED (owner, Oct 9 2026), design NOT decided: **app-wide logging**.
 Areas, left for later and not started: area names in new waypoints and share
 codes. Further border corrections are painted into `Assets/areas.png`.
 
-Later/maybe: zone overlays (needs permission); official token auth (the nudge
+Later/maybe: official token auth (the nudge
 went out with the heatmap ask ~Sep 14 2026, unanswered); Segoe Fluent Icons for
 stat glyphs; layout presets beyond the default; splitting the stats panel out
 of MainWindow into its own window (a refactor); if the Patreon skins page (a
@@ -348,6 +364,9 @@ Maps
 - "Uncharted waters", or any word that claims water: it is "Uncharted".
 - Caves and elevation in the area map: dropped, not deferred.
 - Imported waypoint packs arriving visible: an import must never bury the map.
+- Zones on the minimap (owner, Oct 12 2026): the map only. And the site's zone
+  pictures as their source (raster, stale, patrols as points): VulnonaMAP's
+  vectors were chosen.
 
 Settings and site features
 - Mid-game flips in Settings (the heatmap checkbox was removed: a layer you flip
