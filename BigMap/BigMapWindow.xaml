@@ -19,8 +19,9 @@
                 <ResourceDictionary Source="/PandoraOverlay;component/Minimap/MapMenuStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- A layer switch in the header: bright when on, dim when off, a
-                 glow on hover. Never focusable, so Space stays "centre on me". -->
+            <!-- The header's Layers button: bright while its menu is open, dim
+                 otherwise, a glow on hover. Never focusable, so Space stays
+                 "centre on me". -->
             <Style x:Key="LayerButton" TargetType="ToggleButton">
                 <Setter Property="Margin" Value="6,0,0,0"/>
                 <Setter Property="Padding" Value="11,4"/>
@@ -68,14 +69,11 @@
                     <TextBlock Text="Map" FontSize="16" FontWeight="SemiBold" Foreground="#ECF2F8"/>
                     <TextBlock x:Name="AreaLine" FontSize="12" Margin="12,2,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <ToggleButton x:Name="AreasButton" Content="Areas" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
-                    <ToggleButton x:Name="NamesButton" Content="Names" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
-                    <ToggleButton x:Name="WaypointsButton" Content="Waypoints" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
-                    <ToggleButton x:Name="FriendsButton" Content="Friends" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
-                    <ToggleButton x:Name="TrailButton" Content="Trail" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
-                    <ToggleButton x:Name="HeatmapButton" Content="Heatmap" Style="{StaticResource LayerButton}" Click="Layer_Click"/>
-                </StackPanel>
+                <!-- Every layer behind one menu (owner, Oct 12 2026): the header
+                     no longer grows with the layers. A word, not a cog — a cog
+                     reads as Settings, a different thing. -->
+                <ToggleButton x:Name="LayersButton" Content="Layers" Style="{StaticResource LayerButton}"
+                              HorizontalAlignment="Right" VerticalAlignment="Center" Click="LayersButton_Click"/>
             </Grid>
 
             <Grid DockPanel.Dock="Bottom" Height="26">
@@ -123,16 +121,33 @@
         </DockPanel>
     </Border>
 
-    <!-- The right-click menu, the minimap's (MapMenuBuilder). A popup is its
-         own window, so it never shifts the map. -->
+    <!-- The two menus, out of the window's tree: a popup is its own window,
+         so it never shifts the map, and keys pressed in it never reach the
+         window's own Escape and M, which close the map. -->
     <Window.Tag>
-        <Popup x:Name="MapMenu" StaysOpen="False" AllowsTransparency="True"
-               Placement="MousePoint" PopupAnimation="None">
-            <Border x:Name="MapMenuPanel" Focusable="True" PreviewKeyDown="MapMenu_PreviewKeyDown"
-                    Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
-                    CornerRadius="6" Padding="4" MinWidth="170">
-                <StackPanel x:Name="MapMenuItems"/>
-            </Border>
-        </Popup>
+        <Grid>
+            <!-- The right-click menu, the minimap's (MapMenuBuilder). -->
+            <Popup x:Name="MapMenu" StaysOpen="False" AllowsTransparency="True"
+                   Placement="MousePoint" PopupAnimation="None">
+                <Border x:Name="MapMenuPanel" Focusable="True" PreviewKeyDown="MapMenu_PreviewKeyDown"
+                        Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
+                        CornerRadius="6" Padding="4" MinWidth="170">
+                    <StackPanel x:Name="MapMenuItems"/>
+                </Border>
+            </Popup>
+
+            <!-- The Layers menu, right-aligned under its button: a tick for
+                 every layer, filled in code (BuildLayersMenu), the right-click
+                 menu's look. It stays open while ticking. -->
+            <Popup x:Name="LayersMenu" StaysOpen="False" AllowsTransparency="True"
+                   Placement="Custom" PopupAnimation="None"
+                   Opened="LayersMenu_Opened" Closed="LayersMenu_Closed">
+                <Border x:Name="LayersMenuPanel" Focusable="True" PreviewKeyDown="LayersMenu_PreviewKeyDown"
+                        Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
+                        CornerRadius="6" Padding="4" MinWidth="190">
+                    <StackPanel x:Name="LayersItems"/>
+                </Border>
+            </Popup>
+        </Grid>
     </Window.Tag>
 </Window>

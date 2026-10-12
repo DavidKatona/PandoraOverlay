@@ -146,9 +146,9 @@ public sealed class OverlayConfig
     // ---- The big map ----------------------------------------------------------
     // "Big map" is the internal name only: players see "the map" (owner,
     // Oct 9 2026); the BigMap* keys stay as they are.
-    // Its six layer buttons, remembered between openings (the map itself,
-    // not Settings, carries them). Nothing about its size, position or zoom
-    // is saved: it opens fitted to the land every time.
+    // Its layer ticks (its Layers menu), remembered between openings (the
+    // map itself, not Settings, carries them). Nothing about its size,
+    // position or zoom is saved: it opens fitted to the land every time.
 
     public bool BigMapAreas { get; set; } = true;
     public bool BigMapNames { get; set; } = true;
@@ -158,6 +158,15 @@ public sealed class OverlayConfig
 
     /// <summary>Off until asked for: the layer costs requests (the site's picture, at the minimap's 60 s pace, only while shown).</summary>
     public bool BigMapHeatmap { get; set; }
+
+    // The zone layers (1.35): where the game's migration zones, patrol zones
+    // and sanctuaries can be, from the bundled zones file — no request. Off
+    // until asked for, so the map an update opens looks as it did (owner,
+    // Oct 12 2026). The map's only: the minimap has no zones.
+
+    public bool BigMapMigrations { get; set; }
+    public bool BigMapPatrolZones { get; set; }
+    public bool BigMapSanctuaries { get; set; }
 
     // ---- Minimap (v1.1) ---------------------------------------------------
 

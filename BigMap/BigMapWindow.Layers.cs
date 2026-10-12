@@ -1,21 +1,30 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace PandoraOverlay;
 
 /// <summary>
-/// BigMapWindow, layers part: what the map draws and the six header
-/// switches (D3: remembered in config, independent of the minimap's) —
+/// BigMapWindow, layers part: what the map draws and the Layers menu's
+/// ticks (D3: remembered in config, independent of the minimap's) —
 /// Areas (the borders, your area's outline, the outline under the cursor),
 /// Names (area names at the legend's label points, waypoint names, friends'
 /// names, decluttered by LabelLayout), Waypoints (every one with its Show
 /// tick, and the tracked one: the minimap's visibility policy is a
 /// small-map rule), Friends (the server's consent and each friend's Map
 /// tick, as on the minimap), Trail (the shared path, its length the shared
-/// setting) and Heatmap (off by default: it costs requests). Your arrow is
-/// always drawn while in game. Also the header's "you are in", the cursor
-/// readout and the scale bar. Same class as BigMapWindow.xaml.cs.
+/// setting), Heatmap (off by default: it costs requests) and the three zone
+/// kinds (off by default; the map's only, never the minimap's: owner, Oct 12
+/// 2026). Your arrow is always drawn while in game. Also the header's "you
+/// are in", the cursor readout and the scale bar. Same class as
+/// BigMapWindow.xaml.cs.
+/// The six layer buttons of 1.34 became ONE menu when the zones came (the
+/// owner's idea, Oct 12 2026): the header no longer grows with the layers,
+/// and the zones' swatches double as the map's legend.
 /// </summary>
 public partial class BigMapWindow
 {
@@ -115,30 +124,135 @@ public partial class BigMapWindow
         UpdateOutlines(force: false);
     }
 
+    // ---- The Layers menu --------------------------------------------------------
+
+    /// <summary>The Layers menu's ticks, one per layer.</summary>
+    private sealed record LayerTicks(ToggleButton Areas, ToggleButton Names, ToggleButton Waypoints, ToggleButton Friends,
+                                     ToggleButton Trail, ToggleButton Heatmap,
+                                     ToggleButton Migrations, ToggleButton Patrols, ToggleButton Sanctuaries);
+
+    /// <summary>
+    /// Fills the Layers menu, each tick as config has it: the map's own
+    /// layers, the heatmap, then the zones under a caption, each with a
+    /// swatch of its hue (the map's legend), and a foot line naming where the
+    /// zones come from and that the game picks the active one — read from
+    /// the zones file, so a data refresh changes it without code. Without
+    /// the file the zone ticks are greyed and the foot line says so.
+    /// </summary>
+    private LayerTicks BuildLayersMenu()
+    {
+        var style = (Style)FindResource("MenuTick");
+        ToggleButton Tick(object content, bool on)
+        {
+            var tick = new ToggleButton { Content = content, Style = style, IsChecked = on };
+            tick.Click += Layer_Click;
+            LayersItems.Children.Add(tick);
+            return tick;
+        }
+        void Separator() => LayersItems.Children.Add(new Border { Height = 1, Background = MenuSeparator, Margin = new Thickness(4, 3, 4, 3) });
+        object Swatched(string label, ZoneKind kind)
+        {
+            var hue = MapBrushes.HueOf(kind);
+            var line = new StackPanel { Orientation = Orientation.Horizontal };
+            line.Children.Add(new Border
+            {
+                Width = 10, Height = 10, Margin = new Thickness(0, 1, 7, 0), CornerRadius = new CornerRadius(2),
+                Background = Frozen(Color.FromArgb(0x99, hue.R, hue.G, hue.B)), BorderBrush = MapBrushes.OfZone(kind), BorderThickness = new Thickness(1),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            line.Children.Add(new TextBlock { Text = label });
+            return line;
+        }
+
+        var areas = Tick("Areas", _config.BigMapAreas);
+        var names = Tick("Names", _config.BigMapNames);
+        Separator();
+        var waypoints = Tick("Waypoints", _config.BigMapWaypoints);
+        var friends = Tick("Friends", _config.BigMapFriends);
+        var trail = Tick("Trail", _config.BigMapTrail);
+        Separator();
+        var heatmap = Tick("Heatmap", _config.BigMapHeatmap);
+        Separator();
+        LayersItems.Children.Add(new TextBlock
+        {
+            Text = "ZONES", FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = HintBrush, Margin = new Thickness(12, 3, 10, 2),
+        });
+        var migrations = Tick(Swatched("Migrations", ZoneKind.Migration), _config.BigMapMigrations);
+        var patrols = Tick(Swatched("Patrol zones", ZoneKind.Patrol), _config.BigMapPatrolZones);
+        var sanctuaries = Tick(Swatched("Sanctuaries", ZoneKind.Sanctuary), _config.BigMapSanctuaries);
+
+        var zones = ZoneAsset.Shared;
+        foreach (var t in new[] { migrations, patrols, sanctuaries }) t.IsEnabled = zones is not null;
+        LayersItems.Children.Add(new TextBlock
+        {
+            Text = zones is null
+                ? "Zones unavailable"
+                : $"From {zones.Source} · game {zones.GameVersions}\nThe game picks which zone is active.",
+            FontSize = 10.5, Foreground = HintBrush, LineHeight = 15, Margin = new Thickness(12, 4, 12, 3),
+        });
+        return new LayerTicks(areas, names, waypoints, friends, trail, heatmap, migrations, patrols, sanctuaries);
+    }
+
+    /// <summary>Right-aligned under the Layers button, a little below it (both sizes come in the same units, so the alignment holds at any DPI).</summary>
+    private static CustomPopupPlacement[] PlaceLayersMenu(Size popup, Size target, Point offset) =>
+        new[] { new CustomPopupPlacement(new Point(target.Width - popup.Width, target.Height + 4), PopupPrimaryAxis.Horizontal) };
+
+    private void LayersButton_Click(object sender, RoutedEventArgs e) => LayersMenu.IsOpen = LayersButton.IsChecked == true;
+
+    /// <summary>
+    /// The button stays lit while the menu is open, and out of the mouse's
+    /// way: the click outside that closes the menu would otherwise land on it
+    /// and open the menu again. The menu takes the keyboard, so Escape closes
+    /// it rather than the map.
+    /// </summary>
+    private void LayersMenu_Opened(object? sender, EventArgs e)
+    {
+        LayersButton.IsChecked = true;
+        LayersButton.IsHitTestVisible = false;
+        Dispatcher.BeginInvoke(() => LayersMenuPanel.Focus(), DispatcherPriority.Input);
+    }
+
+    private void LayersMenu_Closed(object? sender, EventArgs e)
+    {
+        LayersButton.IsChecked = false;
+        LayersButton.IsHitTestVisible = true;
+    }
+
+    private void LayersMenu_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+        LayersMenu.IsOpen = false;
+        e.Handled = true;
+    }
+
     // ---- The switches -----------------------------------------------------------
 
+    /// <summary>A tick acts at once, the menu left open for the next.</summary>
     private void Layer_Click(object sender, RoutedEventArgs e)
     {
-        _config.BigMapAreas = AreasButton.IsChecked == true; // persisted with the next config Save
-        _config.BigMapNames = NamesButton.IsChecked == true;
-        _config.BigMapWaypoints = WaypointsButton.IsChecked == true;
-        _config.BigMapFriends = FriendsButton.IsChecked == true;
-        _config.BigMapTrail = TrailButton.IsChecked == true;
-        _config.BigMapHeatmap = HeatmapButton.IsChecked == true;
-        if (ReferenceEquals(sender, HeatmapButton))
+        _config.BigMapAreas = _ticks.Areas.IsChecked == true; // persisted with the next config Save
+        _config.BigMapNames = _ticks.Names.IsChecked == true;
+        _config.BigMapWaypoints = _ticks.Waypoints.IsChecked == true;
+        _config.BigMapFriends = _ticks.Friends.IsChecked == true;
+        _config.BigMapTrail = _ticks.Trail.IsChecked == true;
+        _config.BigMapHeatmap = _ticks.Heatmap.IsChecked == true;
+        _config.BigMapMigrations = _ticks.Migrations.IsChecked == true;
+        _config.BigMapPatrolZones = _ticks.Patrols.IsChecked == true;
+        _config.BigMapSanctuaries = _ticks.Sanctuaries.IsChecked == true;
+        if (ReferenceEquals(sender, _ticks.Heatmap))
         {
             ApplyHeatmapSwitch();
             return;
         }
-        if (ReferenceEquals(sender, FriendsButton)) _ = _poll.RefreshFriendsAsync(); // the roster's gate follows the layer
+        if (ReferenceEquals(sender, _ticks.Friends)) _ = _poll.RefreshFriendsAsync(); // the roster's gate follows the layer
         if (_hasView) DrawLayers();
     }
 
     /// <summary>The heatmap hotkey while the big map is open (D8): its own layer, not the hidden minimap's.</summary>
     public void ToggleHeatmap()
     {
-        HeatmapButton.IsChecked = HeatmapButton.IsChecked != true;
-        _config.BigMapHeatmap = HeatmapButton.IsChecked == true;
+        _ticks.Heatmap.IsChecked = _ticks.Heatmap.IsChecked != true;
+        _config.BigMapHeatmap = _ticks.Heatmap.IsChecked == true;
         ApplyHeatmapSwitch();
     }
 
@@ -153,6 +267,7 @@ public partial class BigMapWindow
     /// <summary>Every layer for the current zoom: after a zoom, a switch, or new calibration.</summary>
     private void DrawLayers()
     {
+        ShowZones();
         Map.ShowBorders(_config.BigMapAreas, hostScale: 1);
         UpdateOutlines(force: true);
         RenderTrail();
@@ -161,6 +276,20 @@ public partial class BigMapWindow
         PlaceFriends(glide: null);
         PlaceArrow(glide: null);
         LayOutLabels();
+    }
+
+    /// <summary>The zone kinds whose ticks are on.</summary>
+    private ZoneKinds ShownZones =>
+        (_config.BigMapMigrations ? ZoneKinds.Migrations : ZoneKinds.None) |
+        (_config.BigMapPatrolZones ? ZoneKinds.Patrols : ZoneKinds.None) |
+        (_config.BigMapSanctuaries ? ZoneKinds.Sanctuaries : ZoneKinds.None);
+
+    /// <summary>The zone layers: drawn for the current calibration (once per calibration, ZoneAsset), scaled to the zoom by MapCanvas.</summary>
+    private void ShowZones()
+    {
+        var shown = ShownZones;
+        var shapes = shown != ZoneKinds.None && _poll.Calibration is { } cal ? ZoneAsset.ShapesFor(cal) : null;
+        Map.ShowZones(shapes, shown, hostScale: 1);
     }
 
     /// <summary>Every waypoint with its Show tick, and the tracked one — while the Waypoints layer is on.</summary>

@@ -14,8 +14,9 @@ namespace PandoraOverlay;
 /// opened and closed by a hotkey, with zoom and drag-to-pan "like a normal
 /// map in a game". It shows what the minimap shows — your arrow, the
 /// waypoints, friends, the trail, the areas, the heatmap — at a size where
-/// names fit, each behind its own header button (remembered in config,
-/// independent of the minimap's). Interactive while open: it takes focus,
+/// names fit, plus the zones the minimap never shows, each behind its own
+/// tick in the header's Layers menu (remembered in config, independent of
+/// the minimap's). Interactive while open: it takes focus,
 /// so the game lets go of the cursor (only OUR window is activated; the game
 /// is never touched). Not a widget: no edit-mode position, no snapping, no
 /// scale slider; it opens fitted to the land every time. The dim is a
@@ -25,7 +26,7 @@ namespace PandoraOverlay;
 /// same requests the minimap's do (PollService.Maps.cs).
 /// Closing: the hotkey (MainWindow), M or Esc, a click on the backdrop, or
 /// focus going elsewhere. Drawing and layers: BigMapWindow.Layers.cs.
-/// No Settings page either: its layers are the header's buttons, its one
+/// No Settings page either: its layers are the Layers menu's ticks, its one
 /// setting the hotkey.
 /// NAMING (owner, Oct 9 2026): a player never sees "big map". Settings
 /// calls the hotkey "Map:", the window is "Map", the CHANGELOG says "the
@@ -51,6 +52,7 @@ public partial class BigMapWindow : Window
     private readonly MapActions _actions;
     private readonly ScrimWindow _scrim;
     private readonly MapMenuBuilder _menuBuilder;
+    private readonly LayerTicks _ticks;
     private readonly DispatcherTimer _noticeTimer;
 
     private MapViewport _view;        // the panel, the map's rendered side and where its top-left sits (panel coordinates)
@@ -92,12 +94,9 @@ public partial class BigMapWindow : Window
         _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), MenuSeparator, _actions, FriendBrush,
                                           () => _lastWorld, () => MapMenu.IsOpen = false, ShowNotice);
 
-        AreasButton.IsChecked = config.BigMapAreas;
-        NamesButton.IsChecked = config.BigMapNames;
-        WaypointsButton.IsChecked = config.BigMapWaypoints;
-        FriendsButton.IsChecked = config.BigMapFriends;
-        TrailButton.IsChecked = config.BigMapTrail;
-        HeatmapButton.IsChecked = config.BigMapHeatmap;
+        _ticks = BuildLayersMenu();
+        LayersMenu.PlacementTarget = LayersButton;
+        LayersMenu.CustomPopupPlacementCallback = PlaceLayersMenu;
 
         // Start from what is known now: your last position, the last roster, a kept heatmap.
         _friends = poll.Friends;
@@ -125,6 +124,7 @@ public partial class BigMapWindow : Window
             _actions.FriendTracked -= OnFriendTracked;
             _noticeTimer.Stop();
             MapMenu.IsOpen = false;
+            LayersMenu.IsOpen = false;
             _scrim.Close();
         };
     }
@@ -183,10 +183,10 @@ public partial class BigMapWindow : Window
         }
     }
 
-    /// <summary>Focus went elsewhere (Alt-Tab, a click on another monitor): the map is a glance, it closes.</summary>
+    /// <summary>Focus went elsewhere (Alt-Tab, a click on another monitor): the map is a glance, it closes. Not for one of its own menus.</summary>
     private void Window_Deactivated(object? sender, EventArgs e)
     {
-        if (!_closing && !MapMenu.IsOpen) Close();
+        if (!_closing && !MapMenu.IsOpen && !LayersMenu.IsOpen) Close();
     }
 
     // ---- The view -------------------------------------------------------------

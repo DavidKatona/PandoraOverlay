@@ -91,12 +91,13 @@ public sealed class MapGateTests
     }
 
     [Fact]
-    public void AFreshConfigOpensTheBigMapWithEverythingButTheHeatmap()
+    public void AFreshConfigOpensTheBigMapWithEverythingButTheHeatmapAndTheZones()
     {
         var c = new OverlayConfig();
 
         Assert.True(c.BigMapAreas && c.BigMapNames && c.BigMapWaypoints && c.BigMapFriends && c.BigMapTrail);
         Assert.False(c.BigMapHeatmap); // it costs requests: off until asked for
+        Assert.False(c.BigMapMigrations || c.BigMapPatrolZones || c.BigMapSanctuaries); // the map an update opens looks as it did
         Assert.Equal("Ctrl+M", c.HotkeyBigMap);
         Assert.Equal(new HotkeySpec(System.Windows.Input.ModifierKeys.Control, System.Windows.Input.Key.M), HotkeySpec.TryParse(c.HotkeyBigMap));
     }
