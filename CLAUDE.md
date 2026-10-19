@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.34.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.35.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -310,15 +310,14 @@ all) — say so when it matters:
   standing in (1.31.2; tests only — a real failure never seen in game).
 - From the areas (1.29): the crossing blink, "Uncharted", and the edit-mode
   hover outline (tests and renders only at release).
-- The map's zones and its Layers menu (1.35; tests and off-screen renders
-  only until the owner's in-game check): the menu's open/close, Esc and focus;
-  whether the zones match the game (the data covers 0.21.720–0.21.772); the
-  tint strengths.
-- The site's access header (1.35; tests and cookie-less requests only until
-  the owner's in-game check): a real session through it on every page that
-  talks to the site; the release workflow's access steps (until the first
-  tag); the site client no longer following redirects (no endpoint tried in
-  Oct 2026 redirected).
+- The map's zones (1.35): whether they match the game's own (the data covers
+  0.21.720–0.21.772). The Layers menu, every zone kind and the readout were
+  checked in game by the owner (Oct 19).
+- The site client no longer following redirects (1.35): a redirect from the
+  site would now fail (none seen in Oct 2026). The access header itself was
+  checked in game on every page that talks to the site, with a local build
+  and with the v1.35.0-rc.1 install, whose release build ran the access steps
+  (Oct 19).
 
 Open: the README's setup screenshots need retaking for the in-app sign-in
 (the owner's, since 1.31).
@@ -490,7 +489,7 @@ Updates and the account
 
 ## Releases
 
-- Current: 1.34.0. The csproj `<Version>` is the single source of truth
+- Current: 1.35.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
