@@ -79,7 +79,15 @@ a file in the folder is touched.
    lock and on exit). Server text reaches a window only mapped, or through
    `PatreonSkins.Clean` (which drops whole any string mentioning `connect.sid` /
    `cf_clearance`) and labelled as the website's words.
-5. `config.json` is runtime state (holds the DPAPI blob) — stays in `.gitignore`.
+   **The site's access header is a credential too** (1.35, see Permissions):
+   its name and its value are NEVER written into this repo — not code, docs,
+   tests, commit messages — and never logged or shown. They live only in the
+   GitHub Actions secret `PANDORA_OVERLAY_ACCESS`, the git-ignored, scrambled
+   `Assets/overlay-access.bin` (`tools/overlay-access/`) and the owner's own
+   records. Only the site client sends it, and only to the site's own host
+   (`Core/OverlayAccess.cs`).
+5. `config.json` is runtime state (holds the DPAPI blob) — stays in `.gitignore`;
+   so does `Assets/overlay-access.bin`.
 
 ## Permissions status
 
@@ -117,6 +125,19 @@ a file in the folder is touched.
   page's. What still holds whatever the endpoint: fully external; the cookie
   is a credential; nothing polls faster than the site; a WRITE happens only for
   a click; the admin / staff endpoints are never called.
+- **The site's anti-abuse rule and the overlay's access header (Oct 2026).**
+  Since Oct 12 a Cloudflare rule in front of the site guards mylocation,
+  friends, the Prime check and its cooldown: browsers pass, the overlay (like
+  any program) got Cloudflare's block page, so every player was stuck on
+  "Disconnected · retrying". The site dev confirmed the rule as deliberate
+  (Oct 16) and, turning down an honest User-Agent (anyone can copy what the
+  public code sends), gave the overlay a header of its own (Oct 17), sent from
+  1.35 (constraint 4 keeps it secret). The owner told him plainly that it is a
+  speed bump: it ships inside every copy and can be read off one's own
+  traffic, and per-account limits (every request carries the player's
+  session) are the real backstop. A new value from him = update the secret and
+  the local file, then a release. The rule is NEVER got past any other way:
+  no browser imitation, TLS impersonation or requests run in WebView2.
 - **NOT approved:** the zone overlay images (the live-map bundles patrols /
   sanctuaries / migrations / salt rocks as static PNGs) — ask the dev first.
   The map's zone layers (1.35) don't use them: their shapes are VulnonaMAP's
@@ -135,7 +156,8 @@ dino, gender; growth, health, stamina, hunger, thirst as 0–1 floats; yaw
 (facing, degrees); head / body / legs fractured; x, y, z in Unreal world cm.
 Nothing else about the player's live state exists (the friends roster
 carries the same record per friend). Auth is the `connect.sid` session
-cookie only. The request headers, the response shapes, the site's refusal and
+cookie only (the access header gets requests past the site's anti-abuse rule;
+it is not a login). The request headers, the response shapes, the site's refusal and
 the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
 
 ## Stack & build
@@ -153,6 +175,13 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   test`; CI runs it on every push). The app csproj globs the repo root, so the
   test subtree is `Compile Remove`d from it.
 - The working copy is LF (`.gitattributes` `eol=lf`; the solution file CRLF).
+- The site's access header gets into a build as `Assets/overlay-access.bin`,
+  embedded when it exists. Release builds: the workflow runs
+  `tools/overlay-access/make-access.ps1` with the `PANDORA_OVERLAY_ACCESS`
+  secret (tags only) and refuses to release a build without the file. The
+  owner's PC: the owner runs the script once (a hidden prompt; never the
+  value on a command line). A build without the file runs, with the four
+  guarded endpoints blocked — what any build from source gets.
 - The user's files (`config.json`, `waypoints.json`, `friends.json`, the
   picture caches) live in `%AppData%\PandoraOverlay` (`DataFolder`); the
   install itself is Velopack's, under `%LocalAppData%\PandoraOverlay`.
@@ -222,6 +251,10 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   no-op. Refresh it after a game patch moves zones (Vulnona's index:
   vulnona.com/game/map/dat.txt), then a patch release. The plan and the owner's
   decisions: `Desktop\Pandora Overlay Files\pandora-zones\PLAN.md`.
+- `tools/overlay-access/` — `make-access.ps1` turns the site's access header
+  (one `name:value` line, from a hidden prompt or the release secret) into the
+  scrambled, git-ignored `Assets/overlay-access.bin`; it never prints the line
+  (see constraint 4 and Stack & build).
 - `.claude/rules/` — conventions for writing new code in `Settings/`, the maps
   (`Minimap/`, `BigMap/`, the area tool), `Shell/` and `Core/`; each loads when a
   matching file is touched. `.claude/skills/release-pass/` — the release
@@ -256,7 +289,10 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   the effective rate, so none of this needs configuring.
 - Status line shows the last update; "Disconnected · retrying (TypeName)" on
   errors; the site's refusal twice running → "Session ended · sign in again
-  from the tray" and the tray's "Sign in again…" entry.
+  from the tray" and the tray's "Sign in again…" entry. Cloudflare's block page
+  (a build without the access header, or one the site no longer accepts) reads
+  as "Disconnected · retrying (HttpRequestException)": 1.34 and older have
+  shown it for every player since Oct 12 2026.
 
 ## Roadmap
 
@@ -278,6 +314,11 @@ all) — say so when it matters:
   only until the owner's in-game check): the menu's open/close, Esc and focus;
   whether the zones match the game (the data covers 0.21.720–0.21.772); the
   tint strengths.
+- The site's access header (1.35; tests and cookie-less requests only until
+  the owner's in-game check): a real session through it on every page that
+  talks to the site; the release workflow's access steps (until the first
+  tag); the site client no longer following redirects (no endpoint tried in
+  Oct 2026 redirected).
 
 Open: the README's setup screenshots need retaking for the in-app sign-in
 (the owner's, since 1.31).

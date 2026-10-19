@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The overlay connects to the website again. Since October 12 the
+  website's new protection turned it away, so it was stuck on
+  "Disconnected · retrying (HttpRequestException)" and your stats,
+  location, friends and Prime check stayed empty. It now gets through,
+  with the website team's okay. Update and it reconnects by itself.
 - Two rare cases where the overlay asked the website for the same thing
   twice within a second: showing a widget just before a scheduled friends
   update, and signing in while the overlay was running. It now always

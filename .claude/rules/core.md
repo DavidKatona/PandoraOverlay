@@ -8,7 +8,9 @@ paths:
 - `PandoraClient` and `OverlayConfig` have no WPF reference (nor has
   `Waypoints/WaypointLibrary`) — keep it that way. `PollService` (DispatcherTimer) and
   `HotkeySpec` (WPF key types) legitimately have one.
-- **A new site call**: the request in a `PandoraClient.<Feature>.cs` part, ALL its gating
+- **A new site call** goes through PandoraClient's site client (`_http`), which attaches the
+  site's access header (`OverlayAccess`) and follows no redirects; never a client of its own
+  for a site endpoint. The request in a `PandoraClient.<Feature>.cs` part, ALL its gating
   (busy flags, guards, floors) in a `PollService.<Feature>.cs` part, the pure parsing in
   the feature's own folder. The request sends the Cookie header and the Referer of the site
   page it mirrors, calls `UpdateRollingCookie` straight after SendAsync (before any status
@@ -31,7 +33,8 @@ paths:
   Headers: `Cookie` (`connect.sid=...`, plus `cf_clearance=...` if one exists — the
   sign-in found none, Oct 2026), `User-Agent` (browser-like, from config),
   `Origin: https://islapandora.eu`, `Referer: https://islapandora.eu/live-map`,
-  `Accept: */*`.
+  `Accept: */*`, and since 1.35 the site's access header (never named in this repo:
+  CLAUDE.md, constraint 4).
 - Answers: `{"inGame":false}`, or in game:
   `{"inGame":true,"player":{"steamId":"7656...","name":"Dave94Punk","dino":"Deinosuchus","gender":"Male","growth":0.416,"health":0.995,"stamina":1,"hunger":0.322,"thirst":0.77,"yaw":-140.394,"headFractured":false,"bodyFractured":false,"legsFractured":false,"x":6167.09,"y":-316782.07,"z":20754.4}}`
   Stats are 0–1 floats; x/y/z are Unreal world coords (cm); yaw is facing (deg).
@@ -39,8 +42,14 @@ paths:
   session): `PandoraClient.UpdateRollingCookie` splices it in; persisted on exit.
 - No session: a dead or missing cookie gets `403 {"error":"Forbidden"}` (a 403 with a
   JSON body); a Cloudflare block is a 403 with HTML and stays an ordinary failure.
-- Behind Cloudflare, but a plain HttpClient passes — no TLS impersonation needed.
-  The backend is Express; auth is the session cookie only.
+- Behind Cloudflare. Since Oct 12 2026 the site's anti-abuse rule guards mylocation,
+  friends, `/api/prime/check` and `/api/prime/cooldown`: browsers pass, a program gets
+  Cloudflare's "Sorry, you have been blocked" page (403 `text/html`, a `CF-RAY` id, none
+  of Express's headers), unless it sends the access header. Every other endpoint takes a
+  plain HttpClient. Never get past the rule another way (browser imitation, TLS
+  impersonation, requests run in WebView2). The backend is Express (`X-Powered-By:
+  Express` and its `X-RateLimit-*` headers on its own answers); auth is the session
+  cookie only. No endpoint tried in Oct 2026 redirects.
 - `POST /api/map/calibration`: empty body, same headers; POST-only (GET 404s); works
   even unauthenticated. Verified answer (Sep 2026):
   `{"success":true,"scaleX":0.002001...,"scaleY":-0.002000...,"offsetX":1160.92...,"offsetY":1223.28...,"mapSize":2500,"pinOffset":{"x":-15,"y":25}}`

@@ -53,6 +53,8 @@ dotnet test   # optional — runs the unit tests
 
 The exe lands in `bin\Release\net8.0-windows\PandoraOverlay.exe`.
 
+A build of your own runs, but it can't get your stats, location, friends or Prime check. Since October 2026 the website's protection lets only the released overlay through to those, with an access key the website team gave it. That key is kept out of this repository. Everything else works.
+
 ## First-run setup
 
 1. Run `PandoraOverlay.exe` — the settings window opens on its Account page.
@@ -272,6 +274,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 ## Troubleshooting
 
 - **`Session ended · sign in again from the tray`** → the website no longer accepts the session. Right-click the tray icon → **Sign in again…**.
+- **Stuck on `Disconnected · retrying (HttpRequestException)`, with nothing updating** → since October 12, 2026 the website turns away overlays older than 1.35.0. Update: the update card offers it when the overlay starts, and the tray menu has it too. If it keeps happening on 1.35.0 or newer, a note on [GitHub issues](https://github.com/DavidKatona/PandoraOverlay/issues) helps.
 - **The sign-in window says it needs the WebView2 Runtime** → it is part of Windows 11 and comes with Edge on Windows 10, so this is rare; the window's **Get WebView2** button opens Microsoft's free download. The installer fetches it by itself; the zip relies on the one already on the PC.
 - **Overlay not visible over the game** → make sure the game is borderless windowed, not fullscreen. The [FAQ](#faq) has the full checklist.
 - **The hotkey does nothing** → another app grabbed it; pick a different combination in Settings (tray icon → Settings…) — the capture box checks availability as you press.

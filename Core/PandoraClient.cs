@@ -113,8 +113,11 @@ public sealed record PrimeCheckResult(
 /// Dino storage trio in PandoraClient.Storage.cs. The awaits in here use
 /// ConfigureAwait(false); the UI thread is regained only at the outermost
 /// await, in PollService. No WPF reference, on purpose — keep it so. The
-/// site sits behind Cloudflare, yet a plain HttpClient passes (checked with
-/// curl): no TLS impersonation or embedded browser is needed for these calls.
+/// site sits behind Cloudflare. A plain HttpClient passes everywhere but the
+/// four endpoints its anti-abuse rule guards (Oct 2026: mylocation, friends,
+/// the Prime check and its cooldown); those take the overlay's access header,
+/// which OverlayAccessHandler attaches. The rule is never got past any other
+/// way: no TLS impersonation, browser imitation or embedded browser.
 /// </summary>
 public sealed partial class PandoraClient : IDisposable
 {
