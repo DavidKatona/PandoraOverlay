@@ -74,6 +74,12 @@
          About page's What's new read the running version's section from it,
          so they need no request and work for every copy. -->
     <EmbeddedResource Include="CHANGELOG.md" LogicalName="CHANGELOG.md" />
+    <!-- The site's access header (1.35), scrambled: written by
+         tools/overlay-access/make-access.ps1, NEVER committed (.gitignore), and
+         embedded only when it exists. The release build makes it from a GitHub
+         secret; a build without it runs, with the four guarded endpoints
+         blocked. See Core/OverlayAccess.cs. -->
+    <EmbeddedResource Include="Assets\overlay-access.bin" LogicalName="overlay-access.bin" Condition="Exists('Assets\overlay-access.bin')" />
   </ItemGroup>
 
 </Project>

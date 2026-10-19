@@ -41,12 +41,37 @@ jobs:
           }
           "version=$version" >> $env:GITHUB_OUTPUT
 
+      # The site's access header (1.35; Core/OverlayAccess.cs): the script turns
+      # the PANDORA_OVERLAY_ACCESS secret into the scrambled
+      # Assets/overlay-access.bin that Publish embeds. Tag builds only: the
+      # builds above (main, pull requests) never see the secret and need none.
+      # An empty or missing secret fails here; the script prints nothing of it.
+      - name: Overlay access
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          PANDORA_OVERLAY_ACCESS: ${{ secrets.PANDORA_OVERLAY_ACCESS }}
+        run: ./tools/overlay-access/make-access.ps1
+
       # A framework-dependent build: players need the .NET 8 Desktop Runtime
       # and, since v1.31 (the in-app sign-in), Microsoft's WebView2 Runtime —
       # the installer fetches either when it is missing.
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/v')
         run: dotnet publish PandoraOverlay.csproj -c Release -r win-x64 --self-contained false -o publish
+
+      # No release without the access file inside: an overlay without it could
+      # not reach the four guarded endpoints. The resource's name appears in the
+      # program as plain text only when the file is embedded (the code's own
+      # copy of the name is stored differently), so finding it is the proof.
+      - name: Check the access file is built in
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $dll = [IO.File]::ReadAllBytes('publish/PandoraOverlay.dll')
+          $text = [Text.Encoding]::ASCII.GetString($dll)
+          if (-not $text.Contains('overlay-access.bin')) { throw 'publish/PandoraOverlay.dll has no overlay-access.bin resource' }
+          'The access file is built in.'
 
       # The release notes (1.32): the version's CHANGELOG section — for a
       # pre-release tag the "## [Unreleased]" one, since the CHANGELOG stays

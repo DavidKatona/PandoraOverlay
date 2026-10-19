@@ -10,3 +10,7 @@ obj/
 
 # Runtime state — holds the DPAPI cookie blob (CLAUDE.md hard constraint #5)
 config.json
+
+# The site's access header, scrambled (CLAUDE.md hard constraint #4): made by
+# tools/overlay-access/make-access.ps1, embedded by the build, never committed.
+Assets/overlay-access.bin

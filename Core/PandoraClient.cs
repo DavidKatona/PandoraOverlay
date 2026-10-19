@@ -147,7 +147,13 @@ public sealed partial class PandoraClient : IDisposable
 
         // UseCookies = false: we manage the Cookie header ourselves so the
         // config-supplied cf_clearance + connect.sid pair is sent verbatim.
-        _http = new HttpClient(new HttpClientHandler { UseCookies = false })
+        // AllowAutoRedirect = false (1.35): a redirect would carry every
+        // header we set, the cookie and the access header included, to
+        // wherever it points. The site answers directly (every endpoint tried
+        // in Oct 2026, the heatmap picture included), so a redirect now fails
+        // like any other bad answer and nothing of ours leaves the site. OverlayAccessHandler attaches the
+        // site's access header (see OverlayAccess) to the site's requests.
+        _http = new HttpClient(new OverlayAccessHandler(new HttpClientHandler { UseCookies = false, AllowAutoRedirect = false }))
         {
             Timeout = TimeSpan.FromSeconds(8)
         };
