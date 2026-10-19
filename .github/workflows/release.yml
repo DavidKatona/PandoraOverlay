@@ -61,16 +61,19 @@ jobs:
         run: dotnet publish PandoraOverlay.csproj -c Release -r win-x64 --self-contained false -o publish
 
       # No release without the access file inside: an overlay without it could
-      # not reach the four guarded endpoints. The resource's name appears in the
-      # program as plain text only when the file is embedded (the code's own
-      # copy of the name is stored differently), so finding it is the proof.
+      # not reach the four guarded endpoints. An embedded file's name sits in
+      # the program's list of names as plain text between two zero bytes; the
+      # code's own copy of the name is stored differently (UTF-16), and text
+      # embedded whole (the CHANGELOG, the json files) has no zero bytes, so a
+      # mention of the name there can't pass for the file. Checked Oct 2026: the
+      # bounded name is found exactly when the file is embedded.
       - name: Check the access file is built in
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
           $dll = [IO.File]::ReadAllBytes('publish/PandoraOverlay.dll')
           $text = [Text.Encoding]::ASCII.GetString($dll)
-          if (-not $text.Contains('overlay-access.bin')) { throw 'publish/PandoraOverlay.dll has no overlay-access.bin resource' }
+          if (-not $text.Contains("`0overlay-access.bin`0")) { throw 'publish/PandoraOverlay.dll has no overlay-access.bin resource' }
           'The access file is built in.'
 
       # The release notes (1.32): the version's CHANGELOG section — for a

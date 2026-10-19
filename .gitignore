@@ -1,6 +1,9 @@
-# Build outputs
+# Build outputs (publish/ and Releases/ are the release workflow's; run locally,
+# they would hold the program with the site's access header inside)
 bin/
 obj/
+publish/
+Releases/
 
 # IDE
 .idea/
