@@ -1,6 +1,6 @@
 # Pandora Overlay
 
-A small always-on-top overlay for The Isle: Evrima on the Isla Pandora server. While you play it shows your dino's health, stamina, hunger, thirst, growth and fractures, a minimap with your live position, your waypoints and your friends, a map of the whole island on a key press, your Prime status, a feed of what just happened, and the server rules, and it lets you apply your Patreon skins and look after your stored dinos without alt-tabbing.
+A small always-on-top overlay for The Isle: Evrima on the Isla Pandora server. While you play it shows your dino's health, stamina, hunger, thirst, growth and fractures, a minimap with your live position, your waypoints and your friends, a map of the whole island with its zones on a key press, your Prime status, a feed of what just happened, and the server rules, and it lets you apply your Patreon skins and look after your stored dinos without alt-tabbing.
 
 It is **fully external**: everything it does goes through the same logged-in HTTPS requests the islapandora.eu website makes in your browser. It never reads game memory, never touches game files, and never interacts with the game process in any way.
 
@@ -9,7 +9,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 [![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
 [![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
-![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Combat view top-right, and the control panel bottom-center, over a Deinosuchus resting on a beach at sunset; the minimap's pill names the area, "South Plains", with the heatmap and the area borders on, the Activity feed reads "You spawned as Deinosuchus 100% · South Plains", and a caption box names version 1.34.0 and what is new: a map of the whole island on Ctrl+M, zoom and pan, names and layers, the waypoint menu](docs/screenshot.png)
+![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Combat view top-right, and the control panel bottom-center, over a Deinosuchus resting on a beach at sunset; the minimap's pill names the area, "South Plains", with the heatmap and the area borders on, the Activity feed reads "You spawned as Deinosuchus 100% · South Plains", and a caption box names version 1.35.0 and what is new: zones on the map and connected to the website again, migrations, patrol zones, sanctuaries, one Layers menu](docs/screenshot.png)
 
 
 ## Contents
@@ -91,7 +91,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, Server rules, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Alerts appear at its top when there is one: an update, a hotkey another program holds, or **Sign in again…** once the website session has ended. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
 - **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (the sign-in), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints, Skins, Dino storage, Server rules and About (the version, updates, where your settings live, links).
-- On launch the overlay quietly checks GitHub for a **newer release**; if there is one, the tray tooltip and menu say so, and one click opens the download page. No popups, and offline it stays silent.
+- On launch the overlay checks GitHub once for a **newer release**. If there is one, a card in the middle of the screen shows what's new with an **Install and restart** button, and the tray menu offers it too. Nothing installs without your click, and offline it stays silent. See [How do I update?](#installing-and-updating)
 
 ### Stats panel
 
@@ -133,6 +133,8 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 
 ### Map
 
+![The map zoomed in on the island's south-west with every zone shown: large green migration zones, one with a dashed edge, red patrol-zone circles and pink sanctuaries over the terrain; the Layers menu open at the top right with Areas, Names, Migrations, Patrol zones and Sanctuaries ticked and "From VulnonaMAP · game 0.21.720-0.21.772" at its foot; the cursor in South Plains, outlined, with the readout "South Plains · Migration zone · 4.3 km from you"](docs/map.jpg)
+
 - Press **Ctrl+M** and a **map of the whole island** opens large in the middle of the screen, over the dimmed game; the widgets step aside while it is open and come back as they were. It opens on the minimap's monitor, fitted to the land.
 - It takes the mouse while it is open, so your dino stands still (the game itself doesn't pause): **scroll** to zoom around the cursor, **drag** to move the map, **Space** centres it on you. **Ctrl+M** again, **M**, **Esc**, a click on the dimmed area or switching to another window closes it, and the game has the mouse back.
 - The **Layers** menu at the top right picks what it shows: **Areas** (the borders, with your own area outlined), **Names** (area names, waypoint names and your friends' names, spaced so they don't run into each other), **Waypoints** (every waypoint ticked Show, plus the tracked one), **Friends**, **Trail**, **Heatmap** and the three kinds of **zone**. A tick acts at once and the menu stays open until you click elsewhere or press Esc. The ticks are the map's own, apart from the minimap's, and remembered. Heatmap and the zones are off until you turn them on (Ctrl+F6 flips the heatmap while the map is open); the others start on.
@@ -140,9 +142,10 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 - The header says which area you are in. Point at a spot and a small readout names the waypoint, friend or area under the cursor, the zones there, and how far it is from you.
 - **Right-click** gives the minimap's waypoint menu: Waypoint here, Track, Copy this spot, Copy my position, Paste waypoint. Waypoints, tracking and the trail are shared with the minimap, so whatever you do on one shows on the other.
 - The map adds no new kind of request: the heatmap and the friends list are fetched for it only while its Heatmap or Friends tick is on, at the same pace as for the minimap, and the zones need none. The key is rebindable in Settings → Controls (the "Map" box).
+
 ### Waypoints
 
-- A **library of up to 256 named places**, each with one of twelve colours, kept in `waypoints.json` next to the app. Sanctuaries, patrol zones, nests, water, "lots of AI around here": whatever you want to find again.
+- A **library of up to 256 named places**, each with one of twelve colours, kept in `waypoints.json` in your settings folder. Sanctuaries, patrol zones, nests, water, "lots of AI around here": whatever you want to find again.
 - **Adding one:** right-click the minimap in edit mode and pick **Waypoint here**. It's named "Waypoint 7" and tracked straight away; rename and recolour it in Settings → Waypoints. Right-clicking on an existing marker offers **Track / Copy / Remove** for that one. In edit mode, hovering a marker shows its name in the footer.
 - **Managing them:** Settings → Waypoints lists every waypoint: click the dot to cycle its colour, edit the name, tick **Show** to draw it or not, pick **Track** (click the tracked one again to untrack), ✕ to delete. Changes apply on Save; Cancel drops them. "Delete all" asks twice.
 - **Keeping the map readable:** Settings → Minimap → Waypoints chooses what's drawn — all visible ones, only the tracked one, or the nearest ten. The tracked one is always drawn.
@@ -173,7 +176,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 
 - On the **minimap**, friends who are in game appear as smaller arrows in their own colours. Right-click one in edit mode to **Track** them (a ring on their arrow, and the footer shows their name, distance and ETA — the same way it follows a tracked waypoint) or to drop a **Waypoint at** their position. In edit mode, hovering a friend's arrow names them in the footer.
 - An optional **chime** (Settings → Friends, off by default) plays the Windows "Exclamation" sound when a friend spawns in, whether or not the Activity widget is on screen.
-- **Settings → Friends** lists everyone on your friends list, in-game friends first: click the colour to change it (each friend gets a stable default colour), type a **nickname** that only you see, untick **Map** to keep a friend off the minimap or **Feed** to mute their lines, and pick **Track**. The "Last seen" column shows when the overlay last saw them in game and, on hover, as what. Your choices live in `friends.json` next to the app; adding, removing or blocking friends, and hiding your own location, are done on the website ("Manage on islapandora.eu" opens the page).
+- **Settings → Friends** lists everyone on your friends list, in-game friends first: click the colour to change it (each friend gets a stable default colour), type a **nickname** that only you see, untick **Map** to keep a friend off the minimap or **Feed** to mute their lines, and pick **Track**. The "Last seen" column shows when the overlay last saw them in game and, on hover, as what. Your choices live in `friends.json` in your settings folder; adding, removing or blocking friends, and hiding your own location, are done on the website ("Manage on islapandora.eu" opens the page).
 - Privacy works the way the website's does: a friend who turned on "hide my location" is counted as in game but never drawn, and you appear to your friends exactly as you do on their live map. The overlay only ever reads the friends list; it never sends friend requests or changes any setting there.
 - Cost: while the Activity widget includes friends' events or the minimap draws friends, the friends list is fetched every second update while you play (every 6 seconds at the default pace) and once per idle check while you aren't spawned — less often than the website's own live map does. Untick "Include friends' events" and "Show friends on the minimap" to send no friends requests at all.
 
@@ -185,7 +188,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 - **The cooldown is the server's** (about 15 minutes between skins). The page tells you how long ago you last applied one; if you are too early, the server's own answer is shown. What your tier unlocks is decided by the server too.
 - **Apply again:** the overlay remembers the skin and pattern you last applied for each species, and offers it as one button at the top of the page when you are on that species again.
 - A successful apply is noted in the [Activity feed](#activity-feed).
-- Cost: the list is fetched when you open the page and reused for ten minutes (Refresh asks again). The website's pictures are large, several MB each, so a picture is only downloaded once its tile is on screen, and a small copy is then kept in the `cache\skins` folder next to the app for 30 days: reopening the page downloads nothing you have already seen. **Reload pictures** discards those saved copies, for the rare case that the website replaced a picture: each one is then downloaded again when its tile is next on screen, and the picture you already see stays until the new one arrives. Nothing is fetched while the page is closed, and deleting the `cache` folder is harmless.
+- Cost: the list is fetched when you open the page and reused for ten minutes (Refresh asks again). The website's pictures are large, several MB each, so a picture is only downloaded once its tile is on screen, and a small copy is then kept in the `cache\skins` folder of your settings folder for 30 days: reopening the page downloads nothing you have already seen. **Reload pictures** discards those saved copies, for the rare case that the website replaced a picture: each one is then downloaded again when its tile is next on screen, and the picture you already see stays until the new one arrives. Nothing is fetched while the page is closed, and deleting the `cache` folder is harmless.
 
 ### Dino storage
 
@@ -341,7 +344,7 @@ The file lives in `%AppData%\PandoraOverlay` (since 1.30; next to the app before
 | `LowStatChimeEnabled` / `GrowthChimeEnabled` | Play the Windows "Exclamation" sound when hunger or thirst drops under 20%, and at the 25/50/75/100% growth stages. Checkboxes in Settings → Stats panel. Both default `false`. |
 | `FadeEnabled` / `FadeIdleOpacity` | Attention fade for the stats panel, the Prime tracker and the Activity feed, and the opacity they rest at while nothing needs attention (0.2–0.8, default 0.4). Checkbox + slider in Settings. Default off. |
 
-Most of these are editable from the Settings window; `PollIntervalSeconds` and `MinimapYawOffsetDegrees` are file-only on purpose (and `UserAgent` is set by the sign-in). "Start with Windows" lives in the registry (HKCU Run entry), not in this file. The waypoint library itself lives in `waypoints.json` next to the app (a `Waypoints` array of `{Id, Name, X, Y, Colour, Visible, Pack}`): user content, kept apart from settings and the cookie, and the file that is exported and imported. Your side of the friends list lives in `friends.json` the same way (a `Friends` array of `{SteamId, Name, Nickname, Colour, ShowOnMap, Notify, LastDino, LastGrowth, LastSeenUtc}`); the list itself comes from the website on every fetch, this file only holds your names, colours and choices for each friend plus when they were last seen.
+Most of these are editable from the Settings window; `PollIntervalSeconds` and `MinimapYawOffsetDegrees` are file-only on purpose (and `UserAgent` is set by the sign-in). "Start with Windows" lives in the registry (HKCU Run entry), not in this file. The waypoint library itself lives in `waypoints.json` beside `config.json` (a `Waypoints` array of `{Id, Name, X, Y, Colour, Visible, Pack}`): user content, kept apart from settings and the cookie, and the file that is exported and imported. Your side of the friends list lives in `friends.json` the same way (a `Friends` array of `{SteamId, Name, Nickname, Colour, ShowOnMap, Notify, LastDino, LastGrowth, LastSeenUtc}`); the list itself comes from the website on every fetch, this file only holds your names, colours and choices for each friend plus when they were last seen.
 
 ## Fair-play notes
 
@@ -352,7 +355,7 @@ Most of these are editable from the Settings window; `PollIntervalSeconds` and `
 
 ## Roadmap
 
-- Zone overlays (sanctuaries, patrol zones, migrations) *(needs a green light from the site dev first)*.
+The zones, the last item here, arrived in 1.35: see [Map](#map). Nothing new is announced yet; ideas and requests are welcome on [GitHub issues](../../issues).
 
 ## License
 
