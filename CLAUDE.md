@@ -41,7 +41,7 @@ a file in the folder is touched.
    | `GET /map/api/heatmap-status` + `GET /map/heatmap-live.png` | **no** (the site headers are sent) | only while a heatmap layer is on: the minimap's (the minimap widget switched on, its layer on, and the overlay not hidden by hide-all or the auto-hide) or the open map's own Heatmap layer | never two fetches less than 60 s apart, whatever triggers them: within a minute the kept picture is reused, and a fetch re-arms the 60 s timer (the site's page: 10 s per tab, while its layer is on) |
    | `POST /api/prime/check` | yes | USER ONLY: the control panel's Check or the Check Prime hotkey, never a timer | the server's cooldown, mirrored locally: cooling down or not in game = no request (a STALE not-in-game state first gets one regular `mylocation` poll); 15 s floor |
    | `POST /api/prime/cooldown` | yes | exactly once after each SUCCESSFUL check (the success answer carries no cooldown, and its length varies with supporter rank; the site button's hard-coded 5 min is only the fallback when this request fails) | once per check |
-   | `POST /api/map/friends` (empty body) | yes | only while a friends surface is switched on (the Activity widget with friends' events included, the minimap's friend arrows, the open map's Friends layer; all off = zero requests; hide-all and the auto-hide don't stop it, on purpose: the friend chime and the Activity log work while hidden): right after a successful `mylocation` poll, or once for a hot trigger (a surface shown, a Settings save) when the last poll succeeded and the last roster is at least one poll interval old | every 2nd in-game poll, every idle poll, never two within one poll interval (the site: with every poll at 5 s); read-only |
+   | `POST /api/map/friends` (empty body) | yes | only while a friends surface is switched on (the Activity widget with friends' events included, the minimap's friend arrows, the open map's Friends layer; all off = zero requests; hide-all and the auto-hide don't stop it, on purpose: the friend chime and the Activity log work while hidden): right after a successful `mylocation` poll, or once for a hot trigger (a surface shown, a Settings save; a surface hidden sends nothing, since 1.36) when the last poll succeeded and the last roster is at least one poll interval old | every 2nd in-game poll, every idle poll, never two within one poll interval (the site: with every poll at 5 s); read-only |
    | `POST /api/skins/patreon-skins` (empty body) | yes | opening Settings → Skins; Refresh | reused 10 min, 30 s floor |
    | `POST /api/skins/apply-patreon` `{skinId, patternIndex}` — **WRITE** | yes | a click on a pattern button | 15 s mash guard; not in game answered locally |
    | `POST /api/auth/me` | yes | once right after a sign-in; once per dialog when Settings → Account is looked at | never on a timer |
@@ -86,6 +86,10 @@ a file in the folder is touched.
    `Assets/overlay-access.bin` (`tools/overlay-access/`) and the owner's own
    records. Only the site client sends it, and only to the site's own host
    (`Core/OverlayAccess.cs`).
+   **The log** (`AppLog`, 1.36) holds facts only: never the cookie, a header's
+   value, a body, server text, a name, a Steam ID or a position; an exception
+   as its type, codes and stack trace, never its message. It never leaves the
+   PC unless the player sends it.
 5. `config.json` is runtime state (holds the DPAPI blob) — stays in `.gitignore`;
    so does `Assets/overlay-access.bin`.
 
@@ -184,7 +188,8 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   guarded endpoints blocked — what any build from source gets.
 - The user's files (`config.json`, `waypoints.json`, `friends.json`, the
   picture caches) live in `%AppData%\PandoraOverlay` (`DataFolder`); the
-  install itself is Velopack's, under `%LocalAppData%\PandoraOverlay`.
+  install itself is Velopack's, under `%LocalAppData%\PandoraOverlay`, beside
+  the sign-in browser's `WebView2` folder and the log's `Logs` folder.
 - The golden-render harness guards the minimap's drawing:
   `Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders\run-golden.ps1`
   (62 renders compared with a baseline; see the `release-pass` skill). The
@@ -209,7 +214,8 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 - `Core/` — the plumbing: PandoraClient (HTTP), PollService (the timers and
   EVERY request gate), OverlayConfig (config.json + the DPAPI vault),
   DataFolder, Updater (Velopack) + UpdateChecker (the fallback notice),
-  HotkeySpec, StartupRegistration.
+  HotkeySpec, StartupRegistration, and the log: AppLog (Unreal Engine's
+  categories and verbosity levels) with LogFile and RequestLogHandler.
 - `Shell/` — MainWindow (the orchestrator, and also the stats panel),
   OverlayWindowBase, WidgetFrame, DefaultLayout, SnapResolver, SnapGuideWindow,
   ControlPanelWindow, TrayIcon.
@@ -318,24 +324,23 @@ all) — say so when it matters:
   checked in game on every page that talks to the site, with a local build
   and with the v1.35.0-rc.1 install, whose release build ran the access steps
   (Oct 19).
+- The log (unreleased, built Oct 21 2026): run in game by the owner with
+  Detailed log on (Oct 21: launch, idle, in game, the auto-hide, hide-all,
+  edit mode, the map, a Prime check), and the requests in it matched the
+  pacing rules; the hidden-surface fix (no roster request on a hide) was
+  seen in the same evening's last log. Not yet seen: a failed request, a
+  refused session, the 2 MB roll-over, a real crash.
 
 Open: the README's setup screenshots need retaking for the in-app sign-in
 (the owner's, since 1.31).
 
-PLANNED (owner, Oct 9 2026), design NOT decided: **app-wide logging**.
-- The goal: a local log of the fetch requests and the app's state, so that when
-  a player hits a crash or odd behaviour there is something to go on.
-- How it works (what is logged, where it lives, how big it grows, whether it is
-  on by default, how a player hands it over) is decided in a separate session.
-  Don't build it before then.
-- The model is the temporary request log of Oct 9 2026 (used for the map's
-  in-game request count, then removed): a DelegatingHandler around each
-  HttpClient writing one line per request — the time, the method, the path
-  without the query, the status, the duration and the request gates' state —
-  plus notes marking the map opening and closing. Its two rounds caught heatmap
-  fetches 15 s and 32 s apart (hence the one-minute rule).
-- Whatever the design, constraint #4 holds: never the cookie, a header or a
-  body. Nothing leaves the PC unless the player sends it.
+BUILT, unreleased (Oct 21 2026): **app-wide logging**, modelled on Unreal
+Engine's (owner's ask): categories, verbosity levels, Unreal's line and its
+backup files. The owner's choices: on for every player at quiet levels;
+`%LocalAppData%\PandoraOverlay\Logs`, ten files of 2 MB at most, backups
+gone after 14 days; Settings → About's "Open log folder" and "Detailed log",
+with the per-category levels in `config.json` only; an exception as its type
+and stack trace. How it works: AppLog's summary.
 
 Areas, left for later and not started: area names in new waypoints and share
 codes. Further border corrections are painted into `Assets/areas.png`.

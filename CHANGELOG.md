@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- A log for problem reports. The overlay keeps a short record on your PC of
+  what it did: connecting, joining and leaving the game, a request that
+  failed, a crash. When something goes wrong, there is now something to go
+  on.
+- Settings › About › Open log folder shows it. Attach the newest file when
+  you report a problem. The log never holds your cookie, names or positions,
+  and the overlay never sends it anywhere.
+- Settings › About › Detailed log writes more lines, for when you are asked
+  for one.
+
+### Fixed
+
+- Hiding the minimap or the Activity widget, or unticking the map's Friends
+  layer, no longer asks the website for your friends list. Showing one still
+  does.
+
 ## [1.35.0] - 2026-10-19
 
 ### Added

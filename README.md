@@ -90,7 +90,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 ### Tray icon & settings
 
 - A **tray icon** in the notification area is always available: right-click for Edit mode, Hide/show overlay, Settings, Server rules, and **Exit** (double-click toggles edit mode). The menu is kept short on purpose: it holds what must work while the overlay is locked or hidden; showing or hiding individual widgets is done from the control panel, and mid-game actions such as Check Prime have a hotkey instead. Alerts appear at its top when there is one: an update, a hotkey another program holds, or **Sign in again…** once the website session has ended. Since the overlay has no taskbar presence, the tray menu is the easiest way to quit. Hovering the icon shows your live stats (dino · health · growth) at a glance.
-- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (the sign-in), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints, Skins, Dino storage, Server rules and About (the version, updates, where your settings live, links).
+- **Settings** (tray → Settings…, or the control panel in edit mode) gathers everything configurable, as pages picked from a list on the left: Account (the sign-in), Controls (the hotkeys), General (start with Windows, hide while not in-game, background opacity, the attention fade, Reset positions), then one page per widget — Stats panel, Minimap, Prime tracker, Activity — each with its own Scale slider (75–150%), so you can size each one independently, then Friends, Waypoints, Skins, Dino storage, Server rules and About (the version, updates, where your settings live, the log, links).
 - On launch the overlay checks GitHub once for a **newer release**. If there is one, a card in the middle of the screen shows what's new with an **Install and restart** button, and the tray menu offers it too. Nothing installs without your click, and offline it stays silent. See [How do I update?](#installing-and-updating)
 
 ### Stats panel
@@ -272,7 +272,9 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 
 **A hotkey does nothing, or clashes with another program.** Every hotkey can be changed under Settings → Controls. The box tells you while you press whether a combination is free.
 
-**Where do I ask for help, report a bug or suggest something?** Open an [issue](../../issues) here on GitHub; a free account is all it takes. Say what you did, what you expected and what happened instead, and add a screenshot if you can (never one that shows your cookie).
+**Where do I ask for help, report a bug or suggest something?** Open an [issue](../../issues) here on GitHub; a free account is all it takes. Say what you did, what you expected and what happened instead, and add a screenshot if you can (never one that shows your cookie). For a bug, attach the newest log file too (see the next question).
+
+**Is there a log?** Yes. The overlay keeps a short record of what it did on your PC: connecting, joining and leaving the game, a request that failed, a crash. Settings → About → **Open log folder** shows it (`%LocalAppData%\PandoraOverlay\Logs`). `PandoraOverlay.log` is the current run, and the `-backup-` files are earlier ones. At most ten files of 2 MB are kept, none older than two weeks. It never holds your cookie, names or positions, and the overlay never sends it anywhere; it leaves your PC only if you attach it to a report. **Detailed log**, beside the button, writes more lines, for when you're asked for one.
 
 ## Troubleshooting
 
@@ -308,6 +310,8 @@ The file lives in `%AppData%\PandoraOverlay` (since 1.30; next to the app before
 | `StatsEnabled` | Show the stats panel (toggled from the control panel). |
 | `HideWhenNotInGame` | Hide every widget after ~30 s of not being spawned in, and show them again on the first in-game update. Checkbox in Settings. Default `false`. |
 | `UpdateCheckEnabled` | One check of GitHub's releases at launch, to tell you of a newer version; `false` = no request to GitHub at all. Installing is always your click. Checkbox in Settings → About. Default `true`. |
+| `DetailedLog` | Write more lines to the log (every category at Verbose), for a problem report. Checkbox in Settings → About. Default `false`. |
+| `LogLevels` | File-only: a level per log category, as Unreal Engine names them, e.g. `{"LogNet": "VeryVerbose", "global": "Warning"}` (`Fatal`, `Error`, `Warning`, `Display`, `Log`, `Verbose`, `VeryVerbose`, `All`, `None`). The category's own entry beats `global`, which beats `DetailedLog`. Default `null`: every category at its usual level. |
 | `MinimapEnabled` | Show the minimap window (toggled from the control panel). |
 | `MinimapX` / `MinimapY` | Minimap position (empty until first placed: top-right corner in the default layout). |
 | `MinimapScale` | Minimap scale, 0.75–1.5 (default 1 = a 284 px map). Slider in Settings → Minimap. The pixel `MinimapSize` of versions before 1.25 is ignored. |

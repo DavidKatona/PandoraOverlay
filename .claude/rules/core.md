@@ -26,6 +26,16 @@ paths:
 - A new feature adds no timer or request stream of its own: windows consume PollService's
   events, which it raises on the UI thread.
 - New network calls fail soft and surface an exception's type name at most.
+- **The log** (`AppLog`): a feature writes through its own category (a new one is declared
+  in AppLog and listed in `Categories`), Unreal-style: `AppLog.Prime.Log("…")`,
+  `.Warning(…)`, `.Verbose(…)`. State changes and outcomes at Log, anything every few
+  seconds at Verbose, failures as Warnings with `AppLog.Short(ex)`, a crash with
+  `Exception(LogVerbosity.Fatal, …)`. Facts and counts only (CLAUDE.md, constraint 4):
+  never a header's value, a body, server text (log "the website declined", not its
+  words), a name, a Steam ID or a position. A new HttpClient is built with
+  `RequestLogHandler` outermost, so its requests get their LogNet line. A new trigger
+  of a poll, a roster or the heatmap names itself (`Nudge("…")`, `PollNowAsync("…")`,
+  `RefreshFriendsAsync("…")`, `RefreshHeatmapAsync("…")`): the log writes the reason.
 
 ## The site's API (verified Sep–Oct 2026)
 
