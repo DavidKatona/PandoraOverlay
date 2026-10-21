@@ -78,7 +78,7 @@ public partial class SettingsWindow
             SkinRefreshButton.IsEnabled = false;
             return;
         }
-        _poll.Nudge(); // idling may not have seen a fresh spawn yet
+        _poll.Nudge("the Skins page opened"); // idling may not have seen a fresh spawn yet
         await LoadSkinsAsync(refresh: false);
     }
 

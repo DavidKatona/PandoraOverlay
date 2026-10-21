@@ -52,6 +52,18 @@ public sealed class Updater
     public static string? InformationalVersion =>
         typeof(Updater).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
+    /// <summary>
+    /// The build's version with its commit cut to Git's short seven characters,
+    /// for the log's first line: "1.35.0+4c1d913d34a1…" reads "1.35.0+4c1d913".
+    /// A version without a commit is left as it is; none at all is "?".
+    /// </summary>
+    internal static string ShortVersion(string? version)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return "?";
+        var plus = version.IndexOf('+');
+        return plus < 0 || version.Length - plus - 1 <= 7 ? version : version[..(plus + 8)];
+    }
+
     /// <summary>"1.30.0-rc.1" and "1.30.0-rc.1+sha" are pre-releases; "1.30.0" and "1.30.0+sha" are not.</summary>
     internal static bool AcceptsPreReleases(string? version)
     {

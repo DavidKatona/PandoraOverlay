@@ -32,6 +32,8 @@ public sealed class OverlayConfig
     private static readonly byte[] Entropy =
         { 0x50, 0x61, 0x6E, 0x64, 0x6F, 0x72, 0x61, 0x4F, 0x76, 0x65, 0x72, 0x6C, 0x61, 0x79, 0x2E, 0x76, 0x31 };
 
+    private static bool _undecryptableLogged; // GetCookie's failure, noted once per run
+
     public static string FilePath { get; } = DataFolder.FileIn("config.json");
 
     /// <summary>
@@ -199,6 +201,22 @@ public sealed class OverlayConfig
     /// is always a click of yours, never automatic.
     /// </summary>
     public bool UpdateCheckEnabled { get; set; } = true;
+
+    // ---- The log (1.36, see AppLog) --------------------------------------------
+
+    /// <summary>
+    /// Settings → About's "Detailed log": every category at Verbose at least
+    /// (Unreal's "Log global Verbose"), so the timed requests and the roster
+    /// counts are written too. Off by default; switched on for a bug report.
+    /// </summary>
+    public bool DetailedLog { get; set; }
+
+    /// <summary>
+    /// Per-category levels, Unreal's [Core.Log] section, e.g. {"LogNet":
+    /// "VeryVerbose", "global": "Warning"}. Not in Settings: a tool for chasing
+    /// one problem. Unknown names and levels are ignored; null = the defaults.
+    /// </summary>
+    public Dictionary<string, string>? LogLevels { get; set; }
 
     /// <summary>The version the "update available" card was last shown for (1.32) — it shows once per version.</summary>
     public string? UpdateCardShownFor { get; set; }
@@ -494,9 +512,10 @@ public sealed class OverlayConfig
                 ? JsonSerializer.Deserialize<OverlayConfig>(File.ReadAllText(FilePath)) ?? new OverlayConfig()
                 : new OverlayConfig();
         }
-        catch
+        catch (Exception ex)
         {
             cfg = new OverlayConfig(); // corrupt config: rewrite defaults
+            AppLog.Config.Warning($"config.json could not be read ({AppLog.Short(ex)}): started from the defaults, which replace it");
         }
 
         // Migrate a freshly pasted plaintext cookie into the DPAPI blob.
@@ -554,9 +573,15 @@ public sealed class OverlayConfig
             var plain = ProtectedData.Unprotect(blob, Entropy, DataProtectionScope.CurrentUser);
             return Encoding.UTF8.GetString(plain);
         }
-        catch
+        catch (Exception ex)
         {
             // Wrong user/machine, or corrupted blob — treat as "no cookie".
+            // Asked for often, so it is noted once per run.
+            if (!_undecryptableLogged)
+            {
+                _undecryptableLogged = true;
+                AppLog.Config.Warning($"The saved session could not be decrypted ({AppLog.Short(ex)}): read as signed out");
+            }
             return "";
         }
     }
@@ -593,9 +618,10 @@ public sealed class OverlayConfig
             var blob = ProtectedData.Protect(Encoding.UTF8.GetBytes(cookie), Entropy, DataProtectionScope.CurrentUser);
             CookieProtected = Convert.ToBase64String(blob);
         }
-        catch
+        catch (Exception ex)
         {
             // DPAPI failure is exotic; keep the previous blob rather than crash.
+            AppLog.Config.Warning($"The session could not be encrypted ({AppLog.Short(ex)}): the previous one is kept");
         }
     }
 
@@ -605,9 +631,10 @@ public sealed class OverlayConfig
         {
             File.WriteAllText(FilePath, JsonSerializer.Serialize(this, JsonOpts));
         }
-        catch
+        catch (Exception ex)
         {
             // Non-fatal: losing window position / rolled cookie is acceptable.
+            AppLog.Config.Warning($"config.json could not be saved: {AppLog.Short(ex)}");
         }
     }
 }

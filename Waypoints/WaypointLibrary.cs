@@ -90,10 +90,11 @@ public sealed class WaypointLibrary
         {
             if (File.Exists(FilePath)) return FromJson(File.ReadAllText(FilePath));
         }
-        catch
+        catch (Exception ex)
         {
             // Corrupt or unreadable: start empty rather than crash. The file
             // is only rewritten on the next change, so a hand fix stays possible.
+            AppLog.Config.Warning($"waypoints.json could not be read ({AppLog.Short(ex)}): started empty; it is replaced at the next change");
         }
         return new WaypointLibrary();
     }
@@ -104,9 +105,10 @@ public sealed class WaypointLibrary
         {
             File.WriteAllText(FilePath, ToJson());
         }
-        catch
+        catch (Exception ex)
         {
             // Non-fatal: the in-memory library keeps working.
+            AppLog.Config.Warning($"waypoints.json could not be saved: {AppLog.Short(ex)}");
         }
     }
 

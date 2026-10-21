@@ -123,7 +123,7 @@ public sealed partial class PandoraClient
 
     private HttpClient CreatePictureClient()
     {
-        var client = new HttpClient(new HttpClientHandler { UseCookies = false })
+        var client = new HttpClient(new RequestLogHandler(new HttpClientHandler { UseCookies = false }))
         {
             Timeout = TimeSpan.FromSeconds(60) // several MB each: a slow line needs the time
         };

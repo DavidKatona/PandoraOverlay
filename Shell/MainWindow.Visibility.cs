@@ -51,7 +51,7 @@ public partial class MainWindow
         }
         if (_minimap is null || _overlayHidden || _autoHidden) return;
         _config.HeatmapEnabled = !_config.HeatmapEnabled;
-        _ = _poll.RefreshHeatmapAsync(); // the latest picture (fetched only if a minute old), or null to clear the layer
+        _ = _poll.RefreshHeatmapAsync(_config.HeatmapEnabled ? "the minimap's heatmap switched on" : "the minimap's heatmap switched off"); // the latest picture (fetched only if a minute old), or null to clear the layer
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public partial class MainWindow
             _config.MinimapX = _minimap.Left; // a hidden widget comes back where it was
             _config.MinimapY = _minimap.Top;
             _minimap.Close();
-            _ = _poll.RefreshFriendsAsync(); // stops the friends fetch if the widget is hidden too
+            _poll.FriendsSurfaceHidden("minimap hidden"); // stops the friends fetch if the Activity widget doesn't want them either
         }
     }
 
@@ -91,8 +91,8 @@ public partial class MainWindow
             _minimap.Show();
         }
         _config.MinimapEnabled = true;
-        _ = _poll.RefreshHeatmapAsync(); // a fresh window starts without the layer
-        _ = _poll.RefreshFriendsAsync(); // and the friend arrows may have been off with it
+        _ = _poll.RefreshHeatmapAsync("minimap shown"); // a fresh window starts without the layer
+        _ = _poll.RefreshFriendsAsync("minimap shown"); // and the friend arrows may have been off with it
         if (EditMode) _minimap.SetEditMode(true);
     }
 
@@ -135,7 +135,7 @@ public partial class MainWindow
             _config.ActivityX = _activity.Left; // a hidden widget comes back where it was
             _config.ActivityY = _activity.Top;
             _activity.Close();
-            _ = _poll.RefreshFriendsAsync(); // stops the friends fetch unless the minimap still draws them
+            _poll.FriendsSurfaceHidden("Activity widget hidden"); // stops the friends fetch unless the minimap still draws them
         }
     }
 
@@ -148,7 +148,7 @@ public partial class MainWindow
             _activity.Show();
         }
         _config.ActivityEnabled = true;
-        _ = _poll.RefreshFriendsAsync(); // the widget wants a roster
+        _ = _poll.RefreshFriendsAsync("Activity widget shown"); // the widget wants a roster
         if (EditMode) _activity.SetEditMode(true);
     }
 
@@ -181,6 +181,7 @@ public partial class MainWindow
             // screen clear (the widgets stay hidden). Auto-hidden stays that
             // way rather than turning into a manual hide: never both flags.
             if (!_autoHidden) _overlayHidden = true;
+            AppLog.App.Log("Overlay hidden (hide-all, over the map)");
             CloseBigMap();
             OnHiddenChanged(); // after the close, so the map's own layer no longer counts
             return;
@@ -194,15 +195,17 @@ public partial class MainWindow
         {
             if (EditMode) ToggleEditMode(); // lock + persist before vanishing
             _overlayHidden = true;
+            AppLog.App.Log("Overlay hidden (hide-all)");
             HideWindows();
             OnHiddenChanged();
         }
         else
         {
             _overlayHidden = false;
+            AppLog.App.Log("Overlay shown (hide-all)");
             ShowWindows();
             OnHiddenChanged();
-            _poll.Nudge(); // someone is looking again — don't wait out an idle poll interval
+            _poll.Nudge("overlay shown"); // someone is looking again — don't wait out an idle poll interval
         }
     }
 
@@ -232,7 +235,7 @@ public partial class MainWindow
     private void OnHiddenChanged()
     {
         _poll.OverlayHidden = _overlayHidden || _autoHidden;
-        _ = _poll.RefreshHeatmapAsync();
+        _ = _poll.RefreshHeatmapAsync(_poll.OverlayHidden ? "overlay hidden" : "overlay shown");
     }
 
     /// <summary>
@@ -253,6 +256,7 @@ public partial class MainWindow
             if (_autoHidden)
             {
                 _autoHidden = false;
+                AppLog.App.Log("Overlay shown: in game again (auto-hide)");
                 ShowWindows();
                 OnHiddenChanged();
             }
@@ -264,6 +268,7 @@ public partial class MainWindow
         if (DateTime.UtcNow - _notInGameSince < AutoHideGrace) return;
 
         _autoHidden = true;
+        AppLog.App.Log("Overlay hidden: not in game (auto-hide)");
         HideWindows();
         OnHiddenChanged();
     }
@@ -272,11 +277,12 @@ public partial class MainWindow
     private void RevealAutoHidden()
     {
         _autoHidden = false;
+        AppLog.App.Log("Overlay shown by you while auto-hidden: the grace starts over");
         _notInGameSince = null;
         ShowWindows();
         OnHiddenChanged();
         _tray.SetStatus("Pandora Overlay — not in-game");
-        _poll.Nudge();
+        _poll.Nudge("overlay shown while auto-hidden");
     }
 
     // ---- Edit mode ----------------------------------------------------------
@@ -286,6 +292,7 @@ public partial class MainWindow
         if (_overlayHidden || _autoHidden) ToggleOverlayVisibility(); // un-hide first, then edit as usual
 
         var on = !EditMode;
+        AppLog.App.Log(on ? "Edit mode on" : "Edit mode off");
         SetEditMode(on);
         _minimap?.SetEditMode(on);
         _prime?.SetEditMode(on);
@@ -294,7 +301,7 @@ public partial class MainWindow
         if (on)
         {
             ShowControlPanel();
-            _poll.Nudge();
+            _poll.Nudge("edit mode");
         }
         else
         {

@@ -99,9 +99,10 @@ public sealed class FriendBook
         {
             if (File.Exists(FilePath)) return FromJson(File.ReadAllText(FilePath));
         }
-        catch
+        catch (Exception ex)
         {
             // Corrupt or unreadable: start empty; the roster refills it on the first fetch.
+            AppLog.Config.Warning($"friends.json could not be read ({AppLog.Short(ex)}): started empty");
         }
         return new FriendBook();
     }
@@ -112,9 +113,10 @@ public sealed class FriendBook
         {
             File.WriteAllText(FilePath, ToJson());
         }
-        catch
+        catch (Exception ex)
         {
             // Non-fatal: the in-memory book keeps working.
+            AppLog.Config.Warning($"friends.json could not be saved: {AppLog.Short(ex)}");
         }
     }
 

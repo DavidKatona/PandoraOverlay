@@ -34,8 +34,13 @@ public partial class MainWindow
     private async Task CheckForUpdateAsync()
     {
         var firstRun = string.IsNullOrWhiteSpace(_config.GetCookie()); // Settings opens on Account then
+        AppLog.Update.Log($"This copy: {_updater.Flavour}, version {_updater.CurrentVersion}");
         var updatedShown = ShowUpdatedCard(firstRun);
-        if (!_config.UpdateCheckEnabled) return;
+        if (!_config.UpdateCheckEnabled)
+        {
+            AppLog.Update.Log("The launch check is switched off");
+            return;
+        }
         if (await CheckForUpdateNowAsync() is not { } version) return;
         OfferUpdate(version);
         // The card only where this copy can install it; a plain folder (today
@@ -55,6 +60,7 @@ public partial class MainWindow
         var show = UpdateCardPolicy.ShowUpdated(running, _config.LastRunVersion, firstRun, out var previous);
         if (_config.LastRunVersion != running)
         {
+            AppLog.Update.Log($"Running {running} for the first time (last run: {_config.LastRunVersion ?? "none recorded"})");
             _config.LastRunVersion = running;
             _config.Save();
         }
@@ -65,9 +71,17 @@ public partial class MainWindow
     /// <summary>One check now (launch, or the Settings button): the newer version's number, or null for none / unknown / offline.</summary>
     private async Task<string?> CheckForUpdateNowAsync()
     {
-        if (_updater.CanUpdate) return await _updater.CheckAsync();
+        string? found;
+        if (_updater.CanUpdate)
+        {
+            found = await _updater.CheckAsync();
+            AppLog.Update.Log(found is null ? $"Update check: nothing to install ({_updater.Note})" : $"Update check: v{found} available");
+            return found;
+        }
         var tag = await UpdateChecker.CheckAsync(); // a plain folder: GitHub's latest release tag, "v1.31.0"
-        return tag?.TrimStart('v', 'V');
+        found = tag?.TrimStart('v', 'V');
+        AppLog.Update.Log(found is null ? "Update check (plain folder): nothing newer, or no answer" : $"Update check (plain folder): v{found} on GitHub");
+        return found;
     }
 
     /// <summary>The offer: on the status line (the next poll overwrites it) and in the tray for the session — install for a click where this copy can, the download page where it can't.</summary>
@@ -94,14 +108,17 @@ public partial class MainWindow
     {
         SetStatus("Downloading the update…");
         _tray.SetUpdateBusy("Downloading the update…");
+        AppLog.Update.Log("Install clicked: downloading");
         var ready = (_updater.Pending is not null || await _updater.CheckAsync() is not null)
                     && await _updater.DownloadAsync(progress)
                     && _updater.ApplyOnExit();
         if (ready)
         {
+            AppLog.Update.Log($"v{_updater.Pending} downloaded: the overlay exits and Velopack's updater takes over");
             Application.Current.Shutdown();
             return true;
         }
+        AppLog.Update.Warning($"Update failed: {_updater.Note}"); // our own words or an exception's type
         _applying = null;
         SetStatus($"Update failed ({_updater.Note}) · try again later");
         if (_updater.Pending is { } version) OfferUpdate(version);

@@ -1049,6 +1049,21 @@
                            Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
 
+            <!-- The log (1.36, AppLog): always written at quiet levels, kept on the PC.
+                 Detailed log raises every category to Verbose; the per-category
+                 levels are config.json's LogLevels only (owner, Oct 21 2026). -->
+            <TextBlock Text="LOG" Foreground="#7B8790" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,4"/>
+            <!-- One row and one line of words: the page must stay within the
+                 tallest page's height, or the dialog grows on every page. -->
+            <DockPanel>
+                <Button DockPanel.Dock="Left" Content="Open log folder" Click="OpenLogFolder_Click"
+                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
+                <CheckBox x:Name="DetailedLogCheck" Style="{StaticResource Check}" VerticalAlignment="Center" Margin="12,0,0,0"
+                          Content="Detailed log, for a problem report"/>
+            </DockPanel>
+            <TextBlock Text="Never sent anywhere; no cookie, names or positions. Attach the newest file to a report."
+                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+
             <TextBlock Text="LINKS" Foreground="#7B8790" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,4"/>
             <DockPanel>
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">

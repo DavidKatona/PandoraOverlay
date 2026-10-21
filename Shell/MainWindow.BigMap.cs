@@ -50,9 +50,10 @@ public partial class MainWindow
         _bigMap.Closed += (_, _) => OnBigMapClosed();
         _bigMap.SetArea(_areaJournal.Current);
         _bigMap.Open();
+        AppLog.Maps.Log("Map opened");
 
-        _ = _poll.RefreshFriendsAsync(); // its arrows want a roster (floored at one poll interval)
-        if (_config.BigMapHeatmap) _ = _poll.RefreshHeatmapAsync(); // a picture under a minute old costs nothing
+        _ = _poll.RefreshFriendsAsync("map opened"); // its arrows want a roster (floored at one poll interval)
+        if (_config.BigMapHeatmap) _ = _poll.RefreshHeatmapAsync("map opened"); // a picture under a minute old costs nothing
     }
 
     /// <summary>Closes the big map if it is open; true when it was.</summary>
@@ -67,6 +68,7 @@ public partial class MainWindow
     {
         _bigMap = null;
         _poll.BigMapOpen = false;
+        AppLog.Maps.Log("Map closed");
         if (_exiting) return; // the overlay is shutting down: a closed window can't be shown again
         if (!_overlayHidden && !_autoHidden) ShowWindows();
         UpdateArea(); // the journal's gate may have closed with the map

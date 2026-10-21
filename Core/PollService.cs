@@ -103,9 +103,12 @@ public sealed partial class PollService : IDisposable
     private int _pollsSinceFriends;
     private int _friendMisses;
     private bool _friendsDue;   // a hot trigger arrived while busy or too soon: fetch on the next poll
+    private readonly List<string> _friendsDueFor = new(); // LogFriends: every hot trigger waiting for that poll
     private DateTime _lastPollUtc;
     private DateTime _lastFriendsUtc;
     private DateTime _lastLiveUtc = DateTime.UtcNow;
+    private bool _answered;       // LogPoll: this session's first answer has been noted
+    private string? _lastFailure; // LogPoll: the cause of the last failed poll, so a run of the same one is one Warning
 
     /// <summary>Current gap between polls: the configured one in-game, longer while idling.</summary>
     public TimeSpan Interval => _timer.Interval;
@@ -163,6 +166,9 @@ public sealed partial class PollService : IDisposable
     {
         _config = config;
         Calibration = config.Calibration ?? BundledCalibration();
+        AppLog.Maps.Log(config.Calibration is not null ? "Calibration: the saved copy until the website's answer"
+                        : Calibration is not null ? "Calibration: the bundled seed until the website's answer"
+                        : "Calibration: none until the website's answer");
         // The server-reported cooldown end survives restarts; configs written
         // before it existed fall back to "last check + default". A value far
         // in the future can only be a clock jump — ignore it rather than lock
@@ -174,13 +180,13 @@ public sealed partial class PollService : IDisposable
 
         _activeInterval = TimeSpan.FromSeconds(Math.Max(2, config.PollIntervalSeconds));
         _timer = new DispatcherTimer { Interval = _activeInterval };
-        _timer.Tick += async (_, _) => await PollOnceAsync();
+        _timer.Tick += async (_, _) => await PollOnceAsync("timer");
 
         _heatmapTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(HeatmapIntervalSeconds)
         };
-        _heatmapTimer.Tick += async (_, _) => await RefreshHeatmapAsync();
+        _heatmapTimer.Tick += async (_, _) => await RefreshHeatmapAsync("timer");
     }
 
     /// <summary>
@@ -201,7 +207,7 @@ public sealed partial class PollService : IDisposable
         _timer.Stop();
         _timer.Interval = _activeInterval;
         _timer.Start();
-        if (PollIsStale) _ = PollOnceAsync();
+        if (PollIsStale) _ = PollOnceAsync("launch or new session");
         _ = FetchCalibrationIfDueAsync();
     }
 
@@ -219,6 +225,7 @@ public sealed partial class PollService : IDisposable
         ResetCalibrationFetch();       // ask again with the fresh session
         _failStreak = 0;               // a fresh session starts the idle clock over
         _refusals = 0;
+        _answered = false;
         IsSignedOut = false;
         _lastLiveUtc = DateTime.UtcNow;
         ForgetSkins();                 // another login may see other skins
@@ -226,20 +233,29 @@ public sealed partial class PollService : IDisposable
         Start();
     }
 
-    public async Task PollOnceAsync()
+    /// <param name="why">What asked for the poll ("timer", "edit mode", "Check Prime" …), for LogPoll's Verbose line: a pacing check reads the reason instead of working it out from the timing.</param>
+    public async Task PollOnceAsync(string why)
     {
-        if (_busy) return;
+        if (_busy)
+        {
+            AppLog.Poll.VeryVerbose($"No poll for {why}: one is in flight");
+            return;
+        }
         _busy = true;
         _lastPollUtc = DateTime.UtcNow;
+        AppLog.Poll.Verbose($"Poll: {why}");
         try
         {
             var result = await _client.FetchAsync();
+            var wasInGame = _inGame;
+            var failedBefore = _failStreak;
             _inGame = result.InGame && result.Player is not null;
             LastPlayer = _inGame ? result.Player : null;
             _dino = result.Player?.Dino;
             _steamId = result.Player?.SteamId ?? _steamId;
             _failStreak = 0;
             _refusals = 0;
+            LogAnswer(wasInGame, failedBefore);
             ApplyPacing(); // before the event, so subscribers read the cadence this snapshot set
             SnapshotReceived?.Invoke(result);
             await MaybeFetchFriendsAsync();
@@ -249,12 +265,14 @@ public sealed partial class PollService : IDisposable
         {
             _failStreak++;
             _refusals = ex is SessionEndedException ? _refusals + 1 : 0;
+            LogFailure(ex);
             ApplyPacing();
             PollFailed?.Invoke(ex);
             if (SignedOutAfter(_refusals) && !IsSignedOut)
             {
                 IsSignedOut = true;
                 Stop(); // final for this cookie: the next sign-in restarts the timers
+                AppLog.Poll.Warning($"The website refused the session {_refusals} times in a row: polling stopped until a new sign-in");
                 SignedOut?.Invoke();
             }
         }
@@ -266,6 +284,32 @@ public sealed partial class PollService : IDisposable
 
     /// <summary>The sign-out rule, pure for the tests: a run of refusals, not one.</summary>
     internal static bool SignedOutAfter(int refusals) => refusals >= RefusalsBeforeSignedOut;
+
+    /// <summary>LogPoll for an answer: the session's first, the first after failures, and every change between in game and not.</summary>
+    private void LogAnswer(bool wasInGame, int failedBefore)
+    {
+        if (!_answered)
+        {
+            _answered = true;
+            AppLog.Poll.Log(_inGame ? "Connected, in game" : "Connected, not in game");
+            return;
+        }
+        if (failedBefore > 0) AppLog.Poll.Log($"Connected again after {failedBefore} failed poll{(failedBefore == 1 ? "" : "s")}");
+        if (_inGame != wasInGame) AppLog.Poll.Log(_inGame ? "In game" : "Not in game");
+    }
+
+    /// <summary>
+    /// LogPoll for a failure: the first of a run, or a new cause, as a Warning;
+    /// the same cause again as Verbose. A site that is down for an hour is then
+    /// one line, not one a minute (LogNet still has each request).
+    /// </summary>
+    private void LogFailure(Exception ex)
+    {
+        var cause = AppLog.Short(ex);
+        if (_failStreak == 1 || cause != _lastFailure) AppLog.Poll.Warning($"Poll failed: {cause}");
+        else AppLog.Poll.Verbose($"Poll failed ({_failStreak} in a row): {cause}");
+        _lastFailure = cause;
+    }
 
     // ---- Account (v1.31) ---------------------------------------------------------
 
@@ -293,11 +337,12 @@ public sealed partial class PollService : IDisposable
         _client = new PandoraClient("", _config.UserAgent);
         _failStreak = 0;
         _refusals = 0;
+        _answered = false;
         IsSignedOut = false;
         LastPlayer = null;
         ForgetSkins();
         ForgetStorage();
-        ClearFriends();
+        ClearFriends("signed out");
     }
 
     /// <summary>
@@ -311,10 +356,13 @@ public sealed partial class PollService : IDisposable
         Stop();
         try
         {
-            return await _client.SignOutAsync();
+            var took = await _client.SignOutAsync();
+            AppLog.Account.Log(took ? "The website took the sign-out" : "The website did not confirm the sign-out");
+            return took;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLog.Account.Warning($"Sign-out request failed: {AppLog.Short(ex)}");
             return false;
         }
     }
@@ -333,38 +381,52 @@ public sealed partial class PollService : IDisposable
     {
         if (!FriendsWanted)
         {
-            ClearFriends();
+            ClearFriends("no friends surface on screen");
             return;
         }
         _pollsSinceFriends++;
         // Too soon after a hot fetch: the flag, if set, waits for the next poll.
         if (!FriendsDue(_pollsSinceFriends, IsIdling, _friendsDue, DateTime.UtcNow - _lastFriendsUtc, _activeInterval)) return;
-        await FetchFriendsAsync();
+        await FetchFriendsAsync(_friendsDue ? $"{string.Join(", ", _friendsDueFor)}; held for this poll"
+                                : IsIdling ? "idle poll"
+                                : $"every {FriendsEveryNthPoll} in-game polls");
     }
 
     /// <summary>
-    /// The hot-apply path (widget shown, settings saved, minimap re-shown):
-    /// fetch now if the last roster is older than one poll interval, else
-    /// mark it due for the next poll — showing and hiding the widget in a
-    /// hurry must not turn into a request per click. Off → clears at once.
+    /// The hot-apply path for a surface that APPEARED (widget shown, the map
+    /// opened or its Friends layer ticked, settings saved): fetch now if the
+    /// last roster is older than one poll interval, else mark it due for the
+    /// next poll — showing and hiding the widget in a hurry must not turn into
+    /// a request per click. Off → clears at once. A surface that went away
+    /// takes <see cref="FriendsSurfaceHidden"/> instead.
     /// </summary>
-    public async Task RefreshFriendsAsync()
+    /// <param name="why">What asked ("map opened", "Activity widget shown" …), for LogFriends.</param>
+    public async Task RefreshFriendsAsync(string why)
     {
         if (!FriendsWanted)
         {
-            ClearFriends();
+            ClearFriends($"no friends surface on screen ({why})");
             return;
         }
         _friendsDue = true;
+        if (!_friendsDueFor.Contains(why)) _friendsDueFor.Add(why);
         // Not yet polling (startup, no cookie), mid-poll, too soon, or the
         // connection is failing: the next successful poll picks the flag up.
-        if (!_timer.IsEnabled || _busy || DateTime.UtcNow - _lastFriendsUtc < _activeInterval || _failStreak > 0) return;
+        if (!_timer.IsEnabled || _busy || DateTime.UtcNow - _lastFriendsUtc < _activeInterval || _failStreak > 0)
+        {
+            var wait = !_timer.IsEnabled ? "polling is stopped"
+                     : _busy ? "a request is in flight"
+                     : _failStreak > 0 ? "the last poll failed"
+                     : "the last roster is under one interval old";
+            AppLog.Friends.VeryVerbose($"No roster now for {why}: {wait}; held for the next poll");
+            return;
+        }
         // The one friends fetch that does not ride a poll. It takes the poll's
         // busy guard, so a tick landing meanwhile is skipped, not stacked on it.
         _busy = true;
         try
         {
-            await FetchFriendsAsync();
+            await FetchFriendsAsync(why);
         }
         finally
         {
@@ -372,31 +434,55 @@ public sealed partial class PollService : IDisposable
         }
     }
 
-    private async Task FetchFriendsAsync()
+    /// <summary>
+    /// A friends surface went away (the minimap or the Activity widget hidden,
+    /// the map's Friends layer unticked): the roster is cleared when nothing
+    /// else wants it, and NO request is sent — a surface still on screen keeps
+    /// the roster it has, and the polls keep it fresh. Before 1.36 these took
+    /// RefreshFriendsAsync, which fetched at once whenever another surface
+    /// remained: an extra request for nothing, outside the endpoint table's
+    /// triggers (a surface shown, a Settings save). The log caught it, Oct 21 2026.
+    /// </summary>
+    /// <param name="why">What went away, for LogFriends.</param>
+    public void FriendsSurfaceHidden(string why)
+    {
+        if (!FriendsWanted) ClearFriends($"no friends surface on screen ({why})");
+        else AppLog.Friends.VeryVerbose($"No roster for {why}: another friends surface still shows the last one");
+    }
+
+    /// <param name="why">Why the roster is asked for now, written into its LogFriends line.</param>
+    private async Task FetchFriendsAsync(string why)
     {
         _pollsSinceFriends = 0;
         _friendsDue = false;
+        _friendsDueFor.Clear();
         _lastFriendsUtc = DateTime.UtcNow;
         try
         {
             var roster = await _client.FetchFriendsAsync();
             if (roster is null) throw new InvalidOperationException("server declined");
+            if (_friendMisses > 0) AppLog.Friends.Log($"Roster back after {_friendMisses} miss{(_friendMisses == 1 ? "" : "es")}");
             _friendMisses = 0;
             Friends = _steamId is null ? roster : roster.Where(f => f.SteamId != _steamId).ToList();
+            AppLog.Friends.Verbose($"Roster ({why}): {Friends.Count} friends, {Friends.Count(f => f.InGame)} in game");
             FriendsChanged?.Invoke(Friends);
         }
-        catch
+        catch (Exception ex)
         {
+            // Our own InvalidOperationException above is the website's success:false.
+            AppLog.Friends.Warning($"Roster missed ({why}): {(ex is InvalidOperationException ? "the website declined" : AppLog.Short(ex))}");
             // One miss keeps the last roster on screen; a run of them clears it
             // so nobody navigates by a stale arrow. The next due poll retries.
-            if (++_friendMisses >= FriendMissesBeforeClear) ClearFriends();
+            if (++_friendMisses >= FriendMissesBeforeClear) ClearFriends($"{_friendMisses} misses in a row");
         }
     }
 
-    private void ClearFriends()
+    /// <param name="why">For LogFriends, when a roster was on screen.</param>
+    private void ClearFriends(string why)
     {
         _pollsSinceFriends = 0;
         if (Friends is null) return;
+        AppLog.Friends.Log($"Roster cleared: {why}");
         Friends = null;
         FriendsChanged?.Invoke(null);
     }
@@ -408,9 +494,15 @@ public sealed partial class PollService : IDisposable
     /// The Skins page calls it on opening too: an apply wants a fresh in-game
     /// state.
     /// </summary>
-    public void Nudge()
+    /// <param name="why">What nudged ("edit mode", "overlay shown" …), for LogPoll.</param>
+    public void Nudge(string why)
     {
-        if (_timer.IsEnabled && IsIdling && PollIsStale) _ = PollNowAsync();
+        if (_timer.IsEnabled && IsIdling && PollIsStale)
+        {
+            _ = PollNowAsync(why);
+            return;
+        }
+        AppLog.Poll.VeryVerbose($"No poll for {why}: {(!_timer.IsEnabled ? "polling is stopped" : !IsIdling ? "not idling" : "the last poll is under one interval old")}");
     }
 
     /// <summary>The pacing rule, pure for the tests: configured cadence while live, else idle, then deep idle.</summary>
@@ -435,11 +527,15 @@ public sealed partial class PollService : IDisposable
         var next = NextInterval(_activeInterval, live, now - _lastLiveUtc);
         // Assigning Interval re-arms a running DispatcherTimer from now, so
         // only touch it on a change — the in-game tick rhythm stays as it was.
-        if (_timer.Interval != next) _timer.Interval = next;
+        if (_timer.Interval != next)
+        {
+            AppLog.Poll.Log($"Polling every {next.TotalSeconds:0} s (was {_timer.Interval.TotalSeconds:0} s)");
+            _timer.Interval = next;
+        }
     }
 
     /// <summary>An off-schedule poll: re-arms the timer first, so the next tick can't land right behind it.</summary>
-    private Task PollNowAsync()
+    private Task PollNowAsync(string why)
     {
         // Every caller checks PollIsStale first (Nudge, the Check Prime and
         // skin-apply clicks), so an off-schedule poll is floored at the
@@ -449,7 +545,7 @@ public sealed partial class PollService : IDisposable
             _timer.Stop();
             _timer.Start();
         }
-        return PollOnceAsync();
+        return PollOnceAsync(why);
     }
 
     /// <summary>
@@ -470,6 +566,7 @@ public sealed partial class PollService : IDisposable
         var now = DateTime.UtcNow;
         if (now < PrimeCooldownUntilUtc)
         {
+            AppLog.Prime.Log($"Check answered here: cooling down, {(PrimeCooldownUntilUtc - now).TotalSeconds:0} s left");
             PrimeChecked?.Invoke(new PrimeCheckResult(PrimeCheckOutcome.Cooldown, Remaining: PrimeCooldownUntilUtc - now));
             return;
         }
@@ -480,9 +577,10 @@ public sealed partial class PollService : IDisposable
             // Idle pacing can trail a fresh spawn by up to a minute: refresh
             // the in-game state with one regular poll before answering "not
             // in game" from a stale one. Still no prime request unless spawned.
-            if (!_inGame && PollIsStale) await PollNowAsync();
+            if (!_inGame && PollIsStale) await PollNowAsync("Check Prime, to refresh a not-in-game state");
             if (!_inGame)
             {
+                AppLog.Prime.Log("Check answered here: not in game");
                 PrimeChecked?.Invoke(new PrimeCheckResult(PrimeCheckOutcome.NotInGame));
                 return;
             }
@@ -506,10 +604,13 @@ public sealed partial class PollService : IDisposable
                     PrimeCooldownUntilUtc = DateTime.UtcNow + PrimeRetryGuard;
                     break;
             }
+            // Reason is our own mapped words ("server declined"), never the website's.
+            AppLog.Prime.Log($"Check answered by the website: {result.Outcome}{(result.Reason is { } why ? $" ({why})" : "")}; next check in {(PrimeCooldownUntilUtc - DateTime.UtcNow).TotalSeconds:0} s");
             PrimeChecked?.Invoke(result);
         }
         catch (Exception ex)
         {
+            AppLog.Prime.Warning($"Check failed: {AppLog.Short(ex)}");
             PrimeCooldownUntilUtc = DateTime.UtcNow + PrimeRetryGuard;
             // The type's name only, never the message: the reason reaches the
             // widget, and error paths surface nothing that could carry request details.
@@ -534,10 +635,13 @@ public sealed partial class PollService : IDisposable
     {
         try
         {
-            return await _client.FetchPrimeCooldownAsync() ?? DefaultPrimeCooldown;
+            if (await _client.FetchPrimeCooldownAsync() is { } cooldown) return cooldown;
+            AppLog.Prime.Log("No cooldown in the website's answer: the default 5 min");
+            return DefaultPrimeCooldown;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLog.Prime.Warning($"Cooldown request failed: {AppLog.Short(ex)}; the default 5 min");
             return DefaultPrimeCooldown;
         }
     }

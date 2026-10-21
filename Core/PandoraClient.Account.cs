@@ -146,7 +146,7 @@ public sealed partial class PandoraClient
     /// </summary>
     public async Task<bool> SignOutAsync(CancellationToken ct = default)
     {
-        using var http = new HttpClient(new HttpClientHandler { UseCookies = false, AllowAutoRedirect = false })
+        using var http = new HttpClient(new RequestLogHandler(new HttpClientHandler { UseCookies = false, AllowAutoRedirect = false }))
         {
             Timeout = TimeSpan.FromSeconds(8)
         };

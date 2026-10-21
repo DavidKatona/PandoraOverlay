@@ -403,6 +403,7 @@ public partial class SettingsWindow : Window
         var startup = StartupCheck.IsChecked == true;
         if (startup != _initialStartup) StartupRegistration.SetEnabled(startup);
         _config.UpdateCheckEnabled = UpdateCheck.IsChecked == true; // read at the next launch
+        _config.DetailedLog = DetailedLogCheck.IsChecked == true; // MainWindow sets the log's levels after every save
         _config.HideWhenNotInGame = HideNotInGameCheck.IsChecked == true; // MainWindow reads these live, no flag needed
         _config.LowStatChimeEnabled = LowStatChimeCheck.IsChecked == true;
         _config.GrowthChimeEnabled = GrowthChimeCheck.IsChecked == true;

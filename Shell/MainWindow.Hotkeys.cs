@@ -126,6 +126,7 @@ public partial class MainWindow
         if (!taken.Contains(wanted)) return wanted;
 
         var free = candidates.First(c => !taken.Contains(c));
+        AppLog.Hotkeys.Log($"{wanted} is already one of the overlay's own keys: using {free}");
         writeBack(free.ToString());
         return free;
     }
@@ -136,6 +137,7 @@ public partial class MainWindow
         if (HotkeySpec.Register(hwnd, id, wanted)) return wanted;
 
         _registerFailures.Add(wanted.ToString());
+        AppLog.Hotkeys.Warning($"{wanted} is held by another program: keeping {fallback}");
         HotkeySpec.Register(hwnd, id, fallback);
         writeBack(fallback.ToString());
         SetStatus($"Hotkey {wanted} unavailable — keeping {fallback}");
@@ -168,6 +170,7 @@ public partial class MainWindow
         if (_registerFailures.Count > 0)
         {
             var combos = string.Join(", ", _registerFailures);
+            AppLog.Hotkeys.Warning($"Held by another program at launch: {combos}");
             SetStatus($"Hotkey {combos} in use by another app — rebind in Settings");
             _tray.ShowHotkeyConflict(combos);
         }

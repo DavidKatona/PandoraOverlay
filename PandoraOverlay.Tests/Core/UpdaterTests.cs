@@ -15,4 +15,14 @@ public class UpdaterTests
     [InlineData(null, false)]
     public void OnlyAPreReleaseBuildLooksAtPreReleases(string? version, bool expected) =>
         Assert.Equal(expected, Updater.AcceptsPreReleases(version));
+
+    [Theory]
+    [InlineData("1.35.0+4c1d913d34a1d666b1c08509156410f0f2032194", "1.35.0+4c1d913")]
+    [InlineData("1.36.0-rc.1+4c1d913d34a1d666b1c0", "1.36.0-rc.1+4c1d913")]
+    [InlineData("1.35.0+4c1d913", "1.35.0+4c1d913")] // already short
+    [InlineData("1.35.0", "1.35.0")]
+    [InlineData("", "?")]
+    [InlineData(null, "?")]
+    public void TheLogShowsTheCommitAsGitsShortHash(string? version, string expected) =>
+        Assert.Equal(expected, Updater.ShortVersion(version));
 }

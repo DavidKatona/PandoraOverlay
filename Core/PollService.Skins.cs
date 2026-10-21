@@ -65,13 +65,19 @@ public sealed partial class PollService
         try
         {
             var list = await _client.FetchPatreonSkinsAsync();
-            if (list is null) return new SkinListResult(Skins, "the server declined");
+            if (list is null)
+            {
+                AppLog.Skins.Warning("Skins list: the website declined");
+                return new SkinListResult(Skins, "the server declined");
+            }
             Skins = list;
             _skinListGotUtc = DateTime.UtcNow;
+            AppLog.Skins.Log($"Skins list: {list.Count} skins");
             return new SkinListResult(list);
         }
         catch (Exception ex)
         {
+            AppLog.Skins.Warning($"Skins list failed: {AppLog.Short(ex)}");
             return new SkinListResult(Skins, ex.GetType().Name);
         }
         finally
@@ -146,17 +152,23 @@ public sealed partial class PollService
         pattern = Math.Clamp(pattern, 0, PatreonSkins.PatternCount - 1);
         if (_skinBusy || DateTime.UtcNow < _skinGuardUntilUtc)
         {
+            AppLog.Skins.Log("Apply answered here: too soon after the last");
             return new SkinApplyResult(SkinApplyOutcome.TooSoon, skinName, pattern);
         }
 
         _skinBusy = true;
         try
         {
-            if (!_inGame && PollIsStale) await PollNowAsync();
-            if (!_inGame) return new SkinApplyResult(SkinApplyOutcome.NotInGame, skinName, pattern);
+            if (!_inGame && PollIsStale) await PollNowAsync("skin apply, to refresh a not-in-game state");
+            if (!_inGame)
+            {
+                AppLog.Skins.Log("Apply answered here: not in game");
+                return new SkinApplyResult(SkinApplyOutcome.NotInGame, skinName, pattern);
+            }
 
             _skinGuardUntilUtc = DateTime.UtcNow + SkinApplyGuard;
             var result = await _client.ApplyPatreonSkinAsync(PatreonSkins.IdJson(skinId, idIsNumber), skinName, pattern);
+            AppLog.Skins.Log($"Apply answered by the website: {result.Outcome}");
             if (result.Outcome == SkinApplyOutcome.Ok)
             {
                 _config.SkinLastAppliedUtc = DateTime.UtcNow;
@@ -170,6 +182,7 @@ public sealed partial class PollService
         }
         catch (Exception ex)
         {
+            AppLog.Skins.Warning($"Apply failed: {AppLog.Short(ex)}");
             return new SkinApplyResult(SkinApplyOutcome.Failed, skinName, pattern, ex.GetType().Name);
         }
         finally

@@ -155,8 +155,9 @@ public sealed partial class PandoraClient : IDisposable
         // wherever it points. The site answers directly (every endpoint tried
         // in Oct 2026, the heatmap picture included), so a redirect now fails
         // like any other bad answer and nothing of ours leaves the site. OverlayAccessHandler attaches the
-        // site's access header (see OverlayAccess) to the site's requests.
-        _http = new HttpClient(new OverlayAccessHandler(new HttpClientHandler { UseCookies = false, AllowAutoRedirect = false }))
+        // site's access header (see OverlayAccess) to the site's requests;
+        // RequestLogHandler, outermost, writes each one's LogNet line (1.36).
+        _http = new HttpClient(new RequestLogHandler(new OverlayAccessHandler(new HttpClientHandler { UseCookies = false, AllowAutoRedirect = false })))
         {
             Timeout = TimeSpan.FromSeconds(8)
         };

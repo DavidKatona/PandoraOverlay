@@ -46,17 +46,21 @@ public sealed partial class PollService
             var answer = await _client.FetchStoredDinosAsync();
             if (answer.List is null)
             {
+                AppLog.Storage.Warning("Storage list: the website declined"); // never its words
                 return new StorageListResult(Storage, answer.Declined is { } said ? $"the website said: {said}" : "the website declined");
             }
             Storage = answer.List;
+            AppLog.Storage.Log($"Storage list: {Storage.Dinos.Count} of {Storage.Limit} slots used");
             return new StorageListResult(Storage);
         }
         catch (SessionEndedException)
         {
+            AppLog.Storage.Warning("Storage list: the website refused the session");
             return new StorageListResult(Storage, "the website session has ended, sign in again");
         }
         catch (Exception ex)
         {
+            AppLog.Storage.Warning($"Storage list failed: {AppLog.Short(ex)}");
             return new StorageListResult(Storage, ex.GetType().Name);
         }
         finally
@@ -88,14 +92,24 @@ public sealed partial class PollService
     /// </summary>
     private async Task<StorageEditResult> EditStorageAsync(StoredDino dino, Func<Task<StorageEditResult>> send, bool deletes)
     {
-        if (IsSignedOut) return new StorageEditResult(StorageEditOutcome.SignedOut);
-        if (_storageEditBusy || DateTime.UtcNow < _storageEditGuardUntilUtc) return new StorageEditResult(StorageEditOutcome.TooSoon);
+        var what = deletes ? "Delete" : "Rename";
+        if (IsSignedOut)
+        {
+            AppLog.Storage.Log($"{what} answered here: signed out");
+            return new StorageEditResult(StorageEditOutcome.SignedOut);
+        }
+        if (_storageEditBusy || DateTime.UtcNow < _storageEditGuardUntilUtc)
+        {
+            AppLog.Storage.Log($"{what} answered here: too soon after the last");
+            return new StorageEditResult(StorageEditOutcome.TooSoon);
+        }
 
         _storageEditBusy = true;
         try
         {
             _storageEditGuardUntilUtc = DateTime.UtcNow + StorageEditGuard;
             var result = await send();
+            AppLog.Storage.Log($"{what} answered by the website: {result.Outcome}");
             if (result.Outcome == StorageEditOutcome.Ok && Storage is not null)
             {
                 Storage = deletes ? Storage.Without(dino.Id) : result.Dino is { } renamed ? Storage.With(renamed) : Storage;
@@ -104,10 +118,12 @@ public sealed partial class PollService
         }
         catch (SessionEndedException)
         {
+            AppLog.Storage.Warning($"{what}: the website refused the session");
             return new StorageEditResult(StorageEditOutcome.SignedOut);
         }
         catch (Exception ex)
         {
+            AppLog.Storage.Warning($"{what} failed: {AppLog.Short(ex)}");
             return new StorageEditResult(StorageEditOutcome.Failed, ex.GetType().Name);
         }
         finally

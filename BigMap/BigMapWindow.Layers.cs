@@ -244,7 +244,12 @@ public partial class BigMapWindow
             ApplyHeatmapSwitch();
             return;
         }
-        if (ReferenceEquals(sender, _ticks.Friends)) _ = _poll.RefreshFriendsAsync(); // the roster's gate follows the layer
+        if (ReferenceEquals(sender, _ticks.Friends))
+        {
+            // The roster's gate follows the layer: ticked asks for one, unticked never does (FriendsSurfaceHidden).
+            if (_config.BigMapFriends) _ = _poll.RefreshFriendsAsync("the map's Friends layer switched on");
+            else _poll.FriendsSurfaceHidden("the map's Friends layer switched off");
+        }
         if (_hasView) DrawLayers();
     }
 
@@ -258,7 +263,7 @@ public partial class BigMapWindow
 
     private void ApplyHeatmapSwitch()
     {
-        if (_config.BigMapHeatmap) _ = _poll.RefreshHeatmapAsync(); // a picture under a minute old costs nothing
+        if (_config.BigMapHeatmap) _ = _poll.RefreshHeatmapAsync("the map's Heatmap layer switched on"); // a picture under a minute old costs nothing
         else Map.ShowHeatmap(null);                                                // the gate narrows at the next tick
     }
 

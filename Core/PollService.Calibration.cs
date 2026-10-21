@@ -65,6 +65,7 @@ public sealed partial class PollService
             if (await _client.FetchCalibrationAsync() is { } fresh)
             {
                 _calibrationFetched = true;
+                AppLog.Maps.Log(fresh != Calibration ? "Calibration: the website's answer, changed" : "Calibration: the website's answer, unchanged");
                 if (fresh != Calibration)
                 {
                     Calibration = fresh;
@@ -72,10 +73,15 @@ public sealed partial class PollService
                     CalibrationChanged?.Invoke(fresh);
                 }
             }
+            else
+            {
+                AppLog.Maps.Warning("Calibration: no usable values in the website's answer; retried after a good poll");
+            }
         }
-        catch
+        catch (Exception ex)
         {
             // Keep the cached / seed calibration; the next successful poll retries.
+            AppLog.Maps.Warning($"Calibration fetch failed: {AppLog.Short(ex)}; retried after a good poll, at most once a minute");
         }
         finally
         {

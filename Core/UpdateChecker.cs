@@ -26,7 +26,7 @@ public static class UpdateChecker
     {
         try
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            using var http = new HttpClient(new RequestLogHandler(new HttpClientHandler())) { Timeout = TimeSpan.FromSeconds(10) };
             http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "PandoraOverlay");
             http.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/vnd.github+json");
 

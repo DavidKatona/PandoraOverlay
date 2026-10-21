@@ -64,17 +64,25 @@ public sealed partial class PollService
     /// and 32 s). The live-map page refetches every 10 s, also only while
     /// its heatmap layer is on.
     /// </summary>
-    public async Task RefreshHeatmapAsync()
+    /// <param name="why">What asked ("timer", "map opened", "minimap shown" …), for LogMaps.</param>
+    public async Task RefreshHeatmapAsync(string why)
     {
-        if (_heatmapBusy) return; // the fetch in flight will deliver
+        if (_heatmapBusy)
+        {
+            AppLog.Maps.VeryVerbose($"No heatmap fetch for {why}: one is in flight");
+            return; // the fetch in flight will deliver
+        }
         if (!HeatmapWantedFor(_config, BigMapOpen, OverlayHidden))
         {
+            AppLog.Maps.VeryVerbose($"No heatmap for {why}: no map shows it");
             HeatmapChanged?.Invoke(null);
             return;
         }
         var now = DateTime.UtcNow;
         if (HeatmapFresh(_heatmapUtc, now))
         {
+            // The one-minute rule at work: worth a Verbose line, it is what a pacing check looks for.
+            AppLog.Maps.Verbose($"Heatmap ({why}): the picture kept from under a minute ago, no request");
             HeatmapChanged?.Invoke(Heatmap);
             return;
         }
@@ -88,10 +96,12 @@ public sealed partial class PollService
         try
         {
             Heatmap = await _client.FetchHeatmapAsync();
+            AppLog.Maps.Verbose(Heatmap is { } picture ? $"Heatmap picture ({why}): {picture.Length / 1024} KB" : $"Heatmap ({why}): switched off on the website");
             HeatmapChanged?.Invoke(Heatmap);
         }
-        catch
+        catch (Exception ex)
         {
+            AppLog.Maps.Warning($"Heatmap fetch failed ({why}): {AppLog.Short(ex)}");
             Heatmap = null;
             HeatmapChanged?.Invoke(null);
         }

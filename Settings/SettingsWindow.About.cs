@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 
@@ -7,7 +8,8 @@ namespace PandoraOverlay;
 /// SettingsWindow, About page (v1.30): everything about THIS COPY of the
 /// overlay in one place — the version and how it got onto the PC (installed /
 /// zip / plain folder), the update check and its button, where the settings
-/// live with an Open folder and an import from an older copy's folder, and
+/// live with an Open folder and an import from an older copy's folder, the
+/// log (1.36: Detailed log and its folder, for a problem report) and
 /// the links (releases, issues, Discord). The owner's choice over an
 /// "Updates" page: three controls would float, "this copy" fills a page.
 /// A fresh install still lands on Account, so that page carries one pointer
@@ -27,6 +29,7 @@ public partial class SettingsWindow
         UpdateCheck.IsChecked = config.UpdateCheckEnabled;
         UpdateButton.IsEnabled = _updates is not null;
         DataFolderText.Text = DataFolder.Path;
+        DetailedLogCheck.IsChecked = config.DetailedLog;
         ImportPointer.Visibility = _firstRun ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -91,6 +94,13 @@ public partial class SettingsWindow
     }
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => OpenUrl(DataFolder.Path);
+
+    /// <summary>The log's folder (1.36), for a problem report. Created first, so the click opens it even if the log could never be written.</summary>
+    private void OpenLogFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try { Directory.CreateDirectory(AppLog.Folder); } catch { /* the shell says so if it is missing */ }
+        OpenUrl(AppLog.Folder);
+    }
 
     private void OpenReleases_Click(object sender, RoutedEventArgs e) => OpenUrl(UpdateChecker.ReleasesPage);
 

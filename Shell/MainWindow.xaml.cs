@@ -59,6 +59,7 @@ public partial class MainWindow : OverlayWindowBase
         InitializeComponent();
 
         _config = OverlayConfig.Load();
+        AppLog.Configure(_config.DetailedLog, _config.LogLevels); // the log's levels (App opened it); again after every Settings save
         // Two and a half poll intervals, at least 6 s: always room for two steps, whatever cadence is configured.
         _combatSpeed = new SpeedTracker(TimeSpan.FromSeconds(Math.Max(6, 2.5 * Math.Max(2, _config.PollIntervalSeconds))));
         _library = WaypointLibrary.Load();
@@ -179,6 +180,8 @@ public partial class MainWindow : OverlayWindowBase
             }
             // Everything a Save changed is hot-applied from here on: a setting
             // never needs a restart.
+            AppLog.App.Log("Settings saved");
+            AppLog.Configure(_config.DetailedLog, _config.LogLevels); // About's Detailed log
             if (TrailKeep <= TimeSpan.Zero) _trail.Reset(); // the trail switched off: forget the path, not just hide it
             if (dialog.MinimapChanged || dialog.AppearanceChanged || dialog.FriendsChanged) _minimap?.ApplySettings();
             UpdateArea(); // the pill or the feed's area lines may have been switched on: name the area now, not a poll later
@@ -191,7 +194,7 @@ public partial class MainWindow : OverlayWindowBase
                 _controlPanel?.ApplySettingsFromConfig();
             }
             if (dialog.AppearanceChanged || dialog.ActivityChanged || dialog.FriendsChanged) _activity?.ApplySettingsFromConfig();
-            if (dialog.FriendsChanged) _ = _poll.RefreshFriendsAsync(); // the minimap layer may have been switched on or off
+            if (dialog.FriendsChanged) _ = _poll.RefreshFriendsAsync("Settings saved"); // the minimap layer may have been switched on or off
             if (dialog.PositionsReset) ResetPositions();
             if (_autoHidden && !_config.HideWhenNotInGame) RevealAutoHidden(); // switched off while hidden by it
         }
@@ -241,6 +244,7 @@ public partial class MainWindow : OverlayWindowBase
         _tray.ClearSignedOut();
         if (string.IsNullOrWhiteSpace(_config.GetCookie()))
         {
+            AppLog.Account.Log("Signed out: polling stopped");
             _poll.ForgetSession();
             UpdateUi(new MyLocationResponse(false, null)); // bars to zero, trackers reset
             ShowNoCookieState();
@@ -250,6 +254,7 @@ public partial class MainWindow : OverlayWindowBase
         DinoText.Text = "Connecting…";
         SetStatus("");
         SetAttention(true);
+        AppLog.Account.Log("Signed in: polling starts with the new session");
         _poll.RebuildClient();
     }
 
