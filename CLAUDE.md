@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.35.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.36.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -27,8 +27,8 @@ a file in the folder is touched.
    happens only on an install / update / uninstall click and compares exe
    locations with our folder. It is not a licence for OUR code: the overlay
    itself never lists, opens or looks at any process (`Process.Start` appears
-   only to hand a URL — or the settings folder, About → Open folder — to the
-   Windows shell). It activates only its OWN windows (the
+   only to hand a URL — or the settings folder, About → Open folder, or the
+   log folder, About → Open log folder — to the Windows shell). It activates only its OWN windows (the
    control panel, the map, dialogs; our hotkey press grants the right); the
    game window is never found, focused or touched.
 2. **Approved endpoints only**, each with the trigger and pace below. Nothing is
@@ -328,17 +328,22 @@ all) — say so when it matters:
   checked in game on every page that talks to the site, with a local build
   and with the v1.35.0-rc.1 install, whose release build ran the access steps
   (Oct 19).
-- The log (unreleased, built Oct 21 2026): run in game by the owner with
-  Detailed log on (Oct 21: launch, idle, in game, the auto-hide, hide-all,
-  edit mode, the map, a Prime check), and the requests in it matched the
-  pacing rules; the hidden-surface fix (no roster request on a hide) was
-  seen in the same evening's last log. Not yet seen: a failed request, a
-  refused session, the 2 MB roll-over, a real crash.
+- The log (1.36): run in game by the owner with Detailed log on, from a
+  plain-folder build (Oct 21: launch, idle, in game, the auto-hide,
+  hide-all, edit mode, the map, a Prime check, Open log folder), and the
+  requests in it matched the pacing rules; the hidden-surface fix (no
+  roster request on a hide) was seen in the same evening's last log. Not
+  yet seen: an installed copy's log and the update to 1.36, a failed
+  request, a refused session, the 2 MB roll-over, a real crash.
+- The status line's words for a failed poll (1.36, `ConnectionProblem`):
+  tests only, no failure seen in game (the owner skipped the network-off
+  test). About's "Report a problem" opening GitHub's form chooser, and the
+  bug-report form itself, were not tried (the chooser needs a login).
 
 Open: the README's setup screenshots need retaking for the in-app sign-in
 (the owner's, since 1.31).
 
-BUILT, unreleased (Oct 21 2026): **app-wide logging**, modelled on Unreal
+SHIPPED in 1.36.0 (Oct 21 2026): **app-wide logging**, modelled on Unreal
 Engine's (owner's ask): categories, verbosity levels, Unreal's line and its
 backup files. The owner's choices: on for every player at quiet levels;
 `%LocalAppData%\PandoraOverlay\Logs`, ten files of 2 MB at most, backups
@@ -498,7 +503,7 @@ Updates and the account
 
 ## Releases
 
-- Current: 1.35.0. The csproj `<Version>` is the single source of truth
+- Current: 1.36.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
