@@ -1,0 +1,38 @@
+name: Something isn't working
+description: A bug, a crash, or the overlay doing something odd.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting it. Two things help most: the overlay's version, and its log file.
+
+        **Never paste your cookie**, and never attach a screenshot that shows it. The log never holds it.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings → About shows it at the top.
+      placeholder: Pandora Overlay 1.36.0 · installed
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. Roughly when, if you remember; the log's times are your PC's clock.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: The log
+      description: |
+        Settings → About → **Open log folder**, then drag the newest file in here: `PandoraOverlay.log` if the overlay is still running since it happened, else the newest `PandoraOverlay-backup-….log`. It holds what the overlay did, never your cookie, names or positions.
+        If you can make it happen again, tick **Detailed log** on the same page first: the file then shows every request.
+      placeholder: Drag the log file here.
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot (optional)
+      description: If it's something you can see. Check that it doesn't show your cookie.

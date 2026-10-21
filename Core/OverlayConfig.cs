@@ -75,7 +75,8 @@ public sealed class OverlayConfig
     public DateTime? SignedInUtc { get; set; }
 
     // PollService floors this at 2 s whatever the file says, and the pace only
-    // ever slows from there (idling); the default 3 s is the website's own.
+    // ever slows from there (idling). The default 3 s is the owner's choice
+    // (kept Oct 16 2026); the website's live map polls every 5 s.
     /// <summary>Seconds between polls. The site itself polls every few seconds; do not go below 2.</summary>
     public int PollIntervalSeconds { get; set; } = 3;
 

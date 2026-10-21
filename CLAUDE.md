@@ -65,7 +65,8 @@ a file in the folder is touched.
    on the website), the admin / staff endpoints (`/api/admin/*`, the skin-store
    and admin-skin editors). NOT cleared: the zone overlay images (see
    Permissions).
-3. **Poll interval >= 2 s** (default 3 s, matching the website's own cadence).
+3. **Poll interval >= 2 s** (default 3 s, the owner's choice, kept Oct 16 2026;
+   the website's live map polls every 5 s).
    Server-side rate limit is 300/window; the dev specifically praised the
    polling restraint. The cadence is adaptive, DOWNWARDS ONLY: the configured
    interval is the in-game pace; not in-game (or 5 straight failures) idles at
@@ -293,12 +294,15 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   growth multiplier vs official; total grow time differs per species; growth
   does NOT appear to pause when starving/dehydrated. GrowthTracker measures
   the effective rate, so none of this needs configuring.
-- Status line shows the last update; "Disconnected · retrying (TypeName)" on
-  errors; the site's refusal twice running → "Session ended · sign in again
+- Status line shows the last update; "Disconnected · retrying (…)" on errors,
+  the brackets naming the cause in our own words since 1.36
+  (`ConnectionProblem`: no connection, no answer, blocked by the website,
+  website error 502 …; the type's name for anything else, as every case read
+  before). The site's refusal twice running → "Session ended · sign in again
   from the tray" and the tray's "Sign in again…" entry. Cloudflare's block page
   (a build without the access header, or one the site no longer accepts) reads
-  as "Disconnected · retrying (HttpRequestException)": 1.34 and older have
-  shown it for every player since Oct 12 2026.
+  as "(blocked by the website)", and as "(HttpRequestException)" before 1.36:
+  1.34 and older have shown that for every player since Oct 12 2026.
 
 ## Roadmap
 

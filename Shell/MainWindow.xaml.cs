@@ -380,9 +380,10 @@ public partial class MainWindow : OverlayWindowBase
     // ---- Poll stream --------------------------------------------------------
     private void OnPollFailed(Exception ex)
     {
-        // The exception's TYPE only, never its message: a message could carry
-        // the cookie, and the cookie never reaches window text.
-        SetStatus($"Disconnected · retrying ({ex.GetType().Name})");
+        // Our own words for the cause (1.36: "no connection", "blocked by the
+        // website" …), else the exception's TYPE; never its message: a message
+        // could carry the cookie, and the cookie never reaches window text.
+        SetStatus($"Disconnected · retrying ({ConnectionProblem.Words(ex)})");
         _tray.SetStatus("Pandora Overlay — disconnected");
         SetAttention(true); // a broken connection is worth eyes
     }

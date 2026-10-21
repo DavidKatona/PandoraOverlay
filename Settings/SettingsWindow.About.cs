@@ -17,7 +17,8 @@ namespace PandoraOverlay;
 /// </summary>
 public partial class SettingsWindow
 {
-    private const string IssuesUrl = "https://github.com/DavidKatona/PandoraOverlay/issues";
+    // GitHub's form chooser (1.36): the bug-report form, which asks for the version and the log, or a blank issue for anything else.
+    private const string IssuesUrl = "https://github.com/DavidKatona/PandoraOverlay/issues/new/choose";
 
     private readonly UpdateHooks? _updates;
     private string? _offeredUpdate;

@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the overlay never sends it anywhere.
 - Settings › About › Detailed log writes more lines, for when you are asked
   for one.
+- Settings › About › Report a problem opens a short form on GitHub that asks
+  for your version, what happened and the log.
+
+### Changed
+
+- When the overlay can't reach the website, the status line now says why:
+  "no connection", "no answer", "blocked by the website", "website error
+  502" and so on, instead of a technical name such as
+  HttpRequestException.
 
 ### Fixed
 
