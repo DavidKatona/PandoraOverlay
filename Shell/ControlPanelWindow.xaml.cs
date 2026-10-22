@@ -34,6 +34,9 @@ public partial class ControlPanelWindow : OverlayWindowBase
 
     protected override bool IsSnapTarget => false;
 
+    /// <summary>Its own Scale (Settings → Widgets) since 1.37; it rode the stats panel's before.</summary>
+    protected override double AppearanceScale(OverlayConfig config) => config.ControlPanelScale;
+
     public ControlPanelWindow(OverlayConfig config, Action openSettings, Action toggleStats, Action toggleStatsView,
                               Action toggleMinimap, Action toggleMinimapView, Action toggleHeatmap, Action toggleAreaBorders,
                               Action togglePrime, Action checkPrime, Action toggleActivity,

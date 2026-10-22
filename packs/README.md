@@ -31,7 +31,7 @@ To download one, open it here on GitHub and use the **Download raw file** button
 ## Good to know
 
 - With a pack shown, the minimap's footer names the nearest place and how far away it is. **Track** one to keep its distance and an ETA in the footer wherever you go.
-- Too many dots? **Settings → Minimap → Waypoints → Nearest 10** only draws the ten closest to you. The ✕ on a pack's row removes the whole pack.
+- Too many dots? **Settings → Maps → Waypoints → Nearest 10** only draws the ten closest to you. The ✕ on a pack's row removes the whole pack.
 - Your own waypoints are never touched, and importing the same pack again adds nothing: entries you already have are skipped.
 - An area is a region, and a waypoint is a dot: the areas pack marks roughly the middle of each one. A few are out at sea on purpose (the bays, the East Coast, the Port).
 - A salt rock's name only says which named place is closest, and that can be several hundred metres away. The dot is the rock.

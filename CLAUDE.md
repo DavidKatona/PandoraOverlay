@@ -401,7 +401,7 @@ Activity and friends
 - Feed lines for chores: waypoint edits, layer toggles, connection blips, Dino
   storage rename/delete, updates.
 - A sound in the Activity widget, or the friend alert as an Activity option (it
-  is MainWindow's, on the Friends page).
+  is MainWindow's, on General's Sounds with the other chimes since 1.37).
 - Managing friends in the overlay (add, remove, requests, block, privacy): it
   stays on the website.
 
@@ -467,9 +467,10 @@ Updates and the account
   did).
 - Every distinct widget gets its OWN size slider in Settings (owner's rule):
   `UiScale` (stats panel), `MinimapScale`, `PrimeScale`, `ActivityScale` — a new
-  widget ships with one (override `AppearanceScale`). All behave alike (owner,
-  Oct 6 2026): plain numbers defaulting to 1.0, no seeding from another widget,
-  no migration. No global multiplier on top.
+  widget ships with one (override `AppearanceScale`). The control panel has its
+  own too, `ControlPanelScale` (1.37; it rode `UiScale` before). All behave
+  alike (owner, Oct 6 2026): plain numbers defaulting to 1.0, no seeding from
+  another widget, no migration. No global multiplier on top.
 - **A widget never changes size.** Every widget is 298 wide on one of two fixed
   frames (`WidgetFrame`: the minimap and the Prime tracker share the large one,
   the stats panel and the Activity feed the small one) and lays its content out

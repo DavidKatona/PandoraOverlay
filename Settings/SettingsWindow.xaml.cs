@@ -10,14 +10,17 @@ using System.Windows.Shapes;
 namespace PandoraOverlay;
 
 /// <summary>
-/// Sectioned settings dialog: Account (the in-app sign-in, v1.31 — see
-/// SettingsWindow.Account.cs), Controls (edit-mode hotkey with capture +
-/// availability check), General (run at Windows startup), Minimap (view mode
-/// + centered zoom, the same persisted values the in-overlay gestures write).
+/// The paged settings dialog. The overlay's own pages: Account (the in-app
+/// sign-in, SettingsWindow.Account.cs), General (app-wide: start-up, the
+/// look, the sounds), Hotkeys (capture + availability check), Widgets (the
+/// stats panel, Prime tracker, Activity feed and control panel, one group
+/// each), Maps (the minimap, and the trail both maps share), Waypoints and
+/// Friends (the two lists); then the website's pages, Skins, Dino storage and
+/// Server rules; then About. The grouping is the owner's (Oct 22 2026, 1.37).
 /// Save applies config + registry; MainWindow reads the *Changed flags
-/// afterwards to hot-apply hotkey/minimap without a restart (CookieChanged is
-/// read even after Cancel: a sign-in acts at once). First run: Save stays
-/// disabled until signed in.
+/// afterwards to hot-apply without a restart (CookieChanged is read even
+/// after Cancel: a sign-in acts at once). First run: Save stays disabled
+/// until signed in.
 /// </summary>
 /// <remarks>
 /// Opening cost, measured Oct 2026 with the overlay's windows up (idle PC,
@@ -134,7 +137,7 @@ public partial class SettingsWindow : Window
         // ScrollViewer, so a page scrolls and the buttons are never lost.
         MaxHeight = SystemParameters.WorkArea.Height * 0.92;
 
-        // Controls
+        // Hotkeys
         // A new global hotkey needs its box here, its line in Save, and its
         // Unregister in MainWindow.OpenSettingsOn — unsuspended, it would fire
         // behind this dialog and its own combo would probe as taken.
@@ -170,6 +173,7 @@ public partial class SettingsWindow : Window
         GrowthChimeCheck.IsChecked = config.GrowthChimeEnabled;
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
         PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
+        ControlPanelScaleSlider.Value = Math.Clamp(config.ControlPanelScale, ControlPanelScaleSlider.Minimum, ControlPanelScaleSlider.Maximum);
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
         FadeCheck.IsChecked = config.FadeEnabled;
         FadeSlider.Value = Math.Clamp(config.FadeIdleOpacity, FadeSlider.Minimum, FadeSlider.Maximum);
@@ -266,7 +270,7 @@ public partial class SettingsWindow : Window
 
     // ---- Account: SettingsWindow.Account.cs (the in-app sign-in, v1.31) -----
 
-    // ---- Controls (hotkey capture) ------------------------------------------
+    // ---- Hotkeys (capture) --------------------------------------------------
     private void HotkeyBox_GotFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         HotkeyHint.Text = "Press the new combination now (Esc keeps the current one).";
@@ -347,7 +351,7 @@ public partial class SettingsWindow : Window
         return true;
     }
 
-    // ---- General (appearance) -----------------------------------------------
+    // ---- Widgets (the scale labels) -----------------------------------------
     private void ScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (ScaleLabel != null) ScaleLabel.Text = $"{e.NewValue:0%}";
@@ -358,6 +362,12 @@ public partial class SettingsWindow : Window
         if (PrimeScaleLabel != null) PrimeScaleLabel.Text = $"{e.NewValue:0%}";
     }
 
+    private void ControlPanelScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (ControlPanelScaleLabel != null) ControlPanelScaleLabel.Text = $"{e.NewValue:0%}";
+    }
+
+    // ---- General (the look) -------------------------------------------------
     private void OpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (OpacityLabel != null) OpacityLabel.Text = $"{e.NewValue:0%}";
@@ -368,7 +378,7 @@ public partial class SettingsWindow : Window
         if (FadeLabel != null) FadeLabel.Text = $"{e.NewValue:0%}";
     }
 
-    // ---- Minimap ------------------------------------------------------------
+    // ---- Maps ---------------------------------------------------------------
     private void ZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (ZoomLabel != null) ZoomLabel.Text = $"{e.NewValue:0.##}×";
@@ -412,6 +422,7 @@ public partial class SettingsWindow : Window
         var scale = Math.Round(ScaleSlider.Value, 2);
         var primeScale = Math.Round(PrimeScaleSlider.Value, 2);
         var activityScale = Math.Round(ActivityScaleSlider.Value, 2);
+        var controlPanelScale = Math.Round(ControlPanelScaleSlider.Value, 2);
         var bgOpacity = Math.Round(OpacitySlider.Value, 2);
         var timeLeft = TimeLeftCheck.IsChecked == true;
         var fade = FadeCheck.IsChecked == true;
@@ -419,6 +430,7 @@ public partial class SettingsWindow : Window
         if (Math.Abs(scale - _config.UiScale) > 0.001 ||
             Math.Abs(primeScale - (_config.PrimeScale)) > 0.001 ||
             Math.Abs(activityScale - (_config.ActivityScale)) > 0.001 ||
+            Math.Abs(controlPanelScale - _config.ControlPanelScale) > 0.001 ||
             Math.Abs(bgOpacity - _config.BackgroundOpacity) > 0.001 ||
             timeLeft != _config.StatTimeLeftEnabled ||
             fade != _config.FadeEnabled ||
@@ -427,6 +439,7 @@ public partial class SettingsWindow : Window
             _config.UiScale = scale;
             _config.PrimeScale = primeScale;
             _config.ActivityScale = activityScale;
+            _config.ControlPanelScale = controlPanelScale;
             _config.BackgroundOpacity = bgOpacity;
             _config.StatTimeLeftEnabled = timeLeft;
             _config.FadeEnabled = fade;

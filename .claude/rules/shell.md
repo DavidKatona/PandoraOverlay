@@ -15,7 +15,7 @@ paths:
   saved into config on hide, `SetEditMode(true)` when shown during edit mode,
   `Refresh*Async` if it is a request surface, and a nullable X/Y filled by
   `FillDefaultPositions` (DefaultLayout). It gets a captioned control-panel group and a
-  Settings page — never a tray line.
+  captioned group on Settings → Widgets (`.claude/rules/settings.md`) — never a tray line.
 - **A new global hotkey** needs: an id constant (0xA11D is reserved for the Settings
   dialog's test registration); a default WITH a modifier, clear of the game's F2
   (recording) and F10 (hide HUD) — raw-input games see the bare key despite Ctrl — and of

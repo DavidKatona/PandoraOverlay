@@ -183,6 +183,24 @@
             <Setter Property="Margin" Value="0,4,0,10"/>
         </Style>
 
+        <!-- A group inside a page (General's Look and Sounds, one widget on the
+             Widgets page, About's sections). The first one under a page title
+             sets its own top margin to 0. -->
+        <Style x:Key="SectionCaption" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#7B8790"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,16,0,6"/>
+        </Style>
+
+        <!-- A caption over a group of nav buttons, in line with their text. -->
+        <Style x:Key="NavCaption" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#5E6B76"/>
+            <Setter Property="FontSize" Value="9.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="12,12,0,4"/>
+        </Style>
+
         <Style x:Key="FieldLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#C7D1DA"/>
             <Setter Property="FontSize" Value="12"/>
@@ -428,10 +446,16 @@
                  selected are Hidden (not Collapsed) so the grid keeps the
                  tallest page's height and the dialog never jumps between pages. -->
             <!-- Our own nav, not the stock TabControl: its light chrome doesn't
-                 theme. Widget pages follow the control panel's order, each with
-                 that widget's own scale slider and options; a new widget adds a
-                 nav button + a page (the Tag is SetPage's key). What belongs in
-                 this dialog: a PREFERENCE — a value, or an on/off decided once.
+                 theme. The nav is grouped (owner, Oct 22 2026): the overlay's
+                 own pages, then the website's pages under a caption, then
+                 About. Widgets with few options share the Widgets page, one
+                 captioned group each in the control panel's order with that
+                 widget's own scale slider first; the minimap has the Maps
+                 page, with the one setting it shares with the map. A new
+                 widget adds a group to the Widgets page, or a page of its own
+                 when its options would make that page taller than the
+                 tallest one (the Tag is SetPage's key). What belongs in this
+                 dialog: a PREFERENCE — a value, or an on/off decided once.
                  Something flipped mid-game belongs on the control panel or a
                  hotkey instead. Everything applies on Save and Cancel drops it,
                  except the pages that act at once (Account, Skins, Dino
@@ -442,19 +466,21 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
+                <!-- Only the Buttons are pages: SetPage walks Nav's Buttons, so the
+                     caption and the divider between them are left alone. -->
                 <StackPanel x:Name="Nav" Margin="0,0,12,0">
                     <Button Content="Account" Tag="Account" Style="{StaticResource NavButton}" Click="Nav_Click"/>
-                    <Button Content="Controls" Tag="Controls" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="General" Tag="General" Style="{StaticResource NavButton}" Click="Nav_Click"/>
-                    <Button Content="Stats panel" Tag="Stats" Style="{StaticResource NavButton}" Click="Nav_Click"/>
-                    <Button Content="Minimap" Tag="Minimap" Style="{StaticResource NavButton}" Click="Nav_Click"/>
-                    <Button Content="Prime tracker" Tag="Prime" Style="{StaticResource NavButton}" Click="Nav_Click"/>
-                    <Button Content="Activity" Tag="Activity" Style="{StaticResource NavButton}" Click="Nav_Click"/>
-                    <Button Content="Friends" Tag="Friends" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Hotkeys" Tag="Hotkeys" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Widgets" Tag="Widgets" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Maps" Tag="Maps" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Waypoints" Tag="Waypoints" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Friends" Tag="Friends" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <TextBlock Style="{StaticResource NavCaption}" Text="ISLAPANDORA.EU"/>
                     <Button Content="Skins" Tag="Skins" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Dino storage" Tag="Storage" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Server rules" Tag="Rules" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Border Height="1" Background="#262E37" Margin="12,8,12,8"/>
                     <Button Content="About" Tag="About" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                 </StackPanel>
 
@@ -557,76 +583,21 @@
                        MouseLeftButtonDown="ImportPointer_Click"/>
             </StackPanel>
 
-            <!-- ============================ Controls ======================= -->
-            <StackPanel Tag="Controls" Visibility="Hidden">
-            <TextBlock Style="{StaticResource PageTitle}" Text="CONTROLS"/>
-
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Edit mode:" Width="150"/>
-                <TextBox x:Name="EditHotkeyBox" Style="{StaticResource HotkeyBox}"
-                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                         GotKeyboardFocus="HotkeyBox_GotFocus"
-                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Hide/show overlay:" Width="150"/>
-                <TextBox x:Name="HideHotkeyBox" Style="{StaticResource HotkeyBox}"
-                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                         GotKeyboardFocus="HotkeyBox_GotFocus"
-                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Minimap view toggle:" Width="150"/>
-                <TextBox x:Name="ViewHotkeyBox" Style="{StaticResource HotkeyBox}"
-                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                         GotKeyboardFocus="HotkeyBox_GotFocus"
-                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Heatmap toggle:" Width="150"/>
-                <TextBox x:Name="HeatmapHotkeyBox" Style="{StaticResource HotkeyBox}"
-                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                         GotKeyboardFocus="HotkeyBox_GotFocus"
-                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Check Prime:" Width="150"/>
-                <TextBox x:Name="PrimeHotkeyBox" Style="{StaticResource HotkeyBox}"
-                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                         GotKeyboardFocus="HotkeyBox_GotFocus"
-                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Stats view toggle:" Width="150"/>
-                <TextBox x:Name="StatsViewHotkeyBox" Style="{StaticResource HotkeyBox}"
-                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                         GotKeyboardFocus="HotkeyBox_GotFocus"
-                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
-            </StackPanel>
-            <!-- "Map", never "big map": the internal name never reaches the
-                 player (owner, Oct 9 2026). -->
-            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Map:" Width="150"/>
-                <TextBox x:Name="BigMapHotkeyBox" Style="{StaticResource HotkeyBox}"
-                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                         GotKeyboardFocus="HotkeyBox_GotFocus"
-                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
-            </StackPanel>
-            <TextBlock x:Name="HotkeyHint"
-                       Text="Click a box, then press the combination you want."
-                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
-                       Margin="0,6,0,0"/>
-            </StackPanel>
-
             <!-- ============================ General ======================== -->
-            <!-- App-wide only. Anything about one widget goes on that widget's page. -->
+            <!-- App-wide only. Anything about one widget goes on the Widgets page,
+                 or the Maps page for the minimap. The chimes are here, not with
+                 their widgets: each plays whether or not its widget is on
+                 screen (owner, Oct 22 2026; the friend chime came from Friends,
+                 the two stat chimes from the stats panel's page). -->
             <StackPanel Tag="General" Visibility="Hidden">
             <TextBlock Style="{StaticResource PageTitle}" Text="GENERAL"/>
 
             <CheckBox x:Name="StartupCheck" Style="{StaticResource Check}" Content="Start with Windows"/>
             <CheckBox x:Name="HideNotInGameCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Hide the overlay while not in-game"/>
-            <DockPanel Margin="0,10,0,0">
+
+            <TextBlock Style="{StaticResource SectionCaption}" Text="LOOK"/>
+            <DockPanel>
                 <TextBlock Style="{StaticResource SliderLabel}" Text="Background opacity:"/>
                 <TextBlock x:Name="OpacityLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
                 <Slider x:Name="OpacitySlider" Minimum="0.3" Maximum="1"
@@ -647,18 +618,100 @@
                         ValueChanged="FadeSlider_ValueChanged"/>
             </DockPanel>
             <!-- Positions only: sizes are readability preferences with a slider each. -->
-            <DockPanel Margin="0,14,0,0">
+            <DockPanel Margin="0,12,0,0">
                 <Button x:Name="ResetPositionsButton" DockPanel.Dock="Left" Content="Reset positions" Click="ResetPositions_Click"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="Puts every panel back in the default layout: Prime tracker and Activity feed top-left, minimap and stats panel top-right, control panel bottom-centre. Sizes stay as they are."
                            Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
+
+            <TextBlock Style="{StaticResource SectionCaption}" Text="SOUNDS"/>
+            <CheckBox x:Name="LowStatChimeCheck" Style="{StaticResource Check}"
+                      Content="Chime when hunger or thirst drops under 20%"/>
+            <CheckBox x:Name="GrowthChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Chime at growth milestones (25 / 50 / 75 / 100%)"/>
+            <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Chime when a friend spawns in"/>
+            <TextBlock Text="Each one plays the Windows &quot;Exclamation&quot; sound."
+                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 
-            <!-- ============================ Stats panel ==================== -->
-            <StackPanel Tag="Stats" Visibility="Hidden">
-            <TextBlock Style="{StaticResource PageTitle}" Text="STATS PANEL"/>
+            <!-- ============================ Hotkeys ======================== -->
+            <!-- The overlay's own keys first (edit mode, hide, the map), then each
+                 widget's in the control panel's order. Was "Controls" until
+                 1.37: the name read like the control panel. -->
+            <StackPanel Tag="Hotkeys" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="HOTKEYS"/>
 
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Edit mode:" Width="150"/>
+                <TextBox x:Name="EditHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Hide/show overlay:" Width="150"/>
+                <TextBox x:Name="HideHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
+            <!-- "Map", never "big map": the internal name never reaches the
+                 player (owner, Oct 9 2026). -->
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Map:" Width="150"/>
+                <TextBox x:Name="BigMapHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Stats view:" Width="150"/>
+                <TextBox x:Name="StatsViewHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Minimap view:" Width="150"/>
+                <TextBox x:Name="ViewHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
+            <!-- Flips the heatmap of whichever map is on screen: the map's own
+                 layer while it is open, else the minimap's (MainWindow.ToggleHeatmap). -->
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Heatmap:" Width="150"/>
+                <TextBox x:Name="HeatmapHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Check Prime:" Width="150"/>
+                <TextBox x:Name="PrimeHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
+            <TextBlock x:Name="HotkeyHint"
+                       Text="Click a box, then press the combination you want."
+                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
+                       Margin="0,6,0,0"/>
+            </StackPanel>
+
+            <!-- ============================ Widgets ======================== -->
+            <!-- The widgets with a few options each, one captioned group per
+                 widget in the control panel's order, its own Scale slider first
+                 (owner, Oct 22 2026: the Prime tracker's page held one slider).
+                 The minimap is on the Maps page. The control panel has a Scale
+                 of its own since 1.37; it used to ride the stats panel's. -->
+            <StackPanel Tag="Widgets" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="WIDGETS"/>
+
+            <TextBlock Style="{StaticResource SectionCaption}" Text="STATS PANEL" Margin="0,0,0,6"/>
             <DockPanel>
                 <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
                 <TextBlock x:Name="ScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
@@ -669,7 +722,7 @@
             </DockPanel>
             <!-- The DEFAULT view (Survival / Combat, the owner's names); the
                  stats view hotkey and the control panel's View flip it mid-game. -->
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="View:"/>
                 <RadioButton x:Name="StatsViewSurvival" Style="{StaticResource Radio}" Content="Survival"
                              GroupName="StatsView" Margin="14,0,0,0"/>
@@ -678,19 +731,64 @@
             </StackPanel>
             <CheckBox x:Name="TimeLeftCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
                       Content="Show time left on the hunger, thirst and stamina bars"/>
-            <CheckBox x:Name="LowStatChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Chime when hunger or thirst drops under 20%"/>
-            <CheckBox x:Name="GrowthChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Chime at growth milestones (25 / 50 / 75 / 100%)"/>
+
+            <TextBlock Style="{StaticResource SectionCaption}" Text="PRIME TRACKER"/>
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="PrimeScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider x:Name="PrimeScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="PrimeScaleSlider_ValueChanged"/>
+            </DockPanel>
+
+            <!-- Your own events are ALWAYS in the feed — it is yours; friends'
+                 events are the extra, one checkbox. A "Friends only / Friends
+                 and me" radio pair shipped for a day and was replaced (Sep 28
+                 2026), a leftover of the widget's friends-first origin. -->
+            <TextBlock Style="{StaticResource SectionCaption}" Text="ACTIVITY"/>
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="ActivityScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider x:Name="ActivityScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="ActivityScaleSlider_ValueChanged"/>
+            </DockPanel>
+            <CheckBox x:Name="ActivityFriendsCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
+                      Content="Include friends' events"/>
+            <CheckBox x:Name="ActivityDamageCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Also note damage taken (at most one line per half minute)"/>
+            <CheckBox x:Name="ActivityAreaCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Name the island's areas: entering one, and where you or a friend spawned"/>
+            <!-- The full list of what the feed posts is the README's: the page keeps
+                 what a choice here changes, the friends list's request included. -->
+            <TextBlock Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"
+                       Text="The feed keeps the last ten minutes of your own events. With friends' events included it also shows theirs, and the friends list is fetched while the widget is shown."/>
+
+            <TextBlock Style="{StaticResource SectionCaption}" Text="CONTROL PANEL"/>
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="ControlPanelScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider x:Name="ControlPanelScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="ControlPanelScaleSlider_ValueChanged"/>
+            </DockPanel>
             </StackPanel>
 
-            <!-- ============================ Minimap ======================== -->
-            <!-- No heatmap on/off here (removed Sep 2026): something flipped
-                 mid-game is not a preference — the heatmap hotkey and the
-                 control panel's Heatmap button own it. -->
-            <StackPanel Tag="Minimap" Visibility="Hidden">
-            <TextBlock Style="{StaticResource PageTitle}" Text="MINIMAP"/>
+            <!-- ============================ Maps =========================== -->
+            <!-- The minimap's options, then the one setting the minimap and the
+                 map share: the trail's length (owner, Oct 9 and Oct 22 2026).
+                 The map has no settings of its own (the map as a widget was
+                 turned down): its choices are its Layers menu. No heatmap on/off
+                 here (removed Sep 2026): something flipped mid-game is not a
+                 preference — the heatmap hotkey and the control panel's Heatmap
+                 button own it. -->
+            <StackPanel Tag="Maps" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="MAPS"/>
 
+            <TextBlock Style="{StaticResource SectionCaption}" Text="MINIMAP" Margin="0,0,0,6"/>
             <DockPanel>
                 <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
                 <TextBlock x:Name="MinimapScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
@@ -699,7 +797,7 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="MinimapScaleSlider_ValueChanged"/>
             </DockPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="View:"/>
                 <RadioButton x:Name="ModeIsland" Style="{StaticResource Radio}" Content="Whole island"
                              GroupName="MapMode" Margin="14,0,0,0"/>
@@ -714,8 +812,26 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="ZoomSlider_ValueChanged"/>
             </DockPanel>
+            <CheckBox x:Name="ScaleBarCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
+                      Content="Show scale bar"/>
+            <CheckBox x:Name="SpeedCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Show heading and speed"/>
+            <CheckBox x:Name="AreaCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Show the area you are in"
+                      ToolTip="Names the area in the map's top-right corner. In edit mode it names the area under the cursor."/>
             <!-- Radio buttons, not a ComboBox: stock ComboBox chrome is light and ignores Background. -->
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Waypoints:"/>
+                <RadioButton x:Name="WpAll" Style="{StaticResource Radio}" Content="All"
+                             GroupName="WpVisibility" Margin="14,0,0,0"/>
+                <RadioButton x:Name="WpTracked" Style="{StaticResource Radio}" Content="Tracked only"
+                             GroupName="WpVisibility" Margin="14,0,0,0"/>
+                <RadioButton x:Name="WpNearest" Style="{StaticResource Radio}" Content="Nearest 10"
+                             GroupName="WpVisibility" Margin="14,0,0,0"/>
+            </StackPanel>
+
+            <TextBlock Style="{StaticResource SectionCaption}" Text="BOTH MAPS"/>
+            <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Trail:"/>
                 <RadioButton x:Name="TrailOff" Style="{StaticResource Radio}" Content="Off"
                              GroupName="Trail" Margin="14,0,0,0"/>
@@ -726,22 +842,8 @@
                 <RadioButton x:Name="Trail60" Style="{StaticResource Radio}" Content="60 min"
                              GroupName="Trail" Margin="14,0,0,0"/>
             </StackPanel>
-            <CheckBox x:Name="ScaleBarCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
-                      Content="Show scale bar"/>
-            <CheckBox x:Name="SpeedCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Show heading and speed"/>
-            <CheckBox x:Name="AreaCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Show the area you are in"
-                      ToolTip="Names the area in the map's top-right corner. In edit mode it names the area under the cursor."/>
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Waypoints:"/>
-                <RadioButton x:Name="WpAll" Style="{StaticResource Radio}" Content="All"
-                             GroupName="WpVisibility" Margin="14,0,0,0"/>
-                <RadioButton x:Name="WpTracked" Style="{StaticResource Radio}" Content="Tracked only"
-                             GroupName="WpVisibility" Margin="14,0,0,0"/>
-                <RadioButton x:Name="WpNearest" Style="{StaticResource Radio}" Content="Nearest 10"
-                             GroupName="WpVisibility" Margin="14,0,0,0"/>
-            </StackPanel>
+            <TextBlock Text="Everything else on the map is in its Layers menu, at its top right."
+                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 
             <!-- ============================ Waypoints ===================== -->
@@ -793,46 +895,6 @@
             </DockPanel>
             </StackPanel>
 
-            <!-- ============================ Prime tracker ================== -->
-            <StackPanel Tag="Prime" Visibility="Hidden">
-            <TextBlock Style="{StaticResource PageTitle}" Text="PRIME TRACKER"/>
-
-            <DockPanel>
-                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
-                <TextBlock x:Name="PrimeScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
-                <Slider x:Name="PrimeScaleSlider" Minimum="0.75" Maximum="1.5"
-                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
-                        VerticalAlignment="Center" Margin="10,0,6,0"
-                        ValueChanged="PrimeScaleSlider_ValueChanged"/>
-            </DockPanel>
-            </StackPanel>
-
-            <!-- ============================ Activity ======================= -->
-            <!-- Your own events are ALWAYS in the feed — it is yours; friends'
-                 events are the extra, one checkbox. A "Friends only / Friends
-                 and me" radio pair shipped for a day and was replaced (Sep 28
-                 2026), a leftover of the widget's friends-first origin. -->
-            <StackPanel Tag="Activity" Visibility="Hidden">
-            <TextBlock Style="{StaticResource PageTitle}" Text="ACTIVITY"/>
-
-            <DockPanel>
-                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
-                <TextBlock x:Name="ActivityScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
-                <Slider x:Name="ActivityScaleSlider" Minimum="0.75" Maximum="1.5"
-                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
-                        VerticalAlignment="Center" Margin="10,0,6,0"
-                        ValueChanged="ActivityScaleSlider_ValueChanged"/>
-            </DockPanel>
-            <CheckBox x:Name="ActivityFriendsCheck" Style="{StaticResource Check}" Margin="0,10,0,0"
-                      Content="Include friends' events"/>
-            <CheckBox x:Name="ActivityDamageCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Also note damage taken (at most one line per half minute)"/>
-            <CheckBox x:Name="ActivityAreaCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Name the island's areas: entering one, and where you or a friend spawned"/>
-            <TextBlock Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
-                       Text="The feed keeps the last ten minutes of your own events: spawning in or starting a fresh dino, growth stages, low hunger or thirst, fractures, Prime check results and the areas you enter. With friends' events included it also shows friends spawning in or leaving, fresh dinos, growth stages, fractures and a friend coming near — and the friends list is fetched while the widget is shown."/>
-            </StackPanel>
-
             <!-- ============================ Friends ======================== -->
             <!-- Your side of the roster: the roster itself is the site's
                  (managed there), the nickname, colour, map and feed choices
@@ -843,13 +905,11 @@
                            Foreground="#7B8790" FontSize="11" VerticalAlignment="Center"/>
                 <TextBlock Style="{StaticResource PageTitle}" Text="FRIENDS" Margin="0"/>
             </DockPanel>
+            <!-- The friend-spawn chime moved to General's Sounds (1.37): a friends
+                 alert is not a widget option, and MainWindow plays it with the
+                 widget hidden (owner, Sep 28 and Oct 22 2026). -->
             <CheckBox x:Name="FriendsMapCheck" Style="{StaticResource Check}"
                       Content="Show friends on the minimap"/>
-            <!-- The friend-spawn chime lives on this page, not Activity's: a
-                 friends alert is not a widget option, and MainWindow plays it
-                 with the widget hidden (owner, Sep 28 2026). -->
-            <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
-                      Content="Chime when a friend spawns in"/>
 
             <!-- The column labels; the side margins are set in code to match the card below. -->
             <Grid x:Name="FriendHeader" Margin="7,14,13,4">
@@ -1018,7 +1078,7 @@
             <TextBlock Text="A fully external overlay for The Isle: Evrima on Isla Pandora. Everything it shows comes from the islapandora.eu website's own requests; it never touches the game."
                        Foreground="#9AA7B0" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
-            <TextBlock Text="UPDATES" Foreground="#7B8790" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,4"/>
+            <TextBlock Style="{StaticResource SectionCaption}" Text="UPDATES" Margin="0,16,0,4"/>
             <!-- The launch check is one request to GitHub; installing is always a click. -->
             <CheckBox x:Name="UpdateCheck" Style="{StaticResource Check}"
                       Content="Check for updates at launch (one request to GitHub)"/>
@@ -1035,7 +1095,7 @@
                            Text="Installing an update is always your click: the overlay downloads it, closes and comes back on the new version."/>
             </DockPanel>
 
-            <TextBlock Text="YOUR SETTINGS" Foreground="#7B8790" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,4"/>
+            <TextBlock Style="{StaticResource SectionCaption}" Text="YOUR SETTINGS" Margin="0,16,0,4"/>
             <TextBlock x:Name="DataFolderText" Foreground="#C7D1DA" FontSize="11" TextWrapping="Wrap" FontFamily="Consolas"/>
             <DockPanel Margin="0,8,0,0">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
@@ -1052,7 +1112,7 @@
             <!-- The log (1.36, AppLog): always written at quiet levels, kept on the PC.
                  Detailed log raises every category to Verbose; the per-category
                  levels are config.json's LogLevels only (owner, Oct 21 2026). -->
-            <TextBlock Text="LOG" Foreground="#7B8790" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,4"/>
+            <TextBlock Style="{StaticResource SectionCaption}" Text="LOG" Margin="0,16,0,4"/>
             <!-- One row and one line of words: the page must stay within the
                  tallest page's height, or the dialog grows on every page. -->
             <DockPanel>
@@ -1064,7 +1124,7 @@
             <TextBlock Text="Never sent anywhere; no cookie, names or positions. Attach the newest file to a report."
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
 
-            <TextBlock Text="LINKS" Foreground="#7B8790" FontSize="10" FontWeight="SemiBold" Margin="0,16,0,4"/>
+            <TextBlock Style="{StaticResource SectionCaption}" Text="LINKS" Margin="0,16,0,4"/>
             <DockPanel>
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Content="Releases" Click="OpenReleases_Click"

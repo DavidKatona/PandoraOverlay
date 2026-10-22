@@ -17,6 +17,7 @@ public class ConfigDefaultsTests
         Assert.Equal(1.0, cfg.MinimapScale);
         Assert.Equal(1.0, cfg.PrimeScale);
         Assert.Equal(1.0, cfg.ActivityScale);
+        Assert.Equal(1.0, cfg.ControlPanelScale);
         Assert.True(cfg.UpdateCheckEnabled, "the launch update check is on until switched off");
     }
 
@@ -62,5 +63,19 @@ public class ConfigDefaultsTests
         Assert.Equal(1.0, cfg!.MinimapScale);
         Assert.Equal(1.0, cfg.PrimeScale);
         Assert.Equal(1.3, cfg.UiScale);
+    }
+
+    /// <summary>
+    /// The control panel rode the stats panel's scale until 1.37. A file from
+    /// before then keeps its stats panel size, and the control panel starts at
+    /// 100% like any new slider: never seeded from another (owner, Oct 6 2026).
+    /// </summary>
+    [Fact]
+    public void AnOlderFileLeavesTheControlPanelAtFullScale()
+    {
+        var cfg = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>("""{ "UiScale": 1.3 }""");
+        Assert.NotNull(cfg);
+        Assert.Equal(1.3, cfg!.UiScale);
+        Assert.Equal(1.0, cfg.ControlPanelScale);
     }
 }

@@ -11,9 +11,17 @@ paths:
   ships. Radio rows instead of a ComboBox (stock ComboBox chrome is light and ignores
   Background). Our own nav, not the stock TabControl.
 - One partial file per page (`SettingsWindow.<Page>.cs`); a page splits further only
-  along a topic of its own (CLAUDE.md, Conventions → File size). A new
-  widget adds a nav button (Tag = the `SetPage` key) and a page, in the control panel's
-  order, holding its own scale slider; General is app-wide only.
+  along a topic of its own (CLAUDE.md, Conventions → File size).
+- The nav is grouped (owner, Oct 22 2026): the overlay's pages (Account, General,
+  Hotkeys, Widgets, Maps, Waypoints, Friends), then the website's under an
+  ISLAPANDORA.EU caption (Skins, Dino storage, Server rules), then About. A page is a
+  nav Button (Tag = the `SetPage` key); captions and dividers in `Nav` are not pages.
+- A new widget adds a captioned group to the **Widgets** page, in the control panel's
+  order, its own Scale slider first; it gets a page of its own only when its options
+  would make Widgets taller than the tallest page. The minimap's options are on **Maps**,
+  with what the minimap and the map share (the trail). General is app-wide only:
+  start-up, the look, and every chime (a chime plays whether or not its widget is on
+  screen). Groups inside a page use `SectionCaption`.
 - Content built in code is built on the page's **first look** (`SetPage` →
   `Open<Page>Page`), never for a page you aren't on: hidden pages are still laid out, and
   the dialog opened slowly twice before this rule (owner, Oct 1 2026). Long lists go in

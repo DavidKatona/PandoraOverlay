@@ -183,7 +183,7 @@ public sealed class OverlayConfig
     /// Which view the stats panel shows: "survival" (health, stamina, hunger,
     /// thirst, growth) or "combat" (health, stamina, damage taken in this
     /// fight, speed — for fights). Same frame and sizes either way; anything
-    /// other than "combat" reads as survival. Set in Settings → Stats panel,
+    /// other than "combat" reads as survival. Set in Settings → Widgets,
     /// and flipped mid-game with HotkeyStatsView or the control panel's View.
     /// </summary>
     public string StatsView { get; set; } = "survival";
@@ -318,7 +318,7 @@ public sealed class OverlayConfig
     /// <summary>
     /// Which library waypoints the minimap draws: "all" (visible ones),
     /// "tracked" (only the tracked one) or "nearest" (the ten visible ones
-    /// closest to you). Radio buttons on the Minimap page. Default all —
+    /// closest to you). Radio buttons on the Maps page. Default all —
     /// you placed them; imports will arrive hidden instead.
     /// </summary>
     public string WaypointVisibility { get; set; } = "all";
@@ -408,7 +408,7 @@ public sealed class OverlayConfig
     /// Post your friends' events (spawned, left, fresh life, dino change,
     /// growth stage, fracture, nearby, roster changes) to the feed beside
     /// your own, which are always on — the feed is yours, friends are the
-    /// extra. Checkbox on the Activity page. Untick this AND the minimap's
+    /// extra. Checkbox on the Widgets page. Untick this AND the minimap's
     /// friend arrows to send no friends requests at all (see PollService).
     /// </summary>
     public bool ActivityIncludeFriends { get; set; } = true;
@@ -437,7 +437,7 @@ public sealed class OverlayConfig
     /// </summary>
     public bool FriendsOnMinimap { get; set; } = true;
 
-    /// <summary>Play the Windows "Exclamation" sound when a friend spawns in. Off by default.</summary>
+    /// <summary>Play the Windows "Exclamation" sound when a friend spawns in. Off by default. Settings → General → Sounds since 1.37 (the Friends page before).</summary>
     public bool FriendsChimeEnabled { get; set; }
 
     /// <summary>
@@ -451,11 +451,18 @@ public sealed class OverlayConfig
     // ---- Appearance -------------------------------------------------------
 
     /// <summary>
-    /// Stats panel (and control panel) scale, as a layout transform. Clamped
-    /// 0.75–1.5. Every other widget has its own: MinimapScale, PrimeScale,
-    /// ActivityScale.
+    /// Stats panel scale, as a layout transform. Clamped 0.75–1.5. Every
+    /// other widget has its own: MinimapScale, PrimeScale, ActivityScale; so
+    /// does the control panel, ControlPanelScale (it rode this one before 1.37).
     /// </summary>
     public double UiScale { get; set; } = 1.0;
+
+    /// <summary>
+    /// Control panel scale, clamped 0.75–1.5 (owner, Oct 22 2026: it no longer
+    /// shares the stats panel's). A plain 1.0 like every widget's, not seeded
+    /// from UiScale: a stats panel set larger leaves the control panel at 100%.
+    /// </summary>
+    public double ControlPanelScale { get; set; } = 1.0;
 
     /// <summary>
     /// Prime tracker scale, clamped 0.75–1.5 — every widget has its own size

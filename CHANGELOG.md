@@ -5,6 +5,28 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- The control panel has a size of its own: Settings › Widgets › Control
+  panel. It used to follow the stats panel's size, so if you had made the
+  stats panel bigger or smaller, the control panel starts out at 100%.
+
+### Changed
+
+- Settings is tidier. The list on the left is grouped: the overlay's own
+  pages first, then the website's (Skins, Dino storage, Server rules),
+  then About.
+- The stats panel, the Prime tracker and the Activity feed share one page,
+  Widgets, each with its own size slider as before.
+- The Minimap page is now Maps. The trail's length sits under "Both
+  maps", since the map draws the same trail.
+- The three chimes (low hunger or thirst, growth stages, a friend spawning
+  in) are together under General › Sounds.
+- Controls is now Hotkeys, with the keys in a clearer order.
+- Your settings keep their values; only their places changed.
+
 ## [1.36.0] - 2026-10-21
 
 ### Added

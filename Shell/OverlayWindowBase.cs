@@ -137,9 +137,9 @@ public abstract class OverlayWindowBase : Window
     }
 
     /// <summary>
-    /// Scale used by ApplyAppearance: UiScale, the stats panel's and the
-    /// control panel's. The other widgets override it with their own percent
-    /// scale (MinimapScale, PrimeScale, ActivityScale).
+    /// Scale used by ApplyAppearance: UiScale, the stats panel's. The other
+    /// widgets and the control panel override it with their own percent
+    /// scale (MinimapScale, PrimeScale, ActivityScale, ControlPanelScale).
     /// </summary>
     // Owner's rule: each distinct widget gets its own size slider, a
     // plain number defaulting to 1.0, never seeded from another one, and no
