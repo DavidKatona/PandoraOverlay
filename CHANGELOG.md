@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New waypoints are named after the area you put them in: "Delta", then
+  "Delta 2" for the next one there. Out at sea they are still "Waypoint 7".
+- A pasted code without a name is named the same way, after where it
+  lands. A code that carries a name keeps it.
 - The control panel has a size of its own: Settings › Widgets › Control
   panel. It used to follow the stats panel's size, so if you had made the
   stats panel bigger or smaller, the control panel starts out at 100%.

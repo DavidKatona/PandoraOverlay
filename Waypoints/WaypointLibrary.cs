@@ -215,10 +215,29 @@ public sealed class WaypointLibrary
         return best;
     }
 
-    /// <summary>"Waypoint N", the first N not already in use.</summary>
-    public string NextName()
+    /// <summary>
+    /// The name a new waypoint gets: the area it was placed in, then that
+    /// name numbered from 2 ("Delta", "Delta 2", "Delta 3" …, the first not in
+    /// use; owner, Oct 23 2026, 1.37), or "Waypoint N", the first N not in use,
+    /// where there is no area to name: out at sea, or nothing could place it.
+    /// The area comes from the caller (MapActions), so the library stays
+    /// free of the area map.
+    /// </summary>
+    public string NextName(string? area = null)
     {
         var used = _items.Select(w => w.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(area))
+        {
+            var place = SanitizeName(area);
+            if (!used.Contains(place)) return place;
+            for (var n = 2; ; n++)
+            {
+                // A long name gives way to its number, so the result never needs cutting by Add.
+                var suffix = $" {n}";
+                var stem = place.Length + suffix.Length > MaxNameLength ? place[..(MaxNameLength - suffix.Length)].TrimEnd() : place;
+                if (!used.Contains(stem + suffix)) return stem + suffix;
+            }
+        }
         for (var n = _items.Count + 1; ; n++)
         {
             var candidate = $"Waypoint {n}";

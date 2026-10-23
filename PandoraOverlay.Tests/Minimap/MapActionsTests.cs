@@ -2,7 +2,7 @@ using Xunit;
 
 namespace PandoraOverlay.Tests;
 
-/// <summary>The map menu's actions, shared by every map. The clipboard entries (copy / paste) are left to the in-game check: tests can't own the clipboard.</summary>
+/// <summary>The map menu's actions, shared by every map. The clipboard itself (copy, and paste's read) is left to the in-game check: tests can't own the clipboard. What a pasted code becomes is AddFromCode's, tested here.</summary>
 public sealed class MapActionsTests
 {
     private readonly OverlayConfig _config = new();
@@ -117,5 +117,52 @@ public sealed class MapActionsTests
         actions.TrackFriend(null);
         Assert.Null(_config.TrackedWaypointId);
         Assert.Null(_config.TrackedFriendSteamId);
+    }
+
+    // A made-up area, east of x = 0; west of it is open sea. The map itself is MainWindow's AreaAt.
+    private MapActions ActionsWithAreas() =>
+        new(_config, _library, _book, name => name, (x, _) => x > 0 ? "Test Valley" : null);
+
+    /// <summary>"Waypoint here" names the waypoint after its area, numbering the next one there; at sea it is "Waypoint N".</summary>
+    [Fact]
+    public void WaypointHereIsNamedAfterItsArea()
+    {
+        var actions = ActionsWithAreas();
+
+        Assert.Equal("Test Valley added", actions.AddWaypoint(1000, 0));
+        Assert.Equal("Test Valley 2 added", actions.AddWaypoint(2000, 0));
+        Assert.Equal("Waypoint 3 added", actions.AddWaypoint(-1000, 0));
+        Assert.Equal(new[] { "Test Valley", "Test Valley 2", "Waypoint 3" }, _library.Items.Select(w => w.Name));
+    }
+
+    /// <summary>Without an area lookup (the minimap's own fallback instance) every new waypoint is "Waypoint N", as before 1.37.</summary>
+    [Fact]
+    public void WithoutAnAreaLookupItIsWaypointN()
+    {
+        Actions().AddWaypoint(1000, 0);
+        Assert.Equal("Waypoint 1", Assert.Single(_library.Items).Name);
+    }
+
+    /// <summary>A pasted code keeps the name it carries; a bare one is named after where it lands, and tracked like any new waypoint.</summary>
+    [Fact]
+    public void APastedCodeKeepsItsNameElseTakesItsArea()
+    {
+        var actions = ActionsWithAreas();
+
+        Assert.Equal("Nest site added", actions.AddFromCode("pandora:62,-3168 Nest site"));
+        Assert.Equal("Test Valley added", actions.AddFromCode("meet me at pandora:62,-3168"));
+        Assert.Equal("Waypoint 3 added", actions.AddFromCode("pandora:-62,-3168"));
+
+        Assert.Equal(new[] { "Nest site", "Test Valley", "Waypoint 3" }, _library.Items.Select(w => w.Name));
+        Assert.Equal(_library.Items[^1].Id, _config.TrackedWaypointId);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("no code here")]
+    public void TextWithoutACodeAddsNothing(string? text)
+    {
+        Assert.Equal("no position in the clipboard", ActionsWithAreas().AddFromCode(text));
+        Assert.Empty(_library.Items);
     }
 }

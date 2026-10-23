@@ -27,8 +27,8 @@ public partial class MainWindow
 
     private TimeSpan TrailKeep => BreadcrumbTrail.KeepFor(_config.MinimapTrailMinutes);
 
-    /// <summary>The map menu's actions, one instance for both maps, so tracking on one redraws the other.</summary>
-    private MapActions MapActions => _mapActions ??= new MapActions(_config, _library, _book, MinimapWindow.Short);
+    /// <summary>The map menu's actions, one instance for both maps, so tracking on one redraws the other; new waypoints are named after their area (AreaAt).</summary>
+    private MapActions MapActions => _mapActions ??= new MapActions(_config, _library, _book, MinimapWindow.Short, AreaAt);
 
     /// <summary>The big map hotkey: open, or close.</summary>
     private void ToggleBigMap()

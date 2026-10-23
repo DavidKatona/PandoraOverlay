@@ -443,7 +443,8 @@ public partial class MainWindow : OverlayWindowBase
     /// "Entered …" lines don't depend on that widget being shown; the
     /// minimap's pill (and the border layer's highlight of your area) is told
     /// the result. Runs per poll and after a
-    /// Settings save; with every use switched off the map is never loaded.
+    /// Settings save; with every use switched off the map isn't loaded for
+    /// this (naming a new waypoint loads it on its first click: AreaAt).
     /// </summary>
     private void UpdateArea()
     {
@@ -477,5 +478,18 @@ public partial class MainWindow : OverlayWindowBase
             var (fx, fy) = cal.ToFraction(x, y);
             return map.NameAt(fx, fy);
         };
+    }
+
+    /// <summary>
+    /// World cm → the named area there, for a new waypoint's name (MapActions:
+    /// "Waypoint here", a pasted code without a name); null out at sea or
+    /// before anything can place it. Asked only for a click, so it waits on no
+    /// area setting: a name is not a display choice.
+    /// </summary>
+    private string? AreaAt(double x, double y)
+    {
+        if (_poll.Calibration is not { } cal || AreaMapAsset.Shared is not { } map) return null;
+        var (fx, fy) = cal.ToFraction(x, y);
+        return map.NameAt(fx, fy);
     }
 }

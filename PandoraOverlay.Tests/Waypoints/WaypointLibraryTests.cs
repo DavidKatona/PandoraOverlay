@@ -55,6 +55,47 @@ public class WaypointLibraryTests
         Assert.Equal("Waypoint 4", lib.NextName()); // count is 2, but "Waypoint 3" is in use
     }
 
+    /// <summary>A new waypoint takes its area's name, then the name numbered from 2: the first not in use, whatever its case.</summary>
+    [Fact]
+    public void NextNameUsesTheAreaThenNumbersIt()
+    {
+        var lib = new WaypointLibrary();
+        Assert.Equal("Test Valley", lib.NextName("Test Valley"));
+        lib.Add("Test Valley", 0, 0, 0);
+        Assert.Equal("Test Valley 2", lib.NextName("Test Valley"));
+        lib.Add("test valley 2", 0, 0, 0);
+        Assert.Equal("Test Valley 3", lib.NextName("Test Valley"));
+
+        lib.Remove(lib.Items[0].Id); // the bare name is free again
+        Assert.Equal("Test Valley", lib.NextName("Test Valley"));
+    }
+
+    /// <summary>No area (out at sea, nothing to place it with) keeps the old "Waypoint N".</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void NextNameWithoutAnAreaIsWaypointN(string? area)
+    {
+        var lib = new WaypointLibrary();
+        lib.Add("Somewhere", 0, 0, 0);
+        Assert.Equal("Waypoint 2", lib.NextName(area));
+    }
+
+    /// <summary>A name at the length cap gives way to its number, so the numbered names still differ.</summary>
+    [Fact]
+    public void ALongAreaNameMakesRoomForItsNumber()
+    {
+        var area = new string('a', WaypointLibrary.MaxNameLength);
+        var lib = new WaypointLibrary();
+        lib.Add(lib.NextName(area), 0, 0, 0);
+        var second = lib.NextName(area);
+        Assert.Equal(WaypointLibrary.MaxNameLength, second.Length);
+        Assert.EndsWith(" 2", second);
+        lib.Add(second, 0, 0, 0);
+        Assert.Equal(2, lib.Items.Select(w => w.Name).Distinct().Count());
+    }
+
     [Fact]
     public void NearestHonoursTheFilter()
     {

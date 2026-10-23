@@ -351,8 +351,10 @@ gone after 14 days; Settings → About's "Open log folder" and "Detailed log",
 with the per-category levels in `config.json` only; an exception as its type
 and stack trace. How it works: AppLog's summary.
 
-Areas, left for later and not started: area names in new waypoints and share
-codes. Further border corrections are painted into `Assets/areas.png`.
+Areas: new waypoints and pasted codes without a name are named after their
+area ("Delta", "Delta 2"; "Waypoint N" at sea), built Oct 23 2026 for 1.37,
+not yet released. Further border corrections are painted into
+`Assets/areas.png`.
 
 Later/maybe: official token auth (the nudge
 went out with the heatmap ask ~Sep 14 2026, unanswered); Segoe Fluent Icons for

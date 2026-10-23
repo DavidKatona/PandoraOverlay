@@ -17,14 +17,18 @@ public sealed class MapActions
     private readonly WaypointLibrary _library;
     private readonly FriendBook _book;
     private readonly Func<string, string> _short;
+    private readonly Func<double, double, string?>? _areaAt;
 
     /// <param name="shortName">How the map shortens a name for its notices ("Forks added").</param>
-    public MapActions(OverlayConfig config, WaypointLibrary library, FriendBook book, Func<string, string> shortName)
+    /// <param name="areaAt">World cm → the named area there, or null (out at sea, or nothing to place it with yet). New waypoints are named after it; without it they are "Waypoint N".</param>
+    public MapActions(OverlayConfig config, WaypointLibrary library, FriendBook book, Func<string, string> shortName,
+                      Func<double, double, string?>? areaAt = null)
     {
         _config = config;
         _library = library;
         _book = book;
         _short = shortName;
+        _areaAt = areaAt;
     }
 
     /// <summary>The tracked waypoint changed: the ring, the edge indicator and the footer follow it.</summary>
@@ -59,8 +63,8 @@ public sealed class MapActions
         FriendTracked?.Invoke();
     }
 
-    /// <summary>"Waypoint here": a new waypoint at a world spot, auto-named and coloured, and tracked.</summary>
-    public string AddWaypoint(double x, double y) => Added(_library.Add(_library.NextName(), x, y, _library.NextColour()));
+    /// <summary>"Waypoint here": a new waypoint at a world spot, named after its area, coloured, and tracked.</summary>
+    public string AddWaypoint(double x, double y) => Added(_library.Add(NewName(x, y), x, y, _library.NextColour()));
 
     /// <summary>"Waypoint at &lt;friend&gt;": where they stand, in their name and colour, tracked like any new one. Null for a friend with no position.</summary>
     public string? AddWaypointAtFriend(FriendState friend) =>
@@ -87,7 +91,7 @@ public sealed class MapActions
         }
     }
 
-    /// <summary>A pasted code becomes a new, tracked waypoint, named from the code when it carries a name.</summary>
+    /// <summary>A pasted code becomes a new, tracked waypoint (AddFromCode).</summary>
     public string Paste()
     {
         string text;
@@ -99,9 +103,22 @@ public sealed class MapActions
         {
             return "couldn't reach the clipboard";
         }
-        if (!ShareCode.TryParse(text, out var x, out var y, out var name)) return "no position in the clipboard";
-        return Added(_library.Add(name.Length > 0 ? name : _library.NextName(), x, y, _library.NextColour()));
+        return AddFromCode(text);
     }
+
+    /// <summary>
+    /// A share code's spot as a new, tracked waypoint: named from the code when
+    /// it carries a name, else after the area it lands in like "Waypoint here"
+    /// (owner, Oct 23 2026: a bare "pandora:62,-3168" pasted in Delta is "Delta").
+    /// </summary>
+    internal string AddFromCode(string? text)
+    {
+        if (!ShareCode.TryParse(text, out var x, out var y, out var name)) return "no position in the clipboard";
+        return Added(_library.Add(name.Length > 0 ? name : NewName(x, y), x, y, _library.NextColour()));
+    }
+
+    /// <summary>A new waypoint's name: its area's ("Delta", "Delta 2" …), else "Waypoint N".</summary>
+    private string NewName(double x, double y) => _library.NextName(_areaAt?.Invoke(x, y));
 
     /// <summary>Whether Paste has anything to work with: the menu greys its entry otherwise.</summary>
     public static bool ClipboardHasCode()
