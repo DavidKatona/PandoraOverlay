@@ -345,9 +345,6 @@ all) — say so when it matters:
   the control panel's slider, and area-named waypoints on both maps,
   pasted codes included.
 
-Open: the README's setup screenshots need retaking for the in-app sign-in
-(the owner's, since 1.31).
-
 SHIPPED in 1.37.0 (Oct 23 2026): the **Settings revision** (owner's ask, Oct
 22): the grouped nav (the overlay's pages, the website's under a caption,
 About), the Widgets and Maps pages, General's Look and Sounds, Hotkeys, and
