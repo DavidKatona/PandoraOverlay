@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.37.0] - 2026-10-23
 
 ### Added
 
@@ -29,7 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The three chimes (low hunger or thirst, growth stages, a friend spawning
   in) are together under General › Sounds.
 - Controls is now Hotkeys, with the keys in a clearer order.
-- Your settings keep their values; only their places changed.
+- Apart from the control panel's size, your settings keep their values;
+  only their places changed.
 
 ## [1.36.0] - 2026-10-21
 

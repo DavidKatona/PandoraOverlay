@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.36.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.37.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -339,9 +339,20 @@ all) — say so when it matters:
   tests only, no failure seen in game (the owner skipped the network-off
   test). About's "Report a problem" opening GitHub's form chooser, and the
   bug-report form itself, were not tried (the chooser needs a login).
+- Updating to 1.37 with the stats panel at a size other than 100%: the
+  control panel then starts at 100% (`ControlPanelScale`; tests only). The
+  rest of 1.37 was checked by the owner (Oct 22–23): every Settings page,
+  the control panel's slider, and area-named waypoints on both maps,
+  pasted codes included.
 
 Open: the README's setup screenshots need retaking for the in-app sign-in
 (the owner's, since 1.31).
+
+SHIPPED in 1.37.0 (Oct 23 2026): the **Settings revision** (owner's ask, Oct
+22): the grouped nav (the overlay's pages, the website's under a caption,
+About), the Widgets and Maps pages, General's Look and Sounds, Hotkeys, and
+the control panel's own scale; and **area-named waypoints**. The dialog's
+layout rules: `.claude/rules/settings.md`.
 
 SHIPPED in 1.36.0 (Oct 21 2026): **app-wide logging**, modelled on Unreal
 Engine's (owner's ask): categories, verbosity levels, Unreal's line and its
@@ -352,9 +363,8 @@ with the per-category levels in `config.json` only; an exception as its type
 and stack trace. How it works: AppLog's summary.
 
 Areas: new waypoints and pasted codes without a name are named after their
-area ("Delta", "Delta 2"; "Waypoint N" at sea), built Oct 23 2026 for 1.37,
-not yet released. Further border corrections are painted into
-`Assets/areas.png`.
+area ("Delta", "Delta 2"; "Waypoint N" at sea) since 1.37. Further border
+corrections are painted into `Assets/areas.png`.
 
 Later/maybe: official token auth (the nudge
 went out with the heatmap ask ~Sep 14 2026, unanswered); Segoe Fluent Icons for
@@ -506,7 +516,7 @@ Updates and the account
 
 ## Releases
 
-- Current: 1.36.0. The csproj `<Version>` is the single source of truth
+- Current: 1.37.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
