@@ -71,6 +71,7 @@ public partial class SettingsWindow
     private DispatcherTimer? _applyTimer;
     private SettingsChange _pending;
     private int _ownWindowsOpen;
+    private bool _escapeDown;
 
     /// <summary>True when the dialog closed because the focus left the overlay: MainWindow then locks edit mode too.</summary>
     public bool ClosedByFocus { get; private set; }
@@ -102,13 +103,24 @@ public partial class SettingsWindow
         _applyTimer = new DispatcherTimer { Interval = ApplyBatch };
         _applyTimer.Tick += (_, _) => FlushChanges();
         Closing += (_, _) => FlushChanges(); // the last change, and a name still being typed
+        // Esc closes on its RELEASE, like Esc in edit mode (OverlayWindowBase):
+        // closed on the press, the release would go to the game, which may
+        // then open its own menu. Handled = a box used Esc for itself (a
+        // hotkey box, Dino storage's rename): that press is not ours.
         KeyDown += (_, e) =>
         {
-            // Handled = a box used Esc for itself (a hotkey box, Dino storage's rename).
             if (e.Key != Key.Escape || e.Handled) return;
+            _escapeDown = true;
+            e.Handled = true;
+        };
+        KeyUp += (_, e) =>
+        {
+            if (e.Key != Key.Escape || !_escapeDown) return;
+            _escapeDown = false;
             e.Handled = true;
             Close();
         };
+        Deactivated += (_, _) => _escapeDown = false;
         OverlayFocus.Watch(this);
         WireLiveSettings();
     }

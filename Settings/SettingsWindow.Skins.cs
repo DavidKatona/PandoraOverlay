@@ -14,14 +14,15 @@ namespace PandoraOverlay;
 /// it apart from every other page: it talks to the site (the list when the
 /// page is first looked at; a picture only once its tile is on screen, and
 /// then only if no thumbnail of it is saved on disk — see SkinThumbnails),
-/// and Apply acts AT ONCE instead of on Save — it changes your
-/// dino's skin in game, like the site's own button. Apply turns into the
+/// and Apply changes your dino's skin in game, like the site's own
+/// button. Apply turns into the
 /// six pattern buttons (A–F) in place of the site's pop-up. All requests go
 /// through PollService.Skins, which holds the gating; this file only draws.
 /// The point: a skin applied right after spawning, without alt-tabbing to the
 /// website. A Settings page and nothing more: a widget was turned down (it
 /// needs clicks and isn't watched), and so was a control-panel button (there
-/// is no widget to group it under).
+/// is no widget to group it under). Since 1.38 a ☆ on each tile chooses the
+/// favourite the skin hotkey applies (SettingsWindow.SkinFavourites.cs).
 /// Same class as SettingsWindow.xaml.cs, split for reading; see CLAUDE.md.
 /// </summary>
 public partial class SettingsWindow
@@ -70,7 +71,7 @@ public partial class SettingsWindow
 
         SkinSearch.Text = _skinSearch;
         (_skinsShowAll ? SkinsAll : SkinsAvailable).IsChecked = true;
-        SkinAgainButton.Visibility = Visibility.Hidden;
+        SkinFavouriteButton.Visibility = Visibility.Hidden;
 
         if (_firstRun)
         {
@@ -101,7 +102,7 @@ public partial class SettingsWindow
         if (first && !_skinsShowAll && _skins.Count > 0 && _skins.All(s => s.Locked)) SkinsAll.IsChecked = true; // nothing unlocked: show what there is
         RenderSkins();
         if (result.Problem is null) ShowSkinHint(); else SetSkinStatus($"Showing the earlier list — refresh failed ({result.Problem}).", HintWarn);
-        UpdateSkinAgain();
+        UpdateFavouriteButton();
         QueueVisibleSkinPictures();
     }
 
@@ -114,6 +115,7 @@ public partial class SettingsWindow
         _disarmTile = null;
         _tilePictures.Clear();
         _tileNotes.Clear();
+        _tileStars.Clear();
         SkinTiles.Children.Clear();
 
         var available = _skins.Count(s => !s.Locked);
@@ -178,10 +180,11 @@ public partial class SettingsWindow
         };
         _tilePictures[skin.Id] = picture;
         _tileNotes[skin.Id] = note;
+        var wellGrid = new Grid { Children = { note, picture } };
         var well = new Border
         {
             Width = PictureWidth, Height = PictureHeight, Background = PictureWell, CornerRadius = new CornerRadius(3),
-            ClipToBounds = true, Child = new Grid { Children = { note, picture } }
+            ClipToBounds = true, Child = wellGrid
         };
         AttachSkinTip(well, skin, picture);
         body.Children.Add(well);
@@ -206,7 +209,9 @@ public partial class SettingsWindow
             });
         }
         body.Children.Add(dots);
-        body.Children.Add(BuildApplyArea(skin));
+        var area = BuildApplyArea(skin);
+        body.Children.Add(area);
+        if (!skin.Locked) AddFavouriteStar(skin, wellGrid, area); // in the picture's corner (SettingsWindow.SkinFavourites.cs)
 
         return new Border
         {
@@ -366,7 +371,7 @@ public partial class SettingsWindow
                     SetSkinStatus($"Couldn't apply the skin ({result.Message}).", HintBad);
                     break;
             }
-            UpdateSkinAgain();
+            UpdateFavouriteButton();
         }
         finally
         {
@@ -387,33 +392,11 @@ public partial class SettingsWindow
         }
         else
         {
-            SetSkinStatus("Apply, then pick the pattern (A–F). It acts at once and shows in game after a few seconds.", HintNeutral);
+            SetSkinStatus("Apply, then pick the pattern (A–F): it shows in game after a few seconds. The ☆ on a tile makes it this dino's favourite.", HintNeutral);
         }
     }
 
-    /// <summary>"Apply again: Ember · C" for the species you are on, when you applied one before.</summary>
-    private void UpdateSkinAgain()
-    {
-        var choice = SkinChoiceForCurrentDino();
-        SkinAgainButton.Visibility = choice is null ? Visibility.Hidden : Visibility.Visible;
-        if (choice is null) return;
-        SkinAgainButton.Content = $"Apply again: {choice.Name} · {PatreonSkins.PatternLetter(choice.Pattern)}";
-        SkinAgainButton.ToolTip = $"The skin you last applied as a {_poll.CurrentDino}";
-    }
-
-    private SkinChoice? SkinChoiceForCurrentDino() =>
-        _poll.InGame && _poll.CurrentDino is { Length: > 0 } dino && _config.SkinChoices.TryGetValue(dino, out var choice) ? choice : null;
-
-    private async void SkinAgain_Click(object sender, RoutedEventArgs e)
-    {
-        if (SkinChoiceForCurrentDino() is not { } choice) return;
-        if (_skins?.FirstOrDefault(s => s.Id == choice.SkinId) is { Locked: true })
-        {
-            SetSkinStatus($"{choice.Name} is locked for your current tier.", HintWarn);
-            return;
-        }
-        await ApplySkinAsync(choice.SkinId, choice.IdIsNumber, choice.Name, choice.Pattern);
-    }
+    // ---- The favourite: SettingsWindow.SkinFavourites.cs (1.38) -----------------
 
     // ---- Filter, search, buttons ------------------------------------------------
 

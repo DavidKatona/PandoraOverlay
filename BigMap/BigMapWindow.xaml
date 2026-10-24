@@ -10,6 +10,7 @@
         Background="#FF10151B"
         FontFamily="Segoe UI"
         PreviewKeyDown="Window_PreviewKeyDown"
+        PreviewKeyUp="Window_PreviewKeyUp"
         Deactivated="Window_Deactivated">
 
     <Window.Resources>

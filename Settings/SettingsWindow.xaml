@@ -631,9 +631,10 @@
             </StackPanel>
 
             <!-- ============================ Hotkeys ======================== -->
-            <!-- The overlay's own keys first (edit mode, hide, the map), then each
-                 widget's in the control panel's order. Was "Controls" until
-                 1.37: the name read like the control panel. -->
+            <!-- In the default layout's order (1.38, OverlayConfig.DefaultHotkey):
+                 the overlay itself (F1–F4), the widgets in the control panel's
+                 order (F5–F8), the website (F9), the map (M). Was "Controls"
+                 until 1.37: the name read like the control panel. -->
             <StackPanel Tag="Hotkeys" Visibility="Hidden">
             <TextBlock Style="{StaticResource PageTitle}" Text="HOTKEYS"/>
 
@@ -647,15 +648,6 @@
             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="Hide/show overlay:" Width="150"/>
                 <TextBox x:Name="HideHotkeyBox" Style="{StaticResource HotkeyBox}"
-                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                         GotKeyboardFocus="HotkeyBox_GotFocus"
-                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
-            </StackPanel>
-            <!-- "Map", never "big map": the internal name never reaches the
-                 player (owner, Oct 9 2026). -->
-            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                <TextBlock Style="{StaticResource FieldLabel}" Text="Map:" Width="150"/>
-                <TextBox x:Name="BigMapHotkeyBox" Style="{StaticResource HotkeyBox}"
                          PreviewKeyDown="HotkeyBox_PreviewKeyDown"
                          GotKeyboardFocus="HotkeyBox_GotFocus"
                          LostKeyboardFocus="HotkeyBox_LostFocus"/>
@@ -690,10 +682,38 @@
                          GotKeyboardFocus="HotkeyBox_GotFocus"
                          LostKeyboardFocus="HotkeyBox_LostFocus"/>
             </StackPanel>
+            <!-- The Skins page's "Apply again" from gameplay (1.38): the website's
+                 page, so it comes after the widgets' keys. -->
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
+                        ToolTip="Applies your favourite skin for the dino you are on: star one on the Skins page">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Apply my skin:" Width="150"/>
+                <TextBox x:Name="SkinHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
+            <!-- "Map", never "big map": the internal name never reaches the
+                 player (owner, Oct 9 2026). -->
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Map:" Width="150"/>
+                <TextBox x:Name="BigMapHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
             <TextBlock x:Name="HotkeyHint"
                        Text="Click a box, then press the combination you want."
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
                        Margin="0,6,0,0"/>
+            <!-- 1.38: an update keeps a player's keys (OverlayConfig.DefaultHotkey);
+                 this moves them to the layout a fresh install gets. Two clicks:
+                 it changes every key at once. -->
+            <DockPanel Margin="0,14,0,0">
+                <Button x:Name="DefaultKeysButton" DockPanel.Dock="Left" Content="Use the default keys" Click="DefaultKeys_Click"
+                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
+                <TextBlock Text="F1–F4 the overlay, F5–F8 the widgets in the control panel's order, F9 the website, M the map. Updating the overlay keeps the keys you have."
+                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </DockPanel>
             </StackPanel>
 
             <!-- ============================ Widgets ======================== -->
@@ -947,10 +967,10 @@
                            Foreground="#7B8790" FontSize="11" VerticalAlignment="Center"/>
                 <TextBlock Style="{StaticResource PageTitle}" Text="PATREON SKINS" Margin="0"/>
             </DockPanel>
-            <!-- Status on the left, "Apply again" for your current dino on the
+            <!-- Status on the left, "Apply your favourite" for your current dino on the
                  right; the row keeps its height so the list never shifts. -->
             <DockPanel Height="30" Margin="0,0,0,6">
-                <Button x:Name="SkinAgainButton" DockPanel.Dock="Right" Click="SkinAgain_Click"
+                <Button x:Name="SkinFavouriteButton" DockPanel.Dock="Right" Click="SkinFavourite_Click"
                         Style="{StaticResource SaveButtonStyle}" Padding="10,4" FontSize="11"
                         MaxWidth="210" VerticalAlignment="Center" Margin="10,0,0,0" Visibility="Hidden"/>
                 <TextBlock x:Name="SkinStatus" Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"

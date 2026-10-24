@@ -45,7 +45,7 @@ a file in the folder is touched.
    | `POST /api/prime/cooldown` | yes | exactly once after each SUCCESSFUL check (the success answer carries no cooldown, and its length varies with supporter rank; the site button's hard-coded 5 min is only the fallback when this request fails) | once per check |
    | `POST /api/map/friends` (empty body) | yes | only while a friends surface is switched on (the Activity widget with friends' events included, the minimap's friend arrows, the open map's Friends layer; all off = zero requests; hide-all and the auto-hide don't stop it, on purpose: the friend chime and the Activity log work while hidden): right after a successful `mylocation` poll, or once for a hot trigger (a surface shown, including one switched on in Settings since 1.38; a surface hidden or switched off, or a friend's nickname or colour changed, sends nothing) when the last poll succeeded and the last roster is at least one poll interval old | every 2nd in-game poll, every idle poll, never two within one poll interval (the site: with every poll at 5 s); read-only |
    | `POST /api/skins/patreon-skins` (empty body) | yes | opening Settings → Skins; Refresh | reused 10 min, 30 s floor |
-   | `POST /api/skins/apply-patreon` `{skinId, patternIndex}` — **WRITE** | yes | a click on a pattern button | 15 s mash guard; not in game answered locally |
+   | `POST /api/skins/apply-patreon` `{skinId, patternIndex}` — **WRITE** | yes | a click on a pattern button (or Apply your favourite); the Apply my skin hotkey, which sends your favourite for this dino (1.38, the owner's okay Oct 24 2026) | 15 s mash guard; not in game answered locally; no favourite for the dino = nothing sent |
    | `POST /api/auth/me` | yes | once right after a sign-in; once per dialog when Settings → Account is looked at | never on a timer |
    | `GET /auth/logout` | yes | a Sign out click | once |
    | `POST /api/user/dinos` (empty body) | yes | every opening of Settings → Dino storage (as the website's page does, the owner's call); Refresh | one at a time |
@@ -75,7 +75,8 @@ a file in the folder is touched.
    15 s, then 60 s after 10 min. Off-schedule polls (user nudges, a new
    session's first poll) are floored at the configured interval and re-arm the
    timer — nothing may ever poll faster.
-   A WRITE happens only for a click, never on a timer.
+   A WRITE happens only for the player's own click or key press (the skin
+   hotkey, 1.38), never on a timer.
 4. **The cookie is a credential.** Never log it, print it, put it in exceptions,
    window text, or commit it. Error paths surface exception *type* only. It is
    stored only as the DPAPI blob (the rolled cookie re-encrypted on edit-mode
@@ -131,7 +132,8 @@ a file in the folder is touched.
   and bodies, its input limits and fallbacks, never a faster pace than the
   page's. What still holds whatever the endpoint: fully external; the cookie
   is a credential; nothing polls faster than the site; a WRITE happens only for
-  a click; the admin / staff endpoints are never called.
+  a click or the player's own key press; the admin / staff endpoints are never
+  called.
 - **The site's anti-abuse rule and the overlay's access header (Oct 2026).**
   Since Oct 12 a Cloudflare rule in front of the site guards mylocation,
   friends, the Prime check and its cooldown: browsers pass, the overlay (like
@@ -354,11 +356,29 @@ off. So: **Settings applies every change at once** (no Save or Cancel), and
 locks edit mode (`OverlayFocus`); the trail is kept an hour whatever its
 setting; About's "Import from an older copy…" is cut; a Windows shutdown
 saves and logs before the process is ended (`MainWindow.OnSessionEnding`;
-before, the Oct 24 log just stopped). A link or folder Settings hands to
-the browser counts as a click away (the owner tried both ways with a trial
-switch, now gone: the browser loading behind the overlay "felt controlled").
-Checked by the owner out of game (Oct 24); not yet in game, nor the update
-card's click-away (needs a newer release) or the shutdown save. The
+before, the Oct 24 log just stopped); **the skin hotkey** (Ctrl+F9), which
+applies **a favourite skin per species**, chosen with a ☆ on a Skins tile
+and sending nothing (it replaced "Apply again"; the attacked player's idea,
+the owner's per-species call); and **Esc locks edit mode**. A link or
+folder Settings hands to the browser counts as a click away (the owner tried
+both ways with a trial switch, now gone: the browser loading behind the
+overlay "felt controlled"). **Esc acts on its RELEASE everywhere** (edit
+mode, Settings, the map's Esc and M, the update cards), and a window keeps
+the keystroke it acts on: the map closed on the press, the release reached
+the game, and The Isle opened its menu (the owner, Oct 24; Esc on the
+release in edit mode and Settings never did, which confirmed it). What's new
+closing on an unhandled press also handed that keystroke on to Settings, so
+one Esc closed both; now one Esc closes one window. The skin key was
+Ctrl+F11 at first: F11 switches the game between windowed and fullscreen and
+F12 is Steam's screenshot (the owner, Oct 24), so the other keys' fallbacks
+dropped both too. **A new default layout** (the owner's ask, Oct 24): the
+F-row's blocks, F1–F4 the overlay, F5–F8 the widgets in the control panel's
+order, F9 the website, M the map (`OverlayConfig.DefaultHotkey`); an update
+keeps a player's keys, and Settings → Hotkeys → "Use the default keys"
+moves one over (the owner's pick of three; a migration of untouched
+defaults was turned down). Checked by the owner in game (Oct 24), the
+new layout, its button and the favourites included; not yet seen: the
+update card's click-away (needs a newer release), the shutdown save. The
 README's Settings pictures still show Save and Cancel.
 
 SHIPPED in 1.37.0 (Oct 23 2026): the **Settings revision** (owner's ask, Oct
@@ -383,8 +403,9 @@ Later/maybe: official token auth (the nudge
 went out with the heatmap ask ~Sep 14 2026, unanswered); Segoe Fluent Icons for
 stat glyphs; layout presets beyond the default; splitting the stats panel out
 of MainWindow into its own window (a refactor); if the Patreon skins page (a
-pilot) works: a hotkey for "apply my skin", favourites, the custom presets
-(other endpoints); the Lucky Wheel, Dino storage's sibling on the website
+pilot) works: the website's own favourites and custom presets (other
+endpoints; the overlay's local per-species favourite came in 1.38); the
+Lucky Wheel, Dino storage's sibling on the website
 (owner: "ignore it for now"); code signing (SignPath
 Foundation is the free route, the owner's side; Azure Artifact Signing is closed
 to EU individuals).

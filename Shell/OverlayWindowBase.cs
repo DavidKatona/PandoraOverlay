@@ -70,6 +70,41 @@ public abstract class OverlayWindowBase : Window
         Loaded += (_, _) => ClampIntoScreen();
         // In edit mode the panels take focus; a click on the game then locks edit mode (OverlayFocus).
         OverlayFocus.Watch(this);
+        Deactivated += (_, _) => _escapeDown = false; // a press that started here and ends elsewhere is not ours
+    }
+
+    // ---- Esc locks edit mode (1.38) -------------------------------------------
+
+    /// <summary>Esc pressed and released in a panel in edit mode: MainWindow locks it, as its hotkey would.</summary>
+    public static event Action? EscapeInEditMode;
+
+    private bool _escapeDown;
+
+    /// <summary>False while something of the window's own wants Esc: the minimap's menu closes on it.</summary>
+    protected virtual bool EscapeIsMine => true;
+
+    /// <summary>
+    /// Esc acts on its RELEASE, never its press. Locking hands the focus back
+    /// to the game, and a press acted on at once leaves the key's release to
+    /// the game: the map, which closes on the press, was seen opening the
+    /// game's own menu right after (the owner, Oct 24 2026). Acted on at the
+    /// release, the whole keystroke is ours and the game gets none of it.
+    /// </summary>
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        if (!EditMode || e.Key != Key.Escape || Keyboard.Modifiers != ModifierKeys.None || !EscapeIsMine) return;
+        _escapeDown = true;
+        e.Handled = true;
+    }
+
+    protected override void OnPreviewKeyUp(KeyEventArgs e)
+    {
+        base.OnPreviewKeyUp(e);
+        if (e.Key != Key.Escape || !_escapeDown) return;
+        _escapeDown = false;
+        e.Handled = true;
+        if (EditMode) EscapeInEditMode?.Invoke();
     }
 
     protected override void OnSourceInitialized(EventArgs e)

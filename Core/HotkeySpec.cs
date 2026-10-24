@@ -4,17 +4,20 @@ using System.Windows.Input;
 namespace PandoraOverlay;
 
 /// <summary>
-/// One global hotkey, any of the seven (edit mode, hide-all, minimap view,
-/// heatmap, Check Prime, stats view, big map): converts between the config
-/// string ("Ctrl+F7") and what Win32 RegisterHotKey wants. WPF's ModifierKeys
-/// flag values equal the Win32 MOD_* flags, so the cast is direct. Also hosts
+/// One global hotkey, any of the eight (edit mode, hide-all, minimap view,
+/// heatmap, Check Prime, stats view, big map, apply my skin): converts
+/// between the config string ("Ctrl+F1") and what Win32 RegisterHotKey
+/// wants. WPF's ModifierKeys flag values equal the Win32 MOD_* flags, so
+/// the cast is direct. Also hosts
 /// the RegisterHotKey/UnregisterHotKey p/invokes shared by MainWindow (the
 /// real registration) and SettingsWindow (the availability test during
-/// capture). Default is edit mode's.
+/// capture). The defaults are OverlayConfig's (DefaultHotkey and its siblings).
 /// </summary>
 public sealed record HotkeySpec(ModifierKeys Modifiers, Key Key)
 {
-    public static HotkeySpec Default { get; } = new(ModifierKeys.Control, Key.F7);
+    /// <summary>A config string, or its default when it doesn't parse (a hand-edited value, a bare key).</summary>
+    public static HotkeySpec ParseOr(string? configured, string defaultText) =>
+        TryParse(configured) ?? TryParse(defaultText) ?? throw new ArgumentException($"default hotkey {defaultText} doesn't parse");
 
     // Without MOD_NOREPEAT, holding the combo past the key-repeat delay fires
     // the hotkey twice — edit mode toggles on and instantly off, which reads

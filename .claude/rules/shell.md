@@ -18,7 +18,8 @@ paths:
   captioned group on Settings → Widgets (`.claude/rules/settings.md`) — never a tray line.
 - **A new global hotkey** needs: an id constant (0xA11D is reserved for the Settings
   dialog's test registration); a default WITH a modifier, clear of the game's F2
-  (recording) and F10 (hide HUD) — raw-input games see the bare key despite Ctrl — and of
+  (recording), F10 (hide HUD), F11 (windowed / fullscreen) and Steam's F12 (screenshot) —
+  raw-input games see the bare key despite Ctrl — and of
   Ctrl+F3 (held by third-party software in the wild); a letter key only after the owner
   has checked in game that the bare key does nothing; a candidate list through
   `ResolveLateHotkey`, one longer than its takers; registration in `OnSourceInitialized`
@@ -31,6 +32,11 @@ paths:
   `OverlayFocus.Watch`, and what must get out of the way on that click subscribes to
   `OverlayFocus.Left` (MainWindow closes Settings and locks edit mode; the update cards
   close themselves). Never ask which window took the focus.
+- **A key that closes or locks something acts on its RELEASE** and marks its press and its
+  release handled (Esc, the map's M). Acted on at the press, the focus goes back with the
+  key still down and the release lands in the game: The Isle opened its menu after the map
+  closed (Oct 2026). And a press left unhandled is handed on to whichever of our windows
+  gets the focus next: one Esc closed What's new and Settings under it.
 - The overlay activates only its OWN windows (the control panel, the map, dialogs); the
   hotkey press grants foreground rights. The game window is never found, focused or touched.
 - Every stats-panel status goes through `SetStatus`, so the view name can step aside;

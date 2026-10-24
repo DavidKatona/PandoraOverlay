@@ -37,7 +37,7 @@ public sealed record PatreonSkin(
 /// <summary>One tile picture as fetched: its bytes, or a short reason why not ("HTTP 404", "too large (6 MB)", an exception type). Never server text.</summary>
 public sealed record SkinPicture(byte[]? Bytes, string? Problem = null);
 
-/// <summary>The skin and pattern last applied for one species, so the Skins page can offer it again (kept in config).</summary>
+/// <summary>A skin and pattern for one species: your favourite (OverlayConfig.SkinFavourites, 1.38).</summary>
 public sealed record SkinChoice(string SkinId, bool IdIsNumber, string Name, int Pattern);
 
 public enum SkinApplyOutcome { Ok, NotInGame, TooSoon, Refused, Failed }
@@ -78,6 +78,23 @@ public static class PatreonSkins
 
     /// <summary>Pattern index → the letter on the site's button.</summary>
     public static char PatternLetter(int index) => (char)('A' + Math.Clamp(index, 0, PatternCount - 1));
+
+    /// <summary>
+    /// The skin hotkey's answer for the stats panel's status line (1.38): there
+    /// is no page open to say it. Short, as the line is; the server's own
+    /// (cleaned) words are labelled as the website's, as on the Skins page.
+    /// Null = no favourite for this dino, so nothing was sent.
+    /// </summary>
+    public static string HotkeyStatus(SkinApplyResult? result) => result switch
+    {
+        null => "No favourite skin for this dino: star one in Settings › Skins",
+        { Outcome: SkinApplyOutcome.Ok } => $"Skin applied: {result.SkinName} · {PatternLetter(result.Pattern)} · shows in game in a few seconds",
+        { Outcome: SkinApplyOutcome.NotInGame } => "Skin not applied: spawn in first",
+        { Outcome: SkinApplyOutcome.TooSoon } => "Skin not applied: give it a few seconds between applies",
+        { Outcome: SkinApplyOutcome.Refused, Message: { Length: > 0 } words } => $"Skin not applied · the website says: {words}",
+        { Outcome: SkinApplyOutcome.Refused } => "Skin not applied: the website declined",
+        _ => $"Skin not applied ({result.Message ?? "no answer"})",
+    };
 
     public static string IdJson(string id, bool isNumber) => isNumber ? id : JsonSerializer.Serialize(id);
 

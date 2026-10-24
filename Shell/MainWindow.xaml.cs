@@ -49,6 +49,7 @@ public partial class MainWindow : OverlayWindowBase
     private HotkeySpec _hotkeyPrime;
     private HotkeySpec _hotkeyStatsView;
     private HotkeySpec _hotkeyBigMap;
+    private HotkeySpec _hotkeySkin;
     private readonly LowStatAlert _lowStat = new();
     private readonly GrowthMilestones _milestones = new();
     private bool _overlayHidden;
@@ -72,9 +73,9 @@ public partial class MainWindow : OverlayWindowBase
             Left = wx;
             Top = wy;
         }
-        _hotkey = HotkeySpec.TryParse(_config.Hotkey) ?? HotkeySpec.Default;
-        _hotkeyHide = HotkeySpec.TryParse(_config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F4);
-        _hotkeyView = HotkeySpec.TryParse(_config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F5);
+        _hotkey = HotkeySpec.ParseOr(_config.Hotkey, OverlayConfig.DefaultHotkey);
+        _hotkeyHide = HotkeySpec.ParseOr(_config.HotkeyHideAll, OverlayConfig.DefaultHotkeyHideAll);
+        _hotkeyView = HotkeySpec.ParseOr(_config.HotkeyMinimapView, OverlayConfig.DefaultHotkeyMinimapView);
         _hotkeyHeatmap = ResolveLateHotkey(_config.HotkeyHeatmap, HeatmapHotkeyCandidates,
             new[] { _hotkey, _hotkeyHide, _hotkeyView }, v => _config.HotkeyHeatmap = v);
         _hotkeyPrime = ResolveLateHotkey(_config.HotkeyPrimeCheck, PrimeHotkeyCandidates,
@@ -83,6 +84,8 @@ public partial class MainWindow : OverlayWindowBase
             new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap, _hotkeyPrime }, v => _config.HotkeyStatsView = v);
         _hotkeyBigMap = ResolveLateHotkey(_config.HotkeyBigMap, BigMapHotkeyCandidates,
             new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap, _hotkeyPrime, _hotkeyStatsView }, v => _config.HotkeyBigMap = v);
+        _hotkeySkin = ResolveLateHotkey(_config.HotkeySkin, SkinHotkeyCandidates,
+            new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap, _hotkeyPrime, _hotkeyStatsView, _hotkeyBigMap }, v => _config.HotkeySkin = v);
         ApplyAppearance(_config);
         ApplyStatsView();
 
@@ -112,6 +115,12 @@ public partial class MainWindow : OverlayWindowBase
             exit: () => Application.Current.Shutdown());
         UpdateHotkeyTexts();
         OverlayFocus.Left += OnFocusLeftOverlay; // a click on the game closes Settings and locks edit mode (1.38)
+        OverlayWindowBase.EscapeInEditMode += () =>
+        {
+            if (!EditMode) return;
+            AppLog.App.Log("Esc: edit mode off");
+            ToggleEditMode();
+        };
 
         Loaded += (_, _) =>
         {
@@ -175,6 +184,7 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
         HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
         HotkeySpec.Unregister(hwnd, BigMapHotkeyId);
+        HotkeySpec.Unregister(hwnd, SkinHotkeyId);
         var closedByFocus = false;
         try
         {

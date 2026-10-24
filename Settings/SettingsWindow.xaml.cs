@@ -49,15 +49,18 @@ public partial class SettingsWindow : Window
 
     private sealed class HotkeyEntry
     {
-        public HotkeyEntry(HotkeySpec initial, string label)
+        public HotkeyEntry(string configured, string defaultText, string label)
         {
-            Initial = initial;
-            Chosen = initial;
+            Initial = HotkeySpec.ParseOr(configured, defaultText);
+            Chosen = Initial;
+            Default = HotkeySpec.ParseOr(defaultText, defaultText);
             Label = label;
         }
 
         public HotkeySpec Initial { get; }
         public HotkeySpec Chosen { get; set; }
+        /// <summary>The 1.38 layout's key (OverlayConfig.Default…), for "Use the default keys".</summary>
+        public HotkeySpec Default { get; }
         public string Label { get; }
     }
 
@@ -122,7 +125,7 @@ public partial class SettingsWindow : Window
 
         // Safety net for small screens: the sections scroll rather than the
         // dialog running off the bottom (SizeToContent honours MaxHeight).
-        // The title and the Cancel / Save row are docked outside the page
+        // The title and the Close row are docked outside the page
         // ScrollViewer, so a page scrolls and the buttons are never lost.
         MaxHeight = SystemParameters.WorkArea.Height * 0.92;
 
@@ -130,20 +133,15 @@ public partial class SettingsWindow : Window
         // A new global hotkey needs its box here, its line in WriteHotkeys, and its
         // Unregister in MainWindow.OpenSettingsOn — unsuspended, it would fire
         // behind this dialog and its own combo would probe as taken.
-        _hotkeyEntries[EditHotkeyBox] = new HotkeyEntry(
-            HotkeySpec.TryParse(config.Hotkey) ?? HotkeySpec.Default, "edit mode");
-        _hotkeyEntries[HideHotkeyBox] = new HotkeyEntry(
-            HotkeySpec.TryParse(config.HotkeyHideAll) ?? new HotkeySpec(ModifierKeys.Control, Key.F4), "hide/show overlay");
-        _hotkeyEntries[ViewHotkeyBox] = new HotkeyEntry(
-            HotkeySpec.TryParse(config.HotkeyMinimapView) ?? new HotkeySpec(ModifierKeys.Control, Key.F5), "the minimap view toggle");
-        _hotkeyEntries[HeatmapHotkeyBox] = new HotkeyEntry(
-            HotkeySpec.TryParse(config.HotkeyHeatmap) ?? new HotkeySpec(ModifierKeys.Control, Key.F6), "the heatmap toggle");
-        _hotkeyEntries[PrimeHotkeyBox] = new HotkeyEntry(
-            HotkeySpec.TryParse(config.HotkeyPrimeCheck) ?? new HotkeySpec(ModifierKeys.Control, Key.F8), "Check Prime");
-        _hotkeyEntries[StatsViewHotkeyBox] = new HotkeyEntry(
-            HotkeySpec.TryParse(config.HotkeyStatsView) ?? new HotkeySpec(ModifierKeys.Control, Key.F9), "the stats view toggle");
-        _hotkeyEntries[BigMapHotkeyBox] = new HotkeyEntry(
-            HotkeySpec.TryParse(config.HotkeyBigMap) ?? new HotkeySpec(ModifierKeys.Control, Key.M), "the map");
+        // In the page's order: the 1.38 layout's (OverlayConfig.DefaultHotkey).
+        _hotkeyEntries[EditHotkeyBox] = new HotkeyEntry(config.Hotkey, OverlayConfig.DefaultHotkey, "edit mode");
+        _hotkeyEntries[HideHotkeyBox] = new HotkeyEntry(config.HotkeyHideAll, OverlayConfig.DefaultHotkeyHideAll, "hide/show overlay");
+        _hotkeyEntries[StatsViewHotkeyBox] = new HotkeyEntry(config.HotkeyStatsView, OverlayConfig.DefaultHotkeyStatsView, "the stats view toggle");
+        _hotkeyEntries[ViewHotkeyBox] = new HotkeyEntry(config.HotkeyMinimapView, OverlayConfig.DefaultHotkeyMinimapView, "the minimap view toggle");
+        _hotkeyEntries[HeatmapHotkeyBox] = new HotkeyEntry(config.HotkeyHeatmap, OverlayConfig.DefaultHotkeyHeatmap, "the heatmap toggle");
+        _hotkeyEntries[PrimeHotkeyBox] = new HotkeyEntry(config.HotkeyPrimeCheck, OverlayConfig.DefaultHotkeyPrimeCheck, "Check Prime");
+        _hotkeyEntries[SkinHotkeyBox] = new HotkeyEntry(config.HotkeySkin, OverlayConfig.DefaultHotkeySkin, "apply my skin");
+        _hotkeyEntries[BigMapHotkeyBox] = new HotkeyEntry(config.HotkeyBigMap, OverlayConfig.DefaultHotkeyBigMap, "the map");
         foreach (var (box, entry) in _hotkeyEntries)
         {
             box.Text = entry.Chosen.ToString();
@@ -262,6 +260,7 @@ public partial class SettingsWindow : Window
     {
         HotkeyHint.Text = "Press the new combination now (Esc keeps the current one).";
         HotkeyHint.Foreground = HintNeutral;
+        DisarmDefaultKeys(); // a key set by hand: the armed button goes back
     }
 
     private void HotkeyBox_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -328,6 +327,58 @@ public partial class SettingsWindow : Window
         HotkeyHint.Foreground = spec == entry.Initial ? HintNeutral : HintGood;
     }
 
+    private bool _defaultKeysArmed;
+
+    /// <summary>
+    /// "Use the default keys" (1.38): every key to the layout a fresh install
+    /// gets (OverlayConfig.DefaultHotkey's comment). An update keeps a
+    /// player's keys, so this is how one moves over. Two clicks, since it
+    /// changes every key at once. All or nothing: if another program holds
+    /// one of the defaults, nothing changes and the hint names it — a key
+    /// left behind could clash with another's new default.
+    /// </summary>
+    private void DefaultKeys_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_defaultKeysArmed)
+        {
+            _defaultKeysArmed = true;
+            DefaultKeysButton.Content = "Really change them all?";
+            return;
+        }
+        DisarmDefaultKeys();
+
+        if (_hotkeyEntries.Values.All(entry => entry.Chosen == entry.Default))
+        {
+            HotkeyHint.Text = "These are the default keys already.";
+            HotkeyHint.Foreground = HintNeutral;
+            return;
+        }
+        var held = _hotkeyEntries.Values
+            .Where(entry => entry.Chosen != entry.Default && !IsHotkeyAvailable(entry.Default))
+            .Select(entry => entry.Default.ToString())
+            .ToList();
+        if (held.Count > 0)
+        {
+            HotkeyHint.Text = $"{string.Join(", ", held)} {(held.Count == 1 ? "is" : "are")} taken by another app, so nothing changed. Close that app, or set the keys one by one.";
+            HotkeyHint.Foreground = HintBad;
+            return;
+        }
+        foreach (var (box, entry) in _hotkeyEntries)
+        {
+            entry.Chosen = entry.Default;
+            box.Text = entry.Chosen.ToString();
+        }
+        WriteHotkeys();
+        HotkeyHint.Text = "The default keys are set. They work once Settings is closed.";
+        HotkeyHint.Foreground = HintGood;
+    }
+
+    private void DisarmDefaultKeys()
+    {
+        _defaultKeysArmed = false;
+        DefaultKeysButton.Content = "Use the default keys";
+    }
+
     /// <summary>Written at once like every setting; registered when the dialog closes, since the hotkeys are suspended while it is open.</summary>
     private void WriteHotkeys()
     {
@@ -338,6 +389,7 @@ public partial class SettingsWindow : Window
         _config.HotkeyPrimeCheck = _hotkeyEntries[PrimeHotkeyBox].Chosen.ToString();
         _config.HotkeyStatsView = _hotkeyEntries[StatsViewHotkeyBox].Chosen.ToString();
         _config.HotkeyBigMap = _hotkeyEntries[BigMapHotkeyBox].Chosen.ToString();
+        _config.HotkeySkin = _hotkeyEntries[SkinHotkeyBox].Chosen.ToString();
     }
 
     /// <summary>Briefly registers the combo on this window to see whether the OS allows it.</summary>

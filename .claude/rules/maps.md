@@ -38,6 +38,9 @@ paths:
   ETA and areas are computed locally. The map's Heatmap and Friends layers are extra
   surfaces on the existing gates (`PollService.Maps.cs`) — no endpoint, no pace.
 - Friends are drawn only where the server says they share their location (`OnMap`).
+- The map closes on the RELEASE of Esc or M, never the press (the press left the release to
+  the game, which opened its menu; `.claude/rules/shell.md`). A menu closing on Esc lives in
+  its own popup, outside the window's key routing.
 - Any window drawn over the game: a translucent full-screen window uses WPF's own
   `AllowsTransparency`, **never** `SetLayeredWindowAttributes` on a WPF window (the game
   went pitch black, Oct 9 2026); keep moving content in opaque windows; snap cached

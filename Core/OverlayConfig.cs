@@ -91,27 +91,44 @@ public sealed class OverlayConfig
 
     // ---- Controls ---------------------------------------------------------
 
+    // The default hotkeys (1.38, the owner's layout of Oct 24 2026): the F-row
+    // in its three blocks of four. F1–F4 the overlay itself (edit mode, hide);
+    // F5–F8 the widgets, in the control panel's order (stats view, minimap
+    // view, heatmap, Check Prime); F9 the website (apply my skin); and M, a
+    // letter to remember, the map. The gaps are other software's: the game's
+    // F2 (recording), F10 (hide HUD) and F11 (windowed / fullscreen), Steam's
+    // F12 (screenshot), and Ctrl+F3, held globally by third-party software in
+    // the wild. The game sees the bare key even with Ctrl held (raw input), so
+    // only keys whose bare press does nothing in The Isle are used.
+    // Before 1.38 the defaults were edit mode Ctrl+F7, minimap view Ctrl+F5,
+    // heatmap Ctrl+F6, stats view Ctrl+F9 (hide, Prime and the map the same).
+    // Defaults reach FRESH installs only: every saved config.json holds its
+    // keys, and an update keeps them (the owner's call); Settings → Hotkeys →
+    // "Use the default keys" moves a player over.
+    public const string DefaultHotkey = "Ctrl+F1";
+    public const string DefaultHotkeyHideAll = "Ctrl+F4";
+    public const string DefaultHotkeyStatsView = "Ctrl+F5";
+    public const string DefaultHotkeyMinimapView = "Ctrl+F6";
+    public const string DefaultHotkeyHeatmap = "Ctrl+F7";
+    public const string DefaultHotkeyPrimeCheck = "Ctrl+F8";
+    public const string DefaultHotkeySkin = "Ctrl+F9";
+    public const string DefaultHotkeyBigMap = "Ctrl+M";
+
     /// <summary>
     /// Global edit-mode hotkey: modifiers (Ctrl/Alt/Shift/Win) plus one key,
-    /// separated by "+", e.g. "Ctrl+F7" or "Ctrl+Shift+M". Editable in the
-    /// settings window; unparseable values fall back to Ctrl+F7. Defaults
-    /// deliberately live in F4–F7, clear of the game's F2 (recording) and
-    /// F10 (hide HUD) — raw-input games can react to the bare F-key even
-    /// with Ctrl held — and of Ctrl+F3, which proved to be held globally by
-    /// third-party software in the wild. The quick mid-game toggles take
-    /// the nearest keys; edit mode, an occasional setup action, sits
-    /// farthest out.
+    /// separated by "+", e.g. "Ctrl+F1" or "Ctrl+Shift+M". Editable in the
+    /// settings window; unparseable values fall back to the default.
     /// </summary>
-    public string Hotkey { get; set; } = "Ctrl+F7";
+    public string Hotkey { get; set; } = DefaultHotkey;
 
     /// <summary>
     /// Hide/show the whole overlay (screenshots, cutscenes) — same format as
     /// Hotkey. Hidden state never persists: the app always starts visible.
     /// </summary>
-    public string HotkeyHideAll { get; set; } = "Ctrl+F4";
+    public string HotkeyHideAll { get; set; } = DefaultHotkeyHideAll;
 
     /// <summary>Toggle the minimap island/centered view from gameplay — same format as Hotkey.</summary>
-    public string HotkeyMinimapView { get; set; } = "Ctrl+F5";
+    public string HotkeyMinimapView { get; set; } = DefaultHotkeyMinimapView;
 
     /// <summary>
     /// Flip the minimap's heatmap layer from gameplay — same format as Hotkey.
@@ -119,7 +136,7 @@ public sealed class OverlayConfig
     /// a tray entry. If the default collides with a combo the user already
     /// gave one of the other three, MainWindow picks a free one at startup.
     /// </summary>
-    public string HotkeyHeatmap { get; set; } = "Ctrl+F6";
+    public string HotkeyHeatmap { get; set; } = DefaultHotkeyHeatmap;
 
     /// <summary>
     /// Run a Prime check from gameplay — same format as Hotkey. It replaced
@@ -127,14 +144,14 @@ public sealed class OverlayConfig
     /// used often earns a key. Collides with a customized combo? MainWindow
     /// picks a free one at startup, like the heatmap key.
     /// </summary>
-    public string HotkeyPrimeCheck { get; set; } = "Ctrl+F8";
+    public string HotkeyPrimeCheck { get; set; } = DefaultHotkeyPrimeCheck;
 
     /// <summary>
     /// Flip the stats panel between its Survival and Combat views from gameplay —
     /// same format as Hotkey. A late-added key like the two above: a collision
     /// with a customized combo is resolved to a free one at startup.
     /// </summary>
-    public string HotkeyStatsView { get; set; } = "Ctrl+F9";
+    public string HotkeyStatsView { get; set; } = DefaultHotkeyStatsView;
 
     /// <summary>
     /// Open and close the big map — same format as Hotkey. Ctrl+M, M for
@@ -144,7 +161,19 @@ public sealed class OverlayConfig
     /// the map is open, a plain M or Esc closes it too — keys in our own
     /// focused window, no global hook.
     /// </summary>
-    public string HotkeyBigMap { get; set; } = "Ctrl+M";
+    public string HotkeyBigMap { get; set; } = DefaultHotkeyBigMap;
+
+    /// <summary>
+    /// Apply my skin (1.38) — same format as Hotkey: your favourite skin for
+    /// the dino you are on (SkinFavourites), without opening Settings (the
+    /// owner, Oct 24 2026: a player opening Settings for it was attacked; the
+    /// favourite was that player's idea, over the last skin applied). The one WRITE a
+    /// key press makes, with the page's guards. A late-added key like the
+    /// four above: a collision with a customized combo is resolved at startup.
+    /// An update from 1.37 holds the old stats view on Ctrl+F9, so it lands
+    /// on Ctrl+F1 there (the next candidate, free in the old layout).
+    /// </summary>
+    public string HotkeySkin { get; set; } = DefaultHotkeySkin;
 
     // ---- The big map ----------------------------------------------------------
     // "Big map" is the internal name only: players see "the map" (owner,
@@ -380,8 +409,16 @@ public sealed class OverlayConfig
     /// </summary>
     public DateTime? SkinLastAppliedUtc { get; set; }
 
-    /// <summary>The skin and pattern last applied per species, so the Skins page can offer it again for the dino you are on. Managed by the app.</summary>
-    public Dictionary<string, SkinChoice> SkinChoices { get; set; } = new();
+    /// <summary>
+    /// Your favourite skin and pattern per species (1.38, the owner's call, from
+    /// the attacked player's idea): chosen with the ☆ on a Skins tile while you
+    /// play that species, applied by the skin hotkey and the page's "Apply your
+    /// favourite". Local only, never sent. It replaced 1.28–1.37's SkinChoices,
+    /// the skin LAST applied per species ("Apply again"): a favourite is chosen
+    /// once, the last one changed with every try. An old file's SkinChoices is
+    /// ignored, not turned into favourites: a favourite is the player's pick.
+    /// </summary>
+    public Dictionary<string, SkinChoice> SkinFavourites { get; set; } = new();
 
     // ---- Activity feed + friends (approved Sep 27 2026) -------------------
 
@@ -538,7 +575,9 @@ public sealed class OverlayConfig
         // defaults (v1.11 introduced F3/F4/F5 edit/hide/view; v1.12 moved
         // to F7/F4/F5 after Ctrl+F3 proved conflict-prone in the wild).
         // Any customized set (even one changed combo) is left untouched.
-        // Ctrl+F8/F9/F7 is the trio shipped up to v1.10.
+        // Ctrl+F8/F9/F7 is the trio shipped up to v1.10. The target stays
+        // the 1.12–1.37 trio, not the 1.38 layout: since 1.38 an update keeps
+        // the keys a player has (DefaultHotkey's comment).
         var holdsOldDefaults =
             (cfg.Hotkey == "Ctrl+F8" && cfg.HotkeyHideAll == "Ctrl+F9" && cfg.HotkeyMinimapView == "Ctrl+F7") ||
             (cfg.Hotkey == "Ctrl+F3" && cfg.HotkeyHideAll == "Ctrl+F4" && cfg.HotkeyMinimapView == "Ctrl+F5");
@@ -549,7 +588,7 @@ public sealed class OverlayConfig
             cfg.HotkeyMinimapView = "Ctrl+F5";
         }
 
-        cfg.SkinChoices ??= new(); // a hand-edited "SkinChoices": null must not cost the first apply
+        cfg.SkinFavourites ??= new(); // a hand-edited "SkinFavourites": null must not cost the first favourite
 
         // Waypoint slots: always three (a hand-edited array is padded or
         // trimmed), and the pre-v1.20 single waypoint becomes the blue one.

@@ -232,15 +232,67 @@ public class PatreonSkinsTests
     }
 
     [Fact]
-    public void ASkinChoiceSurvivesTheConfigFile()
+    public void AFavouriteSurvivesTheConfigFile()
     {
         var config = new OverlayConfig();
-        config.SkinChoices["Deinosuchus"] = new SkinChoice("12", true, "Ember", 2);
+        config.SkinFavourites["Deinosuchus"] = new SkinChoice("12", true, "Ember", 2);
         config.SkinLastAppliedUtc = new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc);
 
         var back = JsonSerializer.Deserialize<OverlayConfig>(JsonSerializer.Serialize(config))!;
 
-        Assert.Equal(new SkinChoice("12", true, "Ember", 2), back.SkinChoices["Deinosuchus"]);
+        Assert.Equal(new SkinChoice("12", true, "Ember", 2), back.SkinFavourites["Deinosuchus"]);
         Assert.Equal(config.SkinLastAppliedUtc, back.SkinLastAppliedUtc);
+    }
+
+    // ---- The skin hotkey (1.38) ----------------------------------------------
+
+    [Fact]
+    public void TheSkinHotkeySaysWhatHappenedOnTheStatusLine()
+    {
+        Assert.Equal("Skin applied: Ember · C · shows in game in a few seconds",
+            PatreonSkins.HotkeyStatus(new SkinApplyResult(SkinApplyOutcome.Ok, "Ember", 2)));
+        Assert.Equal("Skin not applied: spawn in first",
+            PatreonSkins.HotkeyStatus(new SkinApplyResult(SkinApplyOutcome.NotInGame, "", 0)));
+        Assert.Equal("Skin not applied: give it a few seconds between applies",
+            PatreonSkins.HotkeyStatus(new SkinApplyResult(SkinApplyOutcome.TooSoon, "Ember", 2)));
+        Assert.Equal("Skin not applied: the website declined",
+            PatreonSkins.HotkeyStatus(new SkinApplyResult(SkinApplyOutcome.Refused, "Ember", 2)));
+        Assert.Equal("Skin not applied (HttpRequestException)",
+            PatreonSkins.HotkeyStatus(new SkinApplyResult(SkinApplyOutcome.Failed, "Ember", 2, "HttpRequestException")));
+    }
+
+    /// <summary>The server's own words reach the line labelled as the website's, as on the Skins page (constraint 4).</summary>
+    [Fact]
+    public void TheWebsitesRefusalIsLabelledAsItsWords()
+    {
+        var line = PatreonSkins.HotkeyStatus(new SkinApplyResult(SkinApplyOutcome.Refused, "Ember", 2, "Cooldown active"));
+        Assert.Equal("Skin not applied · the website says: Cooldown active", line);
+    }
+
+    [Fact]
+    public void WithNothingRememberedTheHotkeyPointsToTheSkinsPage() =>
+        Assert.Contains("Settings › Skins", PatreonSkins.HotkeyStatus(null));
+
+    /// <summary>The favourite the hotkey and the page apply: the one chosen for this species, only while spawned in.</summary>
+    [Fact]
+    public void MyFavouriteIsTheOneChosenForThisDinoWhileInGame()
+    {
+        var ember = new SkinChoice("12", true, "Ember", 2);
+        var choices = new Dictionary<string, SkinChoice> { ["Deinosuchus"] = ember };
+
+        Assert.Same(ember, PollService.SkinChoiceFor(true, "Deinosuchus", choices));
+        Assert.Null(PollService.SkinChoiceFor(true, "Herrerasaurus", choices)); // no favourite for this one
+        Assert.Null(PollService.SkinChoiceFor(false, "Deinosuchus", choices));  // not spawned in
+        Assert.Null(PollService.SkinChoiceFor(true, null, choices));
+    }
+
+    /// <summary>1.28–1.37 remembered the skin LAST applied per species; a favourite is the player's own pick, so an old file's memory doesn't become one.</summary>
+    [Fact]
+    public void AnOldFilesLastAppliedSkinsDontBecomeFavourites()
+    {
+        var old = JsonSerializer.Deserialize<OverlayConfig>("""
+            { "SkinChoices": { "Deinosuchus": { "SkinId": "12", "IdIsNumber": true, "Name": "Ember", "Pattern": 2 } } }
+            """)!;
+        Assert.Empty(old.SkinFavourites);
     }
 }

@@ -8,7 +8,7 @@ using System.Windows.Media.Animation;
 namespace PandoraOverlay;
 
 /// <summary>
-/// MainWindow, hotkeys part: the seven global hotkeys — ids, late-key
+/// MainWindow, hotkeys part: the eight global hotkeys — ids, late-key
 /// candidates, registration with fallback, the settings-dialog suspension,
 /// and the WM_HOTKEY dispatch. Same class as MainWindow.xaml.cs, split for
 /// reading; see CLAUDE.md.
@@ -24,40 +24,48 @@ public partial class MainWindow
     private const int PrimeHotkeyId = 0xA121;
     private const int StatsViewHotkeyId = 0xA122;
     private const int BigMapHotkeyId = 0xA123;
+    private const int SkinHotkeyId = 0xA124;
 
     // Tried in order when a late-added key's combo collides with one the
     // user already gave another action; always one more candidate than
-    // takers, so one is always free.
-    // Every candidate stays clear of the game's F2 (recording) and F10 (hide
-    // HUD) — a raw-input game can react to the bare key despite Ctrl — and
-    // of Ctrl+F3, which proved held globally by third-party software in the
-    // wild (see OverlayConfig.Hotkey for the defaults). A new key adds its
-    // own list here, one longer than the last.
-    private static readonly HotkeySpec[] HeatmapHotkeyCandidates =
+    // takers, so one is always free (HotkeyCandidateTests holds every rule
+    // here). Each list starts with its key's default (OverlayConfig's
+    // layout, 1.38).
+    // The game sees the bare F-key even with Ctrl held (raw input), so every
+    // candidate stays clear of the keys The Isle or Steam use: F2 (recording),
+    // F10 (hide the HUD), F11 (windowed / fullscreen) and F12 (Steam's
+    // screenshot; Windows also reserves it for debuggers). F11 and F12 were
+    // fallbacks here until the owner checked them in game (Oct 24 2026). And
+    // clear of Ctrl+F3, which proved held globally by third-party software in
+    // the wild. Only keys whose bare press is known to do nothing in game:
+    // F1 and F4–F9, and M. Shift is the game's sprint, so the Ctrl+Shift
+    // fallbacks come after the plain ones. A new key adds its own list here,
+    // one longer than the last.
+    internal static readonly HotkeySpec[] HeatmapHotkeyCandidates =
     {
-        new(ModifierKeys.Control, Key.F6),
+        new(ModifierKeys.Control, Key.F7),
         new(ModifierKeys.Control, Key.F8),
-        new(ModifierKeys.Control, Key.F9),
-        new(ModifierKeys.Control, Key.F11)
+        new(ModifierKeys.Control, Key.F5),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F7)
     };
 
-    private static readonly HotkeySpec[] PrimeHotkeyCandidates =
+    internal static readonly HotkeySpec[] PrimeHotkeyCandidates =
     {
         new(ModifierKeys.Control, Key.F8),
+        new(ModifierKeys.Control, Key.F5),
         new(ModifierKeys.Control, Key.F9),
-        new(ModifierKeys.Control, Key.F11),
-        new(ModifierKeys.Control, Key.F12),
-        new(ModifierKeys.Control, Key.F6)
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F8),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F7)
     };
 
     // The stats-view key (v1.27) is the sixth: five possible takers, six candidates.
-    private static readonly HotkeySpec[] StatsViewHotkeyCandidates =
+    internal static readonly HotkeySpec[] StatsViewHotkeyCandidates =
     {
+        new(ModifierKeys.Control, Key.F5),
         new(ModifierKeys.Control, Key.F9),
-        new(ModifierKeys.Control, Key.F11),
-        new(ModifierKeys.Control, Key.F12),
         new(ModifierKeys.Control, Key.F8),
-        new(ModifierKeys.Control, Key.F6),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F5),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F8),
         new(ModifierKeys.Control | ModifierKeys.Shift, Key.F9)
     };
 
@@ -65,15 +73,30 @@ public partial class MainWindow
     // Ctrl+M is the first letter key among the defaults, safe only because a
     // bare M does nothing in The Isle (the owner checked in game, Oct 9 2026);
     // any other letter needs the same check first.
-    private static readonly HotkeySpec[] BigMapHotkeyCandidates =
+    internal static readonly HotkeySpec[] BigMapHotkeyCandidates =
     {
         new(ModifierKeys.Control, Key.M),
-        new(ModifierKeys.Control, Key.F11),
-        new(ModifierKeys.Control, Key.F12),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.M),
         new(ModifierKeys.Control, Key.F9),
-        new(ModifierKeys.Control, Key.F8),
-        new(ModifierKeys.Control, Key.F6),
-        new(ModifierKeys.Control | ModifierKeys.Shift, Key.M)
+        new(ModifierKeys.Control, Key.F5),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F5),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F6),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F7)
+    };
+
+    // The skin key (1.38) is the eighth: seven possible takers, eight candidates.
+    // Ctrl+F9, the website's block. An update from 1.37 holds the old stats
+    // view on Ctrl+F9, so there it takes Ctrl+F1, free in the old layout.
+    internal static readonly HotkeySpec[] SkinHotkeyCandidates =
+    {
+        new(ModifierKeys.Control, Key.F9),
+        new(ModifierKeys.Control, Key.F1),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F9),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F1),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F5),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F6),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F7),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F8)
     };
 
     /// <summary>
@@ -93,6 +116,7 @@ public partial class MainWindow
         HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
         HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
         HotkeySpec.Unregister(hwnd, BigMapHotkeyId);
+        HotkeySpec.Unregister(hwnd, SkinHotkeyId);
 
         _registerFailures.Clear();
         _hotkey = RegisterWithFallback(hwnd, HotkeyId, _config.Hotkey, _hotkey, v => _config.Hotkey = v);
@@ -102,6 +126,7 @@ public partial class MainWindow
         _hotkeyPrime = RegisterWithFallback(hwnd, PrimeHotkeyId, _config.HotkeyPrimeCheck, _hotkeyPrime, v => _config.HotkeyPrimeCheck = v);
         _hotkeyStatsView = RegisterWithFallback(hwnd, StatsViewHotkeyId, _config.HotkeyStatsView, _hotkeyStatsView, v => _config.HotkeyStatsView = v);
         _hotkeyBigMap = RegisterWithFallback(hwnd, BigMapHotkeyId, _config.HotkeyBigMap, _hotkeyBigMap, v => _config.HotkeyBigMap = v);
+        _hotkeySkin = RegisterWithFallback(hwnd, SkinHotkeyId, _config.HotkeySkin, _hotkeySkin, v => _config.HotkeySkin = v);
         _config.Save();
         UpdateHotkeyTexts();
 
@@ -117,10 +142,10 @@ public partial class MainWindow
     /// and is written back. (The settings dialog rejects duplicates at
     /// capture time, so this only matters for that upgrade case and
     /// hand-edited configs.)
-    /// The stats-view and big-map keys arrived the same way and go through
+    /// The stats-view, big-map and skin keys arrived the same way and go through
     /// here too; the first three keys never needed it.
     /// </summary>
-    private static HotkeySpec ResolveLateHotkey(string configured, HotkeySpec[] candidates, HotkeySpec[] taken, Action<string> writeBack)
+    internal static HotkeySpec ResolveLateHotkey(string configured, HotkeySpec[] candidates, HotkeySpec[] taken, Action<string> writeBack)
     {
         var wanted = HotkeySpec.TryParse(configured) ?? candidates[0];
         if (!taken.Contains(wanted)) return wanted;
@@ -167,6 +192,7 @@ public partial class MainWindow
         if (!HotkeySpec.Register(hwnd, PrimeHotkeyId, _hotkeyPrime)) _registerFailures.Add(_hotkeyPrime.ToString());
         if (!HotkeySpec.Register(hwnd, StatsViewHotkeyId, _hotkeyStatsView)) _registerFailures.Add(_hotkeyStatsView.ToString());
         if (!HotkeySpec.Register(hwnd, BigMapHotkeyId, _hotkeyBigMap)) _registerFailures.Add(_hotkeyBigMap.ToString());
+        if (!HotkeySpec.Register(hwnd, SkinHotkeyId, _hotkeySkin)) _registerFailures.Add(_hotkeySkin.ToString());
         if (_registerFailures.Count > 0)
         {
             var combos = string.Join(", ", _registerFailures);
@@ -212,9 +238,28 @@ public partial class MainWindow
                     ToggleBigMap();
                     handled = true;
                     break;
+                case SkinHotkeyId:
+                    _ = ApplyMySkinAsync();
+                    handled = true;
+                    break;
             }
         }
         return IntPtr.Zero;
     }
 
+    // ---- Apply my skin (1.38) ------------------------------------------------
+
+    /// <summary>
+    /// The skin hotkey: the Skins page's "Apply again" without opening
+    /// Settings (the owner, Oct 24 2026: a player opening Settings for it was
+    /// attacked). One apply, through PollService's guards. The answer goes on
+    /// the status line until the next update, a success also into the
+    /// Activity feed as from the page (SkinApplied). Nothing is shown,
+    /// un-hidden or focused for it: the skin itself shows in game.
+    /// </summary>
+    private async Task ApplyMySkinAsync()
+    {
+        AppLog.Skins.Log("Skin hotkey pressed");
+        SetStatus(PatreonSkins.HotkeyStatus(await _poll.ApplyMySkinAsync()));
+    }
 }

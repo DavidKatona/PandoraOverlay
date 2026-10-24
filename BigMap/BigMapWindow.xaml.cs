@@ -24,8 +24,9 @@ namespace PandoraOverlay;
 /// window is opaque and caches its still layers. A pure consumer of the
 /// shared PollService stream: the heatmap and the roster it shows ride the
 /// same requests the minimap's do (PollService.Maps.cs).
-/// Closing: the hotkey (MainWindow), M or Esc, a click on the backdrop, or
-/// focus going elsewhere. Drawing and layers: BigMapWindow.Layers.cs.
+/// Closing: the hotkey (MainWindow), M or Esc (on their release), a click
+/// on the backdrop, or focus going elsewhere. Drawing and layers:
+/// BigMapWindow.Layers.cs.
 /// No Settings page either: its layers are the Layers menu's ticks, its one
 /// setting the hotkey.
 /// NAMING (owner, Oct 9 2026): a player never sees "big map". Settings
@@ -166,6 +167,20 @@ public partial class BigMapWindow : Window
 
     // ---- Closing --------------------------------------------------------------
 
+    /// <summary>The closing key pressed here (Esc or M), awaiting its release; null = none.</summary>
+    private Key? _closeKeyDown;
+
+    /// <summary>
+    /// Esc and M close the map on their RELEASE (1.38). Closed on the press,
+    /// the focus went back to the game with the key still down, the release
+    /// landed in the game, and The Isle opened its own menu right after (the
+    /// owner, Oct 24 2026). The cause was confirmed in game by Esc in edit mode
+    /// and in Settings, built on the release first, which never opened the
+    /// menu. Acted on at the release, the whole keystroke is the map's. Space
+    /// stays on the press: it closes nothing. The menus close on Esc in their
+    /// own popups, which are not routed through here, so an Esc that closes a
+    /// menu leaves the map open.
+    /// </summary>
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (Keyboard.Modifiers != ModifierKeys.None) return; // the combos are the global hotkeys' business
@@ -173,7 +188,7 @@ public partial class BigMapWindow : Window
         {
             case Key.Escape:
             case Key.M:
-                Close();
+                _closeKeyDown = e.Key;
                 e.Handled = true;
                 break;
             case Key.Space:
@@ -181,6 +196,14 @@ public partial class BigMapWindow : Window
                 e.Handled = true;
                 break;
         }
+    }
+
+    private void Window_PreviewKeyUp(object sender, KeyEventArgs e)
+    {
+        if (_closeKeyDown is not { } down || e.Key != down) return;
+        _closeKeyDown = null;
+        e.Handled = true;
+        Close();
     }
 
     /// <summary>Focus went elsewhere (Alt-Tab, a click on another monitor): the map is a glance, it closes. Not for one of its own menus.</summary>

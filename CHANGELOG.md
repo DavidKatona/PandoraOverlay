@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A favourite skin for each dino: the ☆ in a skin's picture on Settings ›
+  Skins makes it, with the pattern you pick, your favourite for the dino
+  you are playing. Choosing one sends nothing, so it doesn't cost you an
+  apply. It replaces Apply again: the top of the page now offers Apply your
+  favourite.
+- A hotkey applies your favourite without opening Settings, as soon as
+  you spawn. It is Ctrl+F1 if you are updating, Ctrl+F9 on a new install.
+  The same rules hold: you have to be spawned in, there are a few seconds
+  between applies, and the server keeps its cooldown. The stats panel's
+  status line says what happened. Rebind it in Settings › Hotkeys.
+- Esc locks edit mode, as its hotkey does.
+- Settings › Hotkeys has "Use the default keys", for the new layout below.
+
 ### Changed
+
+- New installs get tidier default hotkeys, following the keyboard's blocks
+  of four: Ctrl+F1 edit mode and Ctrl+F4 hide/show for the overlay itself;
+  Ctrl+F5 to F8 for the widgets in the control panel's order (stats view,
+  minimap view, heatmap, Check Prime); Ctrl+F9 for your skin; Ctrl+M the
+  map. Updating keeps the keys you have. "Use the default keys" in
+  Settings › Hotkeys switches to the new ones.
 
 - Settings applies every change the moment you make it, like Windows' own
   Settings: there is no Save or Cancel any more. Close it with ✕, Close or
@@ -28,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Closing the map with Esc no longer opens the game's own menu right after.
 - Shutting down, restarting or signing out of Windows with the overlay
   running now saves first, as Exit does: the minimap view or heatmap you
   flipped with a hotkey, your friends' last-seen times and the like were
@@ -35,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Apply again on Settings › Skins (the skin you last applied as this
+  dino): your favourite takes its place, chosen once instead of changing
+  with every try.
 - Settings › About's "Import from an older copy…". Copies older than 1.30
   can't connect to the website since October anyway, and the first start of
   a new copy still brings an older copy's files over by itself. To do it by

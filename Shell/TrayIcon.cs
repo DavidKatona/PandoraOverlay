@@ -45,11 +45,11 @@ public sealed class TrayIcon : IDisposable
         _updateSeparator = new ToolStripSeparator { Visible = false };
         _editItem = new ToolStripMenuItem("Edit mode", null, (_, _) => toggleEditMode())
         {
-            ShortcutKeyDisplayString = "Ctrl+F7"
+            ShortcutKeyDisplayString = OverlayConfig.DefaultHotkey // the real keys arrive with UpdateHotkeyLabels
         };
         _overlayItem = new ToolStripMenuItem("Hide/show overlay", null, (_, _) => toggleOverlay())
         {
-            ShortcutKeyDisplayString = "Ctrl+F4"
+            ShortcutKeyDisplayString = OverlayConfig.DefaultHotkeyHideAll
         };
 
         var menu = new ContextMenuStrip();

@@ -8,8 +8,9 @@ public sealed record SkinListResult(IReadOnlyList<PatreonSkin>? Skins, string? P
 /// of the network, gated here so the window stays a pure consumer. Nothing
 /// in this file runs on a timer — the list is fetched when the page is
 /// opened (and kept for the session), pictures when a tile needs them, and
-/// a skin is applied only for a click. Same class as PollService.cs, split
-/// for reading; see CLAUDE.md.
+/// a skin is applied only for a click, or for the skin hotkey (1.38: the
+/// owner's okay, Oct 24 2026), the player's own press. Same class as
+/// PollService.cs, split for reading; see CLAUDE.md.
 /// </summary>
 public sealed partial class PollService
 {
@@ -40,11 +41,42 @@ public sealed partial class PollService
     /// <summary>The last poll saw you spawned in.</summary>
     public bool InGame => _inGame;
 
-    /// <summary>The species the last in-game poll reported, for the page's "apply again" offer.</summary>
+    /// <summary>The species the last in-game poll reported.</summary>
     public string? CurrentDino => _dino;
+
+    /// <summary>Your favourite skin for the dino you are on (SkinFavourites), for the skin hotkey and the page's "Apply your favourite"; null when not in game or none chosen.</summary>
+    public SkinChoice? MyFavourite => SkinChoiceFor(_inGame, _dino, _config.SkinFavourites);
+
+    /// <summary>The rule behind MyFavourite, pure for the tests: one per species, by the name the API reports.</summary>
+    internal static SkinChoice? SkinChoiceFor(bool inGame, string? dino, IReadOnlyDictionary<string, SkinChoice> choices) =>
+        inGame && dino is { Length: > 0 } && choices.TryGetValue(dino, out var choice) ? choice : null;
 
     /// <summary>Raised after a successful apply — MainWindow posts it to the Activity feed.</summary>
     public event Action<SkinApplyResult>? SkinApplied;
+
+    /// <summary>
+    /// The skin hotkey (1.38): your favourite for the dino you are on, applied
+    /// without the page. USER-TRIGGERED like every apply — a key press, never
+    /// a timer. A stale not-in-game state first gets its one regular poll, as
+    /// for any apply, so a fresh spawn is seen before the dino is looked up;
+    /// then ApplySkinAsync's guards and request. Null = no favourite for this
+    /// dino: nothing is sent.
+    /// </summary>
+    public async Task<SkinApplyResult?> ApplyMySkinAsync()
+    {
+        if (!_inGame && PollIsStale && !_skinBusy) await PollNowAsync("the skin hotkey, to refresh a not-in-game state");
+        if (!_inGame)
+        {
+            AppLog.Skins.Log("Skin hotkey answered here: not in game");
+            return new SkinApplyResult(SkinApplyOutcome.NotInGame, "", 0);
+        }
+        if (MyFavourite is not { } favourite)
+        {
+            AppLog.Skins.Log("Skin hotkey answered here: no favourite for this dino");
+            return null;
+        }
+        return await ApplySkinAsync(favourite.SkinId, favourite.IdIsNumber, favourite.Name, favourite.Pattern);
+    }
 
     /// <summary>
     /// The skins for the page. Answers from the session's copy while it is
@@ -140,8 +172,8 @@ public sealed partial class PollService
     /// One USER-TRIGGERED apply — never call this from a timer. Not spawned in
     /// (after one regular poll to refresh a stale state, as with Check Prime)
     /// or inside the 15 s breather answers locally with no request sent. A
-    /// success is remembered per species in config (persisted with the next
-    /// Save) and announced through SkinApplied. The server keeps the final
+    /// success is timed in config (the page says how long ago) and announced
+    /// through SkinApplied. The server keeps the final
     /// word on its own cooldown: nothing here assumes its length.
     /// It may differ by supporter rank, as Prime's does, so it is never
     /// mirrored locally: the page only says how long ago the last apply was
@@ -172,10 +204,6 @@ public sealed partial class PollService
             if (result.Outcome == SkinApplyOutcome.Ok)
             {
                 _config.SkinLastAppliedUtc = DateTime.UtcNow;
-                if (!string.IsNullOrWhiteSpace(_dino))
-                {
-                    _config.SkinChoices[_dino] = new SkinChoice(skinId, idIsNumber, skinName, pattern);
-                }
                 SkinApplied?.Invoke(result);
             }
             return result;

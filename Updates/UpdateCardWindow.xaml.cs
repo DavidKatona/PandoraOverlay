@@ -44,13 +44,30 @@ public partial class UpdateCardWindow : Window
     /// <summary>True when a click elsewhere closed it: What's new then closes Settings too (SettingsWindow.WhatsNew_Click).</summary>
     public bool ClosedByFocus { get; private set; }
 
+    private bool _escapeDown;
+
     private UpdateCardWindow()
     {
         InitializeComponent();
+        // Esc closes on its RELEASE and keeps the keystroke (1.38). Closed on
+        // the press and left unhandled, What's new handed the same keystroke on
+        // to Settings, which had just got the focus back, and Settings closed
+        // on its release too (the owner, Oct 24 2026): one Esc, two windows.
+        // And over the game, a press acted on at once leaves the release to it.
         PreviewKeyDown += (_, e) =>
         {
-            if (e.Key == Key.Escape && !_installing) Close();
+            if (e.Key != Key.Escape) return;
+            e.Handled = true;
+            if (!_installing) _escapeDown = true;
         };
+        PreviewKeyUp += (_, e) =>
+        {
+            if (e.Key != Key.Escape || !_escapeDown) return;
+            _escapeDown = false;
+            e.Handled = true;
+            if (!_installing) Close();
+        };
+        Deactivated += (_, _) => _escapeDown = false;
         Loaded += (_, _) => Activate();
         OverlayFocus.Watch(this);
         OverlayFocus.Left += OnFocusLeft;

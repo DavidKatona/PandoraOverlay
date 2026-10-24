@@ -181,6 +181,9 @@ public partial class MinimapWindow : OverlayWindowBase
     /// <summary>Its own scale, like every widget (v1.25 — it was sized in pixels before; the old "MinimapSize" key is ignored since Oct 6 2026).</summary>
     protected override double AppearanceScale(OverlayConfig config) => config.MinimapScale;
 
+    /// <summary>Esc closes the open menu first (MapMenu_PreviewKeyDown); with it closed, Esc locks edit mode.</summary>
+    protected override bool EscapeIsMine => !MapMenu.IsOpen;
+
     /// <summary>Re-reads view mode, zoom, scale, waypoint policy and appearance from config after the settings dialog saves.</summary>
     public void ApplySettings()
     {
