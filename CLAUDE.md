@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.37.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.38.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -349,8 +349,15 @@ all) — say so when it matters:
   rest of 1.37 was checked by the owner (Oct 22–23): every Settings page,
   the control panel's slider, and area-named waypoints on both maps,
   pasted codes included.
+- From 1.38 (no pre-release, the owner's call): a Windows shutdown with the
+  overlay running, so its save and log lines and the handler starting no
+  request (`OnSessionEnding`; code only); the update card closing on a
+  click elsewhere (the "updated" card and What's new at the owner's own
+  update to 1.38 are the first look, the "update available" card needs a
+  newer release); the focus rule on other PCs. The rest was checked by the
+  owner in game (Oct 24), the "not signed in" answers included.
 
-BUILT for 1.38, in the owner's test (Oct 24 2026): a player was attacked
+SHIPPED in 1.38.0 (Oct 24 2026): a player was attacked
 with Settings open, and a click on the game left it on top with every hotkey
 off. So: **Settings applies every change at once** (no Save or Cancel), and
 **a click on the game** closes Settings, the update cards and What's new and
@@ -378,8 +385,12 @@ order, F9 the website, M the map (`OverlayConfig.DefaultHotkey`); an update
 keeps a player's keys, and Settings → Hotkeys → "Use the default keys"
 moves one over (the owner's pick of three; a migration of untouched
 defaults was turned down). Checked by the owner in game (Oct 24), the
-new layout, its button and the favourites included; not yet seen: the
-update card's click-away (needs a newer release), the shutdown save.
+new layout, its button and the favourites included. The constraint review
+before the tag (a fresh reviewer, the owner's ask) found no violation and
+two near misses, both fixed: with no session (signed out, or ended by the
+website) Check Prime and a skin apply answer "not signed in" and send
+nothing (`PollService.NoSession`), and the shutdown handler marks the
+overlay as exiting before Settings closes.
 
 SHIPPED in 1.37.0 (Oct 23 2026): the **Settings revision** (owner's ask, Oct
 22): the grouped nav (the overlay's pages, the website's under a caption,
@@ -551,7 +562,7 @@ Updates and the account
 
 ## Releases
 
-- Current: 1.37.0. The csproj `<Version>` is the single source of truth
+- Current: 1.38.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
