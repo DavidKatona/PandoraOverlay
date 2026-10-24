@@ -328,7 +328,8 @@ public partial class MapCanvas : UserControl
     /// The trail split into three age bands for a map drawn at a size,
     /// newest first, in map pixels; each band starts on the previous band's
     /// last point so they meet. One polyline can't fade along its length,
-    /// so the oldest band is drawn faintest.
+    /// so the oldest band is drawn faintest. Only the last <paramref name="keep"/>
+    /// is drawn: the trail holds up to an hour whatever the setting.
     /// </summary>
     public static PointCollection[] TrailBands(IReadOnlyList<(DateTime At, double X, double Y)> points, MapCalibration cal,
                                                double mapSize, TimeSpan keep, DateTime now)
@@ -338,6 +339,7 @@ public partial class MapCanvas : UserControl
         var previousBand = -1;
         foreach (var (at, x, y) in points)
         {
+            if (now - at > keep) continue; // recorded for longer than it is drawn (BreadcrumbTrail.RecordFor); oldest first, so the drawn path starts here
             var (fx, fy) = cal.ToFraction(x, y);
             var point = new Point(fx * mapSize, fy * mapSize);
             var band = Math.Clamp((int)((now - at).TotalSeconds / keep.TotalSeconds * 3), 0, 2);

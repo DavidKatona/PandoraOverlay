@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -24,14 +23,21 @@ public partial class SettingsWindow
     // ---- Friends page -----------------------------------------------------------
     private readonly FriendBook _book;
     private readonly IReadOnlyList<FriendState>? _roster; // the last roster at dialog open (null = none fetched yet)
-    private readonly List<FriendEntry> _friendDraft;
+    private readonly List<FriendEntry> _friendDraft; // the rows edit this copy; it is applied as it changes (SettingsWindow.Apply.cs)
     private string? _draftTrackedFriend;
     private bool _friendsDirty;
     private bool _friendRowsBuilt;
 
     private static readonly Brush InGameBrush = new SolidColorBrush(Color.FromRgb(0x7C, 0xC8, 0x84));
 
-    /// <summary>Builds the rows the first time the page is looked at; Save works on the draft and never needed them.</summary>
+    /// <summary>A row changed: applied with the next batch. A nickname is applied once its box is left (or Enter), not per letter.</summary>
+    private void FriendsEdited()
+    {
+        _friendsDirty = true;
+        QueueFlush();
+    }
+
+    /// <summary>Builds the rows the first time the page is looked at; applying works on the copy and never needed them.</summary>
     private void OpenFriendsPage()
     {
         if (_friendRowsBuilt) return;
@@ -130,7 +136,7 @@ public partial class SettingsWindow
             entry.Colour = next;
             dot.Fill = PaletteBrushes[next];
             well.ToolTip = $"{WaypointPalette.Colours[next].Name} — click to change";
-            _friendsDirty = true;
+            FriendsEdited();
         };
         row.Children.Add(well);
 
@@ -145,7 +151,12 @@ public partial class SettingsWindow
         {
             var nick = FriendBook.SanitizeNickname(name.Text);
             entry.Nickname = nick is null || nick == entry.Name ? null : nick;
-            _friendsDirty = true;
+            _friendsDirty = true; // applied when the box is left, on Enter, or as the dialog closes
+        };
+        name.LostKeyboardFocus += (_, _) => QueueFlush();
+        name.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Enter) QueueFlush();
         };
         Grid.SetColumn(name, 1);
         row.Children.Add(name);
@@ -179,7 +190,7 @@ public partial class SettingsWindow
         map.Click += (_, _) =>
         {
             entry.ShowOnMap = map.IsChecked == true;
-            _friendsDirty = true;
+            FriendsEdited();
         };
         Grid.SetColumn(map, 3);
         row.Children.Add(map);
@@ -192,7 +203,7 @@ public partial class SettingsWindow
         feed.Click += (_, _) =>
         {
             entry.Notify = feed.IsChecked == true;
-            _friendsDirty = true;
+            FriendsEdited();
         };
         Grid.SetColumn(feed, 4);
         row.Children.Add(feed);
@@ -215,7 +226,7 @@ public partial class SettingsWindow
             {
                 _draftTrackedFriend = entry.SteamId;
             }
-            _friendsDirty = true;
+            FriendsEdited();
         };
         Grid.SetColumn(track, 5);
         row.Children.Add(track);
@@ -238,15 +249,5 @@ public partial class SettingsWindow
     }
 
     /// <summary>Friend management is the website's: requests, blocks and the privacy toggles are never called from the overlay.</summary>
-    private void ManageFriends_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo("https://islapandora.eu/friends") { UseShellExecute = true });
-        }
-        catch
-        {
-            // Fail soft — the hint line already names the site.
-        }
-    }
+    private void ManageFriends_Click(object sender, RoutedEventArgs e) => OpenUrl("https://islapandora.eu/friends");
 }

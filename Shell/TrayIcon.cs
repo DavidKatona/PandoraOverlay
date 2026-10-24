@@ -78,6 +78,14 @@ public sealed class TrayIcon : IDisposable
             Visible = true
         };
         _icon.DoubleClick += (_, _) => toggleEditMode();
+
+        // The tray belongs to the overlay for OverlayFocus: a click on the icon
+        // first hands the focus to the taskbar, and must not read as a click on
+        // the game (Settings would close, edit mode lock) before the menu or the
+        // double-click arrives.
+        _icon.MouseDown += (_, _) => OverlayFocus.TrayTouched();
+        OverlayFocus.TrayMenuShowing = () => menu.Visible;
+        menu.Closed += (_, _) => OverlayFocus.Arm(); // closed with a click elsewhere: focus may have left with it
     }
 
     /// <summary>Shows the current hotkeys next to their menu entries.</summary>

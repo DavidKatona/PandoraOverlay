@@ -5,20 +5,22 @@ namespace PandoraOverlay;
 
 /// <summary>
 /// SettingsWindow, waypoint packs part: Import and Export on the Waypoints
-/// page — a pack file merged into the draft, or the draft written out as
-/// one (WaypointPacks does the parsing and the merge). Same class as
-/// SettingsWindow.xaml.cs, split for reading; see CLAUDE.md.
+/// page — a pack file merged into the page's list, or the list written out
+/// as one (WaypointPacks does the parsing and the merge). Same class as
+/// SettingsWindow.xaml.cs, split for reading; see CLAUDE.md. The file
+/// pickers are the dialog's own windows (OwnWindow): browsing for a file
+/// in another folder window must not close Settings under them.
 /// </summary>
 public partial class SettingsWindow
 {
     // ---- Packs: import / export ------------------------------------------------
     private const string PackFilter = "Waypoint packs (*.json)|*.json|All files (*.*)|*.*";
 
-    /// <summary>Merges a pack file into the draft; the outcome goes to the status line. Nothing persists until Save.</summary>
+    /// <summary>Merges a pack file into the list, applied at once; the outcome goes to the status line.</summary>
     private void Import_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import waypoints", Filter = PackFilter };
-        if (dialog.ShowDialog(this) != true) return;
+        if (OwnWindow(() => dialog.ShowDialog(this)) != true) return;
 
         string json;
         try
@@ -39,13 +41,13 @@ public partial class SettingsWindow
         }
 
         var result = WaypointPacks.Merge(_draft, pack);
-        if (result.Added > 0) _waypointsDirty = true;
+        if (result.Added > 0) WaypointsEdited();
         BuildWaypointRows();
 
         var text = $"Imported {result.Added} from \"{pack.Name}\"";
         if (result.Duplicates > 0) text += $" · {result.Duplicates} already here";
         if (result.Overflow > 0) text += $" · {result.Overflow} didn't fit ({WaypointLibrary.Capacity} max)";
-        if (result.Added > 0) text += ". They start hidden: Show all on the pack, or tick Show per waypoint. Save to keep them.";
+        if (result.Added > 0) text += ". They start hidden: Show all on the pack, or tick Show per waypoint.";
         SetWaypointStatus(text, result.Added > 0 ? HintGood : HintNeutral);
     }
 
@@ -57,7 +59,7 @@ public partial class SettingsWindow
             Title = "Export waypoints", Filter = PackFilter, FileName = "pandora-waypoints.json",
             DefaultExt = ".json", AddExtension = true
         };
-        if (dialog.ShowDialog(this) != true) return;
+        if (OwnWindow(() => dialog.ShowDialog(this)) != true) return;
 
         var name = WaypointLibrary.SanitizeName(System.IO.Path.GetFileNameWithoutExtension(dialog.FileName));
         try

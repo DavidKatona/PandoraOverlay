@@ -10,13 +10,14 @@ namespace PandoraOverlay;
 /// the page is one "Sign in with Discord" button (SignInWindow) and what it
 /// does; signed in, a card with the name, whether Steam is linked, when the
 /// session was taken, and Sign in again / Sign out. It replaced the cookie
-/// paste box (v1.0–1.30) and its DevTools walkthrough. THE SECOND PAGE THAT
-/// ACTS AT ONCE instead of on Save (the Skins page is the first): a sign-in
-/// or sign-out is applied and saved on the spot, and MainWindow reads
-/// CookieChanged whether the dialog is saved or cancelled — a player who
-/// signs in and closes the dialog with ✕ must not lose the sign-in. The
-/// card's live facts come from ONE auth/me on the page's first look per
-/// dialog (never on a timer); offline, it shows what is saved.
+/// paste box (v1.0–1.30) and its DevTools walkthrough. A sign-in or sign-out
+/// is applied and saved on the spot, and MainWindow reads CookieChanged when
+/// the dialog closes, however it closes: a player who signs in and clicks the
+/// game must not lose the sign-in. The sign-in window is one of the dialog's
+/// own (OwnWindow): Discord may send you to its app or your email, which must
+/// not close Settings under it. The card's live facts come from ONE auth/me
+/// on the page's first look per dialog (never on a timer); offline, it
+/// shows what is saved.
 /// Why the paste box went (the owner, Oct 7 2026): copying a cookie out of
 /// DevTools was tricky for players who aren't tech-savvy, and not the safest
 /// way to hand over a session. config.json's Cookie inbox stays, unadvertised,
@@ -172,12 +173,9 @@ public partial class SettingsWindow
         AccountAvatar.Visibility = picture is null ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    /// <summary>Save is gated on a session: a fresh install must sign in before anything else is worth saving.</summary>
-    private void GateSave() => SaveButton.IsEnabled = !_firstRun || _signedIn;
-
     private void SignIn_Click(object sender, RoutedEventArgs e)
     {
-        var outcome = SignInWindow.Run(this);
+        var outcome = OwnWindow(() => SignInWindow.Run(this));
         if (outcome is null) return;
         // The cookie goes straight into the encrypted vault; this page shows the name, never the session.
         _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow, outcome.Account.Avatar);
@@ -188,7 +186,6 @@ public partial class SettingsWindow
         _signOutArmed = false;
         SignOutButton.Content = "Sign out";
         RenderAccount(outcome.Account);
-        GateSave();
     }
 
     /// <summary>Two clicks, since it ends the session on the website too; the site is told once, then everything of the session is forgotten here.</summary>
@@ -220,6 +217,5 @@ public partial class SettingsWindow
             ? "Signed out here and on the website."
             : "Signed out here. The website could not be reached, so its side of the session lives on until it expires.";
         AccountHint.Foreground = HintNeutral;
-        GateSave();
     }
 }

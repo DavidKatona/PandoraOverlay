@@ -24,6 +24,10 @@ namespace PandoraOverlay;
 /// The tray entry and the About page stay the update's permanent home: the
 /// card is an extra and never the only way. Topmost, not modal (MainWindow
 /// carries on), not in the taskbar, not part of edit mode.
+/// Since 1.38 a click on the game closes it, as Later or OK would
+/// (OverlayFocus), except while the update downloads. A card Windows never
+/// let have the focus (at a start with Windows, say) can't notice a click
+/// elsewhere, and waits for its own buttons as before.
 /// </summary>
 public partial class UpdateCardWindow : Window
 {
@@ -37,6 +41,9 @@ public partial class UpdateCardWindow : Window
     private Func<Action<int>, Task<bool>>? _install; // AVAILABLE only
     private bool _installing;
 
+    /// <summary>True when a click elsewhere closed it: What's new then closes Settings too (SettingsWindow.WhatsNew_Click).</summary>
+    public bool ClosedByFocus { get; private set; }
+
     private UpdateCardWindow()
     {
         InitializeComponent();
@@ -45,6 +52,16 @@ public partial class UpdateCardWindow : Window
             if (e.Key == Key.Escape && !_installing) Close();
         };
         Loaded += (_, _) => Activate();
+        OverlayFocus.Watch(this);
+        OverlayFocus.Left += OnFocusLeft;
+        Closed += (_, _) => OverlayFocus.Left -= OnFocusLeft;
+    }
+
+    private void OnFocusLeft()
+    {
+        if (_installing) return; // the download runs on; the card goes when the overlay exits for the update
+        ClosedByFocus = true;
+        Close();
     }
 
     /// <summary>A newer version is out. <paramref name="install"/> downloads (reporting 0–100) and returns false on failure; on success the overlay exits for the update.</summary>

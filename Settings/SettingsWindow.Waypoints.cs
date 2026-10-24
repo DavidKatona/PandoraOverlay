@@ -12,18 +12,29 @@ using System.Windows.Threading;
 namespace PandoraOverlay;
 
 /// <summary>
-/// SettingsWindow, Waypoints part: the library page — the draft list, its
-/// grouped rows and Delete all (pack import/export: SettingsWindow.WaypointPacks.cs).
+/// SettingsWindow, Waypoints part: the library page — the page's own copy of
+/// the list, its grouped rows and Delete all (pack import/export:
+/// SettingsWindow.WaypointPacks.cs). Since 1.38 every change is applied as
+/// it is made (SettingsWindow.Apply.cs copies the list into the library), so
+/// what removes many at once asks first: Delete all and a pack's ✕ take two
+/// clicks. One waypoint's ✕ stays one click, like the map menu's Remove.
 /// Same class as SettingsWindow.xaml.cs, split for reading; see CLAUDE.md.
 /// </summary>
 public partial class SettingsWindow
 {
     // ---- Waypoints page -----------------------------------------------------
     private readonly WaypointLibrary _library;
-    private readonly List<Waypoint> _draft;   // edited in place; committed on Save, dropped on Cancel
+    private readonly List<Waypoint> _draft;   // edited in place by the rows; applied as it changes
     private Guid? _draftTracked;
     private bool _waypointsDirty;
     private bool _deleteAllArmed;
+
+    /// <summary>A row or the list changed: applied with the next batch. A name is applied once its box is left (or Enter), not per letter.</summary>
+    private void WaypointsEdited()
+    {
+        _waypointsDirty = true;
+        QueueFlush();
+    }
     // The Dino storage page's "Waypoint here" also writes the draft and its
     // tracking (it acts at once, SettingsWindow.StorageDetail.cs) and clears
     // this, so the rows are rebuilt from the draft on the page's next look.
@@ -34,8 +45,8 @@ public partial class SettingsWindow
     /// dialog opens: with 122 waypoints (the five packs) the rows more than
     /// doubled the time every Settings opening took (measured Oct 2026:
     /// ~0.25 s empty, ~0.6 s with the packs, ~0.9 s with a full library),
-    /// whichever page was shown — hidden pages are still laid out. Saving
-    /// never needed the rows: it works on the draft.
+    /// whichever page was shown — hidden pages are still laid out. Applying
+    /// never needed the rows: it works on the copy.
     /// </summary>
     private void OpenWaypointsPage()
     {
@@ -254,7 +265,21 @@ public partial class SettingsWindow
                 Style = (Style)FindResource("DangerButtonStyle"),
                 HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Delete this pack"
             };
-            delete.Click += (_, _) => DeletePack(pack, card);
+            // Two clicks since 1.38, like Delete all: no Cancel brings a pack back.
+            // The caption asks, in place: the ✕'s column has no room for words.
+            var armed = false;
+            delete.Click += (_, _) =>
+            {
+                if (armed)
+                {
+                    DeletePack(pack, card);
+                    return;
+                }
+                armed = true;
+                caption.Text = "DELETE THE WHOLE PACK? CLICK ✕ AGAIN";
+                caption.Foreground = HintWarn;
+                delete.ToolTip = "Click again to delete the pack";
+            };
             Grid.SetColumn(delete, 4);
             row.Children.Add(delete);
         }
@@ -293,16 +318,16 @@ public partial class SettingsWindow
             w.Visible = visible;
             if (_rowShowChecks.TryGetValue(w.Id, out var box)) box.IsChecked = visible;
         }
-        _waypointsDirty = true;
+        WaypointsEdited();
     }
 
-    /// <summary>Removes a whole pack — no confirmation: it is a draft, Cancel still reverts it. Only its card leaves the list; the rest stays where it is.</summary>
+    /// <summary>Removes a whole pack, its ✕ clicked twice (BuildGroupBand). Only its card leaves the list; the rest stays where it is.</summary>
     private void DeletePack(string pack, Border card)
     {
         if (_draft.Any(w => w.Pack == pack && w.Id == _draftTracked)) _draftTracked = null;
         foreach (var w in _draft.Where(w => w.Pack == pack)) _rowShowChecks.Remove(w.Id);
         _draft.RemoveAll(w => w.Pack == pack);
-        _waypointsDirty = true;
+        WaypointsEdited();
         if (_draft.Count == 0)
         {
             BuildWaypointRows(); // nothing left: back to "No waypoints yet"
@@ -319,7 +344,7 @@ public partial class SettingsWindow
         group.Members.Remove(wp);
         _rowShowChecks.Remove(wp.Id);
         if (_draftTracked == wp.Id) _draftTracked = null;
-        _waypointsDirty = true;
+        WaypointsEdited();
         if (_draft.Count == 0)
         {
             BuildWaypointRows();
@@ -361,7 +386,7 @@ public partial class SettingsWindow
             wp.Colour = WaypointPalette.Wrap(wp.Colour + 1);
             dot.Fill = PaletteBrushes[wp.Colour];
             well.ToolTip = $"{WaypointPalette.Colours[wp.Colour].Name} — click to change";
-            _waypointsDirty = true;
+            WaypointsEdited();
         };
         row.Children.Add(well);
 
@@ -369,7 +394,12 @@ public partial class SettingsWindow
         name.TextChanged += (_, _) =>
         {
             wp.Name = name.Text;
-            _waypointsDirty = true;
+            _waypointsDirty = true; // applied when the box is left, on Enter, or as the dialog closes
+        };
+        name.LostKeyboardFocus += (_, _) => QueueFlush();
+        name.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Enter) QueueFlush();
         };
         Grid.SetColumn(name, 1);
         row.Children.Add(name);
@@ -378,7 +408,7 @@ public partial class SettingsWindow
         show.Click += (_, _) =>
         {
             wp.Visible = show.IsChecked == true;
-            _waypointsDirty = true;
+            WaypointsEdited();
             group.Check.IsChecked = GroupState(group.Members); // the band's box shows all / none / mixed live
         };
         _rowShowChecks[wp.Id] = show;
@@ -402,7 +432,7 @@ public partial class SettingsWindow
             {
                 _draftTracked = wp.Id;
             }
-            _waypointsDirty = true;
+            WaypointsEdited();
         };
         Grid.SetColumn(track, 3);
         row.Children.Add(track);
@@ -440,7 +470,7 @@ public partial class SettingsWindow
         }
         _draft.Clear();
         _draftTracked = null;
-        _waypointsDirty = true;
+        WaypointsEdited();
         BuildWaypointRows();
     }
 }

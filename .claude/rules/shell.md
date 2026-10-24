@@ -27,6 +27,10 @@ paths:
 - While the map is open no widget shows: anything that would show a widget or a dialog
   closes the map first (`ShowWindows` does nothing meanwhile); hide-all closes it and
   leaves the screen clear.
+- **A click on the game** is `OverlayFocus`: a window of ours that takes focus calls
+  `OverlayFocus.Watch`, and what must get out of the way on that click subscribes to
+  `OverlayFocus.Left` (MainWindow closes Settings and locks edit mode; the update cards
+  close themselves). Never ask which window took the focus.
 - The overlay activates only its OWN windows (the control panel, the map, dialogs); the
   hotkey press grants foreground rights. The game window is never found, focused or touched.
 - Every stats-panel status goes through `SetStatus`, so the view name can step aside;

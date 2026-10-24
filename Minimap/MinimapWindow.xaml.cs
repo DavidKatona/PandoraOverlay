@@ -187,7 +187,7 @@ public partial class MinimapWindow : OverlayWindowBase
         _centered = string.Equals(_config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);
         _zoom = Math.Clamp(_config.MinimapZoom, MinZoom, MaxZoom);
         if (!_config.HeatmapEnabled) OnHeatmap(null); // toggled off: clear immediately
-        if (TrailKeep <= TimeSpan.Zero) _trail.Reset(); // switched off: forget the path, not just hide it
+        RenderTrail(); // its length may have changed; switched off it is hidden, not forgotten (BreadcrumbTrail)
         ApplyAppearance(_config);
         RebuildMarkers(); // policy or tracked waypoint may have changed
         RebuildFriendMarkers(); // the friends layer, or a friend's map visibility / colour, may have too
@@ -247,7 +247,7 @@ public partial class MinimapWindow : OverlayWindowBase
         _speed.Add(p.X, p.Y); // before the footer renders: the ETA reads it
         var (fx, fy) = ToFraction(cal, p.X, p.Y);
         _lastFix = (fx, fy, p.Yaw + _config.MinimapYawOffsetDegrees);
-        if (_ownsTrail && TrailKeep > TimeSpan.Zero) _trail.Add(p, TrailKeep); // a shared trail is fed by MainWindow, before this handler
+        if (_ownsTrail) _trail.Add(p, BreadcrumbTrail.RecordFor(_config.MinimapTrailMinutes)); // a shared trail is fed by MainWindow, before this handler
         RenderTrail();
         if (_config.WaypointVisibility == "nearest") RebuildMarkersIfSetChanged(); // the nearest ten follow the player
         RenderLastFix();

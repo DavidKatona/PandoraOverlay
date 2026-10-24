@@ -422,7 +422,7 @@
             <!-- Title bar (draggable) -->
             <DockPanel DockPanel.Dock="Top" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
                        Margin="0,0,0,8" Background="Transparent">
-                <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Cancel_Click"
+                <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Close_Click"
                         Style="{StaticResource DangerButtonStyle}"
                         Width="22" Height="22" Padding="0" FontSize="10"/>
                 <TextBlock Text="Pandora Overlay settings"
@@ -433,14 +433,15 @@
             <!-- Buttons -->
             <!-- Docked outside the pages' ScrollViewer like the title bar: on a
                  small screen (MaxHeight = 92% of the work area) a page scrolls
-                 and Cancel / Save stay in view. -->
-            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
-                        HorizontalAlignment="Right" Margin="0,14,0,0">
-                <Button Content="Cancel" Click="Cancel_Click"
-                        Style="{StaticResource NeutralButtonStyle}" Margin="0,0,8,0"/>
-                <Button x:Name="SaveButton" Content="Save" Click="Save_Click"
-                        Style="{StaticResource SaveButtonStyle}"/>
-            </StackPanel>
+                 and Close stays in view. Save and Cancel were here until 1.38:
+                 every change applies at once now, and the line says so once
+                 for every page. -->
+            <DockPanel DockPanel.Dock="Bottom" Margin="0,14,0,0">
+                <Button DockPanel.Dock="Right" Content="Close" Click="Close_Click"
+                        Style="{StaticResource NeutralButtonStyle}"/>
+                <TextBlock Text="Changes apply as you make them. A click on the game closes this window."
+                           Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            </DockPanel>
 
             <!-- Nav on the left, one page on the right. Pages that aren't
                  selected are Hidden (not Collapsed) so the grid keeps the
@@ -457,9 +458,8 @@
                  tallest one (the Tag is SetPage's key). What belongs in this
                  dialog: a PREFERENCE — a value, or an on/off decided once.
                  Something flipped mid-game belongs on the control panel or a
-                 hotkey instead. Everything applies on Save and Cancel drops it,
-                 except the pages that act at once (Account, Skins, Dino
-                 storage), which say so on the page. -->
+                 hotkey instead. Every change applies at once (1.38, the owner's
+                 call: no Save or Cancel), the website's pages included. -->
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="150"/>
@@ -493,8 +493,8 @@
                  that opens the website's own Discord login in the overlay's
                  sign-in window, and afterwards a card saying who is signed in.
                  The cookie paste box is gone — nobody should learn to copy a
-                 session out of a browser. Signing in and out ACT AT ONCE, not
-                 on Save, like the Skins page; the page says so. -->
+                 session out of a browser. Signing in and out act at once, and
+                 are saved on the spot. -->
             <StackPanel Tag="Account">
             <TextBlock Style="{StaticResource PageTitle}" Text="ACCOUNT"/>
 
@@ -575,12 +575,6 @@
                 </StackPanel>
             </Border>
             <TextBlock x:Name="AccountHint" Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
-            <!-- A fresh install lands here: the one pointer to the About page's import
-                 (settings live in %AppData%\PandoraOverlay since 1.30). Shown only
-                 while no cookie is stored. -->
-            <TextBlock x:Name="ImportPointer" Style="{StaticResource Link}" Visibility="Collapsed"
-                       Text="&#x25B8; Used the overlay before? Bring over your settings from the About page" Margin="0,16,0,0"
-                       MouseLeftButtonDown="ImportPointer_Click"/>
             </StackPanel>
 
             <!-- ============================ General ======================== -->
@@ -847,7 +841,8 @@
             </StackPanel>
 
             <!-- ============================ Waypoints ===================== -->
-            <!-- Edits go to a draft copy of the library; Save commits it. -->
+            <!-- The rows edit the page's own copy of the library, copied into it
+                 as they change (SettingsWindow.Apply.cs). -->
             <StackPanel Tag="Waypoints" Visibility="Hidden">
             <DockPanel Margin="0,4,0,8">
                 <TextBlock x:Name="WaypointCount" DockPanel.Dock="Right"
@@ -898,7 +893,8 @@
             <!-- ============================ Friends ======================== -->
             <!-- Your side of the roster: the roster itself is the site's
                  (managed there), the nickname, colour, map and feed choices
-                 are yours and edited on a draft. -->
+                 are yours, edited on the page's own copy and applied as they
+                 change. -->
             <StackPanel Tag="Friends" Visibility="Hidden">
             <DockPanel Margin="0,4,0,8">
                 <TextBlock x:Name="FriendCount" DockPanel.Dock="Right"
@@ -943,10 +939,8 @@
             </StackPanel>
 
             <!-- ============================ Skins ========================== -->
-            <!-- The website's Patreon skins page as tiles (built in code). It
-                 acts at once instead of on Save, like Account and Dino
-                 storage: Apply changes your dino's skin in game, like the
-                 site's own button. -->
+            <!-- The website's Patreon skins page as tiles (built in code). Apply
+                 changes your dino's skin in game, like the site's own button. -->
             <StackPanel Tag="Skins" Visibility="Hidden">
             <DockPanel Margin="0,4,0,6">
                 <TextBlock x:Name="SkinCount" DockPanel.Dock="Right"
@@ -983,7 +977,7 @@
                  three buttons it wrapped into a narrow column. Refresh asks for
                  the LIST again (one small request); Reload pictures discards the
                  saved thumbnails, so it is its own, knowingly pressed button. -->
-            <TextBlock Text="Apply acts at once, not on Save: it presses the same button as the website's Patreon page. Tiers and the cooldown are the server's."
+            <TextBlock Text="Apply presses the same button as the website's Patreon page and changes your dino in game. Tiers and the cooldown are the server's."
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                 <Button x:Name="SkinRefreshButton" Content="Refresh" Click="SkinRefresh_Click"
@@ -1028,7 +1022,7 @@
                 <StackPanel x:Name="StorageCards" Margin="0,0,6,0"/>
             </ScrollViewer>
             <!-- One line on purpose: every pixel of height went to the list, so an open card fits in it. -->
-            <TextBlock Text="Rename and Delete act at once, not on Save, like the website's own buttons."
+            <TextBlock Text="Rename and Delete send the same requests as the website's own buttons."
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                 <Button x:Name="StorageRefreshButton" Content="Refresh" Click="StorageRefresh_Click"
@@ -1097,15 +1091,14 @@
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="YOUR SETTINGS" Margin="0,16,0,4"/>
             <TextBlock x:Name="DataFolderText" Foreground="#C7D1DA" FontSize="11" TextWrapping="Wrap" FontFamily="Consolas"/>
+            <!-- "Import from an older copy…" was here (1.30–1.37), for the move
+                 to %AppData%; cut in 1.38 (owner, Oct 24 2026): copies older than
+                 1.30 can't connect since Oct 12, the first start still moves an
+                 older copy's files by itself, and the README says how by hand. -->
             <DockPanel Margin="0,8,0,0">
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Open folder" Click="OpenDataFolder_Click"
-                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                    <Button x:Name="ImportSettingsButton" Content="Import from an older copy…" Click="ImportSettings_Click"
-                            Style="{StaticResource NeutralButtonStyle}"/>
-                </StackPanel>
-                <TextBlock x:Name="ImportSettingsText"
-                           Text="Settings with the encrypted cookie, waypoints, friends and the skin pictures. Import brings them over from a folder an older copy used."
+                <Button DockPanel.Dock="Left" Content="Open folder" Click="OpenDataFolder_Click"
+                        Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
+                <TextBlock Text="Settings with the encrypted cookie, waypoints, friends and the skin pictures."
                            Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
 

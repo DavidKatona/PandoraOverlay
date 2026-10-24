@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -155,17 +154,5 @@ public partial class SettingsWindow
 
     private void OpenRulesPage_Click(object sender, RoutedEventArgs e) => OpenUrl(RulesPageUrl);
 
-    private void OpenDiscord_Click(object sender, RoutedEventArgs e) => OpenUrl(DiscordUrl);
-
-    private static void OpenUrl(string url)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-        }
-        catch
-        {
-            // Fail soft — the page names both addresses.
-        }
-    }
+    private void OpenDiscord_Click(object sender, RoutedEventArgs e) => OpenUrl(DiscordUrl); // OpenUrl: SettingsWindow.Apply.cs
 }

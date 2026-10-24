@@ -68,6 +68,8 @@ public abstract class OverlayWindowBase : Window
         // Startup safety: saved positions can reference a monitor that no
         // longer exists (or a changed resolution) — pull the window into view.
         Loaded += (_, _) => ClampIntoScreen();
+        // In edit mode the panels take focus; a click on the game then locks edit mode (OverlayFocus).
+        OverlayFocus.Watch(this);
     }
 
     protected override void OnSourceInitialized(EventArgs e)

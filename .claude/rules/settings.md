@@ -33,10 +33,16 @@ paths:
   fixed-height ScrollViewers.
 - Actions inside a list change it **in place** (rows ticked, removed, re-striped); only
   structural changes (Import, Delete all) rebuild — a rebuild loses the reader's place.
-- Edits go to a **draft** (`Clone()` of the library or friend book) that Save commits and
-  Cancel drops. Everything applies on Save and hot-applies (a `*Changed` flag MainWindow
-  acts on, or read live) — never a restart. The exceptions act at once and say so on the
-  page: Account, Skins, Dino storage.
+- **Everything applies at once** (1.38, no Save or Cancel): a new setting writes its config
+  key in `WireLiveSettings` (`SettingsWindow.Apply.cs`) and names the `SettingsChange`
+  MainWindow re-applies (`ApplySettingsChange`), or is read live — never a restart. Wire a
+  control after its value is filled, so filling writes nothing. The lists edit the page's
+  own copy (`Clone()` of the library or friend book), applied with each batch
+  (`FlushChanges`); a text box applies when left, on Enter, and on closing — not per letter.
+  What removes many at once or moves the layout is armed (two clicks); one row's ✕ is one.
+- The dialog closes on a click on the game (`OverlayFocus`). A window it opens for the
+  player (a file picker, the sign-in window, a card) goes through `OwnWindow`, so the
+  dialog waits under it; a link or folder handed to Windows goes through `OpenUrl`.
 - A page that talks to the site goes only through its PollService part; the page only
   draws. It requests only when looked at or clicked — never for another page, never on a
   timer.
@@ -54,6 +60,6 @@ paths:
   caption band and zebra rows on a shared column grid, with a measured header
   (`AlignHeader`); colour wells 15 px; a per-row delete is neutral grey with a soft red
   glyph, a many-at-once delete red.
-- A new global hotkey needs a capture box here, a line in Save, MainWindow's registration
-  and an Unregister in `MainWindow.OpenSettingsOn` (else it fires behind the dialog and its
-  own combo probes as taken).
+- A new global hotkey needs a capture box here, a line in `WriteHotkeys`, MainWindow's
+  registration and an Unregister in `MainWindow.OpenSettingsOn` (else it fires behind the
+  dialog and its own combo probes as taken).

@@ -30,7 +30,9 @@ a file in the folder is touched.
    only to hand a URL — or the settings folder, About → Open folder, or the
    log folder, About → Open log folder — to the Windows shell). It activates only its OWN windows (the
    control panel, the map, dialogs; our hotkey press grants the right); the
-   game window is never found, focused or touched.
+   game window is never found, focused or touched. A click on the game is known
+   only as our own windows losing the focus (`OverlayFocus`, 1.38: Settings
+   closes, edit mode locks); what took the focus is never asked.
 2. **Approved endpoints only**, each with the trigger and pace below. Nothing is
    added, and nothing goes faster, without the owner's explicit okay.
 
@@ -41,7 +43,7 @@ a file in the folder is touched.
    | `GET /map/api/heatmap-status` + `GET /map/heatmap-live.png` | **no** (the site headers are sent) | only while a heatmap layer is on: the minimap's (the minimap widget switched on, its layer on, and the overlay not hidden by hide-all or the auto-hide) or the open map's own Heatmap layer | never two fetches less than 60 s apart, whatever triggers them: within a minute the kept picture is reused, and a fetch re-arms the 60 s timer (the site's page: 10 s per tab, while its layer is on) |
    | `POST /api/prime/check` | yes | USER ONLY: the control panel's Check or the Check Prime hotkey, never a timer | the server's cooldown, mirrored locally: cooling down or not in game = no request (a STALE not-in-game state first gets one regular `mylocation` poll); 15 s floor |
    | `POST /api/prime/cooldown` | yes | exactly once after each SUCCESSFUL check (the success answer carries no cooldown, and its length varies with supporter rank; the site button's hard-coded 5 min is only the fallback when this request fails) | once per check |
-   | `POST /api/map/friends` (empty body) | yes | only while a friends surface is switched on (the Activity widget with friends' events included, the minimap's friend arrows, the open map's Friends layer; all off = zero requests; hide-all and the auto-hide don't stop it, on purpose: the friend chime and the Activity log work while hidden): right after a successful `mylocation` poll, or once for a hot trigger (a surface shown, a Settings save; a surface hidden sends nothing, since 1.36) when the last poll succeeded and the last roster is at least one poll interval old | every 2nd in-game poll, every idle poll, never two within one poll interval (the site: with every poll at 5 s); read-only |
+   | `POST /api/map/friends` (empty body) | yes | only while a friends surface is switched on (the Activity widget with friends' events included, the minimap's friend arrows, the open map's Friends layer; all off = zero requests; hide-all and the auto-hide don't stop it, on purpose: the friend chime and the Activity log work while hidden): right after a successful `mylocation` poll, or once for a hot trigger (a surface shown, including one switched on in Settings since 1.38; a surface hidden or switched off, or a friend's nickname or colour changed, sends nothing) when the last poll succeeded and the last roster is at least one poll interval old | every 2nd in-game poll, every idle poll, never two within one poll interval (the site: with every poll at 5 s); read-only |
    | `POST /api/skins/patreon-skins` (empty body) | yes | opening Settings → Skins; Refresh | reused 10 min, 30 s floor |
    | `POST /api/skins/apply-patreon` `{skinId, patternIndex}` — **WRITE** | yes | a click on a pattern button | 15 s mash guard; not in game answered locally |
    | `POST /api/auth/me` | yes | once right after a sign-in; once per dialog when Settings → Account is looked at | never on a timer |
@@ -219,7 +221,7 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   categories and verbosity levels) with LogFile and RequestLogHandler.
 - `Shell/` — MainWindow (the orchestrator, and also the stats panel),
   OverlayWindowBase, WidgetFrame, DefaultLayout, SnapResolver, SnapGuideWindow,
-  ControlPanelWindow, TrayIcon.
+  ControlPanelWindow, TrayIcon, OverlayFocus (the "click on the game" signal).
 - `Stats/` — the stats panel's trackers and rules.
 - `Minimap/` — MinimapWindow; MapCanvas (the drawing every map shares) and the
   shared map menu; the area map (AreaMap, AreaBorders, AreaMapAsset); the zones
@@ -345,6 +347,20 @@ all) — say so when it matters:
   the control panel's slider, and area-named waypoints on both maps,
   pasted codes included.
 
+BUILT for 1.38, in the owner's test (Oct 24 2026): a player was attacked
+with Settings open, and a click on the game left it on top with every hotkey
+off. So: **Settings applies every change at once** (no Save or Cancel), and
+**a click on the game** closes Settings, the update cards and What's new and
+locks edit mode (`OverlayFocus`); the trail is kept an hour whatever its
+setting; About's "Import from an older copy…" is cut; a Windows shutdown
+saves and logs before the process is ended (`MainWindow.OnSessionEnding`;
+before, the Oct 24 log just stopped). A link or folder Settings hands to
+the browser counts as a click away (the owner tried both ways with a trial
+switch, now gone: the browser loading behind the overlay "felt controlled").
+Checked by the owner out of game (Oct 24); not yet in game, nor the update
+card's click-away (needs a newer release) or the shutdown save. The
+README's Settings pictures still show Save and Cancel.
+
 SHIPPED in 1.37.0 (Oct 23 2026): the **Settings revision** (owner's ask, Oct
 22): the grouped nav (the overlay's pages, the website's under a caption,
 About), the Widgets and Maps pages, General's Look and Sounds, Hotkeys, and
@@ -463,7 +479,7 @@ Updates and the account
   feature, and don't put one thing on all three surfaces by reflex):
   **Settings** = a preference: it has a value (number, text, key combo,
   choice) or is an on/off decided once; changed rarely; may need
-  explanation, validation or Save/Cancel. Test: "set once and forget?"
+  explanation or validation. Test: "set once and forget?"
   **Control panel** = arranging the HUD: changes what is on screen right
   now, belongs to one widget (goes in that widget's captioned group), fine
   to be unreachable while locked. Test: "part of composing my layout?"
@@ -487,9 +503,10 @@ Updates and the account
   update must never resize an existing widget — 1.25's move to the frames was
   the one accepted exception, never again. (How to build one:
   `.claude/rules/shell.md`.)
-- Settings hot-apply: no setting ever needs a restart. They apply on Save and
-  Cancel drops them, except the pages that act at once (Account, Skins, Dino
-  storage), which say so.
+- Settings apply at once (1.38, the owner's call, Oct 24 2026: no Save or
+  Cancel, like Windows 11's Settings), and no setting ever needs a restart.
+  A click on the game, Esc, ✕ or Close closes the dialog and loses nothing.
+  What removes many things at once or moves the layout asks for a second click.
 - Destructive actions are armed in place by a first click, never a modal box.
 - The app always starts visible; hidden states are runtime-only.
 - No stock WPF chrome in any of our windows: every control kind has its own

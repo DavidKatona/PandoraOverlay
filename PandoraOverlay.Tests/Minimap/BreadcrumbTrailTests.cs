@@ -98,4 +98,46 @@ public class BreadcrumbTrailTests
         trail.Add(At(300, 0, growth: 0.1), Keep, T0 + TimeSpan.FromSeconds(30));
         Assert.Single(trail.Points);
     }
+
+    /// <summary>
+    /// 1.38 (owner, Oct 24 2026): the trail is recorded for the longest length
+    /// Settings offers whatever is chosen, Off included, so a setting never
+    /// throws the path away; a longer hand-edited length is kept whole.
+    /// </summary>
+    [Fact]
+    public void TheTrailIsRecordedForAnHourWhateverItsLength()
+    {
+        Assert.Equal(TimeSpan.FromMinutes(60), BreadcrumbTrail.RecordFor(0));
+        Assert.Equal(TimeSpan.FromMinutes(60), BreadcrumbTrail.RecordFor(10));
+        Assert.Equal(TimeSpan.FromMinutes(60), BreadcrumbTrail.RecordFor(60));
+        Assert.Equal(TimeSpan.FromMinutes(90), BreadcrumbTrail.RecordFor(90));
+        Assert.Equal(TimeSpan.FromMinutes(120), BreadcrumbTrail.RecordFor(500)); // KeepFor's ceiling
+    }
+
+    [Fact]
+    public void ATrailSwitchedOffKeepsRecording()
+    {
+        var trail = new BreadcrumbTrail();
+        for (var i = 0; i < 10; i++)
+        {
+            trail.Add(At(i * 30, 0), BreadcrumbTrail.RecordFor(0), T0 + TimeSpan.FromSeconds(3 * i));
+        }
+        Assert.Equal(10, trail.Points.Count);
+    }
+
+    /// <summary>The drawing shows only the chosen length of what is recorded: 50 minutes held, 10 drawn.</summary>
+    [Fact]
+    public void OnlyTheChosenLengthIsDrawn()
+    {
+        var points = new List<(DateTime At, double X, double Y)>();
+        for (var minutesAgo = 50; minutesAgo >= 0; minutesAgo -= 5)
+        {
+            points.Add((T0 - TimeSpan.FromMinutes(minutesAgo), minutesAgo * 1000.0, 0));
+        }
+        var calibration = new MapCalibration(0, 0, 0.01, 0.01, 1000);
+
+        var bands = MapCanvas.TrailBands(points, calibration, 1000, TimeSpan.FromMinutes(10), T0);
+
+        Assert.Equal(3, bands.SelectMany(b => b).Distinct().Count()); // 10, 5 and 0 minutes ago
+    }
 }

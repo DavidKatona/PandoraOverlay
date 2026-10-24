@@ -302,9 +302,10 @@ public partial class SettingsWindow
     /// <summary>
     /// "Waypoint here" ACTS AT ONCE, like the rest of this page: the waypoint
     /// goes into the library (the minimap draws it, MainWindow saves the
-    /// file) and into the Waypoints page's draft, so Save keeps it and Cancel
-    /// doesn't lose it; it is tracked in both. A waypoint of the same name
-    /// within 20 m (the packs' duplicate rule) is tracked instead of twinned.
+    /// file) and into the Waypoints page's own copy, which is applied into
+    /// the library with every change there; it is tracked in both. A
+    /// waypoint of the same name within 20 m (the packs' duplicate rule) is
+    /// tracked instead of twinned.
     /// </summary>
     private void AddStorageWaypoint(StoredDino d, double x, double y, Button button)
     {

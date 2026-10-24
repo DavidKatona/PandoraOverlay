@@ -59,7 +59,7 @@ public partial class MainWindow : OverlayWindowBase
         InitializeComponent();
 
         _config = OverlayConfig.Load();
-        AppLog.Configure(_config.DetailedLog, _config.LogLevels); // the log's levels (App opened it); again after every Settings save
+        AppLog.Configure(_config.DetailedLog, _config.LogLevels); // the log's levels (App opened it); again when About's Detailed log changes
         // Two and a half poll intervals, at least 6 s: always room for two steps, whatever cadence is configured.
         _combatSpeed = new SpeedTracker(TimeSpan.FromSeconds(Math.Max(6, 2.5 * Math.Max(2, _config.PollIntervalSeconds))));
         _library = WaypointLibrary.Load();
@@ -111,6 +111,7 @@ public partial class MainWindow : OverlayWindowBase
             openRules: () => OpenSettingsOn("Rules"),
             exit: () => Application.Current.Shutdown());
         UpdateHotkeyTexts();
+        OverlayFocus.Left += OnFocusLeftOverlay; // a click on the game closes Settings and locks edit mode (1.38)
 
         Loaded += (_, _) =>
         {
@@ -131,6 +132,7 @@ public partial class MainWindow : OverlayWindowBase
             _poll.Start();
         };
 
+        Application.Current.SessionEnding += OnSessionEnding; // Windows shutting down: save first, it won't wait for the exit
         Closing += (_, _) => _exiting = true;
         Closed += (_, _) =>
         {
@@ -147,11 +149,19 @@ public partial class MainWindow : OverlayWindowBase
     }
 
     // ---- Settings flow ----------------------------------------------------
+    /// <summary>The open dialog: the tray brings it forward instead of opening a second, and the focus rule closes it.</summary>
+    private SettingsWindow? _settings;
+
     private void OpenSettings() => OpenSettingsOn(null);
 
     /// <param name="page">A page to open on ("Rules" from the tray), or null for the one used last.</param>
     private void OpenSettingsOn(string? page)
     {
+        if (_settings is { } open)
+        {
+            open.ShowPage(page); // the tray's Settings… or Server rules… while it is open (or hidden behind another program)
+            return;
+        }
         CloseBigMap(); // the dialog opens over the widgets, not over the map
         // Suspend the global hotkeys while the dialog is open: WM_HOTKEY is
         // system-level, so they would fire behind the modal dialog (Ctrl+F4
@@ -165,45 +175,89 @@ public partial class MainWindow : OverlayWindowBase
         HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
         HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
         HotkeySpec.Unregister(hwnd, BigMapHotkeyId);
+        var closedByFocus = false;
         try
         {
-            var dialog = new SettingsWindow(_config, _library, _book, _poll, _me?.Dino, page, UpdateHooksForSettings()) { Topmost = true };
-            var saved = dialog.ShowDialog() == true;
+            var dialog = new SettingsWindow(_config, _library, _book, _poll, _me?.Dino, page, UpdateHooksForSettings(), ApplySettingsChange) { Topmost = true };
+            _settings = dialog;
+            dialog.ShowDialog();
+            _settings = null;
+            closedByFocus = dialog.ClosedByFocus;
 
-            // A sign-in or sign-out acted at once (like the Skins page), so it
-            // holds whether the dialog was saved or cancelled.
+            // Every change was applied as it was made (ApplySettingsChange): a
+            // setting never needs a restart. What is left is the file, and the
+            // session if one was taken or ended in the dialog.
+            AppLog.App.Log(closedByFocus ? "Settings closed: focus left the overlay" : "Settings closed");
+            _config.Save();
             if (dialog.CookieChanged) ApplySession();
-            if (!saved)
-            {
-                if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState();
-                return;
-            }
-            // Everything a Save changed is hot-applied from here on: a setting
-            // never needs a restart.
-            AppLog.App.Log("Settings saved");
-            AppLog.Configure(_config.DetailedLog, _config.LogLevels); // About's Detailed log
-            if (TrailKeep <= TimeSpan.Zero) _trail.Reset(); // the trail switched off: forget the path, not just hide it
-            if (dialog.MinimapChanged || dialog.AppearanceChanged || dialog.FriendsChanged) _minimap?.ApplySettings();
-            UpdateArea(); // the pill or the feed's area lines may have been switched on: name the area now, not a poll later
-            ApplyStatsView(); // the default view is a Settings choice; cheap to reapply
-            if (dialog.AppearanceChanged)
-            {
-                ApplyAppearance(_config);
-                RenderTimeLeft(); // the time-left checkbox rides the Appearance flag
-                _prime?.ApplySettingsFromConfig();
-                _controlPanel?.ApplySettingsFromConfig();
-            }
-            if (dialog.AppearanceChanged || dialog.ActivityChanged || dialog.FriendsChanged) _activity?.ApplySettingsFromConfig();
-            if (dialog.FriendsChanged) _ = _poll.RefreshFriendsAsync("Settings saved"); // the minimap layer may have been switched on or off
-            if (dialog.PositionsReset) ResetPositions();
-            if (_autoHidden && !_config.HideWhenNotInGame) RevealAutoHidden(); // switched off while hidden by it
+            else if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState(); // still none (ApplySession says so itself)
         }
         finally
         {
-            // Restore (or apply changed) registrations from config — this
-            // also covers the cancel path.
+            _settings = null;
+            // Restore (or apply changed) registrations from config.
             ApplyHotkeysFromConfig();
         }
+        // The click that closed it was on the game: edit mode goes too, as if
+        // its hotkey had been pressed. Otherwise the focus is looked at again,
+        // since Windows decides where it goes once the dialog is gone.
+        if (closedByFocus) LockEditModeForFocus();
+        else OverlayFocus.Arm();
+    }
+
+    /// <summary>
+    /// A batch of changes from the open dialog (SettingsWindow.Apply.cs), each
+    /// already written into the config: what reads them is told to look again.
+    /// Before 1.38 this ran once, after Save.
+    /// </summary>
+    private void ApplySettingsChange(SettingsChange what)
+    {
+        if (_exiting) return; // Exit from the tray with the dialog open: its last batch has nothing left to redraw
+        bool Has(SettingsChange flag) => (what & flag) != 0;
+        if (Has(SettingsChange.Log)) AppLog.Configure(_config.DetailedLog, _config.LogLevels);
+        if (Has(SettingsChange.Minimap | SettingsChange.Appearance | SettingsChange.Friends)) _minimap?.ApplySettings();
+        if (Has(SettingsChange.Minimap | SettingsChange.Activity)) UpdateArea(); // the pill or the feed's area lines may have been switched on: name the area now, not a poll later
+        if (Has(SettingsChange.StatsView)) ApplyStatsView();
+        if (Has(SettingsChange.Appearance))
+        {
+            ApplyAppearance(_config);
+            RenderTimeLeft(); // the time-left checkbox rides the Appearance flag
+            _prime?.ApplySettingsFromConfig();
+            _controlPanel?.ApplySettingsFromConfig();
+        }
+        if (Has(SettingsChange.Appearance | SettingsChange.Activity | SettingsChange.Friends)) _activity?.ApplySettingsFromConfig();
+        // A friends surface switched on wants a roster: the existing "a surface
+        // shown" trigger, under its usual floor (constraint 2). Switched off, or a
+        // friend's nickname or colour changed: nothing is sent.
+        if (Has(SettingsChange.FriendsShown)) _ = _poll.RefreshFriendsAsync("a friends surface switched on in Settings");
+        if (Has(SettingsChange.FriendsHidden)) _poll.FriendsSurfaceHidden("a friends surface switched off in Settings");
+        if (Has(SettingsChange.Positions)) ResetPositions();
+        if (Has(SettingsChange.AutoHide) && _autoHidden && !_config.HideWhenNotInGame) RevealAutoHidden(); // switched off while hidden by it
+    }
+
+    /// <summary>
+    /// Focus left every overlay window (OverlayFocus, 1.38): whatever is in
+    /// the way gets out of it. Settings closes, unless one of its own windows
+    /// is up (a file picker, the sign-in window, What's new); with Settings
+    /// gone, or not open, edit mode locks. The map has its own instant rule,
+    /// and the update cards close themselves.
+    /// </summary>
+    private void OnFocusLeftOverlay()
+    {
+        if (_settings is { } settings)
+        {
+            if (!settings.HoldsOpen) settings.CloseForFocus(); // edit mode follows once the dialog is gone (OpenSettingsOn)
+            return;
+        }
+        LockEditModeForFocus();
+    }
+
+    /// <summary>Edit mode off because the player clicked the game, as its hotkey would; not while the overlay is hidden (it comes back as it was).</summary>
+    private void LockEditModeForFocus()
+    {
+        if (!EditMode || _overlayHidden || _autoHidden) return;
+        AppLog.App.Log("Focus left the overlay: edit mode off");
+        ToggleEditMode();
     }
 
     /// <summary>
@@ -345,6 +399,29 @@ public partial class MainWindow : OverlayWindowBase
         _config.Save();
     }
 
+    /// <summary>
+    /// Windows is shutting down, restarting or signing out with the overlay
+    /// running (the owner's ask, Oct 24 2026, after a shutdown left the log
+    /// without its last lines). WPF begins its own shutdown once it has
+    /// answered Windows, and Windows doesn't wait for it: on Oct 24 the
+    /// process was gone before the exit ran, so nothing was saved and the log
+    /// just stopped. So the exit's saving is done here, at once: the open
+    /// Settings' last change, the positions, the renewed session, a view or
+    /// layer flipped by hotkey, the friends' last-seen times. If WPF's own
+    /// shutdown still gets to run, it saves the same again, harmlessly, and
+    /// the log ends with "Exit" as usual. The log writes each line through.
+    /// </summary>
+    private void OnSessionEnding(object? sender, SessionEndingCancelEventArgs e)
+    {
+        AppLog.App.Log(e.ReasonSessionEnding == ReasonSessionEnding.Logoff
+            ? "Windows is signing you out: saving"
+            : "Windows is shutting down: saving");
+        _settings?.Close(); // its last batch, and a name still being typed
+        _poll.Stop();       // no request starts on the way out
+        PersistState();
+        AppLog.App.Log("Saved before Windows ends the overlay");
+    }
+
     private void PersistState()
     {
         _config.WindowX = Left;
@@ -416,8 +493,9 @@ public partial class MainWindow : OverlayWindowBase
     private void OnSnapshot(MyLocationResponse result)
     {
         _me = result.InGame ? result.Player : null;
-        // The breadcrumb trail is fed here, before any map's own handler draws it.
-        if (_poll.Calibration is not null && _me is { } at && TrailKeep > TimeSpan.Zero) _trail.Add(at, TrailKeep);
+        // The breadcrumb trail is fed here, before any map's own handler draws it,
+        // and always: it is recorded for an hour and drawn for the chosen length (BreadcrumbTrail).
+        if (_poll.Calibration is not null && _me is { } at) _trail.Add(at, BreadcrumbTrail.RecordFor(_config.MinimapTrailMinutes));
         UpdateUi(result);
         UpdateArea(); // before your own lines: a spawn line says where you spawned
         // Your own lines are always posted — the feed is yours; only friends'

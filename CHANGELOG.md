@@ -5,6 +5,41 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Settings applies every change the moment you make it, like Windows' own
+  Settings: there is no Save or Cancel any more. Close it with ✕, Close or
+  Esc.
+- A click on the game closes Settings, so it is never in your way when
+  something attacks you. A file picker, the sign-in window and What's new
+  keep it open while you use them.
+- A click on the game also locks edit mode, as its hotkey does.
+- The update card closes when you click elsewhere, as Later does: the
+  update stays in the tray menu. While the update downloads, the card
+  stays. What's new closes the same way.
+- Your waypoints and your friends' names, colours and ticks apply at once
+  too. Delete all, a waypoint pack's ✕ and Reset positions now ask for a
+  second click, since there is no Cancel to undo them.
+- The trail keeps the last hour whatever its setting and draws the length
+  you pick. Switching it off no longer forgets it, and switching it on, or
+  making it longer, shows where you have already been.
+
+### Fixed
+
+- Shutting down, restarting or signing out of Windows with the overlay
+  running now saves first, as Exit does: the minimap view or heatmap you
+  flipped with a hotkey, your friends' last-seen times and the like were
+  lost before. The log says so too, instead of just stopping.
+
+### Removed
+
+- Settings › About's "Import from an older copy…". Copies older than 1.30
+  can't connect to the website since October anyway, and the first start of
+  a new copy still brings an older copy's files over by itself. To do it by
+  hand, see "Where are my settings?" in the README.
+
 ## [1.37.0] - 2026-10-23
 
 ### Added

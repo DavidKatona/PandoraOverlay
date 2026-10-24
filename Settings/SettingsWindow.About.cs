@@ -1,6 +1,5 @@
 using System.IO;
 using System.Windows;
-using System.Windows.Input;
 
 namespace PandoraOverlay;
 
@@ -8,12 +7,14 @@ namespace PandoraOverlay;
 /// SettingsWindow, About page (v1.30): everything about THIS COPY of the
 /// overlay in one place — the version and how it got onto the PC (installed /
 /// zip / plain folder), the update check and its button, where the settings
-/// live with an Open folder and an import from an older copy's folder, the
-/// log (1.36: Detailed log and its folder, for a problem report) and
-/// the links (releases, issues, Discord). The owner's choice over an
-/// "Updates" page: three controls would float, "this copy" fills a page.
-/// A fresh install still lands on Account, so that page carries one pointer
-/// line to here while no cookie is stored.
+/// live with an Open folder, the log (1.36: Detailed log and its folder, for
+/// a problem report) and the links (releases, issues, Discord). The owner's
+/// choice over an "Updates" page: three controls would float, "this copy"
+/// fills a page. Its "Import from an older copy…" (1.30–1.37, with a pointer
+/// to it on a fresh install's Account page) was cut in 1.38, the owner's
+/// call: it served the move to %AppData%, copies that old can't connect
+/// since Oct 12 2026, the first start still moves an older copy's files by
+/// itself (DataFolder.MigrateLegacy), and the README says how by hand.
 /// </summary>
 public partial class SettingsWindow
 {
@@ -31,7 +32,6 @@ public partial class SettingsWindow
         UpdateButton.IsEnabled = _updates is not null;
         DataFolderText.Text = DataFolder.Path;
         DetailedLogCheck.IsChecked = config.DetailedLog;
-        ImportPointer.Visibility = _firstRun ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>
@@ -62,28 +62,10 @@ public partial class SettingsWindow
     }
 
     /// <summary>
-    /// Copy an older copy's files into the data folder. The overlay keeps
-    /// running on what it loaded at start, so the page asks for a restart —
-    /// and switches Save off, which would otherwise write the old values
-    /// straight back over the import.
-    /// </summary>
-    private void ImportSettings_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Pick the folder of your older Pandora Overlay copy" };
-        if (dialog.ShowDialog(this) != true) return;
-        var result = DataFolder.ImportFrom(dialog.FolderName);
-        if (!result.Ok)
-        {
-            ImportSettingsText.Text = result.Message;
-            return;
-        }
-        ImportSettingsText.Text = result.Message + " Exit the overlay from its tray menu and start it again to use them. Save is off now, so nothing here can overwrite them.";
-        SaveButton.IsEnabled = false;
-    }
-
-    /// <summary>
     /// "What's new" (1.32): the running version's notes, read from the CHANGELOG
-    /// bundled with the app (no request), in the update card's notes mode.
+    /// bundled with the app (no request), in the update card's notes mode. A
+    /// click on the game closes the card, and the dialog with it: the card
+    /// says so, as the dialog may already think itself in front again.
     /// </summary>
     private void WhatsNew_Click(object sender, RoutedEventArgs e)
     {
@@ -91,7 +73,8 @@ public partial class SettingsWindow
         var notes = ReleaseNotes.SectionFor(ReleaseNotes.LoadBundledChangelog(), version);
         var card = UpdateCardWindow.Notes(version, notes);
         card.Owner = this;
-        card.ShowDialog();
+        OwnWindow(card.ShowDialog);
+        if (card.ClosedByFocus) CloseForFocus();
     }
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => OpenUrl(DataFolder.Path);
@@ -106,7 +89,4 @@ public partial class SettingsWindow
     private void OpenReleases_Click(object sender, RoutedEventArgs e) => OpenUrl(UpdateChecker.ReleasesPage);
 
     private void OpenIssues_Click(object sender, RoutedEventArgs e) => OpenUrl(IssuesUrl);
-
-    /// <summary>The Account page's pointer for a fresh install: the import lives here.</summary>
-    private void ImportPointer_Click(object sender, MouseButtonEventArgs e) => SetPage("About");
 }

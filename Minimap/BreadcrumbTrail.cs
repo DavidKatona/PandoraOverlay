@@ -9,6 +9,16 @@ namespace PandoraOverlay;
 /// across the map. Deliberately NOT cleared by a not-in-game spell — after a
 /// relog or server restart you stand where you stood, and "where did I come
 /// from" is still a fair question. Session-only.
+/// <para>
+/// Recorded whatever the trail setting says, for the longest length Settings
+/// offers (RecordFor), and drawn only for the length chosen, Off drawing
+/// nothing (owner, Oct 24 2026). So a setting never throws the path away:
+/// before 1.38 switching the trail off forgot it at once, which a Settings
+/// that applies every click at once would have done on a misclick. And
+/// switching it on, or from 10 to 60 minutes, shows where you have already
+/// been. At most about 1,200 points (one per 3 s poll, fewer since standing
+/// still adds none); never written anywhere, gone on exit.
+/// </para>
 /// </summary>
 public sealed class BreadcrumbTrail
 {
@@ -16,13 +26,19 @@ public sealed class BreadcrumbTrail
     private const double MaxSpeedCmPerSec = 6000;  // 60 m/s — beyond any dino, so not travel
     private const double MaxGapJumpCm = 50_000;    // 500 m — across a poll gap the path is unknown anyway
 
+    /// <summary>The longest trail Settings offers (its "60 min"): what is always recorded.</summary>
+    private const int LongestOfferedMinutes = 60;
+
     private readonly List<(DateTime At, double X, double Y)> _points = new();
     private (DateTime At, double X, double Y)? _lastSeen;
     private string? _identity;
     private double _lastGrowth;
 
-    /// <summary>How long a point is kept for the trail-length setting (0 = off, at most two hours).</summary>
+    /// <summary>How long a point is DRAWN for the trail-length setting (0 = off, at most two hours).</summary>
     public static TimeSpan KeepFor(int minutes) => TimeSpan.FromMinutes(Math.Clamp(minutes, 0, 120));
+
+    /// <summary>How long a point is RECORDED: the longest length Settings offers, or a longer hand-edited one.</summary>
+    public static TimeSpan RecordFor(int minutes) => KeepFor(Math.Max(minutes, LongestOfferedMinutes));
 
     /// <summary>Stored positions, oldest first.</summary>
     public IReadOnlyList<(DateTime At, double X, double Y)> Points => _points;

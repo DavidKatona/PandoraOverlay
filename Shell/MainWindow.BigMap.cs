@@ -25,8 +25,6 @@ public partial class MainWindow
     /// <summary>The recent path, fed from every snapshot before any map draws it (OnSnapshot).</summary>
     private readonly BreadcrumbTrail _trail = new();
 
-    private TimeSpan TrailKeep => BreadcrumbTrail.KeepFor(_config.MinimapTrailMinutes);
-
     /// <summary>The map menu's actions, one instance for both maps, so tracking on one redraws the other; new waypoints are named after their area (AreaAt).</summary>
     private MapActions MapActions => _mapActions ??= new MapActions(_config, _library, _book, MinimapWindow.Short, AreaAt);
 
