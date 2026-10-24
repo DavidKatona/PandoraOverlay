@@ -5,3 +5,6 @@
 # CRLF, the way Visual Studio writes it.
 * text=auto eol=lf
 *.sln text eol=crlf
+# The bundled fonts and their licences stay byte for byte as their makers
+# ship them (the OFL arrives with CRLF): no line-ending conversion there.
+Assets/Fonts/** -text

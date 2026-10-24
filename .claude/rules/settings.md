@@ -10,6 +10,10 @@ paths:
   Radio, `TextBoxStyle`-based boxes, `DarkScrollBar`); a new kind gets one before it
   ships. Radio rows instead of a ComboBox (stock ComboBox chrome is light and ignores
   Background). Our own nav, not the stock TabControl.
+- **The look is the theme's** (1.39): colours, corners and fonts are tokens, the control
+  templates are moving to `Themes/Controls.xaml` (the plan's steps 2 and 5), and a
+  code-built page redraws from the data it holds, never by its `Open…` — see
+  `.claude/rules/themes.md`.
 - One partial file per page (`SettingsWindow.<Page>.cs`); a page splits further only
   along a topic of its own (CLAUDE.md, Conventions → File size).
 - The nav is grouped (owner, Oct 22 2026): the overlay's pages (Account, General,

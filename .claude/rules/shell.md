@@ -43,6 +43,9 @@ paths:
   never trim a status for it.
 - Panels use our own button templates (the glow overlay) and font-glyph icons — no stock
   chrome.
+- **Colours, corners, fonts and glows are theme tokens** (1.39): a widget reads them by
+  `DynamicResource Theme.…` or `Theme.Current`, never as a literal, and never asks which
+  theme is on — see `.claude/rules/themes.md`.
 - MainWindow is split by concern (`MainWindow.Topic.cs`), never into "manager" classes.
   A new topic gets its own part (the stats panel's drawing is `MainWindow.Stats.cs`);
   see CLAUDE.md, Conventions → File size.

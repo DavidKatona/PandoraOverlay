@@ -146,6 +146,46 @@ public class StatsAttentionTests
         Assert.False(Combat(combat, Player(health: 0.81)));  // clear of the calm line
     }
 
+    // ---- The wake lines, exactly at their edges (1.39: they read BarState) ------
+
+    /// <summary>
+    /// Survival wakes UNDER half, as it did when the line was its own 0.50:
+    /// exactly half stays calm, a hair under wakes. For each of the three
+    /// stats it watches.
+    /// </summary>
+    [Theory]
+    [InlineData("health")]
+    [InlineData("hunger")]
+    [InlineData("thirst")]
+    public void SurvivalWakesUnderHalfNotOnIt(string stat)
+    {
+        PlayerState At(double v) => stat switch
+        {
+            "health" => Player(health: v),
+            "hunger" => Player(hunger: v),
+            _ => Player(thirst: v),
+        };
+        var a = new StatsAttention();
+        Assert.False(a.Update(Player(), null, null, T0));
+        a.Reset(); // a lower health would read as damage taken, which wakes on its own
+        Assert.False(a.Update(At(0.5), null, null, T0));   // on the line: calm stays calm
+        a.Reset();
+        Assert.True(a.Update(At(0.499), null, null, T0));  // under it: wakes
+    }
+
+    /// <summary>Combat wakes UNDER three quarters, as it did when the line was its own 0.75: 0.75 stays calm, 0.749 wakes.</summary>
+    [Theory]
+    [InlineData("health")]
+    [InlineData("stamina")]
+    public void CombatWakesUnderThreeQuartersNotOnIt(string stat)
+    {
+        PlayerState At(double v) => stat == "health" ? Player(health: v) : Player(stamina: v);
+        var a = new StatsAttention();
+        Assert.False(Combat(a, Player()));
+        Assert.False(Combat(a, At(0.75)));   // on the line: calm stays calm
+        Assert.True(Combat(a, At(0.749)));   // under it: wakes
+    }
+
     [Fact]
     public void CombatIgnoresHungerThirstAndTheirEstimates() // none of them is on that view
     {

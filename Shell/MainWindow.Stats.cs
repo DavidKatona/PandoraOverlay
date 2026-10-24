@@ -157,12 +157,13 @@ public partial class MainWindow
 
         SetAttention(_attention.Update(p, _hungerDrain.TimeLeft, _thirstDrain.TimeLeft, CombatViewOn, _damage.InFight));
 
-        // Critical-stat pulse. Stamina is deliberately excluded — it drains to
+        // Critical-stat pulse, on the bars' own Below25 state (the line lives
+        // once, in BarStates). Stamina is deliberately excluded — it drains to
         // zero every sprint by design and would train the eye to ignore it.
-        SetPulse(HealthFill, p.Health < 0.25);
-        SetPulse(CombatHealthFill, p.Health < 0.25);
-        SetPulse(HungerFill, p.Hunger < 0.25);
-        SetPulse(ThirstFill, p.Thirst < 0.25);
+        SetPulse(HealthFill, BarStates.Of(p.Health).UnderQuarter());
+        SetPulse(CombatHealthFill, BarStates.Of(p.Health).UnderQuarter());
+        SetPulse(HungerFill, BarStates.Of(p.Hunger).UnderQuarter());
+        SetPulse(ThirstFill, BarStates.Of(p.Thirst).UnderQuarter());
 
         SetFractures(p.HeadFractured, p.BodyFractured, p.LegsFractured);
 

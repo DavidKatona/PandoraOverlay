@@ -65,6 +65,10 @@ public abstract class OverlayWindowBase : Window
 
     protected OverlayWindowBase()
     {
+        // The theme's resources before any XAML of ours is parsed: a harness
+        // building a widget without the App gets Default's dictionary and
+        // Controls.xaml here (in the overlay App.xaml and MainWindow did it).
+        Theme.EnsureLoaded();
         // Startup safety: saved positions can reference a monitor that no
         // longer exists (or a changed resolution) — pull the window into view.
         Loaded += (_, _) => ClampIntoScreen();

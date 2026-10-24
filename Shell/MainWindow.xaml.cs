@@ -61,6 +61,7 @@ public partial class MainWindow : OverlayWindowBase
 
         _config = OverlayConfig.Load();
         AppLog.Configure(_config.DetailedLog, _config.LogLevels); // the log's levels (App opened it); again when About's Detailed log changes
+        Theme.Apply(_config.Theme); // the player's theme before any window is shown: no flash of Default on another theme
         // Two and a half poll intervals, at least 6 s: always room for two steps, whatever cadence is configured.
         _combatSpeed = new SpeedTracker(TimeSpan.FromSeconds(Math.Max(6, 2.5 * Math.Max(2, _config.PollIntervalSeconds))));
         _library = WaypointLibrary.Load();

@@ -70,6 +70,59 @@ public class ConfigDefaultsTests
     /// before then keeps its stats panel size, and the control panel starts at
     /// 100% like any new slider: never seeded from another (owner, Oct 6 2026).
     /// </summary>
+    // ---- The theme (1.39) -----------------------------------------------------
+
+    /// <summary>A fresh install is on Default, the look every copy had before themes.</summary>
+    [Fact]
+    public void AFreshConfigIsOnTheDefaultTheme()
+    {
+        var cfg = new OverlayConfig();
+        Assert.Equal("default", cfg.Theme);
+        Assert.Equal(Theme.DefaultId, Theme.Resolve(cfg.Theme).Id);
+    }
+
+    /// <summary>A file from before 1.39 has no Theme key: Default.</summary>
+    [Fact]
+    public void AnOlderFileWithoutTheKeyReadsAsDefault()
+    {
+        var cfg = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>("""{ "UiScale": 1.3 }""");
+        Assert.NotNull(cfg);
+        Assert.Equal("default", cfg!.Theme);
+        Assert.Equal(Theme.DefaultId, Theme.Resolve(cfg.Theme).Id);
+    }
+
+    /// <summary>
+    /// An unknown theme (hand-edited, or one a newer copy had) shows Default,
+    /// and the value stays as written until the player picks another; so does
+    /// a blank or missing one.
+    /// </summary>
+    [Theory]
+    [InlineData("neon")]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void AnUnknownThemeResolvesToDefault(string? value)
+    {
+        var json = value is null ? """{ "Theme": null }""" : $$"""{ "Theme": "{{value}}" }""";
+        var cfg = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>(json);
+        Assert.NotNull(cfg);
+        Assert.Equal(value, cfg!.Theme);
+        Assert.Equal(Theme.DefaultId, Theme.Resolve(cfg.Theme).Id);
+    }
+
+    /// <summary>The id is matched ignoring case and spaces: a hand-typed "Isle" is the isle theme.</summary>
+    [Fact]
+    public void AThemeResolvesIgnoringCase()
+    {
+        Assert.Equal(Theme.DefaultId, Theme.Resolve("DEFAULT").Id);
+
+        var isle = new ThemeEntry("isle", "Isle", 1, DefaultTheme.Tokens);
+        var among = Theme.Ordered(new[] { isle });
+        Assert.Same(isle, Theme.Resolve("Isle", among));
+        Assert.Same(isle, Theme.Resolve(" ISLE ", among));
+        Assert.Equal(Theme.DefaultId, Theme.Resolve("isles", among).Id);
+    }
+
     [Fact]
     public void AnOlderFileLeavesTheControlPanelAtFullScale()
     {

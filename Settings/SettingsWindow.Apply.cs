@@ -32,6 +32,8 @@ public enum SettingsChange
     AutoHide = 1 << 8,
     /// <summary>Reset positions, confirmed.</summary>
     Positions = 1 << 9,
+    /// <summary>The theme (General → Look). Repaints every window; never moves or resizes one.</summary>
+    Theme = 1 << 10,
 }
 
 /// <summary>

@@ -80,6 +80,19 @@
          secret; a build without it runs, with the four guarded endpoints
          blocked. See Core/OverlayAccess.cs. -->
     <EmbeddedResource Include="Assets\overlay-access.bin" LogicalName="overlay-access.bin" Condition="Exists('Assets\overlay-access.bin')" />
+    <!-- The themes (1.39): every theme but Default is a sparse override file
+         here, found by its resource name (Theme.cs), so a new theme is a new
+         file and nothing else. Embedded like the rules, so the tests read
+         them without WPF. Default itself is code (Themes/DefaultTheme.cs). -->
+    <EmbeddedResource Include="Assets\Themes\*.json" LogicalName="Themes/%(Filename)%(Extension)" />
+    <!-- The bundled fonts (1.39): one folder per family, each with its own
+         licence as shipped. The faces are WPF Resources, addressed by the
+         ;component pack form (Theme.FontFamilyOf), never installed into
+         Windows. Each licence is embedded (About can show it) AND copied
+         beside the program, as the SIL Open Font Licence asks. -->
+    <Resource Include="Assets\Fonts\**\*.ttf" />
+    <EmbeddedResource Include="Assets\Fonts\**\OFL.txt" />
+    <Content Include="Assets\Fonts\**\OFL.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

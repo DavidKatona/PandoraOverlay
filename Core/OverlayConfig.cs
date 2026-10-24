@@ -507,6 +507,18 @@ public sealed class OverlayConfig
     /// </summary>
     public double PrimeScale { get; set; } = 1.0;
 
+    /// <summary>
+    /// The theme (1.39): the id of one of Theme.All — "default" (the look
+    /// every copy had before) or a bundled theme file's name, lower-case like
+    /// StatsView and MinimapMode. A file from before 1.39 has no key and
+    /// reads as Default; an unknown value (hand-edited, or a theme a newer
+    /// copy had) also resolves to Default (Theme.Resolve), and stays as
+    /// written until the player picks another. A string here, so Core learns
+    /// no WPF (the literal, not Theme.DefaultId, for the same reason). A
+    /// theme only paints: it changes no size, position or wording.
+    /// </summary>
+    public string Theme { get; set; } = "default";
+
     /// <summary>Opacity of the dark glass behind the panels (text stays crisp). Clamped 0.3–1.</summary>
     public double BackgroundOpacity { get; set; } = 0.8;
 

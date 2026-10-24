@@ -28,9 +28,13 @@ namespace PandoraOverlay;
 /// </summary>
 public sealed class StatsAttention
 {
-    private const double WakeBelow = 0.50;
+    // The wake lines are the bars' own (BarState, 1.39): Survival wakes under
+    // half, the line where the game says Wounded; Combat under three quarters
+    // (owner's call: in a fight, sooner). Each line lives once, in BarStates,
+    // and a theme colours those same states. The calm lines stay numbers
+    // here: the gap between wake and calm is this rule's hysteresis, not a
+    // state anything is drawn in.
     private const double CalmAbove = 0.55;
-    private const double CombatWakeBelow = 0.75; // owner's call: in a fight, sooner
     private const double CombatCalmAbove = 0.80;
     // Both combat lines are the owner's numbers (Sep 30 2026). Accepted with them:
     // a wounded dino keeps the combat view lit until it has healed past CombatCalmAbove.
@@ -135,7 +139,7 @@ public sealed class StatsAttention
             _ => null
         };
 
-        return (lowest < WakeBelow || fractured || damaged || soonest < WakeLeftBelow,
+        return (BarStates.Of(lowest).UnderHalf() || fractured || damaged || soonest < WakeLeftBelow,
                 lowest > CalmAbove && !fractured && !damaged && (soonest is null || soonest >= CalmLeftAbove));
     }
 
@@ -146,7 +150,7 @@ public sealed class StatsAttention
     private static (bool Wake, bool Calm) CombatRule(PlayerState p, bool fractured, bool inFight)
     {
         var lowest = Math.Min(p.Health, p.Stamina);
-        return (lowest < CombatWakeBelow || fractured || inFight,
+        return (BarStates.Of(lowest).UnderThreeQuarters() || fractured || inFight,
                 lowest > CombatCalmAbove && !fractured && !inFight);
     }
 }

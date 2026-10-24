@@ -1,0 +1,14 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- The app's ONE set of control templates (1.39, PLAN.md section 1),
+         merged in App.xaml's Application.Resources, and by
+         Theme.EnsureLoaded for the harnesses, which build windows without
+         the App. Empty in step 1: the templates move here from
+         SettingsWindow.xaml, the update card and the sign-in window (each
+         holds its own copies today) in steps 2 and 5, reading every colour
+         and corner from the theme's tokens by DynamicResource
+         ({DynamicResource Theme.Button.Neutral.Idle.Fill}) and every shape
+         from the catalogue, so no theme ever ships XAML. The slider gets two
+         Styles: WPF's own for a Stock thumb, and ThemedSlider for a drawn
+         one; Theme.Apply puts the right one under Theme.SliderStyle. -->
+</ResourceDictionary>
