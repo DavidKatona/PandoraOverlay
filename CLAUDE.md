@@ -351,11 +351,12 @@ all) — say so when it matters:
   pasted codes included.
 - From 1.38 (no pre-release, the owner's call): a Windows shutdown with the
   overlay running, so its save and log lines and the handler starting no
-  request (`OnSessionEnding`; code only); the update card closing on a
-  click elsewhere (the "updated" card and What's new at the owner's own
-  update to 1.38 are the first look, the "update available" card needs a
-  newer release); the focus rule on other PCs. The rest was checked by the
-  owner in game (Oct 24), the "not signed in" answers included.
+  request (`OnSessionEnding`; code only); the "update available" card
+  closing on a click elsewhere (to try at 1.39: the card is drawn by the
+  copy that runs, so 1.38's rule first shows on a newer release); the focus
+  rule on other PCs. The rest was checked by the owner in game (Oct 24),
+  the "not signed in" answers included, and the card after the update to
+  1.38 closed on a click away.
 
 SHIPPED in 1.38.0 (Oct 24 2026): a player was attacked
 with Settings open, and a click on the game left it on top with every hotkey
