@@ -139,6 +139,18 @@ public sealed partial class PollService : IDisposable
     /// <summary>True from SignedOut until the next RebuildClient.</summary>
     public bool IsSignedOut { get; private set; }
 
+    /// <summary>
+    /// No session to send: never signed in, signed out, or ended by the
+    /// website. A Check Prime or a skin apply then answers locally (1.38's
+    /// constraint review): before, the last poll's "in game" outlived a Sign
+    /// out or a refused session, and the skin key or Check sent its request
+    /// with no cookie or a dead one.
+    /// </summary>
+    private bool HasNoSession => NoSession(IsSignedOut, _client.CurrentCookie);
+
+    /// <summary>The rule behind HasNoSession, pure for the tests.</summary>
+    internal static bool NoSession(bool signedOut, string? cookie) => signedOut || string.IsNullOrWhiteSpace(cookie);
+
     /// <summary>Fresh heatmap PNG bytes, or null (disabled / off / fetch failed) → hide the layer.</summary>
     public event Action<byte[]?>? HeatmapChanged;
 
@@ -340,6 +352,8 @@ public sealed partial class PollService : IDisposable
         _answered = false;
         IsSignedOut = false;
         LastPlayer = null;
+        _inGame = false; // nobody is in game for a client with no session (the skin key read the old "in game")
+        _dino = null;
         ForgetSkins();
         ForgetStorage();
         ClearFriends("signed out");
@@ -551,10 +565,11 @@ public sealed partial class PollService : IDisposable
     /// <summary>
     /// One USER-TRIGGERED prime check (control panel / hotkey) — never call this
     /// from a timer; the endpoint is approved on exactly that condition. All
-    /// gating lives here so windows stay pure consumers: a running cooldown
-    /// or a not-in-game poll state answers locally with no prime request
-    /// sent (a stale not-in-game state is refreshed by one regular poll
-    /// first — the idle cadence may not have seen a fresh spawn yet). A
+    /// gating lives here so windows stay pure consumers: no session, a
+    /// running cooldown or a not-in-game poll state answers locally with no
+    /// prime request sent (a stale not-in-game state is refreshed by one
+    /// regular poll first — the idle cadence may not have seen a fresh spawn
+    /// yet; with no session not even that poll goes out). A
     /// successful snapshot is cached into config (persisted with the next
     /// Save), and the server is then asked once for this account's actual
     /// cooldown — its length varies with supporter rank.
@@ -562,6 +577,13 @@ public sealed partial class PollService : IDisposable
     public async Task CheckPrimeAsync()
     {
         if (_primeBusy) return;
+
+        if (HasNoSession)
+        {
+            AppLog.Prime.Log("Check answered here: not signed in");
+            PrimeChecked?.Invoke(new PrimeCheckResult(PrimeCheckOutcome.Failed, Reason: "not signed in"));
+            return;
+        }
 
         var now = DateTime.UtcNow;
         if (now < PrimeCooldownUntilUtc)

@@ -20,7 +20,7 @@ public partial class MainWindow
 {
     private BigMapWindow? _bigMap;
     private MapActions? _mapActions;
-    private bool _exiting; // set as this window starts closing: the map closing then must not show widgets again
+    private bool _exiting; // set as this window starts closing, or Windows ends the session: the map closing then must not show widgets again
 
     /// <summary>The recent path, fed from every snapshot before any map draws it (OnSnapshot).</summary>
     private readonly BreadcrumbTrail _trail = new();

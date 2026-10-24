@@ -54,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   running now saves first, as Exit does: the minimap view or heatmap you
   flipped with a hotkey, your friends' last-seen times and the like were
   lost before. The log says so too, instead of just stopping.
+- Check Prime and a skin apply right after signing out, or once the website
+  has ended your session, now say you are not signed in, instead of asking
+  the website without a session.
 
 ### Removed
 

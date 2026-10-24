@@ -50,6 +50,18 @@ public class SignedOutRuleTests
         Assert.True(PollService.SignedOutAfter(2));
         Assert.True(PollService.SignedOutAfter(5));
     }
+
+    [Fact]
+    public void NoSessionMeansNoCheckOrApply()
+    {
+        // Never signed in, or signed out: the client holds no cookie.
+        Assert.True(PollService.NoSession(signedOut: false, cookie: ""));
+        Assert.True(PollService.NoSession(signedOut: false, cookie: null));
+        Assert.True(PollService.NoSession(signedOut: false, cookie: "  "));
+        // The website ended the session: the dead cookie is still held.
+        Assert.True(PollService.NoSession(signedOut: true, cookie: "connect.sid=dead"));
+        Assert.False(PollService.NoSession(signedOut: false, cookie: "connect.sid=live"));
+    }
 }
 
 public class FriendsCadenceTests

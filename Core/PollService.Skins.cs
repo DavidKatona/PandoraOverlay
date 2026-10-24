@@ -60,10 +60,15 @@ public sealed partial class PollService
     /// a timer. A stale not-in-game state first gets its one regular poll, as
     /// for any apply, so a fresh spawn is seen before the dino is looked up;
     /// then ApplySkinAsync's guards and request. Null = no favourite for this
-    /// dino: nothing is sent.
+    /// dino: nothing is sent. No session: nothing either, not even that poll.
     /// </summary>
     public async Task<SkinApplyResult?> ApplyMySkinAsync()
     {
+        if (HasNoSession)
+        {
+            AppLog.Skins.Log("Skin hotkey answered here: not signed in");
+            return new SkinApplyResult(SkinApplyOutcome.Failed, "", 0, "not signed in");
+        }
         if (!_inGame && PollIsStale && !_skinBusy) await PollNowAsync("the skin hotkey, to refresh a not-in-game state");
         if (!_inGame)
         {
@@ -169,9 +174,10 @@ public sealed partial class PollService
     }
 
     /// <summary>
-    /// One USER-TRIGGERED apply — never call this from a timer. Not spawned in
-    /// (after one regular poll to refresh a stale state, as with Check Prime)
-    /// or inside the 15 s breather answers locally with no request sent. A
+    /// One USER-TRIGGERED apply — never call this from a timer. No session,
+    /// not spawned in (after one regular poll to refresh a stale state, as
+    /// with Check Prime) or inside the 15 s breather answers locally with no
+    /// request sent. A
     /// success is timed in config (the page says how long ago) and announced
     /// through SkinApplied. The server keeps the final
     /// word on its own cooldown: nothing here assumes its length.
@@ -182,6 +188,11 @@ public sealed partial class PollService
     public async Task<SkinApplyResult> ApplySkinAsync(string skinId, bool idIsNumber, string skinName, int pattern)
     {
         pattern = Math.Clamp(pattern, 0, PatreonSkins.PatternCount - 1);
+        if (HasNoSession)
+        {
+            AppLog.Skins.Log("Apply answered here: not signed in");
+            return new SkinApplyResult(SkinApplyOutcome.Failed, skinName, pattern, "not signed in");
+        }
         if (_skinBusy || DateTime.UtcNow < _skinGuardUntilUtc)
         {
             AppLog.Skins.Log("Apply answered here: too soon after the last");

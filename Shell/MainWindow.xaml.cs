@@ -199,6 +199,9 @@ public partial class MainWindow : OverlayWindowBase
             // session if one was taken or ended in the dialog.
             AppLog.App.Log(closedByFocus ? "Settings closed: focus left the overlay" : "Settings closed");
             _config.Save();
+            // Closed because Windows or Exit is ending the overlay: a session
+            // taken in the dialog must not start polling again on the way out.
+            if (_exiting) return;
             if (dialog.CookieChanged) ApplySession();
             else if (string.IsNullOrWhiteSpace(_config.GetCookie())) ShowNoCookieState(); // still none (ApplySession says so itself)
         }
@@ -222,7 +225,7 @@ public partial class MainWindow : OverlayWindowBase
     /// </summary>
     private void ApplySettingsChange(SettingsChange what)
     {
-        if (_exiting) return; // Exit from the tray with the dialog open: its last batch has nothing left to redraw
+        if (_exiting) return; // Exit from the tray or a Windows shutdown with the dialog open: its last batch has nothing left to redraw, nor a roster to ask for
         bool Has(SettingsChange flag) => (what & flag) != 0;
         if (Has(SettingsChange.Log)) AppLog.Configure(_config.DetailedLog, _config.LogLevels);
         if (Has(SettingsChange.Minimap | SettingsChange.Appearance | SettingsChange.Friends)) _minimap?.ApplySettings();
@@ -426,6 +429,7 @@ public partial class MainWindow : OverlayWindowBase
         AppLog.App.Log(e.ReasonSessionEnding == ReasonSessionEnding.Logoff
             ? "Windows is signing you out: saving"
             : "Windows is shutting down: saving");
+        _exiting = true;    // before the dialog closes: its last batch re-applies nothing (a friends surface ticked then fetched a roster)
         _settings?.Close(); // its last batch, and a name still being typed
         _poll.Stop();       // no request starts on the way out
         PersistState();
