@@ -23,15 +23,15 @@ To download one, open it here on GitHub and use the **Download raw file** button
 1. Open **Settings → Waypoints** (the tray icon, or **Settings…** in the edit-mode control panel).
 2. Click **Import…** and pick a pack file. Import one file per pack.
 
-![The Waypoints page after an import, with two marked steps: 3 the Show checkbox on the pack's own row, 4 the Save button](../docs/waypoint-import-show.png)
+![The Waypoints page after an import, with two marked steps: 3 the Show checkbox on the pack's own row, 4 the Close button](../docs/waypoint-import-show.png)
 
 3. A new pack arrives **hidden**, so it can't bury your map. Tick the **Show** box on the pack's row to show all of it, or tick single rows.
-4. **Save**, and the waypoints are on your minimap.
+4. **Close** Settings: the waypoints are already on your minimap. Every change applies as you make it, so there is nothing to save.
 
 ## Good to know
 
 - With a pack shown, the minimap's footer names the nearest place and how far away it is. **Track** one to keep its distance and an ETA in the footer wherever you go.
-- Too many dots? **Settings → Maps → Waypoints → Nearest 10** only draws the ten closest to you. The ✕ on a pack's row removes the whole pack.
+- Too many dots? **Settings → Maps → Waypoints → Nearest 10** only draws the ten closest to you. The ✕ on a pack's row removes the whole pack: click it twice.
 - Your own waypoints are never touched, and importing the same pack again adds nothing: entries you already have are skipped.
 - An area is a region, and a waypoint is a dot: the areas pack marks roughly the middle of each one. A few are out at sea on purpose (the bays, the East Coast, the Port).
 - A salt rock's name only says which named place is closest, and that can be several hundred metres away. The dot is the rock.

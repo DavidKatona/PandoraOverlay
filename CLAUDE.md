@@ -379,8 +379,7 @@ keeps a player's keys, and Settings → Hotkeys → "Use the default keys"
 moves one over (the owner's pick of three; a migration of untouched
 defaults was turned down). Checked by the owner in game (Oct 24), the
 new layout, its button and the favourites included; not yet seen: the
-update card's click-away (needs a newer release), the shutdown save. The
-README's Settings pictures still show Save and Cancel.
+update card's click-away (needs a newer release), the shutdown save.
 
 SHIPPED in 1.37.0 (Oct 23 2026): the **Settings revision** (owner's ask, Oct
 22): the grouped nav (the overlay's pages, the website's under a caption,
