@@ -106,6 +106,23 @@ public class ShapeCatalogueTests
     [Fact]
     public void DefaultsPicksAreInTheCatalogue() => ShapeCatalogue.Check(DefaultTheme.Tokens.Shapes);
 
+    /// <summary>
+    /// What ThemeShape asks of the layout: Default's title glyph (None) nothing at
+    /// all, so the title stays exactly where it was; a drawn glyph its 12 × 13; the
+    /// radio its 15 px square; the badge and the thumb fill what they are given.
+    /// </summary>
+    [Fact]
+    public void EachSlotAsksTheLayoutForItsOwnBox()
+    {
+        Assert.Equal(new Size(0, 0), ShapeCatalogue.NaturalSize(ShapeSlot.TitleGlyph, ShapeKind.None));
+        Assert.Equal(ShapeCatalogue.TitleGlyphSize, ShapeCatalogue.NaturalSize(ShapeSlot.TitleGlyph, ShapeKind.Hexagon));
+        Assert.Equal(new Size(15, 15), ShapeCatalogue.NaturalSize(ShapeSlot.Radio, ShapeKind.Circle));
+        Assert.Equal(new Size(15, 15), ShapeCatalogue.NaturalSize(ShapeSlot.Radio, ShapeKind.Hexagon));
+        Assert.Null(ShapeCatalogue.NaturalSize(ShapeSlot.Badge, ShapeKind.Box));
+        Assert.Null(ShapeCatalogue.NaturalSize(ShapeSlot.Badge, ShapeKind.Hexagon));
+        Assert.Null(ShapeCatalogue.NaturalSize(ShapeSlot.SliderThumb, ShapeKind.Stock));
+    }
+
     /// <summary>Six distinct points, all inside the box, mirror-symmetric left to right and top to bottom.</summary>
     private static IReadOnlyList<Point> AssertHexagon(ShapeOutline outline, Size box)
     {

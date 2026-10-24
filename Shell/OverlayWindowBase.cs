@@ -31,10 +31,6 @@ public abstract class OverlayWindowBase : Window
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
     private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
-    // Shared edit-mode border styling, so every overlay window looks the same.
-    protected static readonly Brush BorderLocked = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
-    protected static readonly Brush BorderEdit = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));
-
     // Live overlay windows, so dragging one can snap against the others.
     private static readonly List<OverlayWindowBase> Instances = new();
 
@@ -124,7 +120,7 @@ public abstract class OverlayWindowBase : Window
         base.OnClosed(e);
     }
 
-    /// <summary>Enters/leaves edit mode; subclasses restyle in OnEditModeChanged.</summary>
+    /// <summary>Enters/leaves edit mode; subclasses restyle in OnEditModeChanged (a widget's frame: <c>RootPanel.Lit</c>, the theme's edit look).</summary>
     public void SetEditMode(bool on)
     {
         if (on == EditMode) return;
@@ -192,9 +188,11 @@ public abstract class OverlayWindowBase : Window
     /// <summary>
     /// Applies the shared appearance settings: the UI scale as a
     /// LayoutTransform on the content root (the window resizes with it — a
-    /// RenderTransform would clip), the panel-glass opacity as the root
-    /// Border's background alpha, leaving text and content fully crisp, and
-    /// the attention fade's idle opacity.
+    /// RenderTransform would clip), the panel glass as the root Border's
+    /// background: the theme's widget glass at the player's opacity, leaving
+    /// text and content fully crisp; and the attention fade's idle opacity.
+    /// The glass is read from the theme here, so a theme switch re-applies
+    /// it through this same call.
     /// </summary>
     protected void ApplyAppearance(OverlayConfig config)
     {
@@ -204,8 +202,10 @@ public abstract class OverlayWindowBase : Window
         var scale = Math.Clamp(AppearanceScale(config), 0.75, 1.5);
         panel.LayoutTransform = scale == 1.0 ? null : new ScaleTransform(scale, scale);
 
+        // The theme's glass colour; its alpha is always the slider's (GlassLook.Widget).
         var alpha = (byte)Math.Round(Math.Clamp(config.BackgroundOpacity, 0.3, 1.0) * 255);
-        panel.Background = new SolidColorBrush(Color.FromArgb(alpha, 0x10, 0x15, 0x1B));
+        var glass = Theme.Current.Glass.Widget;
+        panel.Background = new SolidColorBrush(Color.FromArgb(alpha, glass.R, glass.G, glass.B));
 
         // Read here, so a Settings save re-applies the fade through the same
         // Appearance flag as the scale and opacity: no fade flag of its own.

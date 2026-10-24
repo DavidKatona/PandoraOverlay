@@ -196,7 +196,7 @@ public static class Theme
                     dictionary[key] = new CornerRadius(r.Value);
                     break;
                 case ThemeWeight w:
-                    dictionary[key] = FontWeight.FromOpenTypeWeight((int)w);
+                    dictionary[key] = w.ToFontWeight();
                     break;
                 case ThemeFont f:
                     dictionary[key] = FontFamilyOf(f.Address);
@@ -230,6 +230,32 @@ public static class Theme
         }
         return (Style)app.FindResource(ThemedSliderKey);
     }
+
+    #endregion
+
+    #region For code that paints
+
+    private static readonly Dictionary<ThemeColor, SolidColorBrush> KeptBrushes = new();
+
+    /// <summary>
+    /// A token's colour as a frozen brush, for code-behind that paints from
+    /// <see cref="Current"/> at the moment it draws
+    /// (<c>HealthFill.Background = Theme.Current.Bar(kind, state).Fill.ToBrush()</c>).
+    /// One brush per colour, kept: a bar repainted every poll allocates
+    /// nothing, and the few dozen colours two themes have stay few. On the
+    /// UI thread, like every paint.
+    /// </summary>
+    public static SolidColorBrush ToBrush(this ThemeColor colour)
+    {
+        if (KeptBrushes.TryGetValue(colour, out var kept)) return kept;
+        var brush = new SolidColorBrush(Color.FromArgb(colour.A, colour.R, colour.G, colour.B));
+        brush.Freeze();
+        KeptBrushes[colour] = brush;
+        return brush;
+    }
+
+    /// <summary>A token's weight as WPF's (<c>ThemeWeight.SemiBold</c> is <c>FontWeights.SemiBold</c>).</summary>
+    public static FontWeight ToFontWeight(this ThemeWeight weight) => FontWeight.FromOpenTypeWeight((int)weight);
 
     #endregion
 

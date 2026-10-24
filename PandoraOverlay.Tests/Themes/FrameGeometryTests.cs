@@ -76,6 +76,41 @@ public class FrameGeometryTests
     [Fact]
     public void NoLitRunIsNoLitPaths() => Assert.Null(FrameGeometry.LitPaths(W, H, cut: 10, edge: 0, side: 0));
 
+    /// <summary>Without a cut the top line spans the straight edge between the two corner radii, half its width in from each, at half its width down.</summary>
+    [Fact]
+    public void TheTopLineWithoutACutSpansBetweenTheCornerRadii()
+    {
+        var top = FrameGeometry.LitTop(W, H, cut: 0, radius: 10, stroke: 1.5)!;
+
+        Assert.Equal(2, top.Count);
+        Near(new Point(10 + 0.75, 0.75), top[0]);
+        Near(new Point(W - 10 - 0.75, 0.75), top[1]);
+        Assert.Equal(W - 2 * 10 - 1.5, FrameGeometry.Length(top), 9); // width − 2·radius − the two half-width insets
+
+        var square = FrameGeometry.LitTop(W, H, cut: 0, radius: 0, stroke: 1.5)!;
+        Assert.Equal(W - 1.5, FrameGeometry.Length(square), 9);
+    }
+
+    /// <summary>With a cut it runs from the square top-left corner to where the top-right cut begins, where the inset outline turns.</summary>
+    [Fact]
+    public void TheTopLineWithACutStopsAtTheCut()
+    {
+        var top = FrameGeometry.LitTop(W, H, cut: 10, radius: 0, stroke: 1.5)!;
+        var outline = FrameGeometry.CutPolygon(W, H, 10, 0.75)!;
+
+        Near(outline[0], top[0]); // the top-left corner
+        Near(outline[1], top[1]); // the cut's start on the top edge
+        Assert.Equal(W - 10 - 0.75 * Math.Sqrt(2), FrameGeometry.Length(top), 9);
+    }
+
+    [Fact]
+    public void NoTopLineIsNoRun() // Default: Lit.Top is 0
+    {
+        Assert.Null(FrameGeometry.LitTop(W, H, cut: 0, radius: 10, stroke: 0));
+        Assert.Null(FrameGeometry.LitTop(W, H, cut: 10, radius: 0, stroke: 0));
+        Assert.Null(FrameGeometry.LitTop(30, H, cut: 0, radius: 15, stroke: 1.5)); // the corners leave the edge no length
+    }
+
     [Fact]
     public void AGlowIsThreeStrokesWidestFirst()
     {
@@ -128,5 +163,49 @@ public class FrameGeometryTests
         Assert.Equal(10.0, FrameGeometry.Snap(10.3, 1.0), 9);
         Assert.Equal(10.4, FrameGeometry.Snap(10.3, 1.25), 9); // 12.875 → 13 device px
         Assert.Equal(10.5, FrameGeometry.Snap(10.3, 2.0), 9);  // 20.6 → 21
+    }
+
+    /// <summary>The glass's corners, every coordinate on a whole device pixel (ThemedBorder's fill).</summary>
+    [Theory]
+    [InlineData(1.0)]
+    [InlineData(1.25)]
+    [InlineData(2.0)]
+    public void ASnappedShapeHasEveryCornerOnAWholeDevicePixel(double ppd)
+    {
+        var corners = FrameGeometry.SnapPoints(FrameGeometry.CutPolygon(W, H, 10)!, ppd);
+
+        Assert.Equal(6, corners.Count);
+        foreach (var p in corners)
+        {
+            Assert.Equal(Math.Round(p.X * ppd), p.X * ppd, 9);
+            Assert.Equal(Math.Round(p.Y * ppd), p.Y * ppd, 9);
+        }
+    }
+
+    /// <summary>An outline 1.5 wide, half its width in (ThemedBorder's line): its straight edges cover whole device pixels at every scale.</summary>
+    [Theory]
+    [InlineData(1.0)]
+    [InlineData(1.25)]
+    [InlineData(2.0)]
+    public void ASnappedOutlineCoversWholeDevicePixels(double ppd)
+    {
+        const double width = 1.5;
+        var line = FrameGeometry.SnapWidth(width, ppd);
+        var outline = FrameGeometry.SnapStroke(FrameGeometry.CutPolygon(W, H, 10, width / 2)!, width, ppd);
+
+        Assert.Equal(6, outline.Count);
+        foreach (var p in outline)
+        {
+            foreach (var c in new[] { p.X, p.Y })
+            {
+                var near = (c - line / 2) * ppd;
+                Assert.Equal(Math.Round(near), near, 9);
+            }
+        }
+        // The top edge is still level and the left edge upright, the bottom-right corner square.
+        Assert.Equal(outline[0].Y, outline[1].Y, 9);
+        Assert.Equal(outline[0].X, outline[5].X, 9);
+        Assert.Equal(outline[2].X, outline[3].X, 9);
+        Assert.Equal(outline[3].Y, outline[4].Y, 9);
     }
 }

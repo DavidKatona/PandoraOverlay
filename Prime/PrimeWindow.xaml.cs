@@ -27,14 +27,9 @@ public partial class PrimeWindow : OverlayWindowBase
 
     private static readonly string[] ConditionTexts = PrimeConditions.Texts; // shared with the Activity feed's "now met / lost" lines
 
-    private static readonly Brush MetIcon = new SolidColorBrush(Color.FromRgb(0x7C, 0xC8, 0x84));
-    private static readonly Brush MetText = new SolidColorBrush(Color.FromRgb(0xC7, 0xD1, 0xDA));
-    private static readonly Brush UnmetIcon = new SolidColorBrush(Color.FromRgb(0x9A, 0x5F, 0x5F));
-    private static readonly Brush Dim = new SolidColorBrush(Color.FromRgb(0x7B, 0x87, 0x90));
-    private static readonly Brush StatusNeutral = new SolidColorBrush(Color.FromRgb(0x9A, 0xA7, 0xB0));
-    private static readonly Brush StatusPrime = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));
-    private static readonly Brush Warn = new SolidColorBrush(Color.FromRgb(0xFF, 0xB3, 0x00));
-    private static readonly Brush Fresh = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8)); // a condition newly met since the last check
+    // The colours are the theme's (Theme.Current.Prime), read at each paint:
+    // the code names a row's state (met, unmet, newly met or lost, not yet
+    // checked), the status and the footer's, and the theme colours them.
 
     private static readonly TimeSpan FooterPulse = TimeSpan.FromSeconds(10);
 
@@ -154,7 +149,7 @@ public partial class PrimeWindow : OverlayWindowBase
 
     protected override void OnEditModeChanged(bool editMode)
     {
-        RootPanel.BorderBrush = editMode ? BorderEdit : BorderLocked;
+        RootPanel.Lit = editMode; // the theme's edit look on the frame (ThemedBorder)
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);
@@ -174,7 +169,7 @@ public partial class PrimeWindow : OverlayWindowBase
             RenderNotice();
         }
         // Lit for AttentionHold when the cue first appears, not for as long as it
-        // stays amber: a widget lit for good would defeat the fade.
+        // stays stale: a widget lit for good would defeat the fade.
         if (RenderInfo()) Wake(AttentionHold); // the stale cue depends on the live dino — and just appeared
     }
 
@@ -196,7 +191,7 @@ public partial class PrimeWindow : OverlayWindowBase
         if (result.Outcome == PrimeCheckOutcome.Ok && result.Snapshot is { } fresh)
         {
             // What flipped since the previous result: a new ✓ reads bright,
-            // a lost one amber, until the next check replaces the comparison.
+            // a lost one a warning, until the next check replaces the comparison.
             for (var i = 0; i < _changed.Length; i++)
             {
                 var was = _before is { } b && i < b.Conditions.Length && b.Conditions[i];
@@ -218,48 +213,55 @@ public partial class PrimeWindow : OverlayWindowBase
     // ---- Rendering -----------------------------------------------------------
     private void RenderSnapshot()
     {
+        var look = Theme.Current.Prime;
         var snap = _config.Prime;
         for (var i = 0; i < ConditionTexts.Length; i++)
         {
             if (snap is null)
             {
                 _icons[i].Text = "·";
-                _icons[i].Foreground = Dim;
-                _labels[i].Foreground = Dim;
+                PaintRow(i, look.Unchecked);
                 continue;
             }
             var met = i < snap.Conditions.Length && snap.Conditions[i];
             _icons[i].Text = met ? "✓" : "✗";
-            _icons[i].Foreground = met ? MetIcon : UnmetIcon;
-            _labels[i].Foreground = _changed[i] ? (met ? Fresh : Warn) : met ? MetText : Dim;
-            _labels[i].FontWeight = _changed[i] ? FontWeights.SemiBold : FontWeights.Normal;
+            // What flipped in the latest check stands out: a new ✓ bright, a lost one a warning.
+            PaintRow(i, _changed[i] ? (met ? look.Fresh : look.Lost) : met ? look.Met : look.Unmet);
         }
 
         if (snap is null)
         {
             StatusText.Text = "—";
-            StatusText.Foreground = StatusNeutral;
+            StatusText.Foreground = look.Status.Unknown.ToBrush();
         }
         else
         {
             var count = snap.Conditions.Count(c => c);
             (StatusText.Text, StatusText.Foreground) = snap switch
             {
-                { IsPrime: true } => ("Prime Elder", StatusPrime),
-                { IsEligible: true } => ($"Ready · {count}/10", MetIcon),
-                _ => ($"Not ready · {count}/10 ({NeededForPrime} needed)", StatusNeutral)
+                { IsPrime: true } => ("Prime Elder", look.Status.PrimeElder.ToBrush()),
+                { IsEligible: true } => ($"Ready · {count}/10", look.Status.Ready.ToBrush()),
+                _ => ($"Not ready · {count}/10 ({NeededForPrime} needed)", look.Status.NotReady.ToBrush())
             };
         }
         RenderInfo();
     }
 
-    /// <summary>What the rows reflect: when and as which dino — amber once the live dino differs. Returns whether it is stale.</summary>
+    private void PaintRow(int i, ThemeTokens.PrimeRowLook row)
+    {
+        _icons[i].Foreground = row.Icon.ToBrush();
+        _labels[i].Foreground = row.Text.ToBrush();
+        _labels[i].FontWeight = row.Weight.ToFontWeight();
+    }
+
+    /// <summary>What the rows reflect: when and as which dino — a warning once the live dino differs. Returns whether it is stale.</summary>
     private bool RenderInfo()
     {
+        var footer = Theme.Current.Prime.Footer;
         if (_config.Prime is not { } snap)
         {
             InfoText.Text = "Not checked yet — Check Prime: control panel or hotkey";
-            InfoText.Foreground = Dim;
+            InfoText.Foreground = footer.Checked.ToBrush();
             return false;
         }
 
@@ -271,7 +273,7 @@ public partial class PrimeWindow : OverlayWindowBase
         InfoText.Text = snap.Dino is null
             ? $"Checked {when}"
             : stale ? $"Checked {when} as {snap.Dino} — now {_liveDino}" : $"Checked {when} · {snap.Dino}";
-        InfoText.Foreground = stale ? Warn : Dim;
+        InfoText.Foreground = (stale ? footer.Stale : footer.Checked).ToBrush();
         return stale;
     }
 
@@ -294,7 +296,8 @@ public partial class PrimeWindow : OverlayWindowBase
             : _notice is not null ? (cooling ? $"{_notice} · retry in {Format(remaining)}" : _notice)
             : cooling ? $"next check in {Format(remaining)}"
             : "check available";
-        NoticeText.Foreground = _notice is not null && !_checking ? Warn : Dim;
+        var footer = Theme.Current.Prime.Footer;
+        NoticeText.Foreground = (_notice is not null && !_checking ? footer.Failed : footer.Cooldown).ToBrush();
     }
 
     private static string Format(TimeSpan t) => $"{(int)t.TotalMinutes}:{t.Seconds:00}";

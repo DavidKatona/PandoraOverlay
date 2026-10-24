@@ -102,7 +102,7 @@ public partial class MinimapWindow : OverlayWindowBase
         _actions = actions ?? new MapActions(config, library, book, Short);
         _actions.WaypointTracked += OnWaypointTracked;
         _actions.FriendTracked += OnFriendTracked;
-        _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), BorderLocked, _actions, FriendBrush,
+        _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), Theme.Current.Separator.ToBrush(), _actions, FriendBrush,
                                           () => _lastWorld, () => MapMenu.IsOpen = false, ShowNotice);
 
         RebuildMarkers();
@@ -131,7 +131,7 @@ public partial class MinimapWindow : OverlayWindowBase
 
     protected override void OnEditModeChanged(bool editMode)
     {
-        RootPanel.BorderBrush = editMode ? BorderEdit : BorderLocked;
+        RootPanel.BorderBrush = (editMode ? Theme.Current.Frame.Edit.Line : Theme.Current.Frame.Locked.Line).ToBrush(); // the theme's frame lines
         if (!editMode && (_hover is not null || _hoverFriend is not null))
         {
             _hover = null;

@@ -7,7 +7,8 @@ paths:
 
 # Writing code in Shell/ (widgets, hotkeys, MainWindow)
 
-- **A new widget** derives `OverlayWindowBase`; its root Border takes
+- **A new widget** derives `OverlayWindowBase`; its root is a `ThemedBorder` (the theme's
+  frame; `RootPanel.Lit = editMode` in `OnEditModeChanged`) that takes
   `WidgetFrame.Width` and `LargeHeight` or `SmallHeight` (`x:Static`) and lays its content
   out INSIDE (DockPanel + star rows), so it never grows with its content; it overrides
   `AppearanceScale` with its own scale key (a plain 1.0); `Fades => true` only if

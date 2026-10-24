@@ -11,43 +11,52 @@
         ShowActivated="False"
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
-        FontFamily="Segoe UI"
+        FontFamily="{DynamicResource Theme.Font.Family}"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
     <!-- The LARGE frame (WidgetFrame), shared with the minimap: header on
          top, the two-line footer at the bottom, the ten condition rows
-         share what is left — one size in every state. -->
-    <Border x:Name="RootPanel"
+         share what is left — one size in every state. The glass is
+         ApplyAppearance's, the outline's colour ThemedBorder's (Lit in edit
+         mode); a theme's cut corners take the theme's number. -->
+    <local:ThemedBorder x:Name="RootPanel"
             Width="{x:Static local:WidgetFrame.Width}"
             Height="{x:Static local:WidgetFrame.LargeHeight}"
-            CornerRadius="10"
-            Background="#CC10151B"
-            BorderBrush="#33FFFFFF"
+            CornerRadius="{DynamicResource Theme.Corner.Widget}"
+            CutCorners="{DynamicResource Theme.Cut.Widget}"
             BorderThickness="1"
             Padding="12,10">
         <DockPanel>
 
-            <!-- Header: title + overall status -->
+            <!-- Header: title + overall status (its colour per status, in code) -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,7">
                 <TextBlock x:Name="StatusText" DockPanel.Dock="Right"
-                           Foreground="#9AA7B0" FontSize="12"
+                           Foreground="{DynamicResource Theme.Prime.Status.Unknown}" FontSize="12"
                            VerticalAlignment="Center"/>
                 <TextBlock Text="Prime"
-                           Foreground="#ECF2F8" FontSize="14" FontWeight="Bold"/>
+                           Foreground="{DynamicResource Theme.Text.Title}" FontSize="14"
+                           FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontWeight="{DynamicResource Theme.Font.TitleWeight}"/>
             </DockPanel>
 
-            <!-- Footer: what the rows reflect, then cooldown / notices -->
+            <!-- Footer: what the rows reflect, then cooldown / notices (coloured in code) -->
             <StackPanel DockPanel.Dock="Bottom">
                 <TextBlock x:Name="InfoText"
-                           Foreground="#7B8790" FontSize="10" Margin="0,8,0,0"
+                           Foreground="{DynamicResource Theme.Prime.Footer.Checked}" FontSize="10" Margin="0,8,0,0"
                            TextTrimming="CharacterEllipsis"/>
                 <TextBlock x:Name="NoticeText"
-                           Foreground="#7B8790" FontSize="10" Margin="0,2,0,0"
+                           Foreground="{DynamicResource Theme.Prime.Footer.Cooldown}" FontSize="10" Margin="0,2,0,0"
                            TextTrimming="CharacterEllipsis"/>
             </StackPanel>
+
+            <!-- The list rule left of the rows, and its gap: both 0 wide in
+                 Default, so nothing in the layout; a theme's rule narrows the
+                 rows, never the frame. -->
+            <Border DockPanel.Dock="Left" Width="{DynamicResource Theme.ListRule.Width}"
+                    Background="{DynamicResource Theme.ListRule.Line}"/>
+            <Border DockPanel.Dock="Left" Width="{DynamicResource Theme.ListRule.Gap}"/>
 
             <!-- Ten condition rows, built in code-behind into equal-height rows -->
             <Grid x:Name="ConditionRows"/>
         </DockPanel>
-    </Border>
+    </local:ThemedBorder>
 </local:OverlayWindowBase>

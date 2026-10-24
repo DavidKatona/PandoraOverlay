@@ -89,8 +89,8 @@ public partial class ControlPanelWindow : OverlayWindowBase
 
     protected override void OnEditModeChanged(bool editMode)
     {
-        // Nothing to restyle — the panel only exists in edit mode and always
-        // wears the edit accent border.
+        // Nothing to restyle — the panel only exists in edit mode, and its
+        // frame is Lit for good (its XAML): the theme's control-panel look.
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);

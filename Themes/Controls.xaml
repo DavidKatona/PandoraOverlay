@@ -3,12 +3,66 @@
     <!-- The app's ONE set of control templates (1.39, PLAN.md section 1),
          merged in App.xaml's Application.Resources, and by
          Theme.EnsureLoaded for the harnesses, which build windows without
-         the App. Empty in step 1: the templates move here from
-         SettingsWindow.xaml, the update card and the sign-in window (each
-         holds its own copies today) in steps 2 and 5, reading every colour
-         and corner from the theme's tokens by DynamicResource
-         ({DynamicResource Theme.Button.Neutral.Idle.Fill}) and every shape
-         from the catalogue, so no theme ever ships XAML. The slider gets two
-         Styles: WPF's own for a Stock thumb, and ThemedSlider for a drawn
-         one; Theme.Apply puts the right one under Theme.SliderStyle. -->
+         the App. Every colour, corner and font size here is a theme token
+         read by DynamicResource ({DynamicResource Theme.Button.Neutral.Idle.Fill}),
+         and every shape a pick from the catalogue (ThemeShape), so no theme
+         ever ships XAML. Step 2 brought the control panel's styles; step 5
+         brings the ones SettingsWindow.xaml, the update card and the
+         sign-in window each hold their own copies of today. The slider gets
+         two Styles then: WPF's own for a Stock thumb, and ThemedSlider for a
+         drawn one; Theme.Apply puts the right one under Theme.SliderStyle. -->
+
+    <!-- ===== The control panel (ControlPanelWindow.xaml) ===== -->
+
+    <!-- Our own template: the default chrome paints its own bright hover
+         highlight over our light text. A faint white glow overlay keeps
+         every button's own colour (incl. Lock/Exit, which set their own
+         family's fill and text) and readable text. -->
+    <Style x:Key="PanelButton" TargetType="Button">
+        <Setter Property="Padding" Value="12,5"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Font.ControlPanelButtonSize}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="Background" Value="{DynamicResource Theme.Button.Neutral.Idle.Fill}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Neutral.Idle.Text}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Theme.Corner.Button}"/>
+                        <Border x:Name="HoverGlow" Background="{DynamicResource Theme.Button.HoverGlow}"
+                                CornerRadius="{DynamicResource Theme.Corner.Button}" Visibility="Collapsed"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Background" Value="{DynamicResource Theme.Button.PressedGlow}"/>
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The caption over each widget's group of buttons (STATS, MINIMAP …). -->
+    <Style x:Key="PanelCaption" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Caption}"/>
+        <Setter Property="FontSize" Value="9"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.CaptionWeight}"/>
+        <Setter Property="Margin" Value="1,0,0,3"/>
+    </Style>
+
+    <!-- The hairline between the groups. -->
+    <Style x:Key="PanelSeparator" TargetType="Border">
+        <Setter Property="Width" Value="1"/>
+        <Setter Property="Background" Value="{DynamicResource Theme.Separator}"/>
+        <Setter Property="Margin" Value="10,2,10,2"/>
+    </Style>
 </ResourceDictionary>

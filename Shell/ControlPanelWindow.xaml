@@ -11,63 +11,20 @@
         ShowActivated="False"
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
-        FontFamily="Segoe UI"
+        FontFamily="{DynamicResource Theme.Font.Family}"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
-    <Window.Resources>
-        <!-- Custom template: the default chrome paints its own bright hover
-             highlight over our light text. A faint white glow overlay keeps
-             every button's own colour (incl. Lock/Exit) and readable text. -->
-        <Style x:Key="PanelButton" TargetType="Button">
-            <Setter Property="Padding" Value="12,5"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Background" Value="#2A3038"/>
-            <Setter Property="Foreground" Value="#C7D1DA"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid>
-                            <Border Background="{TemplateBinding Background}" CornerRadius="2"/>
-                            <Border x:Name="HoverGlow" Background="#2EFFFFFF" CornerRadius="2"
-                                    Visibility="Collapsed"/>
-                            <ContentPresenter Margin="{TemplateBinding Padding}"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="HoverGlow" Property="Background" Value="#4DFFFFFF"/>
-                                <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="GroupCaption" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#7B8790"/>
-            <Setter Property="FontSize" Value="9"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="1,0,0,3"/>
-        </Style>
-
-        <Style x:Key="GroupSeparator" TargetType="Border">
-            <Setter Property="Width" Value="1"/>
-            <Setter Property="Background" Value="#33FFFFFF"/>
-            <Setter Property="Margin" Value="10,2,10,2"/>
-        </Style>
-    </Window.Resources>
-
-    <Border x:Name="RootPanel"
-            CornerRadius="10"
-            Background="#CC10151B"
-            BorderBrush="#FFC864"
+    <!-- Its buttons, captions and separators are the app's shared styles
+         (Themes/Controls.xaml: PanelButton, PanelCaption, PanelSeparator).
+         The frame is the control panel's own (Kind), Lit for good: it only
+         exists in edit mode. The glass is ApplyAppearance's (the theme's
+         widget glass at the Background opacity slider) and the outline's
+         colour ThemedBorder's; a theme's glow is painted inside the outline,
+         within the padding, so the panel keeps its size. -->
+    <local:ThemedBorder x:Name="RootPanel"
+            Kind="ControlPanel"
+            Lit="True"
+            CornerRadius="{DynamicResource Theme.Corner.Widget}"
             BorderThickness="1"
             Padding="10,8">
         <StackPanel>
@@ -81,10 +38,10 @@
                         Style="{StaticResource PanelButton}"
                         VerticalAlignment="Bottom" Margin="0"/>
 
-                <Border Style="{StaticResource GroupSeparator}"/>
+                <Border Style="{StaticResource PanelSeparator}"/>
 
                 <StackPanel>
-                    <TextBlock Style="{StaticResource GroupCaption}" Text="STATS"/>
+                    <TextBlock Style="{StaticResource PanelCaption}" Text="STATS"/>
                     <StackPanel Orientation="Horizontal">
                         <Button Content="Show/hide" Click="Stats_Click"
                                 Style="{StaticResource PanelButton}"/>
@@ -93,10 +50,10 @@
                     </StackPanel>
                 </StackPanel>
 
-                <Border Style="{StaticResource GroupSeparator}"/>
+                <Border Style="{StaticResource PanelSeparator}"/>
 
                 <StackPanel>
-                    <TextBlock Style="{StaticResource GroupCaption}" Text="MINIMAP"/>
+                    <TextBlock Style="{StaticResource PanelCaption}" Text="MINIMAP"/>
                     <StackPanel Orientation="Horizontal">
                         <Button Content="Show/hide" Click="Minimap_Click"
                                 Style="{StaticResource PanelButton}"/>
@@ -110,10 +67,10 @@
                     </StackPanel>
                 </StackPanel>
 
-                <Border Style="{StaticResource GroupSeparator}"/>
+                <Border Style="{StaticResource PanelSeparator}"/>
 
                 <StackPanel>
-                    <TextBlock Style="{StaticResource GroupCaption}" Text="PRIME"/>
+                    <TextBlock Style="{StaticResource PanelCaption}" Text="PRIME"/>
                     <StackPanel Orientation="Horizontal">
                         <Button Content="Show/hide" Click="Prime_Click"
                                 Style="{StaticResource PanelButton}"/>
@@ -122,30 +79,30 @@
                     </StackPanel>
                 </StackPanel>
 
-                <Border Style="{StaticResource GroupSeparator}"/>
+                <Border Style="{StaticResource PanelSeparator}"/>
 
                 <StackPanel>
-                    <TextBlock Style="{StaticResource GroupCaption}" Text="ACTIVITY"/>
+                    <TextBlock Style="{StaticResource PanelCaption}" Text="ACTIVITY"/>
                     <Button Content="Show/hide" Click="Activity_Click"
                             Style="{StaticResource PanelButton}" Margin="0"/>
                 </StackPanel>
 
-                <Border Style="{StaticResource GroupSeparator}"/>
+                <Border Style="{StaticResource PanelSeparator}"/>
 
                 <!-- Overlay-session controls -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
                     <Button Content="Lock" Click="Lock_Click"
                             Style="{StaticResource PanelButton}"
-                            Background="#2E5E38" Foreground="#DFF3E2"/>
+                            Background="{DynamicResource Theme.Button.Primary.Idle.Fill}" Foreground="{DynamicResource Theme.Button.Primary.Idle.Text}"/>
                     <Button Content="Exit" Click="Exit_Click"
                             Style="{StaticResource PanelButton}"
-                            Background="#552B2B" Foreground="#FFDDDD"
+                            Background="{DynamicResource Theme.Button.Danger.Idle.Fill}" Foreground="{DynamicResource Theme.Button.Danger.Idle.Text}"
                             Margin="0"/>
                 </StackPanel>
             </StackPanel>
             <TextBlock x:Name="HintText"
                        Text="drag panels to move · right-click map = waypoint · Ctrl+F1 locks"
-                       Foreground="#7B8790" FontSize="10" Margin="2,7,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" Margin="2,7,0,0"/>
         </StackPanel>
-    </Border>
+    </local:ThemedBorder>
 </local:OverlayWindowBase>

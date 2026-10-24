@@ -43,10 +43,8 @@ public partial class ActivityWindow : OverlayWindowBase
     private static readonly TimeSpan AttentionHold = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan ExpiryTick = TimeSpan.FromSeconds(20);
 
-    private static readonly Brush Dim = new SolidColorBrush(Color.FromRgb(0x7B, 0x87, 0x90));
-    private static readonly Brush Text = new SolidColorBrush(Color.FromRgb(0xC7, 0xD1, 0xDA));
-    private static readonly Brush Warn = new SolidColorBrush(Color.FromRgb(0xFF, 0xB3, 0x00));
-    private static readonly Brush Self = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64)); // your arrow's orange: you, everywhere on the overlay
+    // The lines' colours and your bullet are the theme's (Theme.Current.Activity),
+    // read at each render; a friend's bullet is the friend's colour (data).
     private static readonly Brush[] PaletteBrushes = WaypointPalette.Colours
         .Select(c => { var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(c.Hex)); b.Freeze(); return (Brush)b; })
         .ToArray();
@@ -133,10 +131,13 @@ public partial class ActivityWindow : OverlayWindowBase
             Lines.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             var slot = new TextBlock
             {
-                FontSize = 11, Foreground = Text,
+                FontSize = 11,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
             };
+            // The slot's own text look follows the theme by itself; each run is painted in Render.
+            slot.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Activity.Line");
+            slot.SetResourceReference(TextBlock.FontWeightProperty, "Theme.Font.BodyWeight");
             Grid.SetRow(slot, i);
             _slots.Add(slot);
             Lines.Children.Add(slot);
@@ -152,7 +153,7 @@ public partial class ActivityWindow : OverlayWindowBase
 
     protected override void OnEditModeChanged(bool editMode)
     {
-        RootPanel.BorderBrush = editMode ? BorderEdit : BorderLocked;
+        RootPanel.Lit = editMode; // the theme's edit look on the frame (ThemedBorder)
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);
@@ -199,6 +200,8 @@ public partial class ActivityWindow : OverlayWindowBase
         if (lines.Count > 0 && !_expiryTimer.IsEnabled) _expiryTimer.Start();
         else if (lines.Count == 0 && _expiryTimer.IsEnabled) _expiryTimer.Stop();
 
+        var look = Theme.Current.Activity;
+        var bullet = Theme.Current.Shapes.ActivityBullet;
         for (var i = 0; i < _slots.Count; i++)
         {
             var slot = _slots[i];
@@ -207,15 +210,15 @@ public partial class ActivityWindow : OverlayWindowBase
             if (i < lines.Count)
             {
                 var line = lines[i];
-                if (line.Mine) slot.Inlines.Add(new Run("● ") { Foreground = Self });
-                else if (line.SteamId is { } id) slot.Inlines.Add(new Run("● ") { Foreground = PaletteBrushes[_book.ColourOf(id)] });
+                if (line.Mine) slot.Inlines.Add(new Run(bullet) { Foreground = look.Mine.ToBrush() }); // you, as your arrow is on the maps
+                else if (line.SteamId is { } id) slot.Inlines.Add(new Run(bullet) { Foreground = PaletteBrushes[_book.ColourOf(id)] });
                 var warn = line.Kind is FeedKind.Fracture or FeedKind.LowStat or FeedKind.Damage;
-                slot.Inlines.Add(new Run(line.Text) { Foreground = warn ? Warn : Text });
+                slot.Inlines.Add(new Run(line.Text) { Foreground = (warn ? look.Warning : look.Line).ToBrush() });
                 slot.Opacity = ActivityLog.AgeOpacity(line, now);
             }
             else if (i == 0)
             {
-                slot.Inlines.Add(new Run(QuietLine()) { Foreground = Dim });
+                slot.Inlines.Add(new Run(QuietLine()) { Foreground = look.Quiet.ToBrush() });
             }
         }
     }

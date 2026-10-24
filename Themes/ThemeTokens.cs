@@ -105,6 +105,8 @@ public sealed record ThemeTokens
         public required BarLook Damage { get; init; }
         /// <summary>The combat view's "Healthy" / "Wounded" word, per health state.</summary>
         public required QuarterColors HealthReadout { get; init; }
+        /// <summary>The rows' names at their left (Health, Stamina, … Speed).</summary>
+        public required ThemeColor Label { get; init; }
         /// <summary>The bar's height (the row absorbs it; the frame does not move).</summary>
         public required double Height { get; init; }
         /// <summary>The track's inset line, 0 = none.</summary>
@@ -175,6 +177,8 @@ public sealed record ThemeTokens
         public required PrimeRowLook Lost { get; init; }
         /// <summary>A condition newly MET since the last check.</summary>
         public required PrimeRowLook Fresh { get; init; }
+        /// <summary>Every row before the first check (a "·" for its icon).</summary>
+        public required PrimeRowLook Unchecked { get; init; }
         public required PrimeStatusLook Status { get; init; }
         public required PrimeFooterLook Footer { get; init; }
     }
@@ -184,6 +188,8 @@ public sealed record ThemeTokens
         /// <summary>The ✓ / ✗.</summary>
         public required ThemeColor Icon { get; init; }
         public required ThemeColor Text { get; init; }
+        /// <summary>The condition's text (the icon is bold in every state).</summary>
+        public required ThemeWeight Weight { get; init; }
     }
 
     public sealed record PrimeStatusLook
@@ -289,6 +295,8 @@ public sealed record ThemeTokens
     {
         /// <summary>Widget titles, the dino name, the dialog's and the map's titles.</summary>
         public required ThemeColor Title { get; init; }
+        /// <summary>The title glyph's line (<see cref="ShapePicks.TitleGlyph"/>), before a title.</summary>
+        public required ThemeColor Glyph { get; init; }
         public required ThemeColor PageTitle { get; init; }
         /// <summary>Selected text, slider values, readout names.</summary>
         public required ThemeColor Bright { get; init; }
@@ -570,7 +578,7 @@ public sealed record ThemeTokens
         public required double Dialog { get; init; }
     }
 
-    /// <summary>The lit accents round a frame's two corners: how far they run, and the line's width. All 0 = none.</summary>
+    /// <summary>The lit accents round a frame's two corners: how far they run, and the line's width; and a lit line along the whole top edge. All 0 = none.</summary>
     public sealed record LitNumbers
     {
         /// <summary>Along the top and bottom edges, past the cut.</summary>
@@ -578,6 +586,12 @@ public sealed record ThemeTokens
         /// <summary>Down and up the sides, past the cut.</summary>
         public required double Side { get; init; }
         public required double Width { get; init; }
+        /// <summary>
+        /// The width of a lit line along the frame's whole top edge, 0 = none
+        /// (FrameGeometry.LitTop). It wears the lit corners' colour and their
+        /// glow (<see cref="GlowNumbers.Corners"/>), in both states.
+        /// </summary>
+        public required double Top { get; init; }
     }
 
     /// <summary>The painted glows' radii (never an Effect: PLAN.md section 4), 0 = none.</summary>
@@ -618,6 +632,12 @@ public sealed record ThemeTokens
     public sealed record FontLook
     {
         public required ThemeFont Family { get; init; }
+        /// <summary>
+        /// The titles' family: read wherever a title weight is (the widgets'
+        /// titles and the dino name; the dialog's title and the map's "Map"
+        /// when they move onto the tokens). Everything else reads <see cref="Family"/>.
+        /// </summary>
+        public required ThemeFont TitleFamily { get; init; }
         public required ThemeWeight TitleWeight { get; init; }
         /// <summary>"Map" in the map's header.</summary>
         public required ThemeWeight MapTitleWeight { get; init; }

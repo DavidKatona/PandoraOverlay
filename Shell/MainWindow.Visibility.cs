@@ -343,7 +343,7 @@ public partial class MainWindow
 
     protected override void OnEditModeChanged(bool editMode)
     {
-        RootPanel.BorderBrush = editMode ? BorderEdit : BorderLocked;
+        RootPanel.Lit = editMode; // the theme's edit look on the frame (ThemedBorder)
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);

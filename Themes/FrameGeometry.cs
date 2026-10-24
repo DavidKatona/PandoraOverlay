@@ -86,6 +86,35 @@ public static class FrameGeometry
         return (topRight, bottomLeft);
     }
 
+    /// <summary>
+    /// The lit line along the frame's whole top edge (<c>Lit.Top</c>, its
+    /// <paramref name="stroke"/> width; 0 = none, so null), its centre half
+    /// that width in, as the lit corners'. Without a cut it spans the straight
+    /// part of the edge, from the left corner's <paramref name="radius"/> to
+    /// the right one's, half the width in from each; with a cut it runs from
+    /// the square top-left corner to where the top-right cut begins (the top
+    /// edge's one cut). Null too when the edge leaves it no length.
+    /// </summary>
+    public static IReadOnlyList<Point>? LitTop(double width, double height, double cut, double radius, double stroke)
+    {
+        if (stroke <= 0 || width <= 0 || height <= 0) return null;
+        var d = stroke / 2;
+        double from, to;
+        if (cut > 0)
+        {
+            var c = Math.Min(cut, Math.Min(width, height) / 2);
+            from = d;
+            to = width - c - d * (Math.Sqrt(2) - 1); // the inset top edge's end at the cut, as CutPolygon has it
+        }
+        else
+        {
+            var r = Math.Max(0, radius);
+            from = r + d;
+            to = width - r - d;
+        }
+        return to > from ? new[] { new Point(from, d), new Point(to, d) } : null;
+    }
+
     /// <summary>A polyline's length.</summary>
     public static double Length(IReadOnlyList<Point> path)
     {
@@ -150,6 +179,19 @@ public static class FrameGeometry
         var edge = Snap(centre - width / 2, pixelsPerDip);
         return edge + snapped / 2;
     }
+
+    /// <summary>A filled shape's corners (the glass), each coordinate on a whole device pixel.</summary>
+    public static IReadOnlyList<Point> SnapPoints(IReadOnlyList<Point> points, double pixelsPerDip) =>
+        points.Select(p => new Point(Snap(p.X, pixelsPerDip), Snap(p.Y, pixelsPerDip))).ToList();
+
+    /// <summary>
+    /// A stroked path's points (an outline, a lit accent), each coordinate
+    /// placed as <see cref="SnapLine"/> places a line of that width: the
+    /// straight edges then cover whole device pixels. Draw it with
+    /// <see cref="SnapWidth"/>.
+    /// </summary>
+    public static IReadOnlyList<Point> SnapStroke(IReadOnlyList<Point> points, double width, double pixelsPerDip) =>
+        points.Select(p => new Point(SnapLine(p.X, width, pixelsPerDip), SnapLine(p.Y, width, pixelsPerDip))).ToList();
 
     #endregion
 }

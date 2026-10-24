@@ -55,17 +55,19 @@ public static class DefaultTheme
             Damage = Bar(Red, tint: Text),
             // The combat view's corner: quiet grey, amber when Wounded, red under a quarter.
             HealthReadout = new() { Above75 = Label, From50To75 = Label, From25To50 = Amber, Below25 = Red },
+            Label = Text, // MainWindow.xaml's row names
             Height = 12,
             TrackLineWidth = 0,
             Below25Halo = 0,
         },
-        // PrimeWindow.xaml.cs.
+        // PrimeWindow.xaml.cs. A row that flipped in the latest check reads SemiBold.
         Prime = new()
         {
-            Met = new() { Icon = Green, Text = Text },
-            Unmet = new() { Icon = C("#9A5F5F"), Text = Dim },
-            Lost = new() { Icon = C("#9A5F5F"), Text = Amber },
-            Fresh = new() { Icon = Green, Text = Bright },
+            Met = new() { Icon = Green, Text = Text, Weight = ThemeWeight.Normal },
+            Unmet = new() { Icon = C("#9A5F5F"), Text = Dim, Weight = ThemeWeight.Normal },
+            Lost = new() { Icon = C("#9A5F5F"), Text = Amber, Weight = ThemeWeight.SemiBold },
+            Fresh = new() { Icon = Green, Text = Bright, Weight = ThemeWeight.SemiBold },
+            Unchecked = new() { Icon = Dim, Text = Dim, Weight = ThemeWeight.Normal },
             Status = new() { PrimeElder = Gold, Ready = Green, NotReady = Label, Unknown = Label },
             Footer = new() { Checked = Dim, Stale = Amber, Failed = Amber, Cooldown = Dim },
         },
@@ -80,7 +82,7 @@ public static class DefaultTheme
             MapPill = C("#B310151B"),   // the map's PillGlass
             MapWindow = Glass,          // BigMapWindow, opaque
         },
-        // OverlayWindowBase's BorderLocked / BorderEdit; the control panel's border is gold for good.
+        // The widgets' frames (ThemedBorder, once OverlayWindowBase's BorderLocked / BorderEdit); the control panel's is gold for good.
         Frame = new()
         {
             Locked = new() { Line = Hairline, Lit = None, Glow = None },
@@ -97,6 +99,7 @@ public static class DefaultTheme
         Text = new()
         {
             Title = Bright,
+            Glyph = None,             // no title glyph in Default (Shapes.TitleGlyph is None)
             PageTitle = Label,        // Settings' PageTitle
             Bright = Bright,          // SliderValue, the selected nav row
             Text = Text,
@@ -199,7 +202,7 @@ public static class DefaultTheme
             ActivityBullet = "● ",
         },
         Cut = new() { Widget = 0, MapSquare = 0, Dialog = 0 },
-        Lit = new() { Edge = 0, Side = 0, Width = 0 },
+        Lit = new() { Edge = 0, Side = 0, Width = 0, Top = 0 },
         Glow = new() { Corners = 0, Edit = 0, ControlPanel = 0, Radio = 0, Thumb = 0, You = 0 },
         Corner = new()
         {
@@ -220,6 +223,7 @@ public static class DefaultTheme
         Font = new()
         {
             Family = new ThemeFont("Segoe UI"),
+            TitleFamily = new ThemeFont("Segoe UI"), // the titles share the family in Default
             TitleWeight = ThemeWeight.Bold,
             MapTitleWeight = ThemeWeight.SemiBold,
             ValueWeight = ThemeWeight.Normal,

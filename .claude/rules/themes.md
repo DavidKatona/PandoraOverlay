@@ -27,8 +27,17 @@ summary.
   pinned by `ThemeFileTests.DefaultIsTodaysLook`; Default stays pixel-identical to 1.38.
   A new token gets today's literal there, so Default doesn't change.
 - **A shape is a pick from the catalogue** (`ShapeCatalogue`: the radio, the slider's thumb,
-  the fracture badge, the title glyph), never a theme's own XAML. A shape the catalogue
-  lacks is added to it once, in code, for every theme.
+  the fracture badge, the title glyph), never a theme's own XAML, drawn by `ThemeShape`
+  (`Slot`, `Kind="{DynamicResource Theme.Shapes.…}"`; None takes no room at all). A shape
+  the catalogue lacks is added to it once, in code, for every theme.
+- **A frame is a `ThemedBorder`** (a widget's or the control panel's root, from step 2):
+  `CutCorners="{DynamicResource Theme.Cut.…}"`, `Lit` for edit mode, `Kind` for whose look;
+  no BorderBrush or Background in its XAML (the outline is its own, the glass
+  ApplyAppearance's). With Default's numbers it is the plain Border's drawing.
+- **Code paints from `Theme.Current` at the moment it draws**, a state's colour through
+  `.ToBrush()` (one kept frozen brush per colour), a weight through `.ToFontWeight()`; a
+  painted part repaints from held state, never by re-feeding what it painted from (the stats
+  panel: `PaintStats`, never `IngestStats`).
 - **A threshold is the code's; a theme only colours the state.** The bars' four states and
   their lines are `Stats/BarState.cs`; the pulse and StatsAttention's wake lines read them.
   A new coloured thing names its states in code and asks the theme for each one's look.

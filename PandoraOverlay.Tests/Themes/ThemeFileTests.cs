@@ -83,6 +83,18 @@ public class ThemeFileTests
     [Fact]
     public void AnEmptyOverrideIsDefault() => Assert.Equal(D, Parse(WithTokens("{}")).Tokens);
 
+    /// <summary>The titles' family is a family like the body's: a file may set it alone, and everything else keeps Default's.</summary>
+    [Fact]
+    public void ATitleFamilyLaysOverAlone()
+    {
+        var tokens = Parse(WithTokens("""{ "Font": { "TitleFamily": "Assets/Fonts/Montserrat/#Montserrat" } }""")).Tokens;
+
+        Assert.Equal(new ThemeFont("Assets/Fonts/Montserrat/#Montserrat"), tokens.Font.TitleFamily);
+        Assert.True(tokens.Font.TitleFamily.Bundled);
+        Assert.Equal(D.Font.Family, tokens.Font.Family);
+        Assert.Equal(D with { Font = D.Font with { TitleFamily = tokens.Font.TitleFamily } }, tokens);
+    }
+
     [Fact]
     public void LayingOverNeverChangesDefault()
     {
@@ -124,6 +136,8 @@ public class ThemeFileTests
     [InlineData("""{ "Font": { "TitleWeight": "Heavy" } }""", "Tokens.Font.TitleWeight")]
     [InlineData("""{ "Font": { "TitleWeight": "600" } }""", "Tokens.Font.TitleWeight")]
     [InlineData("""{ "Font": { "Family": "" } }""", "Tokens.Font.Family")]
+    [InlineData("""{ "Font": { "TitleFamily": "" } }""", "Tokens.Font.TitleFamily")]
+    [InlineData("""{ "Lit": { "Top": "1.5" } }""", "Tokens.Lit.Top")]
     public void ABadValueFails(string tokens, string path)
     {
         var ex = Assert.Throws<ThemeFileException>(() => Parse(WithTokens(tokens)));
@@ -203,6 +217,20 @@ public class ThemeFileTests
         Assert.Equal(0, D.Bars.TrackLineWidth);
         Assert.Equal(0, D.Bars.Below25Halo);
 
+        Assert.Equal(C("#C7D1DA"), D.Bars.Label);
+        Assert.Equal(C("#C7D1DA"), D.Bar(BarKind.Health, BarState.Below25).Percent);
+        Assert.Equal(C("#10151B"), D.Bars.Hunger.OnFill);
+        Assert.Equal(C("#9AA7B0"), D.Readout(BarState.Above75));
+        Assert.Equal(C("#FFB300"), D.Readout(BarState.From25To50));
+        Assert.Equal(C("#E53935"), D.Readout(BarState.Below25));
+
+        // Prime: the row states' colours and weights (a flipped row SemiBold), the rows before a check.
+        Assert.Equal((C("#7CC884"), C("#C7D1DA"), ThemeWeight.Normal), (D.Prime.Met.Icon, D.Prime.Met.Text, D.Prime.Met.Weight));
+        Assert.Equal((C("#9A5F5F"), C("#7B8790"), ThemeWeight.Normal), (D.Prime.Unmet.Icon, D.Prime.Unmet.Text, D.Prime.Unmet.Weight));
+        Assert.Equal((C("#9A5F5F"), C("#FFB300"), ThemeWeight.SemiBold), (D.Prime.Lost.Icon, D.Prime.Lost.Text, D.Prime.Lost.Weight));
+        Assert.Equal((C("#7CC884"), C("#ECF2F8"), ThemeWeight.SemiBold), (D.Prime.Fresh.Icon, D.Prime.Fresh.Text, D.Prime.Fresh.Weight));
+        Assert.Equal((C("#7B8790"), C("#7B8790"), ThemeWeight.Normal), (D.Prime.Unchecked.Icon, D.Prime.Unchecked.Text, D.Prime.Unchecked.Weight));
+
         Assert.Equal(C("#14FFFFFF"), D.Badge.Intact.Fill);
         Assert.Equal(C("#4A5560"), D.Badge.Intact.Text);
         Assert.Equal(C("#B3402020"), D.Badge.Fractured.Fill);
@@ -225,13 +253,14 @@ public class ThemeFileTests
         Assert.Equal(new ThemeRadius(4), D.Corner.Badge);
 
         Assert.Equal(new ThemeFont("Segoe UI"), D.Font.Family);
+        Assert.Equal(D.Font.Family, D.Font.TitleFamily); // the titles share the family
         Assert.Equal(ThemeWeight.Bold, D.Font.TitleWeight);
         Assert.Equal(12, D.Font.ControlPanelButtonSize);
         Assert.Equal(10, D.Font.BadgeSize);
 
         // No cut, no lit corner, no glow anywhere.
         Assert.Equal(new ThemeTokens.CutNumbers { Widget = 0, MapSquare = 0, Dialog = 0 }, D.Cut);
-        Assert.Equal(new ThemeTokens.LitNumbers { Edge = 0, Side = 0, Width = 0 }, D.Lit);
+        Assert.Equal(new ThemeTokens.LitNumbers { Edge = 0, Side = 0, Width = 0, Top = 0 }, D.Lit); // and no lit top line
         Assert.Equal(new ThemeTokens.GlowNumbers { Corners = 0, Edit = 0, ControlPanel = 0, Radio = 0, Thumb = 0, You = 0 }, D.Glow);
         Assert.Equal(ThemeColor.None, D.Frame.Locked.Glow);
         Assert.Equal(ThemeColor.None, D.Frame.Edit.Glow);
@@ -240,6 +269,7 @@ public class ThemeFileTests
         Assert.Equal(ShapeKind.Stock, D.Shapes.SliderThumb);
         Assert.Equal(ShapeKind.Box, D.Shapes.Badge);
         Assert.Equal(ShapeKind.None, D.Shapes.TitleGlyph);
+        Assert.Equal(ThemeColor.None, D.Text.Glyph);
         Assert.Equal("● ", D.Shapes.ActivityBullet);
         // No list rule, no nav bar: truly zero in the layout.
         Assert.Equal(0, D.ListRule.Width);
@@ -349,6 +379,7 @@ public class ThemeFileTests
         Assert.Equal(12.0, dictionary["Theme.Bars.Height"]);
         Assert.Equal(FontWeights.Bold, dictionary["Theme.Font.TitleWeight"]);
         Assert.Equal("Segoe UI", Assert.IsType<FontFamily>(dictionary["Theme.Font.Family"]).Source);
+        Assert.Equal("Segoe UI", Assert.IsType<FontFamily>(dictionary["Theme.Font.TitleFamily"]).Source);
         Assert.Equal(true, dictionary["Theme.Map.WindowRounded"]);
         Assert.Equal(Visibility.Visible, dictionary["Theme.Map.WindowRounded.Visibility"]);
         Assert.Equal(ShapeKind.Circle, dictionary["Theme.Shapes.Radio"]);

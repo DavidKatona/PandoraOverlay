@@ -103,6 +103,20 @@ public static class ShapeCatalogue
     #region Geometry
 
     /// <summary>
+    /// The box a slot's pick asks for in the layout (ThemeShape's measure):
+    /// the title glyph its 12 × 13, or nothing at all for None (Default's,
+    /// which must leave the title exactly where it was); the radio its 15 px
+    /// square; null for the slots that fill what they are given, the badge
+    /// (behind its text) and the slider's thumb (sized by its template).
+    /// </summary>
+    public static Size? NaturalSize(ShapeSlot slot, ShapeKind kind) => slot switch
+    {
+        ShapeSlot.TitleGlyph => kind == ShapeKind.None ? new Size(0, 0) : TitleGlyphSize,
+        ShapeSlot.Radio => new Size(RadioSize, RadioSize),
+        _ => null,
+    };
+
+    /// <summary>
     /// The outline a slot's pick draws in a box of the given size. A hexagon
     /// badge is the long hexagon (pointed ends <see cref="BadgePoint"/> in);
     /// every other hexagon is the upright one. A circle is inset by half its
