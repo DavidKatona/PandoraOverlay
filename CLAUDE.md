@@ -269,7 +269,8 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 - `.claude/rules/` — conventions for writing new code in `Settings/`, the maps
   (`Minimap/`, `BigMap/`, the area tool), `Shell/` and `Core/`; each loads when a
   matching file is touched. `.claude/skills/release-pass/` — the release
-  procedure (see Releases).
+  procedure (see Releases); `.claude/skills/patch-notes/` — the Discord post
+  for a release (a short intro, then New / Changes / Fixes / Removed).
 
 ## Architecture
 

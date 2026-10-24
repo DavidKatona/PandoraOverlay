@@ -30,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   minimap view, heatmap, Check Prime); Ctrl+F9 for your skin; Ctrl+M the
   map. Updating keeps the keys you have. "Use the default keys" in
   Settings › Hotkeys switches to the new ones.
-
 - Settings applies every change the moment you make it, like Windows' own
   Settings: there is no Save or Cancel any more. Close it with ✕, Close or
   Esc.

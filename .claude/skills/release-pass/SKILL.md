@@ -81,8 +81,8 @@ checked, and say when a check was a tool or a render rather than an eye.
    by PC. The owner decides.
 4. **The commits:** how to group them (a refactor can be its own release),
    with no Claude attribution lines.
-5. **After the tag:** is a Discord announcement or new README screenshots
-   wanted for this one?
+5. **After the tag:** is a Discord announcement (the `patch-notes` skill) or
+   new README screenshots wanted for this one?
 
 ## After the owner's go: version, tag, publish
 
