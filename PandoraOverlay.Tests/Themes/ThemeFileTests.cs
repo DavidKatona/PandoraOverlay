@@ -308,6 +308,49 @@ public class ThemeFileTests
         Assert.Equal(0, D.ListRule.Gap);
         Assert.Equal(0, D.Nav.BarWidth);
         Assert.True(D.Map.WindowRounded);
+
+        // The dialogs (step 5): SettingsWindow.xaml's styles, its code-built pages,
+        // the update card and the sign-in window, as they were in 1.38.
+        Assert.Equal((C("#2A3038"), C("#C7D1DA"), C("#3A4250"), C("#1E242B"), C("#5E6B76")),
+                     (D.Button.Neutral.Idle.Fill, D.Button.Neutral.Idle.Text, D.Button.Neutral.Hover.Fill, D.Button.Neutral.Disabled.Fill, D.Button.Neutral.Disabled.Text));
+        Assert.Equal((C("#2E5E38"), C("#DFF3E2"), C("#3A7347"), C("#1E2A22"), C("#5E7263")),
+                     (D.Button.Primary.Idle.Fill, D.Button.Primary.Idle.Text, D.Button.Primary.Hover.Fill, D.Button.Primary.Disabled.Fill, D.Button.Primary.Disabled.Text));
+        Assert.Equal((C("#552B2B"), C("#FFDDDD"), C("#6E3838"), C("#2A2022"), C("#6E5A5A")),
+                     (D.Button.Danger.Idle.Fill, D.Button.Danger.Idle.Text, D.Button.Danger.Hover.Fill, D.Button.Danger.Disabled.Fill, D.Button.Danger.Disabled.Text));
+        foreach (var family in new[] { D.Button.Neutral, D.Button.Primary, D.Button.Danger })
+        {
+            Assert.Equal(family.Hover, family.Pressed); // no pressed look of its own in 1.38
+            Assert.Equal(ThemeColor.None, family.Idle.Line); // no outline
+        }
+        Assert.Equal(C("#FFB4AE"), D.Button.RowDelete);
+        Assert.Equal((C("#1A2129"), C("#5E6B76"), C("#9AA7B0"), C("#242C36"), C("#ECF2F8")),
+                     (D.Check.Unticked.Box, D.Check.Unticked.Line, D.Check.Ticked.Line, D.Check.Hover.Box, D.Check.Ticked.Mark));
+        Assert.Equal((C("#1A2129"), C("#5E6B76"), C("#9AA7B0"), C("#ECF2F8"), C("#ECF2F8"), C("#3A5A78")),
+                     (D.TextBox.Idle.Fill, D.TextBox.Idle.Line, D.TextBox.Hover.Line, D.TextBox.Focus.Line, D.TextBox.Idle.Text, D.TextBox.Idle.Selection));
+        Assert.Equal((C("#1A2129"), C("#5E6B76")), (D.ScrollBar.Track, D.ScrollBar.Thumb));
+        Assert.Equal((ThemeColor.None, C("#2EFFFFFF"), C("#2A3038"), C("#C7D1DA"), C("#ECF2F8")),
+                     (D.Nav.Idle.Fill, D.Nav.Hover.Fill, D.Nav.Selected.Fill, D.Nav.Idle.Text, D.Nav.Selected.Text));
+        Assert.Equal((C("#5E6B76"), C("#262E37")), (D.Nav.Caption, D.Nav.Divider));
+        Assert.Equal((C("#9AA7B0"), C("#7B8790"), C("#C7D1DA"), C("#ECF2F8"), C("#5E6B76"), C("#7FB2D9")),
+                     (D.Text.PageTitle, D.Text.Caption, D.Text.Text2, D.Text.Bright, D.Text.Off, D.Text.Link));
+        Assert.Equal((C("#7CC884"), C("#FFC864"), C("#FF8A80")), (D.Text.Good, D.Text.Caution, D.Text.Danger)); // the hints
+        Assert.Equal((C("#FFC864"), C("#FFAA00")), (D.Text.Highlight, D.Text.Marker));
+        Assert.Equal((C("#161C23"), C("#33FFFFFF"), C("#1F262E"), C("#0AFFFFFF"), C("#66FFFFFF")),
+                     (D.Card.Surface, D.Card.Line, D.Card.Band, D.Card.Stripe, D.Card.HoverLine));
+        Assert.Equal((C("#1B222A"), C("#333C46"), C("#12171D")), (D.InfoCard.Surface, D.InfoCard.Line, D.InfoCard.Inner));
+        Assert.Equal((C("#1A2129"), C("#5E6B76"), C("#55FFFFFF")), (D.Well.Surface, D.Well.Line, D.Well.DotLine));
+        Assert.Equal((C("#0E1318"), C("#7CC884"), C("#7B8790"), C("#262E37")),
+                     (D.Storage.BarTrack, D.Storage.Growth, D.Storage.Slots, D.Storage.SlotsTrack));
+        Assert.Equal((C("#B010151B"), C("#E6FFFFFF"), C("#C81A130A")), (D.Storage.NoPosition, D.Storage.MarkerLine, D.Storage.YouLine));
+        Assert.Equal((C("#3A2E14"), C("#FFC864")), (D.Storage.Prime.Fill, D.Storage.Prime.Text));
+        Assert.Equal((C("#2A3038"), C("#C7D1DA")), (D.Storage.Elder.Fill, D.Storage.Elder.Text));
+        Assert.Equal((C("#FFAA00"), C("#7CC884"), C("#7CC884"), C("#262D35")),
+                     (D.UpdateCard.Bullet, D.UpdateCard.Good, D.UpdateCard.Progress, D.UpdateCard.ProgressTrack));
+        Assert.Equal(C("#10151B"), D.Glass.SignIn);
+        Assert.Equal((new ThemeRadius(3), new ThemeRadius(3), new ThemeRadius(3), new ThemeRadius(4), new ThemeRadius(8)),
+                     (D.Corner.Nav, D.Corner.Band, D.Corner.LargeButton, D.Corner.Progress, D.Corner.Tag));
+        Assert.Equal(ThemeWeight.SemiBold, D.Font.CaptionWeight); // SectionCaption, NavCaption, the lists' bands
+        Assert.Equal(ThemeWeight.Normal, D.Font.BodyWeight); // the controls' labels
     }
 
     // ---- The bundled themes, as the app loads them ---------------------------------
@@ -394,16 +437,25 @@ public class ThemeFileTests
     }
 
     /// <summary>
-    /// A drawn slider thumb needs the themed slider's Style in Controls.xaml
-    /// (Theme.Apply looks it up by key, the themes' step 5 adds it): until it
-    /// is there, every theme keeps WPF's own slider, or Theme.Apply would fail.
+    /// A drawn slider thumb takes the themed slider's Style from Controls.xaml
+    /// (Theme.Apply looks it up by key, Theme.ThemedSliderKey; the themes'
+    /// step 5 added it, so a theme may pick a drawn thumb since). The Style
+    /// is there, on a Slider, and draws the thumb with ThemeShape in the
+    /// SliderThumb slot from the theme's pick, so every pick the slot offers
+    /// has something to draw it. (Until step 5 this test held every theme to
+    /// WPF's own slider instead.)
     /// </summary>
     [Fact]
-    public void NoThemePicksADrawnThumbBeforeTheThemedSliderExists()
+    public void TheThemedSliderExistsForADrawnThumb()
     {
         var controls = File.ReadAllText(Path.Combine(RepoRoot(), "Themes", "Controls.xaml"));
-        if (controls.Contains($"x:Key=\"{Theme.ThemedSliderKey}\"", StringComparison.Ordinal)) return;
-        foreach (var theme in Theme.All) Assert.Equal(ShapeKind.Stock, theme.Tokens.Shapes.SliderThumb);
+        var at = controls.IndexOf($"<Style x:Key=\"{Theme.ThemedSliderKey}\" TargetType=\"Slider\">", StringComparison.Ordinal);
+        Assert.True(at >= 0, "Controls.xaml has no ThemedSlider Style on a Slider");
+        var style = controls[at..controls.IndexOf("</Style>", at, StringComparison.Ordinal)];
+        Assert.Contains("x:Name=\"PART_Track\"", style);
+        Assert.Contains("Slot=\"SliderThumb\" Kind=\"{DynamicResource Theme.Shapes.SliderThumb}\"", style);
+        foreach (var kind in ShapeCatalogue.Allowed(ShapeSlot.SliderThumb).Where(k => k != ShapeKind.Stock))
+            Assert.IsNotType<NoOutline>(ShapeCatalogue.Outline(ShapeSlot.SliderThumb, kind, new System.Windows.Size(15, 15)));
     }
 
     [Fact]

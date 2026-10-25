@@ -5,8 +5,8 @@ namespace PandoraOverlay;
 
 /// <summary>
 /// Draws the shape a theme picks for one slot (PLAN.md section 3): the
-/// fracture badge behind its text, the title glyph before a title, and from
-/// step 5 the radio and the slider's thumb. The slot is the XAML's
+/// fracture badge behind its text, the title glyph before a title, the
+/// radio (its ring, and its mark Inset) and the drawn slider's thumb. The slot is the XAML's
 /// (<see cref="Slot"/>), the pick is the theme's
 /// (<c>Kind="{DynamicResource Theme.Shapes.Badge}"</c>), and the geometry is
 /// the catalogue's (<see cref="ShapeCatalogue"/>), so no theme ships XAML.
@@ -118,6 +118,22 @@ public class ThemeShape : FrameworkElement
         set => SetValue(GapProperty, value);
     }
 
+    public static readonly DependencyProperty InsetProperty = DependencyProperty.Register(
+        nameof(Inset), typeof(double), typeof(ThemeShape),
+        new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>
+    /// Draws the shape this far inside its box on every side, at the same
+    /// centre, taking the same room: the radio's mark is the slot's own
+    /// pick drawn 4 px in (Default's 7 px dot in the 15 px ring, as the
+    /// Ellipse it replaces had it; a hexagon theme's inner hexagon).
+    /// </summary>
+    public double Inset
+    {
+        get => (double)GetValue(InsetProperty);
+        set => SetValue(InsetProperty, value);
+    }
+
     protected override Size MeasureOverride(Size availableSize) =>
         ShapeCatalogue.NaturalSize(Slot, Kind) is { Width: > 0 } box ? new Size(box.Width + Gap, box.Height) : new Size(0, 0);
 
@@ -129,8 +145,13 @@ public class ThemeShape : FrameworkElement
 
         // A shape of its own size sits at the left, centred down, the gap after it; a filling one takes the whole cell.
         var box = ShapeCatalogue.NaturalSize(slot, kind) ?? RenderSize;
-        if (box.Width <= 0 || box.Height <= 0) return;
         var origin = new Point(0, Math.Max(0, (RenderSize.Height - box.Height) / 2));
+        if (Inset > 0)
+        {
+            box = new Size(box.Width - 2 * Inset, box.Height - 2 * Inset);
+            origin.Offset(Inset, Inset);
+        }
+        if (box.Width <= 0 || box.Height <= 0) return;
 
         var pen = Stroke is { } stroke && StrokeThickness > 0 ? Frozen(new Pen(stroke, StrokeThickness)) : null;
         var t = pen?.Thickness ?? 0;

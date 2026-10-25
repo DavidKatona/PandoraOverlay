@@ -57,6 +57,7 @@ public sealed record ThemeTokens
     public required InfoCardLook InfoCard { get; init; }
     public required WellLook Well { get; init; }
     public required ListRuleLook ListRule { get; init; }
+    public required StorageLook Storage { get; init; }
     public required MapLook Map { get; init; }
     public required UpdateCardLook UpdateCard { get; init; }
     public required ShapePicks Shapes { get; init; }
@@ -245,6 +246,8 @@ public sealed record ThemeTokens
         public required ThemeColor MapPill { get; init; }
         /// <summary>The map window, opaque on purpose (the perf spike).</summary>
         public required ThemeColor MapWindow { get; init; }
+        /// <summary>The sign-in window, opaque because it must be: WebView2 draws nothing inside a see-through window.</summary>
+        public required ThemeColor SignIn { get; init; }
     }
 
     /// <summary>A frame's outline: locked, in edit mode, and the control panel (always in edit mode).</summary>
@@ -316,6 +319,14 @@ public sealed record ThemeTokens
         public required ThemeColor Good { get; init; }
         public required ThemeColor Caution { get; init; }
         public required ThemeColor Danger { get; init; }
+        /// <summary>
+        /// Yours, or what stands out in a list: your species on Server rules,
+        /// a stored dino's given name, a favourite skin's ★ and the A–F row
+        /// that sets one, an unlocked skin's tier.
+        /// </summary>
+        public required ThemeColor Highlight { get; init; }
+        /// <summary>The numbers of a numbered list (the sign-in window's steps).</summary>
+        public required ThemeColor Marker { get; init; }
     }
 
     #endregion
@@ -336,6 +347,12 @@ public sealed record ThemeTokens
         public required ButtonFamilyLook Danger { get; init; }
         public required ThemeColor HoverGlow { get; init; }
         public required ThemeColor PressedGlow { get; init; }
+        /// <summary>
+        /// The glyph of ONE list row's ✕ (a waypoint's, a stored dino's
+        /// Delete): a Neutral button with a soft red glyph, still "remove" but
+        /// not an alarm on every row. What removes many at once is the Danger family.
+        /// </summary>
+        public required ThemeColor RowDelete { get; init; }
     }
 
     public sealed record ButtonFamilyLook
@@ -447,6 +464,8 @@ public sealed record ThemeTokens
         public required ThemeColor Line { get; init; }
         public required ThemeColor Band { get; init; }
         public required ThemeColor Stripe { get; init; }
+        /// <summary>The outline of a card that is itself a click (a stored dino's), under the mouse.</summary>
+        public required ThemeColor HoverLine { get; init; }
     }
 
     /// <summary>The plainer card: Account's cards, What's new's notes, the sign-in's result.</summary>
@@ -454,6 +473,8 @@ public sealed record ThemeTokens
     {
         public required ThemeColor Surface { get; init; }
         public required ThemeColor Line { get; init; }
+        /// <summary>A box inside an info card (the sign-in's result lines).</summary>
+        public required ThemeColor Inner { get; init; }
     }
 
     /// <summary>A colour well's frame, a picture's well.</summary>
@@ -461,6 +482,8 @@ public sealed record ThemeTokens
     {
         public required ThemeColor Surface { get; init; }
         public required ThemeColor Line { get; init; }
+        /// <summary>The rim round a colour dot that stands on its own (a skin tile's colours).</summary>
+        public required ThemeColor DotLine { get; init; }
     }
 
     /// <summary>The vertical rule left of the Activity lines and the Prime rows. A 0-wide rule with a 0 gap is truly nothing in the layout.</summary>
@@ -470,6 +493,32 @@ public sealed record ThemeTokens
         public required double Width { get; init; }
         /// <summary>The space between the rule and the rows.</summary>
         public required double Gap { get; init; }
+    }
+
+    /// <summary>
+    /// Settings → Dino storage's own chrome. The website's meanings stay its
+    /// own (data, never a theme's: SiteBrushes): a dino's sex, its mutation
+    /// and compensated badges, its vitals' colours, the stored spot's blue.
+    /// </summary>
+    public sealed record StorageLook
+    {
+        /// <summary>The growth and vitals bars' empty part, on a card.</summary>
+        public required ThemeColor BarTrack { get; init; }
+        /// <summary>A stored dino's growth bar.</summary>
+        public required ThemeColor Growth { get; init; }
+        /// <summary>The thin "3 of 10 slots used" bar in the page's title row: its fill and its track.</summary>
+        public required ThemeColor Slots { get; init; }
+        public required ThemeColor SlotsTrack { get; init; }
+        /// <summary>The band across the stored map when the website kept no position.</summary>
+        public required ThemeColor NoPosition { get; init; }
+        /// <summary>The rim round the stored spot on that map.</summary>
+        public required ThemeColor MarkerLine { get; init; }
+        /// <summary>Your arrow's outline on that map (its fill is <see cref="YouLook.Arrow"/>).</summary>
+        public required ThemeColor YouLine { get; init; }
+        /// <summary>The website's Prime badge on a stored dino.</summary>
+        public required BadgeStateLook Prime { get; init; }
+        /// <summary>The website's Elder badge ("Elder ×2").</summary>
+        public required BadgeStateLook Elder { get; init; }
     }
 
     #endregion
@@ -635,6 +684,14 @@ public sealed record ThemeTokens
         public required ThemeRadius Badge { get; init; }
         public required ThemeRadius Nav { get; init; }
         public required ThemeRadius LayerButton { get; init; }
+        /// <summary>A card's caption band, a picture's well, the sign-in's address strip.</summary>
+        public required ThemeRadius Band { get; init; }
+        /// <summary>The Account page's one big button (Sign in with Discord).</summary>
+        public required ThemeRadius LargeButton { get; init; }
+        /// <summary>A thin bar that fills (the update's download, Dino storage's growth, vitals and slots), at most half its height.</summary>
+        public required ThemeRadius Progress { get; init; }
+        /// <summary>The website's badges on a stored dino (Prime, Elder ×2, mutations).</summary>
+        public required ThemeRadius Tag { get; init; }
     }
 
     /// <summary>The type: the family, the weights by role, and the few text sizes a theme may set (all inside a frame).</summary>

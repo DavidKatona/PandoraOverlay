@@ -81,6 +81,7 @@ public static class DefaultTheme
             Pill = C("#9910151B"),      // the minimap's pills
             MapPill = C("#B310151B"),   // the map's PillGlass
             MapWindow = Glass,          // BigMapWindow, opaque
+            SignIn = Glass,             // SignInWindow, opaque (WebView2)
         },
         // The widgets' frames (ThemedBorder, once OverlayWindowBase's BorderLocked / BorderEdit); the control panel's is gold for good.
         Frame = new()
@@ -112,6 +113,8 @@ public static class DefaultTheme
             Good = Green,             // HintGood, the sign-in's Good
             Caution = Gold,           // HintWarn, the sign-in's Warn
             Danger = C("#FF8A80"),    // HintBad, the sign-in's Bad
+            Highlight = Gold,         // the Rules page's Highlight (your species), Skins' tiers and ★, a stored dino's name
+            Marker = C("#FFAA00"),    // the sign-in window's Highlight (its numbered steps)
         },
         // Settings' SaveButtonStyle / NeutralButtonStyle / DangerButtonStyle (the cards' copies are the same);
         // their hover IS the press (no pressed trigger). The control panel lays a glow over the idle fill instead.
@@ -122,6 +125,7 @@ public static class DefaultTheme
             Danger = Buttons(C("#552B2B"), C("#FFDDDD"), hover: C("#6E3838"), disabledFill: C("#2A2022"), disabledText: C("#6E5A5A")),
             HoverGlow = HoverGlow,
             PressedGlow = PressedGlow,
+            RowDelete = C("#FFB4AE"), // SettingsWindow.Waypoints.cs's RowDeleteGlyph
         },
         // Settings' Check and Radio. Hover changes only the box; disabled is the whole control at half opacity (the template's).
         Check = new()
@@ -163,11 +167,25 @@ public static class DefaultTheme
         },
         Separator = Hairline,
         // SettingsWindow.Waypoints.cs's CardSurface / CardBorder / BandSurface / RowStripe.
-        Card = new() { Surface = C("#161C23"), Line = Hairline, Band = C("#1F262E"), Stripe = C("#0AFFFFFF") },
-        // Account's cards, What's new's notes, the sign-in's result panel.
-        InfoCard = new() { Surface = C("#1B222A"), Line = C("#333C46") },
-        Well = new() { Surface = C("#1A2129"), Line = Off }, // WellSurface / WellBorder
+        // The hover line: Dino storage's CardHoverBorder.
+        Card = new() { Surface = C("#161C23"), Line = Hairline, Band = C("#1F262E"), Stripe = C("#0AFFFFFF"), HoverLine = C("#66FFFFFF") },
+        // Account's cards, What's new's notes, the sign-in's result panel (and its ResultBox inside).
+        InfoCard = new() { Surface = C("#1B222A"), Line = C("#333C46"), Inner = C("#12171D") },
+        Well = new() { Surface = C("#1A2129"), Line = Off, DotLine = C("#55FFFFFF") }, // WellSurface / WellBorder; Skins' DotRim
         ListRule = new() { Line = None, Width = 0, Gap = 0 },
+        // SettingsWindow.Storage.cs's own brushes.
+        Storage = new()
+        {
+            BarTrack = C("#0E1318"),
+            Growth = Green,                       // GrowthFill
+            Slots = Dim,                          // the XAML's StorageSlotFill
+            SlotsTrack = C("#262E37"),            // and StorageSlotBar
+            NoPosition = C("#B010151B"),          // NoPositionBand
+            MarkerLine = C("#E6FFFFFF"),          // MarkerRim
+            YouLine = C("#C81A130A"),             // ArrowRim
+            Prime = new() { Fill = C("#3A2E14"), Text = Gold },
+            Elder = new() { Fill = C("#2A3038"), Text = Text },
+        },
         Map = new()
         {
             // MapCanvas.xaml's PlayerArrow and the trail's three bands; no casing under the trail.
@@ -219,6 +237,10 @@ public static class DefaultTheme
             Badge = 4,
             Nav = 3,
             LayerButton = 3,
+            Band = 3,          // the list cards' caption bands, Skins' picture well, the sign-in's AddressStrip
+            LargeButton = 3,   // DiscordButtonStyle
+            Progress = 4,      // the update card's ProgressFill; Dino storage's bars are half their height, under it
+            Tag = 8,           // Dino storage's badges
         },
         Font = new()
         {

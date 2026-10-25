@@ -33,37 +33,26 @@ public partial class SettingsWindow
     private const double StoredMapSize = 130; // the "stored at" map in an open card: the whole island
     private const double SlotBarWidth = 90;   // matches the XAML's StorageSlotBar
 
-    private static readonly Brush MaleBrush = Frozen(Color.FromRgb(0x7F, 0xB3, 0xFF));
-    private static readonly Brush FemaleBrush = Frozen(Color.FromRgb(0xFF, 0x8F, 0xB8));
-    private static readonly Brush CaptionBrush = Frozen(Color.FromRgb(0x9A, 0xA7, 0xB0)); // the page titles' grey
-    private static readonly Brush BarTrack = Frozen(Color.FromRgb(0x0E, 0x13, 0x18));
-    private static readonly Brush GrowthFill = Frozen(Color.FromRgb(0x7C, 0xC8, 0x84));
-    private static readonly Brush CardHoverBorder = Frozen(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF));
-    private static readonly Brush StoredSpotFill = Frozen(Color.FromRgb(0x4F, 0xC3, 0xF7)); // the waypoint blue
-    private static readonly Brush MarkerRim = Frozen(Color.FromArgb(0xE6, 0xFF, 0xFF, 0xFF));
-    private static readonly Brush ArrowRim = Frozen(Color.FromArgb(0xC8, 0x1A, 0x13, 0x0A));
-    private static readonly Brush NoPositionBand = Frozen(Color.FromArgb(0xB0, 0x10, 0x15, 0x1B));
-    private static readonly Brush YouFill = Frozen(Color.FromRgb(0xFF, 0xC8, 0x64)); // the minimap arrow's orange
+    // The page's chrome, read from the theme as the cards are built (a theme
+    // switch redraws them from the held list: RedrawIfStale, never a new
+    // request). The website's meanings (a dino's sex, the mutation and
+    // compensated badges, the vitals' colours, the stored spot's blue) are
+    // data, never a theme's: SiteBrushes.
+    private static Brush CaptionBrush => Theme.Current.Text.Label.ToBrush();
+    private static Brush BarTrack => Theme.Current.Storage.BarTrack.ToBrush();
+    private static Brush GrowthFill => Theme.Current.Storage.Growth.ToBrush();
+    private static Brush CardHoverBorder => Theme.Current.Card.HoverLine.ToBrush();
+    private static Brush MarkerRim => Theme.Current.Storage.MarkerLine.ToBrush();
+    private static Brush ArrowRim => Theme.Current.Storage.YouLine.ToBrush();
+    private static Brush NoPositionBand => Theme.Current.Storage.NoPosition.ToBrush();
+    private static Brush YouFill => Theme.Current.Map.You.Arrow.ToBrush(); // your arrow, as on the minimap
 
-    /// <summary>The stats panel's bar colours, so a stored dino's vitals read like your live ones; blood has no bar there.</summary>
-    private static readonly (string Label, Brush Fill)[] VitalLooks =
-    {
-        ("Health", Frozen(Color.FromRgb(0x4C, 0xAF, 0x50))),
-        ("Stamina", Frozen(Color.FromRgb(0xFF, 0xD5, 0x4F))),
-        ("Hunger", Frozen(Color.FromRgb(0xFF, 0x98, 0x00))),
-        ("Thirst", Frozen(Color.FromRgb(0x4F, 0xC3, 0xF7))),
-        ("Blood", Frozen(Color.FromRgb(0xE0, 0x5A, 0x5A)))
-    };
+    /// <summary>The website's Prime and Elder badges in our colours: (text colour, background).</summary>
+    private static (Brush Fore, Brush Back) PrimeBadge => (Theme.Current.Storage.Prime.Text.ToBrush(), Theme.Current.Storage.Prime.Fill.ToBrush());
+    private static (Brush Fore, Brush Back) ElderBadge => (Theme.Current.Storage.Elder.Text.ToBrush(), Theme.Current.Storage.Elder.Fill.ToBrush());
 
-    /// <summary>
-    /// The website's badges in our colours: (text colour, background). Own
-    /// brushes on purpose: a static initializer must not read another part's
-    /// static fields, whose order across partial files C# leaves open.
-    /// </summary>
-    private static readonly (Brush Fore, Brush Back) PrimeBadge = (Frozen(Color.FromRgb(0xFF, 0xC8, 0x64)), Frozen(Color.FromRgb(0x3A, 0x2E, 0x14)));
-    private static readonly (Brush Fore, Brush Back) ElderBadge = (Frozen(Color.FromRgb(0xC7, 0xD1, 0xDA)), Frozen(Color.FromRgb(0x2A, 0x30, 0x38)));
-    private static readonly (Brush Fore, Brush Back) MutationBadge = (Frozen(Color.FromRgb(0xC8, 0xA0, 0xFF)), Frozen(Color.FromRgb(0x2B, 0x23, 0x40)));
-    private static readonly (Brush Fore, Brush Back) CompensatedBadge = (Frozen(Color.FromRgb(0x7F, 0xD6, 0xC9)), Frozen(Color.FromRgb(0x16, 0x35, 0x31)));
+    /// <summary>A thin bar's rounding: the theme's, at most half the bar's height (Default's 4 makes every bar here a pill, as before).</summary>
+    private static CornerRadius ProgressCorner(double height) => new(Math.Min(Theme.Current.Corner.Progress.Value, height / 2));
 
     /// <summary>The island map for the open cards, decoded once at twice the well's size (200 % display scaling).</summary>
     private static readonly Lazy<BitmapImage?> StoredMapPicture = new(LoadStoredMapPicture);
@@ -118,7 +107,7 @@ public partial class SettingsWindow
         {
             _storage = null; // signed out in this dialog: the old account's dinos go too
             RenderStorage();
-            SetStorageStatus(why, HintWarn);
+            SetStorageStatus(why, Tone.Warn);
             StorageRefreshButton.IsEnabled = false;
             return;
         }
@@ -140,7 +129,7 @@ public partial class SettingsWindow
     {
         if (_storageLoading) return;
         _storageLoading = true;
-        SetStorageStatus(_storage is null ? "Loading your storage…" : "Refreshing…", HintNeutral);
+        SetStorageStatus(_storage is null ? "Loading your storage…" : "Refreshing…", Tone.Neutral);
         StorageRefreshButton.IsEnabled = false;
         StorageListResult result;
         try
@@ -156,11 +145,11 @@ public partial class SettingsWindow
 
         if (result.List is null)
         {
-            SetStorageStatus($"Couldn't load your storage ({result.Problem}). Press Refresh to try again.", HintBad);
+            SetStorageStatus($"Couldn't load your storage ({result.Problem}). Press Refresh to try again.", Tone.Bad);
             return;
         }
         ShowStorage(result.List);
-        if (result.Problem is not null) SetStorageStatus($"Showing the earlier list: the refresh failed ({result.Problem}).", HintWarn);
+        if (result.Problem is not null) SetStorageStatus($"Showing the earlier list: the refresh failed ({result.Problem}).", Tone.Warn);
     }
 
     private void ShowStorage(StoredDinoList list)
@@ -174,16 +163,16 @@ public partial class SettingsWindow
         _storage is { Dinos.Count: > 0 }
             ? "Click a dino for its vitals, its mutations and where it was stored."
             : "Nothing in storage. Store a dino in game, then press Refresh.",
-        HintNeutral);
+        Tone.Neutral);
 
     private async void StorageRefresh_Click(object sender, RoutedEventArgs e) => await LoadStorageAsync();
 
     private void OpenExtrasPage_Click(object sender, RoutedEventArgs e) => OpenUrl(ExtrasPageUrl);
 
-    private void SetStorageStatus(string text, Brush brush)
+    private void SetStorageStatus(string text, Tone tone)
     {
         StorageStatus.Text = text;
-        StorageStatus.Foreground = brush;
+        ShowTone(StorageStatus, tone);
     }
 
     // ---- The list -----------------------------------------------------------
@@ -198,6 +187,7 @@ public partial class SettingsWindow
         StorageCards.Children.Clear();
         _storageCards.Clear();
         _freeSlots = null;
+        Drawn("Storage");
         RenderStorageCount();
         if (_storage is null) return;
 
@@ -223,6 +213,7 @@ public partial class SettingsWindow
         var count = _storage.Dinos.Count;
         StorageCount.Text = count <= _storage.Limit ? $"{count} of {_storage.Limit} slots used" : $"{count} stored · {_storage.Limit} slots";
         StorageSlotFill.Width = SlotBarWidth * Math.Min(1, count / (double)_storage.Limit);
+        StorageSlotBar.CornerRadius = StorageSlotFill.CornerRadius = ProgressCorner(StorageSlotBar.Height); // the theme's, at most half its 3 px
         StorageSlotBar.Visibility = Visibility.Visible;
     }
 
@@ -271,7 +262,7 @@ public partial class SettingsWindow
         var body = new StackPanel();
         var root = new Border
         {
-            Child = body, CornerRadius = new CornerRadius(4), BorderBrush = CardBorder, BorderThickness = new Thickness(1),
+            Child = body, CornerRadius = CardCorner, BorderBrush = CardBorder, BorderThickness = new Thickness(1),
             Background = CardSurface, Padding = new Thickness(10, 7, 10, 8), Margin = new Thickness(0, 0, 0, 6)
         };
         var summary = new StackPanel { Background = Brushes.Transparent, Cursor = Cursors.Hand };
@@ -286,7 +277,7 @@ public partial class SettingsWindow
         {
             var sex = new TextBlock
             {
-                Text = d.Gender == "Male" ? "♂" : "♀", Foreground = d.Gender == "Male" ? MaleBrush : FemaleBrush,
+                Text = d.Gender == "Male" ? "♂" : "♀", Foreground = d.Gender == "Male" ? SiteBrushes.Male : SiteBrushes.Female,
                 FontSize = 13, Margin = new Thickness(5, 0, 0, 0), ToolTip = d.Gender
             };
             Grid.SetColumn(sex, 1);
@@ -333,8 +324,8 @@ public partial class SettingsWindow
         var badges = new WrapPanel { Margin = new Thickness(0, 6, 0, 0) };
         if (d.Prime) badges.Children.Add(Badge("Prime", PrimeBadge));
         if (d.ElderStacks > 0) badges.Children.Add(Badge($"Elder ×{d.ElderStacks}", ElderBadge));
-        if (d.MutationCount > 0) badges.Children.Add(Badge(d.MutationCount == 1 ? "1 mutation" : $"{d.MutationCount} mutations", MutationBadge));
-        if (d.Compensated) badges.Children.Add(Badge("Compensated", CompensatedBadge));
+        if (d.MutationCount > 0) badges.Children.Add(Badge(d.MutationCount == 1 ? "1 mutation" : $"{d.MutationCount} mutations", SiteBrushes.MutationBadge));
+        if (d.Compensated) badges.Children.Add(Badge("Compensated", SiteBrushes.CompensatedBadge));
         if (badges.Children.Count > 0) summary.Children.Add(badges);
 
         body.Children.Add(summary);
@@ -347,7 +338,7 @@ public partial class SettingsWindow
 
     private static Border Badge(string text, (Brush Fore, Brush Back) look) => new()
     {
-        Background = look.Back, CornerRadius = new CornerRadius(8), Padding = new Thickness(7, 1, 7, 2), Margin = new Thickness(0, 0, 4, 0),
+        Background = look.Back, CornerRadius = Theme.Current.Corner.Tag.ToCornerRadius(), Padding = new Thickness(7, 1, 7, 2), Margin = new Thickness(0, 0, 4, 0),
         Child = new TextBlock { Text = text, Foreground = look.Fore, FontSize = 10.5 }
     };
 
@@ -358,10 +349,10 @@ public partial class SettingsWindow
         var grid = new Grid { Height = height, VerticalAlignment = VerticalAlignment.Center };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(fraction, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - fraction, GridUnitType.Star) });
-        var track = new Border { Background = BarTrack, CornerRadius = new CornerRadius(height / 2) };
+        var track = new Border { Background = BarTrack, CornerRadius = ProgressCorner(height) };
         Grid.SetColumnSpan(track, 2);
         grid.Children.Add(track);
-        grid.Children.Add(new Border { Background = fill, CornerRadius = new CornerRadius(height / 2) });
+        grid.Children.Add(new Border { Background = fill, CornerRadius = ProgressCorner(height) });
         return grid;
     }
 
@@ -414,24 +405,17 @@ public partial class SettingsWindow
         switch (result.Outcome)
         {
             case StorageEditOutcome.TooSoon:
-                SetStorageStatus("One change at a time: try again in a moment. Nothing was sent.", HintWarn);
+                SetStorageStatus("One change at a time: try again in a moment. Nothing was sent.", Tone.Warn);
                 break;
             case StorageEditOutcome.SignedOut:
-                SetStorageStatus("The website session has ended. Sign in again on the Account page; nothing was changed.", HintWarn);
+                SetStorageStatus("The website session has ended. Sign in again on the Account page; nothing was changed.", Tone.Warn);
                 break;
             case StorageEditOutcome.Refused:
-                SetStorageStatus(result.Message is null ? "The website declined, without saying why." : $"The website said: {result.Message}", HintWarn);
+                SetStorageStatus(result.Message is null ? "The website declined, without saying why." : $"The website said: {result.Message}", Tone.Warn);
                 break;
             default:
-                SetStorageStatus($"Couldn't {what} ({result.Message}).", HintBad);
+                SetStorageStatus($"Couldn't {what} ({result.Message}).", Tone.Bad);
                 break;
         }
-    }
-
-    private static Brush Frozen(Color color)
-    {
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
     }
 }

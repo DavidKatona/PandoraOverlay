@@ -125,7 +125,12 @@
       "Good": "#7FE3F0",
       "Caution": "#FF9B8F",
       "Danger": "#FF9B8F",
+      // Step 5's new tokens, gold or orange in Default, so Isle must say something
+      // (IsleHasNoAmber): "you are accent" (DESIGN), the rest of the dialogs is step 6's.
+      "Highlight": "#7FE3F0",
+      "Marker": "#7FE3F0",
     },
+    "Storage": { "Prime": { "Text": "#7FE3F0" } }, // the Prime badge's text, as above
     // The control panel's buttons (the dialog's states come with step 6):
     // accent faint with an accent-line outline; Lock filled accent with dark
     // text; Exit the danger button, red at 14% with a red-at-50% outline.

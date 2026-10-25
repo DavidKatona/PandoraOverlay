@@ -68,6 +68,7 @@ public partial class SettingsWindow
     private void BuildWaypointRows()
     {
         WaypointRows.Children.Clear();
+        Drawn("Waypoints");
         _rowShowChecks.Clear();
         UpdateWaypointTotals();
 
@@ -151,13 +152,22 @@ public partial class SettingsWindow
             () => AddWaypointRowBatch(rows, RowBatch, version, total, waitingSince != 0 ? waitingSince : Stopwatch.GetTimestamp()));
     }
 
-    private static readonly Brush CardBorder = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
-    private static readonly Brush CardSurface = new SolidColorBrush(Color.FromRgb(0x16, 0x1C, 0x23));
-    private static readonly Brush BandSurface = new SolidColorBrush(Color.FromRgb(0x1F, 0x26, 0x2E));
-    private static readonly Brush RowStripe = new SolidColorBrush(Color.FromArgb(0x0A, 0xFF, 0xFF, 0xFF));
-    private static readonly Brush WellSurface = new SolidColorBrush(Color.FromRgb(0x1A, 0x21, 0x29));   // matches the Check template's box
-    private static readonly Brush WellBorder = new SolidColorBrush(Color.FromRgb(0x5E, 0x6B, 0x76));
-    private static readonly Brush RowDeleteGlyph = new SolidColorBrush(Color.FromRgb(0xFF, 0xB4, 0xAE));
+    // The list pages' card (Waypoints, Friends, Server rules, the skin tiles,
+    // the stored dinos), read from the theme at the moment a page builds: a
+    // built page is redrawn from what it holds after a theme switch
+    // (RedrawIfStale, SettingsWindow.Themes.cs). Properties, not fields: a
+    // field would keep the first theme's brush (and other parts read them).
+    private static Brush CardBorder => Theme.Current.Card.Line.ToBrush();
+    private static Brush CardSurface => Theme.Current.Card.Surface.ToBrush();
+    private static Brush BandSurface => Theme.Current.Card.Band.ToBrush();
+    private static Brush RowStripe => Theme.Current.Card.Stripe.ToBrush();
+    private static Brush WellSurface => Theme.Current.Well.Surface.ToBrush();   // the Check template's box
+    private static Brush WellBorder => Theme.Current.Well.Line.ToBrush();
+    private static Brush RowDeleteGlyph => Theme.Current.Button.RowDelete.ToBrush();
+    private static CornerRadius CardCorner => Theme.Current.Corner.Card.ToCornerRadius();
+    private static CornerRadius BandCorner => Theme.Current.Corner.Band.ToCornerRadius();
+    private static CornerRadius WellCorner => Theme.Current.Corner.Well.ToCornerRadius();
+    private static FontWeight CaptionWeight => Theme.Current.Font.CaptionWeight.ToFontWeight();
 
     /// <summary>
     /// One group as a card: a bordered surface holding a caption band and
@@ -175,7 +185,7 @@ public partial class SettingsWindow
         var body = new StackPanel();
         var card = new Border
         {
-            Child = body, CornerRadius = new CornerRadius(4), BorderBrush = CardBorder, BorderThickness = new Thickness(1),
+            Child = body, CornerRadius = CardCorner, BorderBrush = CardBorder, BorderThickness = new Thickness(1),
             Background = CardSurface, Padding = new Thickness(6, 6, 6, 4), Margin = new Thickness(0, 0, 0, 8)
         };
         var (band, groupCheck) = BuildGroupBand(title, pack, members, card);
@@ -242,7 +252,7 @@ public partial class SettingsWindow
         var caption = new TextBlock
         {
             Text = text.ToUpperInvariant(), Foreground = HintNeutral, FontSize = 10,
-            FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center
+            FontWeight = CaptionWeight, VerticalAlignment = VerticalAlignment.Center
         };
         Grid.SetColumn(caption, 1);
         row.Children.Add(caption);
@@ -285,7 +295,7 @@ public partial class SettingsWindow
         }
         var band = new Border
         {
-            Child = row, Background = BandSurface, CornerRadius = new CornerRadius(3),
+            Child = row, Background = BandSurface, CornerRadius = BandCorner,
             Padding = new Thickness(0, 3, 0, 3), Margin = new Thickness(0, 0, 0, 4)
         };
         return (band, all);
@@ -376,7 +386,7 @@ public partial class SettingsWindow
         var dot = new Ellipse { Width = 9, Height = 9, Fill = PaletteBrushes[WaypointPalette.Wrap(wp.Colour)] };
         var well = new Border
         {
-            Child = dot, Width = 15, Height = 15, CornerRadius = new CornerRadius(2),
+            Child = dot, Width = 15, Height = 15, CornerRadius = WellCorner,
             Background = WellSurface, BorderBrush = WellBorder, BorderThickness = new Thickness(1),
             Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center,
             ToolTip = $"{WaypointPalette.Colours[WaypointPalette.Wrap(wp.Colour)].Name} — click to change"
@@ -452,10 +462,10 @@ public partial class SettingsWindow
         return row;
     }
 
-    private void SetWaypointStatus(string text, Brush brush)
+    private void SetWaypointStatus(string text, Tone tone)
     {
         WaypointStatus.Text = text;
-        WaypointStatus.Foreground = brush;
+        ShowTone(WaypointStatus, tone);
         WaypointStatus.Visibility = Visibility.Visible;
     }
 

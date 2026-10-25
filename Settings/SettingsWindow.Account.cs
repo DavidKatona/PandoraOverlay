@@ -29,6 +29,14 @@ public partial class SettingsWindow
     private bool _accountLooked;   // the one auth/me per dialog has been sent
     private bool _signOutArmed;    // Sign out is two clicks, like Delete all
 
+    /// <summary>
+    /// The avatar's circle (the XAML's, by x:Static): a picture's shape, the
+    /// same in every theme, never a theme's corner. Its lines take their
+    /// colours by resource reference (ShowTone), so a theme switch needs no
+    /// redraw of this page.
+    /// </summary>
+    public static readonly CornerRadius AvatarCircle = new(20);
+
     private void InitAccountPage()
     {
         _signedIn = !_firstRun;
@@ -66,7 +74,7 @@ public partial class SettingsWindow
         {
             ShowAvatar(null);
             AccountStatus.Text = "Not signed in — sign in once and the overlay shows your dino from then on.";
-            AccountStatus.Foreground = HintWarn;
+            ShowTone(AccountStatus, Tone.Warn);
             AccountHint.Text = "";
             return;
         }
@@ -80,20 +88,21 @@ public partial class SettingsWindow
         if (live is { Authenticated: false })
         {
             AccountStatus.Text = "The website session has ended — sign in again.";
-            AccountStatus.Foreground = HintWarn;
+            ShowTone(AccountStatus, Tone.Warn);
         }
         else
         {
             AccountStatus.Text = "Signed in ✓ — the session renews itself while the overlay runs.";
-            AccountStatus.Foreground = HintGood;
+            ShowTone(AccountStatus, Tone.Good);
         }
 
-        (SteamText.Text, SteamText.Foreground) = live switch
+        (SteamText.Text, var steamTone) = live switch
         {
-            { Authenticated: true, SteamLinked: true } => ("linked ✓", HintGood),
-            { Authenticated: true } => ("not linked — the overlay can't find your dino until it is (one LinkID typed in game chat, see islapandora.eu)", HintWarn),
-            _ => ("—", HintNeutral)
+            { Authenticated: true, SteamLinked: true } => ("linked ✓", Tone.Good),
+            { Authenticated: true } => ("not linked — the overlay can't find your dino until it is (one LinkID typed in game chat, see islapandora.eu)", Tone.Warn),
+            _ => ("—", Tone.Neutral)
         };
+        ShowTone(SteamText, steamTone);
         SignedInText.Text = _config.SignedInUtc is { } when
             ? $"{when.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture)} · renews while in use" // English like the rest of the overlay, whatever the PC's locale
             : "with a pasted cookie (before 1.31) · renews while in use";
@@ -157,7 +166,7 @@ public partial class SettingsWindow
         var visual = new DrawingVisual();
         using (var dc = visual.RenderOpen())
         {
-            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x58, 0x65, 0xF2)), null, size);
+            dc.DrawRectangle(SiteBrushes.Discord, null, size);
             dc.DrawImage(picture, size);
         }
         var flat = new RenderTargetBitmap(picture.PixelWidth, picture.PixelHeight, 96, 96, PixelFormats.Pbgra32);
@@ -216,6 +225,6 @@ public partial class SettingsWindow
         AccountHint.Text = told
             ? "Signed out here and on the website."
             : "Signed out here. The website could not be reached, so its side of the session lives on until it expires.";
-        AccountHint.Foreground = HintNeutral;
+        ShowTone(AccountHint, Tone.Neutral);
     }
 }

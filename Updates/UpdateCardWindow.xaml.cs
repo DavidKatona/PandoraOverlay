@@ -31,12 +31,14 @@ namespace PandoraOverlay;
 /// </summary>
 public partial class UpdateCardWindow : Window
 {
-    private static readonly Brush Soft = Frozen(0x7B, 0x87, 0x90);
-    private static readonly Brush Good = Frozen(0x7C, 0xC8, 0x84);
-    private static readonly Brush Warn = Frozen(0xFF, 0xC8, 0x64);
-    private static readonly Brush Bullet = Frozen(0xFF, 0xAA, 0x00);
-    private static readonly Brush NoteText = Frozen(0xC7, 0xD1, 0xDA);
-    private static readonly Brush NoteTitle = Frozen(0x9A, 0xA7, 0xB0);
+    // The theme's, read as the card is built and filled: a card is never up
+    // while a theme is clicked (the Themes page is in Settings, under it).
+    private static Brush Soft => Theme.Current.Text.Dim.ToBrush();
+    private static Brush Good => Theme.Current.UpdateCard.Good.ToBrush();
+    private static Brush Warn => Theme.Current.Text.Caution.ToBrush();
+    private static Brush Bullet => Theme.Current.UpdateCard.Bullet.ToBrush();
+    private static Brush NoteText => Theme.Current.Text.Text.ToBrush();
+    private static Brush NoteTitle => Theme.Current.Text.Label.ToBrush();
 
     private Func<Action<int>, Task<bool>>? _install; // AVAILABLE only
     private bool _installing;
@@ -48,6 +50,7 @@ public partial class UpdateCardWindow : Window
 
     private UpdateCardWindow()
     {
+        Theme.EnsureLoaded(); // the shared templates (Themes/Controls.xaml), read at parse time: a harness has no App
         InitializeComponent();
         // Esc closes on its RELEASE and keeps the keystroke (1.38). Closed on
         // the press and left unhandled, What's new handed the same keystroke on
@@ -214,12 +217,5 @@ public partial class UpdateCardWindow : Window
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ButtonState == MouseButtonState.Pressed) DragMove();
-    }
-
-    private static Brush Frozen(byte r, byte g, byte b)
-    {
-        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-        brush.Freeze();
-        return brush;
     }
 }

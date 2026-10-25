@@ -55,7 +55,7 @@ public static class Theme
     /// <summary>The derived key: the Style every slider takes (DynamicResource), from the thumb's pick.</summary>
     public const string SliderStyleKey = KeyPrefix + "SliderStyle";
 
-    /// <summary>The key, in Controls.xaml, of the drawn slider's Style (step 5); a Stock thumb needs none.</summary>
+    /// <summary>The key, in Controls.xaml, of the drawn slider's Style; a Stock thumb needs none.</summary>
     public const string ThemedSliderKey = "ThemedSlider";
 
     private const string ResourcePrefix = "Themes/";
@@ -143,8 +143,8 @@ public static class Theme
     /// harness after it): merges Controls.xaml and puts Default's dictionary
     /// in place, once. In the overlay App.xaml has merged Controls.xaml and
     /// MainWindow applies the player's theme, so this finds nothing to do but
-    /// the first install. Called from OverlayWindowBase's constructor (and,
-    /// from step 5, the plain windows' constructors), BEFORE
+    /// the first install. Called from OverlayWindowBase's constructor and
+    /// the plain windows' (Settings, the update card, the sign-in, the map), BEFORE
     /// InitializeComponent. With no Application at all, a plain one is made
     /// for the resources to live in (a harness's job; the overlay always has
     /// its App first). Controls.xaml is looked for on every call, not only
@@ -218,8 +218,8 @@ public static class Theme
     /// <summary>
     /// Stock: an empty Slider Style, which leaves WPF's own template exactly
     /// as an unstyled slider has it (today's sliders). A drawn thumb: the
-    /// themed Style in Controls.xaml (step 5 adds it; no theme picks one
-    /// before then, and ThemeFileTests' pick check keeps it so).
+    /// themed Style in Controls.xaml (ThemedSlider, since the themes' step 5;
+    /// ThemeFileTests.TheThemedSliderExistsForADrawnThumb keeps it there).
     /// </summary>
     private static Style SliderStyle(ShapeKind thumb, Application? app)
     {
@@ -257,6 +257,9 @@ public static class Theme
 
     /// <summary>A token's weight as WPF's (<c>ThemeWeight.SemiBold</c> is <c>FontWeights.SemiBold</c>).</summary>
     public static FontWeight ToFontWeight(this ThemeWeight weight) => FontWeight.FromOpenTypeWeight((int)weight);
+
+    /// <summary>A token's corner radius as WPF's, for a Border built in code (the Settings pages' cards and bands).</summary>
+    public static CornerRadius ToCornerRadius(this ThemeRadius radius) => new(radius.Value);
 
     #endregion
 

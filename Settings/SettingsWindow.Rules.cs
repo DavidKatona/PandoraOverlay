@@ -18,12 +18,11 @@ public partial class SettingsWindow
     private const string RulesPageUrl = "https://islapandora.eu/rules";
     private const string DiscordUrl = "https://discord.gg/islapandora";
 
-    private static readonly Brush RuleNumber = new SolidColorBrush(Color.FromRgb(0x5E, 0x6B, 0x76));
-    private static readonly Brush RuleText = new SolidColorBrush(Color.FromRgb(0xC7, 0xD1, 0xDA));
-    private static readonly Brush Highlight = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64)); // your own arrow's orange
-    private static readonly Brush Herbivore = new SolidColorBrush(Color.FromRgb(0x81, 0xC7, 0x84));
-    private static readonly Brush Carnivore = new SolidColorBrush(Color.FromRgb(0xEF, 0x53, 0x50));
-    private static readonly Brush Omnivore = new SolidColorBrush(Color.FromRgb(0xFF, 0xB7, 0x4D));
+    // Read from the theme as a page builds (Skins and Dino storage use them
+    // too); the diet colours are the website's, never a theme's (SiteBrushes).
+    private static Brush RuleNumber => Theme.Current.Text.Off.ToBrush();
+    private static Brush RuleText => Theme.Current.Text.Text.ToBrush();
+    private static Brush Highlight => Theme.Current.Text.Highlight.ToBrush(); // yours: your species here, gold like your arrow in Default
 
     private readonly string? _currentDino; // the live dino when the dialog opened, for the pack-limit highlight
 
@@ -46,13 +45,22 @@ public partial class SettingsWindow
     /// <summary>The cards, built the first time the page is looked at (they sit in a fixed-height list, so nothing shifts).</summary>
     private void OpenRulesPage()
     {
-        if (_rulesBuilt || _rulesDocument is not { } doc) return;
+        if (_rulesBuilt || _rulesDocument is null) return;
         _rulesBuilt = true;
+        RenderRules();
+    }
+
+    /// <summary>The two cards from the loaded copy; again after a theme switch (RedrawIfStale), from the same copy.</summary>
+    private void RenderRules()
+    {
+        RulesContent.Children.Clear();
+        Drawn("Rules");
+        if (_rulesDocument is not { } doc) return;
         if (doc.PackLimits.Count > 0) RulesContent.Children.Add(BuildPackLimitsCard(doc));
         if (doc.Rules.Count > 0) RulesContent.Children.Add(BuildRulesCard(doc));
     }
 
-    /// <summary>One card: a caption band, then a column per category with "Name ...... limit" rows; your species in orange.</summary>
+    /// <summary>One card: a caption band, then a column per category with "Name ...... limit" rows; your species highlighted.</summary>
     private Border BuildPackLimitsCard(RulesDocument doc)
     {
         var body = new StackPanel();
@@ -131,24 +139,24 @@ public partial class SettingsWindow
     {
         Child = new TextBlock
         {
-            Text = text, Foreground = HintNeutral, FontSize = 10, FontWeight = FontWeights.SemiBold,
+            Text = text, Foreground = HintNeutral, FontSize = 10, FontWeight = CaptionWeight,
             Margin = new Thickness(8, 0, 8, 0), TextTrimming = TextTrimming.CharacterEllipsis
         },
-        Background = BandSurface, CornerRadius = new CornerRadius(3),
+        Background = BandSurface, CornerRadius = BandCorner,
         Padding = new Thickness(0, 3, 0, 3), Margin = new Thickness(0, 0, 0, 4)
     };
 
     private static Border WrapCard(UIElement body) => new()
     {
-        Child = body, CornerRadius = new CornerRadius(4), BorderBrush = CardBorder, BorderThickness = new Thickness(1),
+        Child = body, CornerRadius = CardCorner, BorderBrush = CardBorder, BorderThickness = new Thickness(1),
         Background = CardSurface, Padding = new Thickness(6, 6, 6, 4), Margin = new Thickness(0, 0, 0, 8)
     };
 
     private static Brush CategoryBrush(string category) => category.ToLowerInvariant() switch
     {
-        "herbivore" => Herbivore,
-        "carnivore" => Carnivore,
-        "omnivore" => Omnivore,
+        "herbivore" => SiteBrushes.Herbivore,
+        "carnivore" => SiteBrushes.Carnivore,
+        "omnivore" => SiteBrushes.Omnivore,
         _ => HintNeutral
     };
 

@@ -61,7 +61,11 @@ summary.
   is a `CutOutline`. Both draw nothing at Default's 0.
 - **A redraw of a code-built Settings page calls its RENDER, never its `Open…`**:
   `OpenStoragePage` asks the website on every call past its guards, and a theme click must
-  never become a trigger of a request (CLAUDE.md, constraint 2).
+  never become a trigger of a request (CLAUDE.md, constraint 2). A page's render calls
+  `Drawn("<page>")`; `RedrawIfStale` (SettingsWindow.Themes.cs) gets a case for it, and
+  `SettingsThemeTests` holds the rule (a counting fake for the website).
+- **The dialogs' templates are `Themes/Controls.xaml`'s** (Settings, the update card, the
+  sign-in window, from step 5): a window never keeps its own copy of a button family.
 - **A new window derives `OverlayWindowBase`, or calls `Theme.EnsureLoaded()` before
   `InitializeComponent`**, so a harness without the App has the theme's resources. A theme
   key read by `StaticResource` never follows a switch: always `DynamicResource`.

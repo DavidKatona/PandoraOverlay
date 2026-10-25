@@ -87,7 +87,7 @@ public partial class SettingsWindow
             plain.Visibility = Visibility.Collapsed;
             warning.Visibility = armed.Visibility = Visibility.Visible;
             card.Disarm = Disarm;
-            SetStorageStatus($"Delete {d.DisplayName} from your storage? It goes for good, on the website too.", HintWarn);
+            SetStorageStatus($"Delete {d.DisplayName} from your storage? It goes for good, on the website too.", Tone.Warn);
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => armed.BringIntoView());
         };
         keep.Click += (_, _) =>
@@ -129,7 +129,7 @@ public partial class SettingsWindow
 
         view.Children.Add(Caption("VITALS"));
         var vitals = new[] { d.Health, d.Stamina, d.Hunger, d.Thirst, d.Blood };
-        for (var i = 0; i < vitals.Length; i++) view.Children.Add(VitalRow(VitalLooks[i].Label, vitals[i], VitalLooks[i].Fill));
+        for (var i = 0; i < vitals.Length; i++) view.Children.Add(VitalRow(SiteBrushes.Vitals[i].Label, vitals[i], SiteBrushes.Vitals[i].Fill));
 
         view.Children.Add(Caption("MUTATIONS", top: 8));
         view.Children.Add(MutationRow("Regular", d.Mutations));
@@ -202,7 +202,7 @@ public partial class SettingsWindow
         }
         var well = new Border
         {
-            Width = StoredMapSize, Height = StoredMapSize, CornerRadius = new CornerRadius(3), Background = PictureWell,
+            Width = StoredMapSize, Height = StoredMapSize, CornerRadius = BandCorner, Background = PictureWell,
             ClipToBounds = true, HorizontalAlignment = HorizontalAlignment.Left, Child = canvas
         };
         panel.Children.Add(well);
@@ -260,7 +260,7 @@ public partial class SettingsWindow
     {
         var spot = new Path
         {
-            Data = Geometry.Parse("M 0,-5 L 5,0 L 0,5 L -5,0 Z"), Fill = StoredSpotFill, Stroke = MarkerRim, StrokeThickness = 1.2,
+            Data = Geometry.Parse("M 0,-5 L 5,0 L 0,5 L -5,0 Z"), Fill = SiteBrushes.StoredSpot, Stroke = MarkerRim, StrokeThickness = 1.2,
             RenderTransform = new TranslateTransform(cx, cy), ToolTip = "where it was stored"
         };
         return spot;
@@ -318,13 +318,13 @@ public partial class SettingsWindow
         {
             if (_library.IsFull)
             {
-                SetStorageStatus($"The waypoint library is full ({WaypointLibrary.Capacity}). Delete one on the Waypoints page first.", HintWarn);
+                SetStorageStatus($"The waypoint library is full ({WaypointLibrary.Capacity}). Delete one on the Waypoints page first.", Tone.Warn);
                 return;
             }
             existing = _library.Add(name, x, y, _library.NextColour());
             if (existing is null)
             {
-                SetStorageStatus("That spot isn't on the island, so it can't hold a waypoint.", HintWarn);
+                SetStorageStatus("That spot isn't on the island, so it can't hold a waypoint.", Tone.Warn);
                 return;
             }
         }
@@ -343,7 +343,7 @@ public partial class SettingsWindow
         button.IsEnabled = false;
         SetStorageStatus(added
             ? $"Waypoint \"{name}\" added and tracked: it's on the minimap now."
-            : $"\"{name}\" was already a waypoint there: it's tracked now.", HintGood);
+            : $"\"{name}\" was already a waypoint there: it's tracked now.", Tone.Good);
     }
 
     // ---- Rename -------------------------------------------------------------------
@@ -389,12 +389,12 @@ public partial class SettingsWindow
             if (name == (d.Name ?? "") && description == (d.Description ?? ""))
             {
                 Close();
-                SetStorageStatus("Nothing changed, so nothing was sent.", HintNeutral);
+                SetStorageStatus("Nothing changed, so nothing was sent.", Tone.Neutral);
                 return;
             }
             _storageBusy = true;
             save.IsEnabled = cancel.IsEnabled = false;
-            SetStorageStatus($"Saving {d.DisplayName}…", HintNeutral);
+            SetStorageStatus($"Saving {d.DisplayName}…", Tone.Neutral);
             try
             {
                 var result = await _poll.RenameStoredDinoAsync(d, name, description);
@@ -404,7 +404,7 @@ public partial class SettingsWindow
                     try
                     {
                         ReplaceStorageCard(card, renamed);
-                        SetStorageStatus($"Saved: {renamed.DisplayName} carries the new name on the website too.", HintGood);
+                        SetStorageStatus($"Saved: {renamed.DisplayName} carries the new name on the website too.", Tone.Good);
                     }
                     catch (Exception ex)
                     {
@@ -446,7 +446,7 @@ public partial class SettingsWindow
         view.Visibility = actions.Visibility = Visibility.Collapsed;
         left.Children.Add(form);
         card.Disarm = Close;
-        SetStorageStatus($"Renaming {d.DisplayName}: Save sends the name and description to the website at once.", HintNeutral);
+        SetStorageStatus($"Renaming {d.DisplayName}: Save sends the name and description to the website at once.", Tone.Neutral);
         Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
         {
             nameBox.Focus();
@@ -492,7 +492,7 @@ public partial class SettingsWindow
         _storageBusy = true;
         really.IsEnabled = keep.IsEnabled = false;
         var name = card.Dino.DisplayName;
-        SetStorageStatus($"Deleting {name}…", HintNeutral);
+        SetStorageStatus($"Deleting {name}…", Tone.Neutral);
         try
         {
             var result = await _poll.DeleteStoredDinoAsync(card.Dino);
@@ -510,7 +510,7 @@ public partial class SettingsWindow
                 if (_openDinoId == card.Dino.Id) _openDinoId = null;
                 RenderStorageCount();
                 UpdateFreeSlots();
-                SetStorageStatus($"Deleted {name} from your storage.", HintGood);
+                SetStorageStatus($"Deleted {name} from your storage.", Tone.Good);
             }
             catch (Exception ex)
             {
@@ -531,5 +531,5 @@ public partial class SettingsWindow
     /// again reloads the list.
     /// </summary>
     private void RedrawFailed(Exception ex, string done) =>
-        SetStorageStatus($"{done}, but the page couldn't redraw ({ex.GetType().Name}). Open the page again to see it.", HintWarn);
+        SetStorageStatus($"{done}, but the page couldn't redraw ({ex.GetType().Name}). Open the page again to see it.", Tone.Warn);
 }

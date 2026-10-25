@@ -6,21 +6,27 @@ paths:
 # Writing code in the Settings dialog
 
 - **No stock WPF chrome anywhere in the dialog.** Every control kind has its own
-  template in `SettingsWindow.xaml` (buttons with an explicit disabled look, Check /
-  Radio, `TextBoxStyle`-based boxes, `DarkScrollBar`); a new kind gets one before it
-  ships. Radio rows instead of a ComboBox (stock ComboBox chrome is light and ignores
-  Background). Our own nav, not the stock TabControl.
-- **The look is the theme's** (1.39): colours, corners and fonts are tokens, the control
-  templates are moving to `Themes/Controls.xaml` (the plan's steps 2 and 5), and a
-  code-built page redraws from the data it holds, never by its `Open…` — see
-  `.claude/rules/themes.md`.
+  template in `Themes/Controls.xaml` (1.39; shared with the update card and the sign-in
+  window: buttons with an explicit disabled look, Check / Radio, `TextBoxStyle`-based
+  boxes, `DarkScrollBar`, `NavButton`); a new kind gets one there before it ships. Radio
+  rows instead of a ComboBox (stock ComboBox chrome is light and ignores Background).
+  Our own nav, not the stock TabControl. Sliders take `Style="{DynamicResource
+  Theme.SliderStyle}"` (WPF's own in Default, `ThemedSlider` for a drawn thumb).
+- **The look is the theme's** (1.39): colours, corners and fonts are tokens, read by
+  `DynamicResource` in XAML and from `Theme.Current` as a page builds; a status line that
+  stays on screen takes its tone by `ShowTone` (a resource reference: it follows a switch
+  by itself); the website's own meanings (Discord's blue, the diet colours, a stored dino's
+  sex, badges and vitals) are `SiteBrushes`, never a theme's. A code-built page notes the
+  theme it drew in (`Drawn`) and is redrawn from the data it holds (`RedrawIfStale`,
+  `SettingsWindow.Themes.cs`), never by its `Open…` — see `.claude/rules/themes.md`.
 - One partial file per page (`SettingsWindow.<Page>.cs`); a page splits further only
   along a topic of its own (CLAUDE.md, Conventions → File size).
 - The nav is grouped (owner, Oct 22 2026): the overlay's pages (Account, General,
   Themes (1.39, after General: the owner, Oct 25 2026), Hotkeys, Widgets, Maps,
   Waypoints, Friends), then the website's under an
   ISLAPANDORA.EU caption (Skins, Dino storage, Server rules), then About. A page is a
-  nav Button (Tag = the `SetPage` key); captions and dividers in `Nav` are not pages.
+  nav ToggleButton (Tag = the `SetPage` key; checked = shown, so the theme draws the
+  selected row); captions and dividers in `Nav` are not pages.
 - A new widget adds a captioned group to the **Widgets** page, in the control panel's
   order, its own Scale slider first; it gets a page of its own only when its options
   would make Widgets taller than the tallest page. The minimap's options are on **Maps**,

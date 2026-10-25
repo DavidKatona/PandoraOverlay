@@ -77,13 +77,27 @@ public class ThemedWindowsTests
         "Minimap/NameLayer.cs", "Minimap/MapMenuBuilder.cs",
         "BigMap/BigMapWindow.xaml", "BigMap/BigMapWindow.xaml.cs", "BigMap/BigMapWindow.Layers.cs",
         "Shell/SnapGuideWindow.cs",
-        "Themes/Controls.xaml", // the shared templates: the panel's and the map menus'
+        "Themes/Controls.xaml", // the shared templates: the panel's, the map menus', the dialogs'
+        // Step 5, the dialogs. The website's and Discord's own colours live in
+        // Settings/SiteBrushes.cs (data, never a theme's), so it is not here.
+        "Settings/SettingsWindow.xaml", "Settings/SettingsWindow.xaml.cs", "Settings/SettingsWindow.Apply.cs",
+        "Settings/SettingsWindow.Account.cs", "Settings/SettingsWindow.About.cs",
+        "Settings/SettingsWindow.Waypoints.cs", "Settings/SettingsWindow.WaypointPacks.cs", "Settings/SettingsWindow.Friends.cs",
+        "Settings/SettingsWindow.Skins.cs", "Settings/SettingsWindow.SkinPictures.cs", "Settings/SettingsWindow.SkinFavourites.cs",
+        "Settings/SettingsWindow.Storage.cs", "Settings/SettingsWindow.StorageDetail.cs", "Settings/SettingsWindow.Rules.cs",
+        "Updates/UpdateCardWindow.xaml", "Updates/UpdateCardWindow.xaml.cs",
+        "Account/SignInWindow.xaml", "Account/SignInWindow.xaml.cs",
     };
 
     private static readonly Regex XamlColour = new(@"=""#[0-9A-Fa-f]{6,8}""", RegexOptions.Compiled);
     private static readonly Regex XamlCorner = new(@"CornerRadius=""[0-9]", RegexOptions.Compiled);
-    private static readonly Regex XamlFont = new(@"FontFamily=""[^{]", RegexOptions.Compiled);
+    // A font named in XAML, but the two that are never a theme's (PLAN.md
+    // section 5): the glyph font of the ✓ and ✕ icons, and the monospace of
+    // the settings folder's path and the sign-in's code.
+    private static readonly Regex XamlFont = new(@"FontFamily=""(?!\{|Segoe MDL2 Assets""|Consolas"")", RegexOptions.Compiled);
     private static readonly Regex CodeColour = new(@"Color\.From(A)?Rgb\(\s*0x", RegexOptions.Compiled);
+    // A colour as three hex bytes in code, whatever the helper (the update card had Frozen(0x7B, 0x87, 0x90)).
+    private static readonly Regex CodeBytes = new(@"\(\s*0x[0-9A-Fa-f]{2}\s*,\s*0x[0-9A-Fa-f]{2}\s*,\s*0x[0-9A-Fa-f]{2}", RegexOptions.Compiled);
 
     /// <summary>
     /// A colour, a corner or a font in a converted window is a token
@@ -101,7 +115,7 @@ public class ThemedWindowsTests
             var text = File.ReadAllText(Path.Combine(root, file));
             var regexes = file.EndsWith(".xaml", StringComparison.Ordinal)
                 ? new[] { XamlColour, XamlCorner, XamlFont }
-                : new[] { CodeColour };
+                : new[] { CodeColour, CodeBytes };
             foreach (var regex in regexes)
                 foreach (Match m in regex.Matches(text))
                     problems.Add($"{file}: {m.Value}");
@@ -117,8 +131,13 @@ public class ThemedWindowsTests
         Assert.Matches(XamlCorner, """<Border CornerRadius="10"/>""");
         Assert.Matches(XamlFont, """<Window FontFamily="Segoe UI"/>""");
         Assert.Matches(CodeColour, "new SolidColorBrush(Color.FromRgb(0x7B, 0x87, 0x90))");
+        Assert.Matches(CodeBytes, "private static readonly Brush Soft = Frozen(0x7B, 0x87, 0x90);");
         Assert.DoesNotMatch(XamlColour, """<Border Background="{DynamicResource Theme.Glass.Widget}"/>""");
         Assert.DoesNotMatch(XamlFont, """<Window FontFamily="{DynamicResource Theme.Font.Family}"/>""");
+        Assert.DoesNotMatch(XamlFont, """<TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"/>""");
+        Assert.DoesNotMatch(XamlFont, """<TextBlock FontFamily="Consolas"/>""");
+        Assert.Matches(XamlFont, """<TextBlock FontFamily="Consolas Bold"/>""");
         Assert.DoesNotMatch(CodeColour, "Color.FromArgb(alpha, glass.R, glass.G, glass.B)");
+        Assert.DoesNotMatch(CodeBytes, "WaypointPalette.Wrap(0x01)");
     }
 }

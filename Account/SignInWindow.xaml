@@ -7,62 +7,33 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="NoResize"
-        Background="#10151B"
-        FontFamily="Segoe UI"
+        Background="{DynamicResource Theme.Glass.SignIn}"
+        FontFamily="{DynamicResource Theme.Font.Family}"
         ShowInTaskbar="True">
 
     <!-- NO AllowsTransparency, unlike every other dialog of ours: WebView2 is an
          HwndHost and renders blank inside a layered window. So this one has
          square corners and draws its own title bar through WindowChrome. -->
+    <!-- Square: WindowChrome's own corner (0) is the window's, never a theme's. -->
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="40" GlassFrameThickness="0" CornerRadius="0"
+        <WindowChrome CaptionHeight="40" GlassFrameThickness="0"
                       ResizeBorderThickness="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
+    <!-- The buttons are the app's (Themes/Controls.xaml, 1.39: this window kept
+         its own copies of the Settings dialog's until then), every colour a
+         theme token. The window is never up while a theme is clicked (it
+         opens over Settings), so what its code paints is read as it paints. -->
     <Window.Resources>
-        <!-- The Settings dialog's three button looks, kept local (its resources are its own). -->
-        <Style x:Key="NeutralButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#2A3038"/>
-            <Setter Property="Foreground" Value="#C7D1DA"/>
-            <Setter Property="Padding" Value="14,5"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="2" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#3A4250"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Chrome" Property="Background" Value="#1E242B"/>
-                                <Setter Property="Foreground" Value="#5E6B76"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource NeutralButtonStyle}">
-            <Setter Property="Background" Value="#2E5E38"/>
-            <Setter Property="Foreground" Value="#DFF3E2"/>
-            <Setter Property="Padding" Value="18,5"/>
-        </Style>
-        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource NeutralButtonStyle}">
-            <Setter Property="Background" Value="#552B2B"/>
-            <Setter Property="Foreground" Value="#FFDDDD"/>
-        </Style>
         <Style x:Key="Fact" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#C7D1DA"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Text2}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
     </Window.Resources>
 
-    <Border BorderBrush="#33FFFFFF" BorderThickness="1" Padding="16,12">
+    <Border BorderBrush="{DynamicResource Theme.Frame.Locked.Line}" BorderThickness="1" Padding="16,12">
         <DockPanel>
 
             <!-- Title bar: the chrome's caption area; only the close button takes clicks. -->
@@ -70,7 +41,8 @@
                 <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Cancel_Click"
                         Style="{StaticResource DangerButtonStyle}" Width="22" Height="22" Padding="0" FontSize="10"
                         WindowChrome.IsHitTestVisibleInChrome="True"/>
-                <TextBlock Text="Sign in to islapandora.eu" Foreground="#ECF2F8" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Text="Sign in to islapandora.eu" Foreground="{DynamicResource Theme.Text.Title}" FontSize="14" VerticalAlignment="Center"
+                           FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontWeight="{DynamicResource Theme.Font.TitleWeight}"/>
             </DockPanel>
 
             <!-- Footer: a note about where you are, and the buttons for this stage. -->
@@ -83,23 +55,23 @@
                     <Button x:Name="RetryButton" Content="Try again" Click="Retry_Click"
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,8,0" Visibility="Collapsed"/>
                     <Button x:Name="DoneButton" Content="Done" Click="Done_Click"
-                            Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,0" Visibility="Collapsed"/>
+                            Style="{StaticResource SaveButtonStyle}" Margin="0,0,8,0" Visibility="Collapsed"/>
                     <Button x:Name="CancelButton" Content="Cancel" Click="Cancel_Click"
                             Style="{StaticResource NeutralButtonStyle}"/>
                 </StackPanel>
-                <TextBlock x:Name="FooterNote" Foreground="#7B8790" FontSize="11" TextWrapping="Wrap"
+                <TextBlock x:Name="FooterNote" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap"
                            VerticalAlignment="Center" Margin="0,0,12,0"/>
             </DockPanel>
 
             <!-- The address strip: READ-ONLY, always the real host, so the player can see
                  that the password goes to discord.com and not to us. -->
-            <Border x:Name="AddressStrip" DockPanel.Dock="Top" Background="#1A2129" BorderBrush="#333C46"
-                    BorderThickness="1" CornerRadius="3" Padding="10,6" Margin="0,0,0,8">
+            <Border x:Name="AddressStrip" DockPanel.Dock="Top" Background="{DynamicResource Theme.TextBox.Idle.Fill}" BorderBrush="{DynamicResource Theme.InfoCard.Line}"
+                    BorderThickness="1" CornerRadius="{DynamicResource Theme.Corner.Band}" Padding="10,6" Margin="0,0,0,8">
                 <DockPanel>
-                    <TextBlock x:Name="StepText" DockPanel.Dock="Right" Foreground="#9AA7B0" FontSize="11" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StepText" DockPanel.Dock="Right" Foreground="{DynamicResource Theme.Text.Label}" FontSize="11" VerticalAlignment="Center"/>
                     <TextBlock FontSize="12" VerticalAlignment="Center">
-                        <Run x:Name="LockRun" Text="&#xE72E; " FontFamily="Segoe MDL2 Assets" Foreground="#7CC884"/>
-                        <Run x:Name="HostRun" FontWeight="Bold" Foreground="#ECF2F8"/><Run x:Name="PathRun" Foreground="#7B8790"/>
+                        <Run x:Name="LockRun" Text="&#xE72E; " FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource Theme.Text.Good}"/>
+                        <Run x:Name="HostRun" FontWeight="Bold" Foreground="{DynamicResource Theme.Text.Bright}"/><Run x:Name="PathRun" Foreground="{DynamicResource Theme.Text.Dim}"/>
                     </TextBlock>
                 </DockPanel>
             </Border>
@@ -107,27 +79,27 @@
             <!-- Body: the browser, or — the browser hidden, not covered (an HwndHost
                  always draws on top) — the result panel. -->
             <Grid>
-                <Border x:Name="WebFrame" BorderBrush="#333C46" BorderThickness="1">
+                <Border x:Name="WebFrame" BorderBrush="{DynamicResource Theme.InfoCard.Line}" BorderThickness="1">
                     <wv2:WebView2 x:Name="Web"/>
                 </Border>
 
-                <Border x:Name="ResultPanel" Visibility="Collapsed" Background="#1B222A" BorderBrush="#333C46"
-                        BorderThickness="1" CornerRadius="4" Padding="28">
+                <Border x:Name="ResultPanel" Visibility="Collapsed" Background="{DynamicResource Theme.InfoCard.Surface}" BorderBrush="{DynamicResource Theme.InfoCard.Line}"
+                        BorderThickness="1" CornerRadius="{DynamicResource Theme.Corner.Card}" Padding="28">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="460">
                         <Grid Width="68" Height="68" HorizontalAlignment="Center">
-                            <Ellipse x:Name="ResultRing" Stroke="#7CC884" StrokeThickness="3"/>
-                            <TextBlock x:Name="ResultGlyph" FontFamily="Segoe MDL2 Assets" FontSize="30" Foreground="#7CC884"
+                            <Ellipse x:Name="ResultRing" Stroke="{DynamicResource Theme.Text.Good}" StrokeThickness="3"/>
+                            <TextBlock x:Name="ResultGlyph" FontFamily="Segoe MDL2 Assets" FontSize="30" Foreground="{DynamicResource Theme.Text.Good}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Grid>
-                        <TextBlock x:Name="ResultTitle" Foreground="#ECF2F8" FontSize="20" FontWeight="Bold"
+                        <TextBlock x:Name="ResultTitle" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="20" FontWeight="Bold"
                                    TextAlignment="Center" TextWrapping="Wrap" Margin="0,16,0,0"/>
-                        <TextBlock x:Name="ResultSubtitle" Foreground="#7CC884" FontSize="12.5"
+                        <TextBlock x:Name="ResultSubtitle" Foreground="{DynamicResource Theme.Text.Good}" FontSize="12.5"
                                    TextAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                        <Border x:Name="ResultBox" Background="#12171D" BorderBrush="#333C46" BorderThickness="1"
-                                CornerRadius="4" Padding="14,12,14,4" Margin="0,20,0,0">
+                        <Border x:Name="ResultBox" Background="{DynamicResource Theme.InfoCard.Inner}" BorderBrush="{DynamicResource Theme.InfoCard.Line}" BorderThickness="1"
+                                CornerRadius="{DynamicResource Theme.Corner.Card}" Padding="14,12,14,4" Margin="0,20,0,0">
                             <StackPanel x:Name="ResultLines"/>
                         </Border>
-                        <TextBlock x:Name="ResultFoot" Foreground="#7B8790" FontSize="12" TextAlignment="Center" Margin="0,18,0,0"/>
+                        <TextBlock x:Name="ResultFoot" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="12" TextAlignment="Center" Margin="0,18,0,0"/>
                     </StackPanel>
                 </Border>
             </Grid>

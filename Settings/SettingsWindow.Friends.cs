@@ -28,7 +28,7 @@ public partial class SettingsWindow
     private bool _friendsDirty;
     private bool _friendRowsBuilt;
 
-    private static readonly Brush InGameBrush = new SolidColorBrush(Color.FromRgb(0x7C, 0xC8, 0x84));
+    private static Brush InGameBrush => Theme.Current.Text.Good.ToBrush(); // "in game" is good news: read as the rows are built
 
     /// <summary>A row changed: applied with the next batch. A nickname is applied once its box is left (or Enter), not per letter.</summary>
     private void FriendsEdited()
@@ -49,6 +49,7 @@ public partial class SettingsWindow
     private void BuildFriendRows()
     {
         FriendRows.Children.Clear();
+        Drawn("Friends");
         var inGame = _friendDraft.Count(e => IsInGame(e.SteamId));
         FriendCount.Text = _friendDraft.Count == 0 ? "" : $"{_friendDraft.Count} friends · {inGame} in game";
 
@@ -76,7 +77,7 @@ public partial class SettingsWindow
         }
         FriendRows.Children.Add(new Border
         {
-            Child = body, CornerRadius = new CornerRadius(4), BorderBrush = CardBorder, BorderThickness = new Thickness(1),
+            Child = body, CornerRadius = CardCorner, BorderBrush = CardBorder, BorderThickness = new Thickness(1),
             Background = CardSurface, Padding = new Thickness(6, 6, 6, 4), Margin = new Thickness(0, 0, 0, 8)
         });
     }
@@ -103,13 +104,13 @@ public partial class SettingsWindow
         var caption = new TextBlock
         {
             Text = "YOUR FRIENDS", Foreground = HintNeutral, FontSize = 10,
-            FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0)
+            FontWeight = CaptionWeight, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0)
         };
         Grid.SetColumn(caption, 1);
         row.Children.Add(caption);
         return new Border
         {
-            Child = row, Background = BandSurface, CornerRadius = new CornerRadius(3),
+            Child = row, Background = BandSurface, CornerRadius = BandCorner,
             Padding = new Thickness(0, 3, 0, 3), Margin = new Thickness(0, 0, 0, 4)
         };
     }
@@ -125,7 +126,7 @@ public partial class SettingsWindow
         var dot = new Ellipse { Width = 9, Height = 9, Fill = PaletteBrushes[colour] };
         var well = new Border
         {
-            Child = dot, Width = 15, Height = 15, CornerRadius = new CornerRadius(2),
+            Child = dot, Width = 15, Height = 15, CornerRadius = WellCorner,
             Background = WellSurface, BorderBrush = WellBorder, BorderThickness = new Thickness(1),
             Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center,
             ToolTip = $"{WaypointPalette.Colours[colour].Name} — click to change"

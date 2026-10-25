@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -38,9 +39,10 @@ public partial class SettingsWindow
     private const string PictureUnavailable = "picture unavailable";
     private static readonly TimeSpan ServerSkinCooldown = TimeSpan.FromMinutes(15); // shown as a hint only, never enforced here
 
-    private static readonly Brush TileName = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8));
-    private static readonly Brush PictureWell = new SolidColorBrush(Color.FromRgb(0x1A, 0x21, 0x29));
-    private static readonly Brush DotRim = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
+    // Read from the theme as the tiles are built (Dino storage uses the first two too); a skin's own colours are the website's.
+    private static Brush TileName => Theme.Current.Text.Bright.ToBrush();
+    private static Brush PictureWell => Theme.Current.Well.Surface.ToBrush();
+    private static Brush DotRim => Theme.Current.Well.DotLine.ToBrush();
 
     /// <summary>The filter and search survive reopening the dialog (session-only, like the page you were on).</summary>
     private static bool _skinsShowAll;
@@ -75,7 +77,7 @@ public partial class SettingsWindow
 
         if (_firstRun)
         {
-            SetSkinStatus("Connect your account on the Account page first — the skins come from your islapandora.eu login.", HintWarn);
+            SetSkinStatus("Connect your account on the Account page first — the skins come from your islapandora.eu login.", Tone.Warn);
             SkinRefreshButton.IsEnabled = false;
             return;
         }
@@ -85,7 +87,7 @@ public partial class SettingsWindow
 
     private async Task LoadSkinsAsync(bool refresh)
     {
-        SetSkinStatus(_skins is null ? "Loading skins…" : "Refreshing…", HintNeutral);
+        SetSkinStatus(_skins is null ? "Loading skins…" : "Refreshing…", Tone.Neutral);
         SkinRefreshButton.IsEnabled = false;
         var result = await _poll.GetSkinsAsync(refresh);
         if (_skinsClosed) return;
@@ -93,7 +95,7 @@ public partial class SettingsWindow
 
         if (result.Skins is null)
         {
-            SetSkinStatus($"Couldn't load the skins ({result.Problem}). Press Refresh to try again.", HintBad);
+            SetSkinStatus($"Couldn't load the skins ({result.Problem}). Press Refresh to try again.", Tone.Bad);
             return;
         }
         var first = _skins is null;
@@ -101,7 +103,7 @@ public partial class SettingsWindow
         SkinReloadButton.IsEnabled = true;
         if (first && !_skinsShowAll && _skins.Count > 0 && _skins.All(s => s.Locked)) SkinsAll.IsChecked = true; // nothing unlocked: show what there is
         RenderSkins();
-        if (result.Problem is null) ShowSkinHint(); else SetSkinStatus($"Showing the earlier list — refresh failed ({result.Problem}).", HintWarn);
+        if (result.Problem is null) ShowSkinHint(); else SetSkinStatus($"Showing the earlier list — refresh failed ({result.Problem}).", Tone.Warn);
         UpdateFavouriteButton();
         QueueVisibleSkinPictures();
     }
@@ -112,6 +114,7 @@ public partial class SettingsWindow
     {
         if (_skins is null) return;
         var version = ++_skinRenderVersion; // a newer render (filter, search, refresh) stops an older one's batches
+        Drawn("Skins");
         _disarmTile = null;
         _tilePictures.Clear();
         _tileNotes.Clear();
@@ -183,7 +186,7 @@ public partial class SettingsWindow
         var wellGrid = new Grid { Children = { note, picture } };
         var well = new Border
         {
-            Width = PictureWidth, Height = PictureHeight, Background = PictureWell, CornerRadius = new CornerRadius(3),
+            Width = PictureWidth, Height = PictureHeight, Background = PictureWell, CornerRadius = BandCorner,
             ClipToBounds = true, Child = wellGrid
         };
         AttachSkinTip(well, skin, picture);
@@ -217,7 +220,7 @@ public partial class SettingsWindow
         {
             Tag = skin, // the picture loader finds its skin through the tile
             Child = body, Width = TileWidth, Margin = new Thickness(0, 0, 6, 6), Padding = new Thickness(6),
-            CornerRadius = new CornerRadius(4), BorderBrush = CardBorder, BorderThickness = new Thickness(1),
+            CornerRadius = CardCorner, BorderBrush = CardBorder, BorderThickness = new Thickness(1),
             Background = CardSurface, Opacity = skin.Locked ? 0.55 : 1
         };
     }
@@ -254,7 +257,7 @@ public partial class SettingsWindow
                 row.Visibility = Visibility.Collapsed;
                 apply.Visibility = Visibility.Visible;
             };
-            SetSkinStatus($"{skin.Name}: choose its pattern, A to F. That applies it at once.", HintNeutral);
+            SetSkinStatus($"{skin.Name}: choose its pattern, A to F. That applies it at once.", Tone.Neutral);
         };
         return area;
     }
@@ -285,6 +288,8 @@ public partial class SettingsWindow
     private void AttachSkinTip(FrameworkElement well, PatreonSkin skin, Image tilePicture)
     {
         var tip = new ToolTip { Background = CardSurface, BorderBrush = CardBorder, Padding = new Thickness(8), HasDropShadow = false };
+        // A tooltip is a popup of its own and inherits no font from the dialog: the theme's family, as the dialog's.
+        tip.SetResourceReference(TextElement.FontFamilyProperty, "Theme.Font.Family");
         Action? refresh = null;
         well.ToolTip = tip;
         well.ToolTipOpening += (_, _) =>
@@ -346,7 +351,7 @@ public partial class SettingsWindow
         if (_skinApplying) return;
         _skinApplying = true;
         var letter = PatreonSkins.PatternLetter(pattern);
-        SetSkinStatus($"Applying {name} (pattern {letter})…", HintNeutral);
+        SetSkinStatus($"Applying {name} (pattern {letter})…", Tone.Neutral);
         try
         {
             var result = await _poll.ApplySkinAsync(skinId, idIsNumber, name, pattern);
@@ -354,21 +359,21 @@ public partial class SettingsWindow
             switch (result.Outcome)
             {
                 case SkinApplyOutcome.Ok:
-                    SetSkinStatus($"Applied {name} (pattern {letter}). It can take 5–10 seconds to show in game.", HintGood);
+                    SetSkinStatus($"Applied {name} (pattern {letter}). It can take 5–10 seconds to show in game.", Tone.Good);
                     _disarmTile?.Invoke();
                     _disarmTile = null;
                     break;
                 case SkinApplyOutcome.NotInGame:
-                    SetSkinStatus("You need to be spawned in to apply a skin. Nothing was sent.", HintWarn);
+                    SetSkinStatus("You need to be spawned in to apply a skin. Nothing was sent.", Tone.Warn);
                     break;
                 case SkinApplyOutcome.TooSoon:
-                    SetSkinStatus("Give it a few seconds between applies. Nothing was sent.", HintWarn);
+                    SetSkinStatus("Give it a few seconds between applies. Nothing was sent.", Tone.Warn);
                     break;
                 case SkinApplyOutcome.Refused:
-                    SetSkinStatus(result.Message is null ? "The server declined, without saying why." : $"The server said: {result.Message}", HintWarn);
+                    SetSkinStatus(result.Message is null ? "The server declined, without saying why." : $"The server said: {result.Message}", Tone.Warn);
                     break;
                 default:
-                    SetSkinStatus($"Couldn't apply the skin ({result.Message}).", HintBad);
+                    SetSkinStatus($"Couldn't apply the skin ({result.Message}).", Tone.Bad);
                     break;
             }
             UpdateFavouriteButton();
@@ -384,15 +389,15 @@ public partial class SettingsWindow
     {
         if (!_poll.InGame)
         {
-            SetSkinStatus("You aren't spawned in. Browse away; applying needs a dino in game.", HintNeutral);
+            SetSkinStatus("You aren't spawned in. Browse away; applying needs a dino in game.", Tone.Neutral);
         }
         else if (_config.SkinLastAppliedUtc is { } last && DateTime.UtcNow - last is var ago && ago >= TimeSpan.Zero && ago < ServerSkinCooldown)
         {
-            SetSkinStatus($"Last applied {Math.Max(1, (int)ago.TotalMinutes)} min ago. The server allows a new skin about every {ServerSkinCooldown.TotalMinutes:0} minutes.", HintNeutral);
+            SetSkinStatus($"Last applied {Math.Max(1, (int)ago.TotalMinutes)} min ago. The server allows a new skin about every {ServerSkinCooldown.TotalMinutes:0} minutes.", Tone.Neutral);
         }
         else
         {
-            SetSkinStatus("Apply, then pick the pattern (A–F): it shows in game after a few seconds. The ☆ on a tile makes it this dino's favourite.", HintNeutral);
+            SetSkinStatus("Apply, then pick the pattern (A–F): it shows in game after a few seconds. The ☆ on a tile makes it this dino's favourite.", Tone.Neutral);
         }
     }
 
@@ -424,9 +429,9 @@ public partial class SettingsWindow
 
     private void OpenPatreonPage_Click(object sender, RoutedEventArgs e) => OpenUrl(PatreonPageUrl);
 
-    private void SetSkinStatus(string text, Brush brush)
+    private void SetSkinStatus(string text, Tone tone)
     {
         SkinStatus.Text = text;
-        SkinStatus.Foreground = brush;
+        ShowTone(SkinStatus, tone);
     }
 }

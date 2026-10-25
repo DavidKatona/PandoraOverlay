@@ -273,7 +273,10 @@ public partial class MainWindow : OverlayWindowBase
     /// the map's markers and trail casing in place through MapCanvas.ApplyTheme,
     /// the area pill and the footer), Prime and Activity (their glass and their
     /// renders from what they hold, never a re-feed), the control panel (its
-    /// glass). The snap guides read the theme at each drag.</item>
+    /// glass), and the Settings dialog the click came from (its XAML follows
+    /// by itself; a page built in code is redrawn from what it holds, never
+    /// reopened: Dino storage's opening asks the website). The snap guides
+    /// read the theme at each drag.</item>
     /// </list>
     /// Between the swap and the repaints a window is half-switched for one
     /// dispatcher turn; nobody sees it. The map is closed while Settings is
@@ -293,6 +296,7 @@ public partial class MainWindow : OverlayWindowBase
         _prime?.ApplyTheme();
         _activity?.ApplyTheme();
         _controlPanel?.ApplySettingsFromConfig();
+        _settings?.ApplyTheme();
     }
 
     /// <summary>

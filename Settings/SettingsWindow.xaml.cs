@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -37,13 +38,35 @@ public partial class SettingsWindow : Window
 {
     private const int TestHotkeyId = 0xA11D; // distinct from MainWindow's real registration
 
-    private static readonly Brush HintNeutral = new SolidColorBrush(Color.FromRgb(0x7B, 0x87, 0x90));
-    private static readonly Brush HintGood = new SolidColorBrush(Color.FromRgb(0x7C, 0xC8, 0x84));
-    private static readonly Brush HintWarn = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));
-    private static readonly Brush HintBad = new SolidColorBrush(Color.FromRgb(0xFF, 0x8A, 0x80));
-    private static readonly Brush NavSelected = new SolidColorBrush(Color.FromRgb(0x2A, 0x30, 0x38));
-    private static readonly Brush NavSelectedText = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8));
-    private static readonly Brush NavText = new SolidColorBrush(Color.FromRgb(0xC7, 0xD1, 0xDA));
+    /// <summary>
+    /// A hint's or a status line's tone. The Settings hints read the text
+    /// roles, not a group of their own (themes PLAN.md section 6): Neutral is
+    /// Text.Dim, Good Text.Good, Warn Text.Caution, Bad Text.Danger.
+    /// </summary>
+    private enum Tone { Neutral, Good, Warn, Bad }
+
+    private static string ToneKey(Tone tone) => tone switch
+    {
+        Tone.Good => "Theme.Text.Good",
+        Tone.Warn => "Theme.Text.Caution",
+        Tone.Bad => "Theme.Text.Danger",
+        _ => "Theme.Text.Dim",
+    };
+
+    /// <summary>
+    /// A line that stays on screen while the page lives (a page's status
+    /// line, the hotkey hint, the Account card's lines) takes its tone by
+    /// resource reference: a theme switch recolours it by itself, with no
+    /// redraw and without forgetting what it says.
+    /// </summary>
+    private static void ShowTone(TextBlock line, Tone tone) => line.SetResourceReference(TextBlock.ForegroundProperty, ToneKey(tone));
+
+    // The same tones as brushes, read from the theme at the moment a page
+    // builds what it shows (a built page redraws on a theme switch: RedrawIfStale).
+    private static Brush HintNeutral => Theme.Current.Text.Dim.ToBrush();
+    private static Brush HintGood => Theme.Current.Text.Good.ToBrush();
+    private static Brush HintWarn => Theme.Current.Text.Caution.ToBrush();
+    private static Brush HintBad => Theme.Current.Text.Danger.ToBrush();
 
     /// <summary>The page shown last, so reopening the dialog lands where you were (session-only; first run forces Account).</summary>
     private static string _lastPage = "Account";
@@ -106,6 +129,10 @@ public partial class SettingsWindow : Window
                           string? currentDino = null, string? page = null, UpdateHooks? updates = null,
                           Action<SettingsChange>? apply = null)
     {
+        // The control templates are the app's (Themes/Controls.xaml), read
+        // by StaticResource at parse time: a harness without the App gets
+        // them here. In the overlay App.xaml has merged them already.
+        Theme.EnsureLoaded();
         InitializeComponent();
         _config = config;
         _apply = apply;
@@ -210,26 +237,28 @@ public partial class SettingsWindow : Window
     }
 
     // ---- Navigation ---------------------------------------------------------
-    private void Nav_Click(object sender, RoutedEventArgs e) => SetPage((string)((Button)sender).Tag);
+    private void Nav_Click(object sender, RoutedEventArgs e) => SetPage((string)((FrameworkElement)sender).Tag);
 
     /// <summary>
-    /// Shows one page and highlights its nav button. Unselected pages are
-    /// Hidden rather than Collapsed so the page grid keeps the tallest
-    /// page's height and the dialog never jumps between pages.
+    /// Shows one page and checks its nav button (the NavButton template draws
+    /// the selected row in the theme's look). Unselected pages are Hidden
+    /// rather than Collapsed so the page grid keeps the tallest page's height
+    /// and the dialog never jumps between pages.
     /// </summary>
     private void SetPage(string key)
     {
         _lastPage = key;
-        foreach (var button in Nav.Children.OfType<Button>())
+        foreach (var button in Nav.Children.OfType<ToggleButton>())
         {
-            var selected = (string)button.Tag == key;
-            button.Background = selected ? NavSelected : Brushes.Transparent;
-            button.Foreground = selected ? NavSelectedText : NavText;
+            button.IsChecked = (string)button.Tag == key; // also after a click on the shown page, which unchecked it
         }
         foreach (var page in Pages.Children.OfType<FrameworkElement>())
         {
             page.Visibility = (string)page.Tag == key ? Visibility.Visible : Visibility.Hidden;
         }
+        // A page built in code in an earlier theme is redrawn from what it
+        // holds first (SettingsWindow.Themes.cs), then opened as on any look.
+        RedrawIfStale(key);
         // Pages whose content is built in code build it on the first look:
         // hidden pages are still laid out, so anything built up front is
         // paid for on every opening of the dialog, whichever page shows.
@@ -263,7 +292,7 @@ public partial class SettingsWindow : Window
     private void HotkeyBox_GotFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         HotkeyHint.Text = "Press the new combination now (Esc keeps the current one).";
-        HotkeyHint.Foreground = HintNeutral;
+        ShowTone(HotkeyHint, Tone.Neutral);
         DisarmDefaultKeys(); // a key set by hand: the armed button goes back
     }
 
@@ -284,7 +313,7 @@ public partial class SettingsWindow : Window
         {
             box.Text = entry.Chosen.ToString();
             HotkeyHint.Text = HotkeyIdleHint;
-            HotkeyHint.Foreground = HintNeutral;
+            ShowTone(HotkeyHint, Tone.Neutral);
             Keyboard.ClearFocus();
             return;
         }
@@ -298,7 +327,7 @@ public partial class SettingsWindow : Window
         if (mods == ModifierKeys.None)
         {
             HotkeyHint.Text = "Add a modifier (Ctrl, Alt or Shift) — a bare key would be swallowed from the game.";
-            HotkeyHint.Foreground = HintWarn;
+            ShowTone(HotkeyHint, Tone.Warn);
             return;
         }
 
@@ -308,7 +337,7 @@ public partial class SettingsWindow : Window
         if (clash.Key is not null)
         {
             HotkeyHint.Text = $"{spec} is already assigned to {clash.Value.Label}.";
-            HotkeyHint.Foreground = HintBad;
+            ShowTone(HotkeyHint, Tone.Bad);
             return;
         }
 
@@ -318,7 +347,7 @@ public partial class SettingsWindow : Window
         if (!IsHotkeyAvailable(spec))
         {
             HotkeyHint.Text = $"{spec} is taken by another app — keeping {entry.Chosen}.";
-            HotkeyHint.Foreground = HintBad;
+            ShowTone(HotkeyHint, Tone.Bad);
             return;
         }
 
@@ -328,7 +357,7 @@ public partial class SettingsWindow : Window
         HotkeyHint.Text = spec == entry.Initial
             ? "Unchanged."
             : $"{spec} is set. It works once Settings is closed.";
-        HotkeyHint.Foreground = spec == entry.Initial ? HintNeutral : HintGood;
+        ShowTone(HotkeyHint, spec == entry.Initial ? Tone.Neutral : Tone.Good);
     }
 
     private bool _defaultKeysArmed;
@@ -354,7 +383,7 @@ public partial class SettingsWindow : Window
         if (_hotkeyEntries.Values.All(entry => entry.Chosen == entry.Default))
         {
             HotkeyHint.Text = "These are the default keys already.";
-            HotkeyHint.Foreground = HintNeutral;
+            ShowTone(HotkeyHint, Tone.Neutral);
             return;
         }
         var held = _hotkeyEntries.Values
@@ -364,7 +393,7 @@ public partial class SettingsWindow : Window
         if (held.Count > 0)
         {
             HotkeyHint.Text = $"{string.Join(", ", held)} {(held.Count == 1 ? "is" : "are")} taken by another app, so nothing changed. Close that app, or set the keys one by one.";
-            HotkeyHint.Foreground = HintBad;
+            ShowTone(HotkeyHint, Tone.Bad);
             return;
         }
         foreach (var (box, entry) in _hotkeyEntries)
@@ -374,7 +403,7 @@ public partial class SettingsWindow : Window
         }
         WriteHotkeys();
         HotkeyHint.Text = "The default keys are set. They work once Settings is closed.";
-        HotkeyHint.Foreground = HintGood;
+        ShowTone(HotkeyHint, Tone.Good);
     }
 
     private void DisarmDefaultKeys()

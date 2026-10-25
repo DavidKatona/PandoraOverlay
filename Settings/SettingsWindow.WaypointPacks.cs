@@ -29,14 +29,14 @@ public partial class SettingsWindow
         }
         catch
         {
-            SetWaypointStatus("Couldn't read that file.", HintWarn);
+            SetWaypointStatus("Couldn't read that file.", Tone.Warn);
             return;
         }
 
         var pack = WaypointPacks.Parse(json, System.IO.Path.GetFileNameWithoutExtension(dialog.FileName));
         if (pack is null)
         {
-            SetWaypointStatus("That file isn't a waypoint pack.", HintWarn);
+            SetWaypointStatus("That file isn't a waypoint pack.", Tone.Warn);
             return;
         }
 
@@ -48,7 +48,7 @@ public partial class SettingsWindow
         if (result.Duplicates > 0) text += $" · {result.Duplicates} already here";
         if (result.Overflow > 0) text += $" · {result.Overflow} didn't fit ({WaypointLibrary.Capacity} max)";
         if (result.Added > 0) text += ". They start hidden: Show all on the pack, or tick Show per waypoint.";
-        SetWaypointStatus(text, result.Added > 0 ? HintGood : HintNeutral);
+        SetWaypointStatus(text, result.Added > 0 ? Tone.Good : Tone.Neutral);
     }
 
     /// <summary>Writes the draft as a pack named after the chosen file.</summary>
@@ -65,11 +65,11 @@ public partial class SettingsWindow
         try
         {
             File.WriteAllText(dialog.FileName, WaypointPacks.Export(_draft, name));
-            SetWaypointStatus($"Exported {_draft.Count} waypoints as \"{name}\". Send the file to a friend; they import it from this page.", HintGood);
+            SetWaypointStatus($"Exported {_draft.Count} waypoints as \"{name}\". Send the file to a friend; they import it from this page.", Tone.Good);
         }
         catch
         {
-            SetWaypointStatus("Couldn't write that file.", HintWarn);
+            SetWaypointStatus("Couldn't write that file.", Tone.Warn);
         }
     }
 }

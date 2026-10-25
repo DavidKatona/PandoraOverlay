@@ -131,7 +131,7 @@ public partial class SettingsWindow
         if (_skins is null) return;
         if (!_poll.TryBeginSkinPictureReload())
         {
-            SetSkinStatus("The pictures were reloaded a moment ago. Give it half a minute.", HintWarn);
+            SetSkinStatus("The pictures were reloaded a moment ago. Give it half a minute.", Tone.Warn);
             return;
         }
 
@@ -145,7 +145,7 @@ public partial class SettingsWindow
         // Short enough for the status row's two lines beside "Apply again".
         SetSkinStatus(discarded == 0
             ? "Each picture downloads again when its tile is in view."
-            : $"{discarded} saved {(discarded == 1 ? "picture" : "pictures")} discarded. Each downloads again when its tile is in view.", HintNeutral);
+            : $"{discarded} saved {(discarded == 1 ? "picture" : "pictures")} discarded. Each downloads again when its tile is in view.", Tone.Neutral);
         LoadVisibleSkinPictures();
     }
 }

@@ -46,7 +46,7 @@ public partial class SettingsWindow
             }
             if (!_poll.InGame || _poll.CurrentDino is not { Length: > 0 } dino)
             {
-                SetSkinStatus("Spawn in as the dino it is for: a favourite is kept per species. Nothing was sent.", HintWarn);
+                SetSkinStatus("Spawn in as the dino it is for: a favourite is kept per species. Nothing was sent.", Tone.Warn);
                 return;
             }
             _disarmTile?.Invoke();
@@ -63,7 +63,7 @@ public partial class SettingsWindow
                 row.Visibility = Visibility.Collapsed;
                 apply.Visibility = Visibility.Visible;
             };
-            SetSkinStatus($"{skin.Name}: choose the pattern for your {dino} favourite, A to F. Nothing is sent.", HintNeutral);
+            SetSkinStatus($"{skin.Name}: choose the pattern for your {dino} favourite, A to F. Nothing is sent.", Tone.Neutral);
         };
     }
 
@@ -95,7 +95,7 @@ public partial class SettingsWindow
         _disarmTile = null;
         RefreshStars();
         UpdateFavouriteButton();
-        SetSkinStatus($"{skin.Name} · {PatreonSkins.PatternLetter(pattern)} is your {dino} favourite. {SkinHotkeyText()} applies it in game, or the button above.", HintGood);
+        SetSkinStatus($"{skin.Name} · {PatreonSkins.PatternLetter(pattern)} is your {dino} favourite. {SkinHotkeyText()} applies it in game, or the button above.", Tone.Good);
     }
 
     private void ClearFavourite()
@@ -104,7 +104,7 @@ public partial class SettingsWindow
         _config.SkinFavourites.Remove(dino);
         RefreshStars();
         UpdateFavouriteButton();
-        SetSkinStatus($"Your {dino} favourite is cleared. Nothing was sent.", HintNeutral);
+        SetSkinStatus($"Your {dino} favourite is cleared. Nothing was sent.", Tone.Neutral);
     }
 
     private void RefreshStars()
@@ -148,7 +148,7 @@ public partial class SettingsWindow
         if (_poll.MyFavourite is not { } favourite) return;
         if (_skins?.FirstOrDefault(s => s.Id == favourite.SkinId) is { Locked: true })
         {
-            SetSkinStatus($"{favourite.Name} is locked for your current tier.", HintWarn);
+            SetSkinStatus($"{favourite.Name} is locked for your current tier.", Tone.Warn);
             return;
         }
         await ApplySkinAsync(favourite.SkinId, favourite.IdIsNumber, favourite.Name, favourite.Pattern);

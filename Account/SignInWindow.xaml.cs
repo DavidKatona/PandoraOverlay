@@ -32,11 +32,12 @@ public partial class SignInWindow : Window
     /// <summary>The done screen's auto-close: long enough to read it (3 s was not — owner, Oct 7 2026); Done is there for the hurried.</summary>
     private static readonly TimeSpan AutoClose = TimeSpan.FromSeconds(10);
 
-    private static readonly Brush Good = new SolidColorBrush(Color.FromRgb(0x7C, 0xC8, 0x84));
-    private static readonly Brush Warn = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64));
-    private static readonly Brush Bad = new SolidColorBrush(Color.FromRgb(0xFF, 0x8A, 0x80));
-    private static readonly Brush Quiet = new SolidColorBrush(Color.FromRgb(0x9A, 0xA7, 0xB0));
-    private static readonly Brush Highlight = new SolidColorBrush(Color.FromRgb(0xFF, 0xAA, 0x00));
+    // The theme's, read as the window paints (it is never up while a theme is clicked).
+    private static Brush Good => Theme.Current.Text.Good.ToBrush();
+    private static Brush Warn => Theme.Current.Text.Caution.ToBrush();
+    private static Brush Bad => Theme.Current.Text.Danger.ToBrush();
+    private static Brush Quiet => Theme.Current.Text.Label.ToBrush();
+    private static Brush Highlight => Theme.Current.Text.Marker.ToBrush(); // the steps' numbers
 
     private bool _landed;   // the site tried to show a page: from here on only our own about:blank may load
     private DispatcherTimer? _closeTimer;
@@ -61,6 +62,7 @@ public partial class SignInWindow : Window
 
     public SignInWindow()
     {
+        Theme.EnsureLoaded(); // the shared templates (Themes/Controls.xaml), read at parse time: a harness has no App
         InitializeComponent();
         Loaded += async (_, _) => await StartAsync();
         Closed += (_, _) =>
@@ -347,14 +349,14 @@ public partial class SignInWindow : Window
     /// <summary>The LinkID, big enough to copy by eye into the game's chat.</summary>
     private void AddCode(string code) => ResultLines.Children.Add(new Border
     {
-        Background = new SolidColorBrush(Color.FromRgb(0x1A, 0x21, 0x29)),
-        BorderBrush = new SolidColorBrush(Color.FromRgb(0x5E, 0x6B, 0x76)),
-        BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(3),
+        Background = Theme.Current.TextBox.Idle.Fill.ToBrush(), // a code to read, in a text box's look
+        BorderBrush = Theme.Current.TextBox.Idle.Line.ToBrush(),
+        BorderThickness = new Thickness(1), CornerRadius = Theme.Current.Corner.Band.ToCornerRadius(),
         Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(22, 0, 0, 10), HorizontalAlignment = HorizontalAlignment.Left,
         Child = new TextBlock
         {
             Text = code, FontFamily = new FontFamily("Consolas"), FontSize = 16, FontWeight = FontWeights.Bold,
-            Foreground = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8))
+            Foreground = Theme.Current.TextBox.Idle.Text.ToBrush()
         }
     });
 

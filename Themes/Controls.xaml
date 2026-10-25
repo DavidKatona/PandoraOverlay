@@ -8,11 +8,16 @@
          read by DynamicResource ({DynamicResource Theme.Button.Neutral.Idle.Fill}),
          and every shape a pick from the catalogue (ThemeShape), so no theme
          ever ships XAML. Step 2 brought the control panel's styles, step 4
-         the maps' menu entries and ticks; step 5 brings the ones
-         SettingsWindow.xaml, the update card and the
-         sign-in window each hold their own copies of today. The slider gets
-         two Styles then: WPF's own for a Stock thumb, and ThemedSlider for a
-         drawn one; Theme.Apply puts the right one under Theme.SliderStyle. -->
+         the maps' menu entries and ticks, step 5 the dialogs' (Settings, the
+         update card and the sign-in window each held their own copies until
+         1.39). The slider has two Styles: WPF's own for a Stock thumb (an
+         empty Style, made in code) and ThemedSlider for a drawn one;
+         Theme.Apply puts the right one under Theme.SliderStyle, which every
+         slider reads by DynamicResource. Keys here are app-wide: a new one
+         must not take a name already used (PanelButton, MenuButton, Check …).
+         A template trigger reads its value by DynamicResource too, and a
+         part that must take clicks where nothing is drawn keeps a
+         transparent background behind it, as before. -->
 
     <!-- ===== The control panel (ControlPanelWindow.xaml) ===== -->
 
@@ -174,4 +179,581 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- ===== The dialogs (step 5; SettingsWindow.xaml, the update card and the sign-in window until then) ===== -->
+
+    <!-- RULE: no stock chrome in any dialog. Stock WPF controls are light,
+         ignore Background and glow on these dark surfaces, so every control
+         kind a dialog uses has its own template here (buttons, checks,
+         radios, text boxes, scrollbars, the nav); a new kind gets one before
+         it ships. -->
+
+    <!-- The three button families. The default chrome paints the disabled
+         state near-white whatever the Background, which glows on a dark
+         dialog, so each has an explicit dark disabled look (Delete all with
+         an empty library, Save-style buttons waiting for a sign-in). The
+         family's line is a 1 px outline drawn over the fill, never a border
+         that would shrink it: transparent in Default. In Default a press
+         looks like the hover (its tokens are the hover's). Neutral is the
+         common one (Close, Import/Export, Refresh, a waypoint row's ✕);
+         Save the one positive action; Danger what can't be taken back. -->
+    <Style x:Key="SaveButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource Theme.Button.Primary.Idle.Fill}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Primary.Idle.Text}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Primary.Idle.Line}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="Padding" Value="18,5"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource Theme.Corner.Button}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Theme.Corner.Button}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Button.Primary.Hover.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Primary.Hover.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Primary.Hover.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Button.Primary.Pressed.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Primary.Pressed.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Primary.Pressed.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Button.Primary.Disabled.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Primary.Disabled.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Primary.Disabled.Line}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="NeutralButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource Theme.Button.Neutral.Idle.Fill}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Neutral.Idle.Text}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Neutral.Idle.Line}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="Padding" Value="14,5"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource Theme.Corner.Button}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Theme.Corner.Button}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Button.Neutral.Hover.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Neutral.Hover.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Neutral.Hover.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Button.Neutral.Pressed.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Neutral.Pressed.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Neutral.Pressed.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Button.Neutral.Disabled.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Neutral.Disabled.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Neutral.Disabled.Line}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DangerButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource Theme.Button.Danger.Idle.Fill}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Danger.Idle.Text}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Danger.Idle.Line}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="Padding" Value="14,5"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource Theme.Corner.Button}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Theme.Corner.Button}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Button.Danger.Hover.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Danger.Hover.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Danger.Hover.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Button.Danger.Pressed.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Danger.Pressed.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Danger.Pressed.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Button.Danger.Disabled.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Danger.Disabled.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Danger.Disabled.Line}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The Account page's one big button (v1.31): Discord's blurple, so it
+         reads as "the Discord login", which is exactly what it opens. Its
+         colours are Discord's (data, never a theme's: SiteBrushes); its
+         corner and its weight are the theme's. -->
+    <Style x:Key="DiscordButtonStyle" TargetType="Button" BasedOn="{StaticResource NeutralButtonStyle}">
+        <Setter Property="Background" Value="{x:Static local:SiteBrushes.Discord}"/>
+        <Setter Property="Foreground" Value="{x:Static local:SiteBrushes.DiscordText}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Padding" Value="22,9"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="{DynamicResource Theme.Corner.LargeButton}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{x:Static local:SiteBrushes.DiscordHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Background" Value="{x:Static local:SiteBrushes.DiscordDisabled}"/>
+                            <Setter Property="Foreground" Value="{x:Static local:SiteBrushes.DiscordDisabledText}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The Settings dialog's page list: the control panel's glow look,
+         left-aligned. A ToggleButton: the page shown is the checked one
+         (SettingsWindow.SetPage), so the selected row's fill, text and bar
+         are the theme's, drawn by the triggers. The bar on the row's left is
+         Nav.BarWidth wide (0 in Default: nothing drawn, nothing moved, it
+         lies over the row). A hovered row keeps the selected text if it is
+         the selected one. -->
+    <Style x:Key="NavButton" TargetType="ToggleButton">
+        <Setter Property="Padding" Value="12,7"/>
+        <Setter Property="Margin" Value="0,0,0,2"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Nav.Idle.Text}"/>
+        <Setter Property="Background" Value="{DynamicResource Theme.Nav.Idle.Fill}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Theme.Corner.Nav}"/>
+                        <Border x:Name="HoverGlow" Background="{DynamicResource Theme.Nav.Hover.Fill}" CornerRadius="{DynamicResource Theme.Corner.Nav}"
+                                Visibility="Collapsed"/>
+                        <Border x:Name="Bar" Width="{DynamicResource Theme.Nav.BarWidth}" HorizontalAlignment="Left"
+                                Background="{DynamicResource Theme.Nav.Idle.Bar}"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource Theme.Nav.Selected.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Nav.Selected.Text}"/>
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Theme.Nav.Selected.Bar}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsChecked" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Nav.Hover.Text}"/>
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Theme.Nav.Hover.Bar}"/>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PageTitle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Text.PageTitle}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Margin" Value="0,4,0,10"/>
+    </Style>
+
+    <!-- A group inside a page (General's Look and Sounds, one widget on the
+         Widgets page, About's sections). The first one under a page title
+         sets its own top margin to 0. -->
+    <Style x:Key="SectionCaption" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Caption}"/>
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.CaptionWeight}"/>
+        <Setter Property="Margin" Value="0,16,0,6"/>
+    </Style>
+
+    <!-- A caption over a group of nav buttons, in line with their text. -->
+    <Style x:Key="NavCaption" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Nav.Caption}"/>
+        <Setter Property="FontSize" Value="9.5"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.CaptionWeight}"/>
+        <Setter Property="Margin" Value="12,12,0,4"/>
+    </Style>
+
+    <Style x:Key="FieldLabel" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Text2}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Slider rows share one label width so every slider in the dialog
+         starts on the same x, whichever page it sits on. -->
+    <Style x:Key="SliderLabel" TargetType="TextBlock" BasedOn="{StaticResource FieldLabel}">
+        <Setter Property="Width" Value="140"/>
+    </Style>
+
+    <Style x:Key="SliderValue" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Bright}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.ValueWeight}"/>
+        <Setter Property="TextAlignment" Value="Right"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Width" Value="46"/>
+    </Style>
+
+    <!-- Dark checkbox and radio: the stock white glyphs float on these
+         surfaces. A content-less box (the list rows) drops the label gap.
+         IsChecked = null draws the "mixed" square (group checkboxes). Hover
+         changes the box (and an unticked box's line); disabled is the whole
+         control at half opacity. -->
+    <Style x:Key="Check" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Text2}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Border x:Name="Box" Width="15" Height="15" CornerRadius="{DynamicResource Theme.Corner.Check}"
+                                Background="{DynamicResource Theme.Check.Unticked.Box}" BorderBrush="{DynamicResource Theme.Check.Unticked.Line}"
+                                BorderThickness="1" VerticalAlignment="Center">
+                            <Grid>
+                                <Path x:Name="Tick" Data="M 3,7.5 L 6,10.5 L 11,4" Stroke="{DynamicResource Theme.Check.Ticked.Mark}"
+                                      StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      StrokeLineJoin="Round" Visibility="Collapsed"/>
+                                <Rectangle x:Name="Mixed" Width="7" Height="7" Fill="{DynamicResource Theme.Check.Ticked.Mark}" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                        <ContentPresenter x:Name="Label" Margin="7,0,0,0" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Theme.Check.Disabled.Box}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Theme.Check.Disabled.Line}"/>
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Theme.Check.Ticked.Box}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Theme.Check.Ticked.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="{x:Null}">
+                            <Setter TargetName="Mixed" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Theme.Check.Ticked.Box}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Theme.Check.Ticked.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Theme.Check.Hover.Box}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsChecked" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Theme.Check.Hover.Line}"/>
+                        </MultiTrigger>
+                        <Trigger Property="Content" Value="{x:Null}">
+                            <Setter TargetName="Label" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The radio: its ring and its mark are the theme's pick for the slot
+         (ThemeShape, Shapes.Radio: Default's circle, drawn as the Ellipses it
+         replaced), the mark the same shape 4 px in. A chosen radio glows by
+         Glow.Radio (0 in Default). -->
+    <Style x:Key="Radio" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Text2}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Grid Width="15" Height="15" VerticalAlignment="Center">
+                            <local:ThemeShape x:Name="Ring" Slot="Radio" Kind="{DynamicResource Theme.Shapes.Radio}"
+                                              Fill="{DynamicResource Theme.Check.Unticked.Box}" Stroke="{DynamicResource Theme.Check.Unticked.Line}"
+                                              GlowColor="{DynamicResource Theme.Check.Ticked.Glow.Color}"/>
+                            <local:ThemeShape x:Name="Dot" Slot="Radio" Kind="{DynamicResource Theme.Shapes.Radio}" Inset="4"
+                                              Fill="{DynamicResource Theme.Check.Ticked.Mark}" StrokeThickness="0" Visibility="Collapsed"/>
+                        </Grid>
+                        <ContentPresenter x:Name="Label" Margin="7,0,0,0" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Theme.Check.Disabled.Box}"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Theme.Check.Disabled.Line}"/>
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Theme.Check.Ticked.Box}"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Theme.Check.Ticked.Line}"/>
+                            <Setter TargetName="Ring" Property="GlowRadius" Value="{DynamicResource Theme.Glow.Radio}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Theme.Check.Hover.Box}"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsChecked" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Theme.Check.Hover.Line}"/>
+                        </MultiTrigger>
+                        <Trigger Property="Content" Value="{x:Null}">
+                            <Setter TargetName="Label" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The drawn slider, for a theme whose Shapes.SliderThumb is a shape
+         (Theme.Apply places it under Theme.SliderStyle; a Stock thumb is
+         WPF's own slider and never sees this). A thin track in Slider.Track,
+         the part left of the thumb in Slider.Fill, the thumb the theme's pick
+         in a 15 px box, with its glow (Glow.Thumb). Its height is the stock
+         slider's (18), so a theme that draws its thumb moves no row. -->
+    <Style x:Key="ThemedSliderFill" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Grid Background="Transparent">
+                        <Border Height="2" VerticalAlignment="Center" Margin="7,0,0,0" Background="{DynamicResource Theme.Slider.Fill}"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ThemedSliderGap" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Grid Background="Transparent"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ThemedSlider" TargetType="Slider">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Slider">
+                    <Grid Background="Transparent" MinHeight="18">
+                        <Border Height="2" VerticalAlignment="Center" Margin="7,0" Background="{DynamicResource Theme.Slider.Track}"/>
+                        <Track x:Name="PART_Track">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource ThemedSliderFill}"/>
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="Slider.IncreaseLarge" Style="{StaticResource ThemedSliderGap}"/>
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Width="15" Height="18" Focusable="False">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Grid Background="Transparent">
+                                                <local:ThemeShape Slot="SliderThumb" Kind="{DynamicResource Theme.Shapes.SliderThumb}"
+                                                                  Width="15" Height="15" VerticalAlignment="Center"
+                                                                  Fill="{DynamicResource Theme.Slider.Thumb}" Stroke="{DynamicResource Theme.Slider.ThumbLine}"
+                                                                  GlowRadius="{DynamicResource Theme.Glow.Thumb}" GlowColor="{DynamicResource Theme.Slider.Glow.Color}"/>
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Link" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Link}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <!-- Text boxes: the same dark well as the checkboxes. Stock chrome
+         squares the corners and flashes Windows blue on hover, focus and
+         selection, exactly when the eye is on the box. Hover and focus are
+         the theme's (Default: hover lightens the line, focus turns it the
+         text colour). VerticalContentAlignment places the content host:
+         Center (set here) for single-line boxes; a wrapping multi-line box
+         sets Top. -->
+    <Style x:Key="TextBoxStyle" TargetType="TextBox">
+        <Setter Property="Background" Value="{DynamicResource Theme.TextBox.Idle.Fill}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Theme.TextBox.Idle.Text}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Theme.TextBox.Idle.Line}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="5,2"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Theme.TextBox.Idle.Caret}"/>
+        <Setter Property="SelectionBrush" Value="{DynamicResource Theme.TextBox.Idle.Selection}"/>
+        <Setter Property="SelectionOpacity" Value="0.7"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{DynamicResource Theme.Corner.Well}">
+                        <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                      Margin="{TemplateBinding Padding}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.TextBox.Hover.Fill}"/>
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Theme.TextBox.Hover.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.TextBox.Focus.Fill}"/>
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Theme.TextBox.Focus.Line}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A waypoint's or a friend's name box: the text box, editable in a row. -->
+    <Style x:Key="NameBox" TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <!-- 32 = WaypointLibrary.MaxNameLength and FriendBook.MaxNicknameLength (the friend rows use this box too). -->
+        <Setter Property="MaxLength" Value="32"/>
+    </Style>
+
+    <!-- A hotkey capture box (Settings → Hotkeys): read-only, centred, no caret. -->
+    <Style x:Key="HotkeyBox" TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}">
+        <Setter Property="Width" Value="150"/>
+        <Setter Property="Margin" Value="10,0,0,0"/>
+        <Setter Property="IsReadOnly" Value="True"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="CaretBrush" Value="Transparent"/>
+        <Setter Property="Padding" Value="6,3"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+    </Style>
+
+    <!-- A minimal dark scrollbar (the stock one is light and would glow on a
+         dark dialog): track and thumb, no arrows. -->
+    <Style x:Key="DarkScrollBar" TargetType="ScrollBar">
+        <Setter Property="Width" Value="8"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Border Background="{DynamicResource Theme.ScrollBar.Track}" CornerRadius="{DynamicResource Theme.Corner.ScrollThumb}">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/>
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False"/>
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb>
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Border Background="{DynamicResource Theme.ScrollBar.Thumb}" CornerRadius="{DynamicResource Theme.Corner.ScrollThumb}" Margin="1"/>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- Nothing to scroll: keep the space, hide the bar. -->
+            <DataTrigger Binding="{Binding Maximum, RelativeSource={RelativeSource Self}}" Value="0">
+                <Setter Property="Opacity" Value="0"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Every scrollbar in every window takes the dark look (the dialog's and
+         the update card's own until 1.39; app-wide now, which is wanted:
+         REVIEW.md). -->
+    <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
 </ResourceDictionary>
