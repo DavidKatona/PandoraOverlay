@@ -39,9 +39,14 @@ paths:
   **batches**: the first screenful at once, the rest per `DispatcherPriority.Background`
   tick, a version counter so a newer rebuild stops an older one, and the "building… N of
   M" notice after 300 ms. Only what sets a page's height stays eager.
-- Pages are **Hidden, not Collapsed**: the tallest page sets the dialog's height, so the
-  dialog never jumps between pages — and a new page must fit within it. Lists live in
-  fixed-height ScrollViewers.
+- **The dialog has a fixed frame** (`SettingsFrame`, 1.39, the owner's call, Oct 25 2026):
+  660 × 551.77 at 100%, Default's 1.38 size to the sub-pixel, the same in every theme. The
+  root takes it and the window sizes to the root; the small-screen limit is the root's
+  MaxHeight. A new page must fit within the frame in every theme's font, and a one-line
+  string within its room (`DialogLayoutTests`; one that doesn't ends in an ellipsis and is
+  listed there): a page never grows the dialog, it would scroll. Pages are **Hidden, not
+  Collapsed** (the grid keeps the tallest page's height, as when that page set the
+  dialog's). Lists live in fixed-height ScrollViewers.
 - Actions inside a list change it **in place** (rows ticked, removed, re-striped); only
   structural changes (Import, Delete all) rebuild — a rebuild loses the reader's place.
 - **Everything applies at once** (1.38, no Save or Cancel): a new setting writes its config

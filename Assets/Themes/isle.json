@@ -13,11 +13,12 @@
 // theme's). Red #F06A5A only when a stat is low, its text #FF9B8F; cyan and
 // red, nothing else: no amber, no gold, no green.
 //
-// Provisional (step 3, the owner's first look): the widgets, the control
-// panel and the colours shared with what later steps convert (the text roles,
-// the glass, "you" on the maps). Step 4 added the maps' own values (the
+// Provisional until the owner's check in game: step 3 the widgets, the
+// control panel and the colours shared with what later steps convert (the
+// text roles, the glass, "you" on the maps); step 4 the maps' own values (the
 // minimap, the map window, their menus, the names, the snap guides); step 6
-// adds the dialogs'.
+// the dialogs' (Settings, the update cards, the sign-in window), from
+// DESIGN.md's Settings board and PLAN.md's "not-mocked windows".
 {
   "Name": "Isle",
   "Order": 1,
@@ -98,6 +99,7 @@
       "Pill": "#C2050B0E",
       "MapPill": "#C2050B0E",
       "MapWindow": "#060C0F",
+      "SignIn": "#050B0E", // opaque, as it must be (WebView2): the glass without its alpha
     },
     "Frame": {
       "Locked": { "Line": "#4D7FE3F0", "Lit": "#7FE3F0", "Glow": "#737FE3F0" },
@@ -125,23 +127,105 @@
       "Good": "#7FE3F0",
       "Caution": "#FF9B8F",
       "Danger": "#FF9B8F",
-      // Step 5's new tokens, gold or orange in Default, so Isle must say something
-      // (IsleHasNoAmber): "you are accent" (DESIGN), the rest of the dialogs is step 6's.
+      // Gold and orange in Default: "you are accent" (DESIGN). Yours, or what
+      // stands out in a list (your species on Server rules, a stored dino's
+      // name, the ★ and the A–F row on Skins), and the sign-in's step numbers.
       "Highlight": "#7FE3F0",
       "Marker": "#7FE3F0",
     },
-    "Storage": { "Prime": { "Text": "#7FE3F0" } }, // the Prime badge's text, as above
-    // The control panel's buttons (the dialog's states come with step 6):
-    // accent faint with an accent-line outline; Lock filled accent with dark
-    // text; Exit the danger button, red at 14% with a red-at-50% outline.
+    // Settings → Dino storage: the growth bar the accent on a bar's track, the
+    // Prime badge the accent on glass, the Elder badge neutral (a button's
+    // fill). The website's own meanings stay its own (SiteBrushes): sex,
+    // mutations, compensated, the vitals' colours, the stored spot's blue.
+    "Storage": {
+      "BarTrack": "#127FE3F0",
+      "Growth": "#7FE3F0",
+      "Slots": "#997FE3F0", // the "3 of 10 slots" bar: accent at 60% on accent at 12%
+      "SlotsTrack": "#1F7FE3F0",
+      "NoPosition": "#B0050B0E",
+      "MarkerLine": "#E6ECF8FA",
+      "YouLine": "#C8051014", // your arrow's outline there, as on the maps
+      "Prime": { "Fill": "#E6050B0E", "Text": "#7FE3F0" },
+      "Elder": { "Fill": "#177FE3F0", "Text": "#C9DCDF" },
+    },
+    // The three families. Idle is the control panel's too: accent faint with
+    // an accent-line outline; Lock and Save filled accent with dark text;
+    // Exit, Delete and ✕ the danger button, red at 14% with a red-at-50%
+    // outline. The dialogs' buttons light up under the mouse (a stronger fill
+    // and outline, bright text) and more when pressed; the control panel's
+    // lay their glow over the idle fill instead (HoverGlow, PressedGlow).
+    // Disabled: the fill and outline at half strength, the text off ("50% as
+    // today": the buttons' templates have no opacity of their own).
     "Button": {
-      "Neutral": { "Idle": { "Fill": "#177FE3F0", "Text": "#D3E8EC", "Line": "#4D7FE3F0" } },
-      "Primary": { "Idle": { "Fill": "#7FE3F0", "Text": "#051014" } },
-      "Danger": { "Idle": { "Fill": "#24F06A5A", "Text": "#FFC9C2", "Line": "#80F06A5A" } },
+      "Neutral": {
+        "Idle": { "Fill": "#177FE3F0", "Text": "#D3E8EC", "Line": "#4D7FE3F0" },
+        "Hover": { "Fill": "#2E7FE3F0", "Text": "#ECF8FA", "Line": "#997FE3F0" },
+        "Pressed": { "Fill": "#407FE3F0", "Text": "#ECF8FA", "Line": "#7FE3F0" },
+        "Disabled": { "Fill": "#0A7FE3F0", "Text": "#6F878C", "Line": "#267FE3F0" },
+      },
+      "Primary": {
+        "Idle": { "Fill": "#7FE3F0", "Text": "#051014" },
+        "Hover": { "Fill": "#A5EBF4", "Text": "#051014" }, // the accent a third of the way to white
+        "Pressed": { "Fill": "#6CC1CC", "Text": "#051014" }, // and 15% darker
+        "Disabled": { "Fill": "#127FE3F0", "Text": "#6F878C" },
+      },
+      "Danger": {
+        "Idle": { "Fill": "#24F06A5A", "Text": "#FFC9C2", "Line": "#80F06A5A" },
+        "Hover": { "Fill": "#40F06A5A", "Text": "#FFE1DC", "Line": "#B3F06A5A" },
+        "Pressed": { "Fill": "#59F06A5A", "Text": "#FFE1DC", "Line": "#F06A5A" },
+        "Disabled": { "Fill": "#12F06A5A", "Text": "#8C6F6B", "Line": "#40F06A5A" },
+      },
       "HoverGlow": "#267FE3F0",
       "PressedGlow": "#407FE3F0",
+      "RowDelete": "#FF9B8F", // one row's ✕: Isle's red text on a neutral button
+    },
+    // The check and the radio (DESIGN's Settings board): 15 px, unticked near
+    // transparent with an accent-line outline, ticked accent faint with the
+    // accent outline and an accent tick or inner hexagon, the chosen radio
+    // glowing (Glow.Radio, in Ticked.Glow). Under the mouse the box lifts to
+    // accent at 12% (and an unticked one's outline to 60%).
+    "Check": {
+      "Unticked": { "Box": "#05FFFFFF", "Line": "#4D7FE3F0", "Mark": "#7FE3F0" },
+      "Ticked": { "Box": "#177FE3F0", "Line": "#7FE3F0", "Mark": "#7FE3F0", "Glow": "#737FE3F0" },
+      "Hover": { "Box": "#1F7FE3F0", "Line": "#997FE3F0", "Mark": "#7FE3F0" },
+      "Disabled": { "Box": "#05FFFFFF", "Line": "#4D7FE3F0", "Mark": "#7FE3F0" },
+    },
+    // The drawn slider (Shapes.SliderThumb, below): a 2 px accent-line track,
+    // the accent left of the thumb, a dark hexagon thumb in an accent outline
+    // with the accent's glow (Glow.Thumb).
+    "Slider": { "Track": "#4D7FE3F0", "Fill": "#7FE3F0", "Thumb": "#071014", "ThumbLine": "#7FE3F0", "Glow": "#737FE3F0" },
+    // Square (Corner.Well), an accent-line outline, accent at 60% under the
+    // mouse, the accent with the caret in it; the text and the caret bright.
+    "TextBox": {
+      "Idle": { "Fill": "#0A7FE3F0", "Line": "#4D7FE3F0", "Text": "#ECF8FA", "Caret": "#ECF8FA", "Selection": "#667FE3F0" },
+      "Hover": { "Fill": "#0A7FE3F0", "Line": "#997FE3F0" },
+      "Focus": { "Fill": "#0A7FE3F0", "Line": "#7FE3F0" },
+    },
+    // Square, a faint track, an accent-line thumb; app-wide (every window's scrollbars).
+    "ScrollBar": { "Track": "#0A7FE3F0", "Thumb": "#4D7FE3F0" },
+    // The nav (DESIGN): rows in text 2; the selected one accent faint with a
+    // 2 px accent bar on its left and bright 600 text; under the mouse a
+    // fainter fill and an accent-line bar; the ISLAPANDORA.EU caption in the
+    // caption colour; the divider an accent line.
+    "Nav": {
+      "Idle": { "Text": "#C9DCDF" },
+      "Hover": { "Fill": "#0F7FE3F0", "Text": "#DCEBEE", "Bar": "#4D7FE3F0" },
+      "Selected": { "Fill": "#177FE3F0", "Text": "#ECF8FA", "Bar": "#7FE3F0" },
+      "Caption": "#CC7FE3F0",
+      "Divider": "#4D7FE3F0",
+      "BarWidth": 2,
+      "SelectedWeight": "SemiBold",
     },
     "Separator": "#4D7FE3F0",
+    // The list pages' cards (Waypoints, Friends; Skins' tiles, Dino storage's
+    // cards): a faint accent surface, its caption band accent faint, zebra rows
+    // at accent 4%, an accent-line outline, a clickable card's at 60% under the mouse.
+    "Card": { "Surface": "#087FE3F0", "Line": "#4D7FE3F0", "Band": "#177FE3F0", "Stripe": "#0A7FE3F0", "HoverLine": "#997FE3F0" },
+    // Account's cards, What's new's notes, the sign-in's result: accent at 5%
+    // with an accent-line outline; a box inside one the glass at half.
+    "InfoCard": { "Surface": "#0D7FE3F0", "Line": "#4D7FE3F0", "Inner": "#80050B0E" },
+    // A colour well (15 px squares, Corner.Well), a skin's picture well, the rim round a skin's colour dots.
+    "Well": { "Surface": "#0A7FE3F0", "Line": "#4D7FE3F0", "DotLine": "#4D7FE3F0" },
     "ListRule": { "Line": "#4D7FE3F0", "Width": 1, "Gap": 8 },
     // The maps' menus (the right-click menu, the map's Layers menu, Controls.xaml):
     // a row in the label grey, ticked in the text colour; the row under the
@@ -185,8 +269,10 @@
       // Square frames: Windows 11 must not round the map window (question 8).
       "WindowRounded": false,
     },
-    "UpdateCard": { "Bullet": "#7FE3F0", "Good": "#7FE3F0", "Progress": "#7FE3F0" },
+    "UpdateCard": { "Bullet": "#7FE3F0", "Good": "#7FE3F0", "Progress": "#7FE3F0", "ProgressTrack": "#127FE3F0" },
     "Shapes": {
+      "Radio": "hexagon",
+      "SliderThumb": "hexagon", // the drawn slider (Controls.xaml's ThemedSlider), not WPF's own
       "Badge": "hexagon",
       "TitleGlyph": "hexagon",
       "ActivityBullet": "⬢ ",
@@ -195,11 +281,13 @@
     // A 1.5 px accent line about 26 px along the edge and 20 px down the side, past each cut.
     "Lit": { "Edge": 26, "Side": 20, "Width": 1.5 },
     // The corners' glow, edit mode's whole outline, the control panel's inner glow
-    // (within its 10 × 8 padding), your arrow on the maps.
-    "Glow": { "Corners": 3, "Edit": 5, "ControlPanel": 8, "You": 3 },
+    // (within its 10 × 8 padding), your arrow on the maps; the chosen radio and
+    // the slider's thumb (the Settings board's 2 px glow).
+    "Glow": { "Corners": 3, "Edit": 5, "ControlPanel": 8, "You": 3, "Radio": 2, "Thumb": 2 },
     "Corner": {
       "Widget": 0, "Dialog": 0, "Menu": 0, "Pill": 0, "Button": 0, "Card": 0, "Well": 0,
       "Bar": 0, "Check": 0, "ScrollThumb": 0, "Badge": 0, "Nav": 0, "LayerButton": 0,
+      "Band": 0, "LargeButton": 0, "Progress": 0, "Tag": 0,
     },
     // Montserrat at today's sizes, both families (the titles' does not follow the body's).
     "Font": {

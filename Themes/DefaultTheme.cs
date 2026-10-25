@@ -155,6 +155,7 @@ public static class DefaultTheme
             Caption = Off,
             Divider = C("#262E37"),
             BarWidth = 0,
+            SelectedWeight = ThemeWeight.Normal, // every row the body weight, the selected one too
         },
         // The maps' menus: Controls.xaml's MenuButton and MenuTick (Minimap/MapMenuStyles.xaml until 1.39).
         MenuRow = new()

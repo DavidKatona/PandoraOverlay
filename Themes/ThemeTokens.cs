@@ -432,6 +432,8 @@ public sealed record ThemeTokens
         public required ThemeColor Divider { get; init; }
         /// <summary>The selected row's bar on its left, 0 = none.</summary>
         public required double BarWidth { get; init; }
+        /// <summary>The selected row's weight; the other rows read <see cref="FontLook.BodyWeight"/>. A row is the nav's whole width, so a heavier one moves nothing.</summary>
+        public required ThemeWeight SelectedWeight { get; init; }
     }
 
     public sealed record NavStateLook

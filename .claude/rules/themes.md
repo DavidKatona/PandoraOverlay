@@ -87,7 +87,10 @@ summary.
   25 2026): never another wording per theme, never a size of its own; it is listed in
   `TrimmedByDesign`, so a new overflow still fails and reaches the owner.
   `ControlPanelWidthTests` checks every theme's labels, captions and hint fit the
-  control panel's fixed frame (`ControlPanelFrame`).
+  control panel's fixed frame (`ControlPanelFrame`); `DialogLayoutTests` lays the dialogs
+  out in every theme (the Settings dialog in its frame, `SettingsFrame`, every page with
+  nothing to scroll; every one-line string of Settings, the update cards and the sign-in
+  window within its room, its own `TrimmedByDesign` for the ellipses).
 - **The golden renders run in both themes**
   (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`): Default must stay
   62 of 62 identical; another theme's renders keep their Default twin's pixel size.

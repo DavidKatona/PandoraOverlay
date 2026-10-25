@@ -129,6 +129,7 @@ public class MontserratTests
                 (font.Family, "Font.ValueWeight", font.ValueWeight),
                 (font.Family, "Font.BodyWeight", font.BodyWeight),
                 (font.Family, "Font.CaptionWeight", font.CaptionWeight),
+                (font.Family, "Nav.SelectedWeight", theme.Tokens.Nav.SelectedWeight),
                 (font.Family, "Prime.Met.Weight", prime.Met.Weight),
                 (font.Family, "Prime.Unmet.Weight", prime.Unmet.Weight),
                 (font.Family, "Prime.Lost.Weight", prime.Lost.Weight),

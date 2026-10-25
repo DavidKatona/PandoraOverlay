@@ -359,11 +359,11 @@
 
     <!-- The Settings dialog's page list: the control panel's glow look,
          left-aligned. A ToggleButton: the page shown is the checked one
-         (SettingsWindow.SetPage), so the selected row's fill, text and bar
-         are the theme's, drawn by the triggers. The bar on the row's left is
-         Nav.BarWidth wide (0 in Default: nothing drawn, nothing moved, it
-         lies over the row). A hovered row keeps the selected text if it is
-         the selected one. -->
+         (SettingsWindow.SetPage), so the selected row's fill, text, weight
+         and bar are the theme's, drawn by the triggers. The bar on the row's
+         left is Nav.BarWidth wide (0 in Default: nothing drawn, nothing
+         moved, it lies over the row). A hovered row keeps the selected text
+         if it is the selected one. -->
     <Style x:Key="NavButton" TargetType="ToggleButton">
         <Setter Property="Padding" Value="12,7"/>
         <Setter Property="Margin" Value="0,0,0,2"/>
@@ -390,6 +390,7 @@
                         <Trigger Property="IsChecked" Value="True">
                             <Setter Property="Background" Value="{DynamicResource Theme.Nav.Selected.Fill}"/>
                             <Setter Property="Foreground" Value="{DynamicResource Theme.Nav.Selected.Text}"/>
+                            <Setter Property="FontWeight" Value="{DynamicResource Theme.Nav.SelectedWeight}"/>
                             <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Theme.Nav.Selected.Bar}"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -460,7 +461,12 @@
          surfaces. A content-less box (the list rows) drops the label gap.
          IsChecked = null draws the "mixed" square (group checkboxes). Hover
          changes the box (and an unticked box's line); disabled is the whole
-         control at half opacity. -->
+         control at half opacity. The checkbox's label takes the room its
+         box leaves (a DockPanel, 1.39; a StackPanel gave it all the room it
+         asked for) and ends in an ellipsis where a theme's font makes it too
+         long for the page (the owner, Oct 25 2026: an ellipsis, never another
+         wording). Every label fits in Default, where it lies as it always did;
+         DialogLayoutTests lists the ones a theme trims. -->
     <Style x:Key="Check" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Text2}"/>
         <Setter Property="FontSize" Value="12"/>
@@ -470,8 +476,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
-                    <StackPanel Orientation="Horizontal" Background="Transparent">
-                        <Border x:Name="Box" Width="15" Height="15" CornerRadius="{DynamicResource Theme.Corner.Check}"
+                    <DockPanel Background="Transparent">
+                        <Border x:Name="Box" DockPanel.Dock="Left" Width="15" Height="15" CornerRadius="{DynamicResource Theme.Corner.Check}"
                                 Background="{DynamicResource Theme.Check.Unticked.Box}" BorderBrush="{DynamicResource Theme.Check.Unticked.Line}"
                                 BorderThickness="1" VerticalAlignment="Center">
                             <Grid>
@@ -482,8 +488,18 @@
                             </Grid>
                         </Border>
                         <ContentPresenter x:Name="Label" Margin="7,0,0,0" VerticalAlignment="Center"
-                                          RecognizesAccessKey="True"/>
-                    </StackPanel>
+                                          RecognizesAccessKey="True">
+                            <ContentPresenter.Resources>
+                                <!-- A string label is an AccessText (RecognizesAccessKey); either way it trims. -->
+                                <Style TargetType="AccessText">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </DockPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource Theme.Check.Disabled.Box}"/>

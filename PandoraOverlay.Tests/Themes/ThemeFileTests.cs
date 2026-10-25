@@ -331,6 +331,7 @@ public class ThemeFileTests
         Assert.Equal((ThemeColor.None, C("#2EFFFFFF"), C("#2A3038"), C("#C7D1DA"), C("#ECF2F8")),
                      (D.Nav.Idle.Fill, D.Nav.Hover.Fill, D.Nav.Selected.Fill, D.Nav.Idle.Text, D.Nav.Selected.Text));
         Assert.Equal((C("#5E6B76"), C("#262E37")), (D.Nav.Caption, D.Nav.Divider));
+        Assert.Equal(ThemeWeight.Normal, D.Nav.SelectedWeight); // the selected row as every row (step 6)
         Assert.Equal((C("#9AA7B0"), C("#7B8790"), C("#C7D1DA"), C("#ECF2F8"), C("#5E6B76"), C("#7FB2D9")),
                      (D.Text.PageTitle, D.Text.Caption, D.Text.Text2, D.Text.Bright, D.Text.Off, D.Text.Link));
         Assert.Equal((C("#7CC884"), C("#FFC864"), C("#FF8A80")), (D.Text.Good, D.Text.Caution, D.Text.Danger)); // the hints
@@ -417,6 +418,23 @@ public class ThemeFileTests
         Assert.Equal((26.0, 20.0, 1.5), (t.Lit.Edge, t.Lit.Side, t.Lit.Width));
         Assert.Equal(0, t.Lit.Top); // no lit top line in Isle (question 21)
         Assert.Equal(new ThemeRadius(0), t.Corner.Widget); // square, but for the cuts
+    }
+
+    /// <summary>
+    /// The dialogs' look (step 6, DESIGN's Settings board): hexagon radios
+    /// and the drawn slider with a hexagon thumb, both glowing 2 px; the nav's
+    /// selected row with a 2 px bar and SemiBold text; every corner square.
+    /// </summary>
+    [Fact]
+    public void IslesDialogsAreDesigns()
+    {
+        var t = Isle.Tokens;
+        Assert.Equal((ShapeKind.Hexagon, ShapeKind.Hexagon), (t.Shapes.Radio, t.Shapes.SliderThumb));
+        Assert.Equal((2.0, 2.0), (t.Glow.Radio, t.Glow.Thumb));
+        Assert.Equal((2.0, ThemeWeight.SemiBold), (t.Nav.BarWidth, t.Nav.SelectedWeight));
+        var corners = Theme.Leaves(t).Where(l => l.Key.StartsWith("Theme.Corner.", StringComparison.Ordinal)).ToList();
+        Assert.Equal(typeof(ThemeTokens.CornerNumbers).GetProperties().Length, corners.Count);
+        Assert.All(corners, l => Assert.Equal(new ThemeRadius(0), l.Value));
     }
 
     /// <summary>The control panel's glow is painted inside its outline, so it must fit the panel's padding (10 × 8, ControlPanelWindow.xaml) or a button would sit on it.</summary>

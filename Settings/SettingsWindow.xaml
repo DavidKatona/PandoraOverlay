@@ -7,8 +7,7 @@
         AllowsTransparency="True"
         Background="Transparent"
         WindowStartupLocation="CenterScreen"
-        SizeToContent="Height"
-        Width="660"
+        SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
         FontFamily="{DynamicResource Theme.Font.Family}"
         ShowInTaskbar="True">
@@ -22,8 +21,13 @@
     <!-- The frame is the theme's (ThemedBorder): Default's is the rounded
          Border it always was; a theme may cut two corners (Cut.Dialog) and
          light them. Its glass is the dialog's, not a widget's (no opacity
-         slider here). -->
-    <local:ThemedBorder CornerRadius="{DynamicResource Theme.Corner.Dialog}" CutCorners="{DynamicResource Theme.Cut.Dialog}"
+         slider here). Its SIZE is fixed (SettingsFrame, 1.39: the owner's
+         call, Oct 25 2026), the same in every theme, Default's 1.38 size;
+         the window sizes to it, and the pages lay out inside. On a small
+         screen it gives way to the work area (MaxHeight, set in code). -->
+    <local:ThemedBorder x:Name="RootPanel"
+                        Width="{x:Static local:SettingsFrame.Width}" Height="{x:Static local:SettingsFrame.Height}"
+                        CornerRadius="{DynamicResource Theme.Corner.Dialog}" CutCorners="{DynamicResource Theme.Cut.Dialog}"
                         Background="{DynamicResource Theme.Glass.Dialog}" BorderThickness="1" Padding="16,12">
         <DockPanel>
 
@@ -55,8 +59,10 @@
             </DockPanel>
 
             <!-- Nav on the left, one page on the right. Pages that aren't
-                 selected are Hidden (not Collapsed) so the grid keeps the
-                 tallest page's height and the dialog never jumps between pages. -->
+                 selected are Hidden (not Collapsed), so the grid keeps the
+                 tallest page's height, as when the tallest page set the
+                 dialog's (until 1.39); the frame is fixed now, and every page
+                 must fit inside it (SettingsFrame). -->
             <!-- Our own nav, not the stock TabControl: its light chrome doesn't
                  theme. The nav is grouped (owner, Oct 22 2026): the overlay's
                  own pages, then the website's pages under a caption, then
@@ -778,6 +784,13 @@
                 <TextBlock Text="Free and open source. Questions, bugs and ideas go to the GitHub issues."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
+            <!-- The bundled font's credit (1.39): the SIL Open Font Licence asks
+                 for its licence to travel with the font, and it does (the build
+                 copies Assets\Fonts\Montserrat\OFL.txt beside the program); this
+                 line says so in every theme. ONE line in every theme's font: a
+                 second would make About taller than the dialog's frame. -->
+            <TextBlock Text="Isle's font: Montserrat, SIL Open Font Licence (OFL.txt beside the program)."
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 
                     </Grid>

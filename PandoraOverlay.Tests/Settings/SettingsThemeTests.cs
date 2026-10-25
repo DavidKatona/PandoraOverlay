@@ -18,6 +18,21 @@ namespace PandoraOverlay.Tests;
 public sealed class TheThemeOnScreen
 {
     public const string Name = "The theme on screen";
+
+    /// <summary>A window needs an STA thread; the test's failure comes back to xunit's.</summary>
+    public static void OnSta(Action test)
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try { test(); }
+            catch (Exception ex) { failure = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+        if (failure is not null) ExceptionDispatchInfo.Capture(failure is TargetInvocationException { InnerException: { } inner } ? inner : failure).Throw();
+    }
 }
 
 /// <summary>
@@ -36,8 +51,8 @@ public class SettingsThemeTests
 {
     private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
-    /// <summary>One stored dino, as /api/user/dinos answers (the parse tests' sample, cut down).</summary>
-    private const string Storage = """
+    /// <summary>One stored dino, as /api/user/dinos answers (the parse tests' sample, cut down; DialogLayoutTests draws it too).</summary>
+    internal const string Storage = """
         {
             "success": true,
             "dinos": [
@@ -54,7 +69,7 @@ public class SettingsThemeTests
         """;
 
     [Fact]
-    public void ASwitchRedrawsTheBuiltPagesFromWhatTheyHoldAndAsksTheWebsiteNothing() => OnSta(() =>
+    public void ASwitchRedrawsTheBuiltPagesFromWhatTheyHoldAndAsksTheWebsiteNothing() => TheThemeOnScreen.OnSta(() =>
     {
         Theme.EnsureLoaded();
         var before = DefaultTheme.Tokens.Card.Surface.ToBrush();
@@ -132,21 +147,6 @@ public class SettingsThemeTests
     /// <summary>Puts tokens on screen as Theme.Apply does, for a theme no file has (one card colour changed).</summary>
     private static void Install(ThemeTokens tokens) =>
         (typeof(Theme).GetMethod("Install", Any) ?? throw new MissingMethodException(nameof(Theme), "Install")).Invoke(null, new object[] { tokens });
-
-    /// <summary>A window needs an STA thread; the test's failure comes back to xunit's.</summary>
-    private static void OnSta(Action test)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try { test(); }
-            catch (Exception ex) { failure = ex; }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null) ExceptionDispatchInfo.Capture(failure is TargetInvocationException { InnerException: { } inner } ? inner : failure).Throw();
-    }
 
     private static object? Get(object target, string field) =>
         (target.GetType().GetField(field, Any) ?? throw new MissingFieldException(target.GetType().Name, field)).GetValue(target);

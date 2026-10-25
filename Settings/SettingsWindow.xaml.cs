@@ -152,10 +152,13 @@ public partial class SettingsWindow : Window
         InitAccountPage();
 
         // Safety net for small screens: the sections scroll rather than the
-        // dialog running off the bottom (SizeToContent honours MaxHeight).
-        // The title and the Close row are docked outside the page
-        // ScrollViewer, so a page scrolls and the buttons are never lost.
-        MaxHeight = SystemParameters.WorkArea.Height * 0.92;
+        // dialog running off the bottom. On the root, not the window, since
+        // the frame is fixed (SettingsFrame, 1.39): the window sizes to the
+        // root, and a root's own MaxHeight wins over its Height, where the
+        // window's would only cut the root's bottom off. The title and the
+        // Close row are docked outside the page ScrollViewer, so a page
+        // scrolls and the buttons are never lost.
+        RootPanel.MaxHeight = SystemParameters.WorkArea.Height * 0.92;
 
         // Hotkeys
         // A new global hotkey needs its box here, its line in WriteHotkeys, and its
