@@ -217,15 +217,22 @@
       "SelectedWeight": "SemiBold",
     },
     "Separator": "#4D7FE3F0",
+    // The surfaces are SOLID, a step above the glass (#050B0E) with a hint of
+    // the accent, as Default's are a step above its own: the owner's look in
+    // game (Oct 25 2026) found a 3–5% tint invisible on the 95% dialog glass,
+    // the tiles and cards reading as if they had no background.
     // The list pages' cards (Waypoints, Friends; Skins' tiles, Dino storage's
-    // cards): a faint accent surface, its caption band accent faint, zebra rows
-    // at accent 4%, an accent-line outline, a clickable card's at 60% under the mouse.
-    "Card": { "Surface": "#087FE3F0", "Line": "#4D7FE3F0", "Band": "#177FE3F0", "Stripe": "#0A7FE3F0", "HoverLine": "#997FE3F0" },
-    // Account's cards, What's new's notes, the sign-in's result: accent at 5%
-    // with an accent-line outline; a box inside one the glass at half.
-    "InfoCard": { "Surface": "#0D7FE3F0", "Line": "#4D7FE3F0", "Inner": "#80050B0E" },
-    // A colour well (15 px squares, Corner.Well), a skin's picture well, the rim round a skin's colour dots.
-    "Well": { "Surface": "#0A7FE3F0", "Line": "#4D7FE3F0", "DotLine": "#4D7FE3F0" },
+    // cards): its caption band a step above it, zebra rows at accent 4%, an
+    // accent-line outline, a clickable card's at 60% under the mouse.
+    "Card": { "Surface": "#0C171C", "Line": "#4D7FE3F0", "Band": "#112027", "Stripe": "#0A7FE3F0", "HoverLine": "#997FE3F0" },
+    // Account's cards, What's new's notes, the sign-in's result, with an
+    // accent-line outline; a box inside one the glass at half.
+    "InfoCard": { "Surface": "#0D191E", "Line": "#4D7FE3F0", "Inner": "#80050B0E" },
+    // A colour well (15 px squares, Corner.Well), a skin's picture well, the stored
+    // dino's map well, the rim round a skin's colour dots. The well sits ON a card,
+    // so a step above it, between the card and its band, as Default's does: any
+    // darker and a skin tile's picture well vanishes into the tile.
+    "Well": { "Surface": "#0F1C22", "Line": "#4D7FE3F0", "DotLine": "#4D7FE3F0" },
     "ListRule": { "Line": "#4D7FE3F0", "Width": 1, "Gap": 8 },
     // The maps' menus (the right-click menu, the map's Layers menu, Controls.xaml):
     // a row in the label grey, ticked in the text colour; the row under the
