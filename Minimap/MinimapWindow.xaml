@@ -11,27 +11,25 @@
         ShowActivated="False"
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
-        FontFamily="Segoe UI"
+        FontFamily="{DynamicResource Theme.Font.Family}"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         MouseRightButtonUp="Window_MouseRightButtonUp"
         MouseMove="Window_MouseMove"
         MouseLeave="Window_MouseLeave"
         MouseWheel="Window_MouseWheel">
 
-    <Window.Resources>
-        <!-- The map menu's entry look (MenuButton), shared with every map. -->
-        <ResourceDictionary Source="/PandoraOverlay;component/Minimap/MapMenuStyles.xaml"/>
-    </Window.Resources>
-
     <!-- The LARGE frame (WidgetFrame), shared with the Prime tracker: the
          284 px map square, then the footer centred in what is left. Sized
-         by MinimapScale like every other widget (a layout transform). -->
-    <Border x:Name="RootPanel"
+         by MinimapScale like every other widget (a layout transform). The
+         glass is ApplyAppearance's, the outline's colour ThemedBorder's (Lit
+         in edit mode); a theme's cut corners take the theme's number. The
+         map menu's entries (MenuButton) are the app's (Themes/Controls.xaml),
+         shared with every map. -->
+    <local:ThemedBorder x:Name="RootPanel"
             Width="{x:Static local:WidgetFrame.Width}"
             Height="{x:Static local:WidgetFrame.LargeHeight}"
-            CornerRadius="10"
-            Background="#CC10151B"
-            BorderBrush="#33FFFFFF"
+            CornerRadius="{DynamicResource Theme.Corner.Widget}"
+            CutCorners="{DynamicResource Theme.Cut.Widget}"
             BorderThickness="1"
             Padding="6">
         <Grid>
@@ -40,51 +38,65 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
+            <!-- The map square. A theme may cut two of its corners
+                 (Theme.Cut.MapSquare, ApplyMapSquare clips it to the
+                 polygon) and draw its inner outline (MapOutline, last, so
+                 over everything; nothing without a cut). -->
             <Grid x:Name="MapHost" Width="284" Height="284" ClipToBounds="True">
                 <!-- The map drawing shared with every map (MapCanvas): the
                      island, its layers, the markers and the arrows. -->
                 <local:MapCanvas x:Name="Map"/>
                 <TextBlock x:Name="MapStatus"
                            Text="connecting…"
-                           Foreground="#9AA7B0" FontSize="11"
+                           Foreground="{DynamicResource Theme.Text.Label}" FontSize="11"
+                           FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <!-- Scale bar: bottom-left (the heatmap's baked caption owns the
                      top-left); the glass backing keeps it readable over any terrain. -->
                 <Border x:Name="ScaleBarPanel"
                         HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="6"
-                        Background="#9910151B" CornerRadius="4" Padding="5,1,5,4"
+                        Background="{DynamicResource Theme.Glass.Pill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="5,1,5,4"
                         IsHitTestVisible="False" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock x:Name="ScaleBarLabel" Foreground="#ECF2F8" FontSize="9"
+                        <TextBlock x:Name="ScaleBarLabel" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="9"
+                                   FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                                    HorizontalAlignment="Center"/>
                         <Border x:Name="ScaleBarLine" Height="4" HorizontalAlignment="Center"
-                                BorderBrush="#ECF2F8" BorderThickness="1.5,0,1.5,1.5"/>
+                                BorderBrush="{DynamicResource Theme.Map.ScaleBar}" BorderThickness="1.5,0,1.5,1.5"/>
                     </StackPanel>
                 </Border>
                 <!-- Heading + speed: bottom-right, the scale bar's twin. -->
                 <Border x:Name="SpeedPanel"
                         HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6"
-                        Background="#9910151B" CornerRadius="4" Padding="5,2"
+                        Background="{DynamicResource Theme.Glass.Pill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="5,2"
                         IsHitTestVisible="False" Visibility="Collapsed">
-                    <TextBlock x:Name="SpeedText" Foreground="#ECF2F8" FontSize="9"/>
+                    <TextBlock x:Name="SpeedText" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="9"
+                               FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
                 </Border>
                 <!-- The area you are in: top-right, the one free corner (the
                      heatmap's caption has the top-left). In edit mode it names
-                     the area under the cursor instead (MinimapWindow.Area.cs). -->
+                     the area under the cursor instead (MinimapWindow.Area.cs),
+                     which paints its text. -->
                 <Border x:Name="AreaPanel"
                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
-                        Background="#9910151B" CornerRadius="4" Padding="5,2"
+                        Background="{DynamicResource Theme.Glass.Pill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="5,2"
                         IsHitTestVisible="False" Visibility="Collapsed">
-                    <TextBlock x:Name="AreaText" Foreground="#ECF2F8" FontSize="9"/>
+                    <TextBlock x:Name="AreaText" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="9"
+                               FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
                 </Border>
+                <local:CutOutline x:Name="MapOutline"
+                                  Cut="{DynamicResource Theme.Cut.MapSquare}"
+                                  Stroke="{DynamicResource Theme.Frame.Locked.Line}"/>
             </Grid>
 
-            <!-- Footer: view (+ zoom when centered) · nearest waypoint distance and ETA; built in code. -->
+            <!-- Footer: view (+ zoom when centered) · nearest waypoint distance and ETA; built in code.
+                 Where a theme's font makes it too long, it ends in an ellipsis (in Default it fits). -->
             <TextBlock x:Name="ModeFooter" Grid.Row="1"
-                       Foreground="#7B8790" FontSize="10"
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10"
+                       FontWeight="{DynamicResource Theme.Font.BodyWeight}" TextTrimming="CharacterEllipsis"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Grid>
-    </Border>
+    </local:ThemedBorder>
 
     <!-- Edit-mode right-click menu on the map. A popup is its own window, so
          the minimap's size never changes with it. Items are built in code. -->
@@ -92,12 +104,13 @@
         <!-- The window's Tag, so the popup sits outside the layout altogether:
              a widget never changes size (the owner's rule for every widget).
              PopupAnimation="None" on purpose: Fade flickered on open (traced
-             by elimination). -->
+             by elimination). Its panel on the theme's menu glass and frame
+             line. -->
         <Popup x:Name="MapMenu" StaysOpen="False" AllowsTransparency="True"
                Placement="MousePoint" PopupAnimation="None">
-            <Border x:Name="MapMenuPanel" Focusable="True" PreviewKeyDown="MapMenu_PreviewKeyDown"
-                    Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
-                    CornerRadius="6" Padding="4" MinWidth="170">
+            <Border x:Name="MapMenuPanel" Focusable="True" PreviewKeyDown="MapMenu_PreviewKeyDown" TextElement.FontFamily="{DynamicResource Theme.Font.Family}"
+                    Background="{DynamicResource Theme.Glass.Menu}" BorderBrush="{DynamicResource Theme.Frame.Locked.Line}" BorderThickness="1"
+                    CornerRadius="{DynamicResource Theme.Corner.Menu}" Padding="4" MinWidth="170">
                 <StackPanel x:Name="MapMenuItems"/>
             </Border>
         </Popup>

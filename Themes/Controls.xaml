@@ -7,8 +7,9 @@
          the App. Every colour, corner and font size here is a theme token
          read by DynamicResource ({DynamicResource Theme.Button.Neutral.Idle.Fill}),
          and every shape a pick from the catalogue (ThemeShape), so no theme
-         ever ships XAML. Step 2 brought the control panel's styles; step 5
-         brings the ones SettingsWindow.xaml, the update card and the
+         ever ships XAML. Step 2 brought the control panel's styles, step 4
+         the maps' menu entries and ticks; step 5 brings the ones
+         SettingsWindow.xaml, the update card and the
          sign-in window each hold their own copies of today. The slider gets
          two Styles then: WPF's own for a Stock thumb, and ThemedSlider for a
          drawn one; Theme.Apply puts the right one under Theme.SliderStyle. -->
@@ -85,5 +86,92 @@
         <Setter Property="Width" Value="1"/>
         <Setter Property="Background" Value="{DynamicResource Theme.Separator}"/>
         <Setter Property="Margin" Value="10,2,10,2"/>
+    </Style>
+
+    <!-- ===== The maps' menus (step 4; Minimap/MapMenuStyles.xaml until then) ===== -->
+
+    <!-- A map menu's entry (MapMenuBuilder), the same on every map: the
+         control panel's glow-overlay look, left-aligned, in the menu row's
+         states (Theme.MenuRow). The menus' panels are plain Borders on the
+         theme's menu glass and frame line, set where each map holds its popup. -->
+    <Style x:Key="MenuButton" TargetType="Button">
+        <Setter Property="Padding" Value="10,4"/>
+        <Setter Property="Margin" Value="0,0,0,1"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Theme.MenuRow.Idle.Text}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="HoverGlow" Background="{DynamicResource Theme.MenuRow.Hover.Fill}"
+                                CornerRadius="{DynamicResource Theme.Corner.Button}" Visibility="Collapsed"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Background" Value="{DynamicResource Theme.MenuRow.Pressed.Fill}"/>
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.MenuRow.Disabled.Text}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A tick in a map menu (the map's Layers menu): the entry look with a
+         ✓ column, the label lit while on (Theme.MenuRow.Ticked). It acts at
+         once and leaves the menu open. Never focusable, so Space stays
+         "centre on me". -->
+    <Style x:Key="MenuTick" TargetType="ToggleButton">
+        <Setter Property="Padding" Value="10,4,16,4"/>
+        <Setter Property="Margin" Value="0,0,0,1"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Theme.MenuRow.Idle.Text}"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid x:Name="Row" Background="{DynamicResource Theme.MenuRow.Idle.Fill}">
+                        <Border x:Name="HoverGlow" Background="{DynamicResource Theme.MenuRow.Hover.Fill}"
+                                CornerRadius="{DynamicResource Theme.Corner.Button}" Visibility="Collapsed"/>
+                        <StackPanel Orientation="Horizontal" Margin="{TemplateBinding Padding}">
+                            <TextBlock x:Name="Tick" Text="✓" Width="18" Visibility="Hidden"/>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="Row" Property="Background" Value="{DynamicResource Theme.MenuRow.Ticked.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.MenuRow.Ticked.Text}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Background" Value="{DynamicResource Theme.MenuRow.Pressed.Fill}"/>
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.MenuRow.Disabled.Text}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 </ResourceDictionary>

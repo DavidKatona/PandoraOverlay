@@ -7,68 +7,76 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True"
-        Background="#FF10151B"
-        FontFamily="Segoe UI"
+        Background="{DynamicResource Theme.Glass.MapWindow}"
+        FontFamily="{DynamicResource Theme.Font.Family}"
         PreviewKeyDown="Window_PreviewKeyDown"
         PreviewKeyUp="Window_PreviewKeyUp"
         Deactivated="Window_Deactivated">
 
+    <!-- Every colour, corner and font here is a theme token; the picture's
+         sea is data (MapBrushes.Sea, set in code). The map menus' entries and
+         ticks (MenuButton, MenuTick) are the app's (Themes/Controls.xaml),
+         shared with the minimap. -->
     <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <!-- The map menu's entry look (MenuButton), shared with the minimap. -->
-                <ResourceDictionary Source="/PandoraOverlay;component/Minimap/MapMenuStyles.xaml"/>
-            </ResourceDictionary.MergedDictionaries>
-
-            <!-- The header's Layers button: bright while its menu is open, dim
-                 otherwise, a glow on hover. Never focusable, so Space stays
-                 "centre on me". -->
-            <Style x:Key="LayerButton" TargetType="ToggleButton">
-                <Setter Property="Margin" Value="6,0,0,0"/>
-                <Setter Property="Padding" Value="11,4"/>
-                <Setter Property="FontSize" Value="12"/>
-                <Setter Property="Foreground" Value="#6B7782"/>
-                <Setter Property="Focusable" Value="False"/>
-                <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ToggleButton">
-                            <Border x:Name="Box" Background="#0FFFFFFF" BorderBrush="#1FFFFFFF" BorderThickness="1" CornerRadius="3">
-                                <Grid>
-                                    <Border x:Name="Glow" Background="#1AFFFFFF" CornerRadius="3" Visibility="Collapsed"/>
-                                    <ContentPresenter Margin="{TemplateBinding Padding}"
-                                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsChecked" Value="True">
-                                    <Setter Property="Foreground" Value="#ECF2F8"/>
-                                    <Setter TargetName="Box" Property="Background" Value="#2BFFFFFF"/>
-                                    <Setter TargetName="Box" Property="BorderBrush" Value="#40FFFFFF"/>
-                                </Trigger>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Glow" Property="Visibility" Value="Visible"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
-            <!-- The glass of the pills on the map: the minimap's. -->
-            <SolidColorBrush x:Key="PillGlass" Color="#B310151B"/>
-        </ResourceDictionary>
+        <!-- The header's Layers button: bright while its menu is open, dim
+             otherwise, a glow on hover (the theme's Map.LayerButton). Never
+             focusable, so Space stays "centre on me". -->
+        <Style x:Key="LayerButton" TargetType="ToggleButton">
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Padding" Value="11,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Map.LayerButton.Idle.Text}"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Box" Background="{DynamicResource Theme.Map.LayerButton.Idle.Fill}"
+                                BorderBrush="{DynamicResource Theme.Map.LayerButton.Idle.Line}" BorderThickness="1"
+                                CornerRadius="{DynamicResource Theme.Corner.LayerButton}">
+                            <Grid>
+                                <Border x:Name="Glow" Background="{DynamicResource Theme.Map.LayerButton.HoverGlow}"
+                                        CornerRadius="{DynamicResource Theme.Corner.LayerButton}" Visibility="Collapsed"/>
+                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource Theme.Map.LayerButton.Open.Text}"/>
+                                <Setter TargetName="Box" Property="Background" Value="{DynamicResource Theme.Map.LayerButton.Open.Fill}"/>
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Theme.Map.LayerButton.Open.Line}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Glow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <!-- Opaque on purpose (the perf spike): the dim behind it is its own
-         window, the ScrimWindow, which owns this one. -->
-    <Border x:Name="RootPanel" Background="#FF10151B" BorderBrush="#33FFFFFF" BorderThickness="1" Padding="10,6,10,4">
+         window, the ScrimWindow, which owns this one. The frame is the
+         theme's (ThemedBorder) with SQUARE corners and never a cut: the
+         window is opaque, so a cut could not show the game through it
+         (themes PLAN.md question 8). A theme's lit corners are drawn inside;
+         Windows 11's own rounding is the theme's flag (Map.WindowRounded,
+         OnSourceInitialized). Never Lit: the map has no edit mode. -->
+    <local:ThemedBorder x:Name="RootPanel" Background="{DynamicResource Theme.Glass.MapWindow}" BorderThickness="1" Padding="10,6,10,4">
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="38">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- "Map", never "big map": that is only the internal name (owner, Oct 9 2026). -->
-                    <TextBlock Text="Map" FontSize="16" FontWeight="SemiBold" Foreground="#ECF2F8"/>
-                    <TextBlock x:Name="AreaLine" FontSize="12" Margin="12,2,0,0" VerticalAlignment="Center"/>
+                    <!-- "Map", never "big map": that is only the internal name (owner, Oct 9 2026).
+                         A theme's title glyph before it, as before a widget's title (None takes no room). -->
+                    <local:ThemeShape Slot="TitleGlyph" Kind="{DynamicResource Theme.Shapes.TitleGlyph}"
+                                      Stroke="{DynamicResource Theme.Text.Glyph}" Gap="4" VerticalAlignment="Center"/>
+                    <TextBlock Text="Map" FontSize="16" Foreground="{DynamicResource Theme.Text.Title}"
+                               FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontWeight="{DynamicResource Theme.Font.MapTitleWeight}"/>
+                    <TextBlock x:Name="AreaLine" FontSize="12" Margin="12,2,0,0" VerticalAlignment="Center"
+                               FontWeight="{DynamicResource Theme.Font.BodyWeight}"/>
                 </StackPanel>
                 <!-- Every layer behind one menu (owner, Oct 12 2026): the header
                      no longer grows with the layers. A word, not a cog — a cog
@@ -84,9 +92,9 @@
                         <Popup x:Name="LayersMenu" StaysOpen="False" AllowsTransparency="True"
                                Placement="Custom" PopupAnimation="None"
                                Opened="LayersMenu_Opened" Closed="LayersMenu_Closed">
-                            <Border x:Name="LayersMenuPanel" Focusable="True" PreviewKeyDown="LayersMenu_PreviewKeyDown"
-                                    Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
-                                    CornerRadius="6" Padding="4" MinWidth="190">
+                            <Border x:Name="LayersMenuPanel" Focusable="True" PreviewKeyDown="LayersMenu_PreviewKeyDown" TextElement.FontFamily="{DynamicResource Theme.Font.Family}"
+                                    Background="{DynamicResource Theme.Glass.Menu}" BorderBrush="{DynamicResource Theme.Frame.Locked.Line}" BorderThickness="1"
+                                    CornerRadius="{DynamicResource Theme.Corner.Menu}" Padding="4" MinWidth="190">
                                 <StackPanel x:Name="LayersItems"/>
                             </Border>
                         </Popup>
@@ -95,15 +103,17 @@
             </Grid>
 
             <Grid DockPanel.Dock="Bottom" Height="26">
-                <TextBlock x:Name="HintText" FontSize="11" Foreground="#7B8790" VerticalAlignment="Center"/>
-                <TextBlock Text="M or Esc closes" FontSize="11" Foreground="#7B8790"
+                <TextBlock x:Name="HintText" FontSize="11" Foreground="{DynamicResource Theme.Text.Dim}"
+                           FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center"/>
+                <TextBlock Text="M or Esc closes" FontSize="11" Foreground="{DynamicResource Theme.Text.Dim}"
+                           FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            HorizontalAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
 
             <!-- The map: the shared MapCanvas in map space. The host clips it;
-                 its background is the picture's own sea, for a view that runs
-                 past the picture's edge. -->
-            <Grid x:Name="MapHost" ClipToBounds="True" Background="#FF0A1D45" Cursor="Arrow"
+                 its background is the picture's own sea (data, set in code),
+                 for a view that runs past the picture's edge. -->
+            <Grid x:Name="MapHost" ClipToBounds="True" Cursor="Arrow"
                   MouseLeftButtonDown="MapHost_MouseLeftButtonDown"
                   MouseLeftButtonUp="MapHost_MouseLeftButtonUp"
                   MouseRightButtonUp="MapHost_MouseRightButtonUp"
@@ -114,30 +124,33 @@
                 <local:MapCanvas x:Name="Map"/>
 
                 <!-- What is under the cursor: an area and how far it is from you,
-                     or the waypoint / friend the cursor is on. -->
+                     or the waypoint / friend the cursor is on (the theme's readout). -->
                 <Border x:Name="Readout" HorizontalAlignment="Left" VerticalAlignment="Top"
-                        Background="#E610151B" BorderBrush="#26FFFFFF" BorderThickness="1"
-                        CornerRadius="4" Padding="8,3,8,4" IsHitTestVisible="False" Visibility="Collapsed">
-                    <TextBlock x:Name="ReadoutText" FontSize="12" Foreground="#ECF2F8"/>
+                        Background="{DynamicResource Theme.Map.Readout.Glass}" BorderBrush="{DynamicResource Theme.Map.Readout.Line}" BorderThickness="1"
+                        CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="8,3,8,4" IsHitTestVisible="False" Visibility="Collapsed">
+                    <TextBlock x:Name="ReadoutText" FontSize="12" Foreground="{DynamicResource Theme.Map.Readout.Name}"
+                               FontWeight="{DynamicResource Theme.Font.BodyWeight}"/>
                 </Border>
 
                 <Border x:Name="ScaleBarPanel" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10"
-                        Background="{StaticResource PillGlass}" CornerRadius="4" Padding="8,2,8,6"
+                        Background="{DynamicResource Theme.Glass.MapPill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="8,2,8,6"
                         IsHitTestVisible="False" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock x:Name="ScaleBarLabel" Foreground="#ECF2F8" FontSize="11" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="ScaleBarLabel" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="11"
+                                   FontWeight="{DynamicResource Theme.Font.ValueWeight}" HorizontalAlignment="Center"/>
                         <Border x:Name="ScaleBarLine" Height="5" HorizontalAlignment="Center"
-                                BorderBrush="#ECF2F8" BorderThickness="1.5,0,1.5,1.5"/>
+                                BorderBrush="{DynamicResource Theme.Map.ScaleBar}" BorderThickness="1.5,0,1.5,1.5"/>
                     </StackPanel>
                 </Border>
 
                 <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10"
-                        Background="{StaticResource PillGlass}" CornerRadius="4" Padding="7,3" IsHitTestVisible="False">
-                    <TextBlock x:Name="ZoomText" Foreground="#ECF2F8" FontSize="11"/>
+                        Background="{DynamicResource Theme.Glass.MapPill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="7,3" IsHitTestVisible="False">
+                    <TextBlock x:Name="ZoomText" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="11"
+                               FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
                 </Border>
             </Grid>
         </DockPanel>
-    </Border>
+    </local:ThemedBorder>
 
     <!-- The right-click menu, the minimap's (MapMenuBuilder). A popup is its
          own window, so it never shifts the map. Its menu and the Layers menu
@@ -146,13 +159,14 @@
          map. And each sits ALONE in its Tag: WPF opens a popup that has a
          parent only once that parent is loaded, and a parent held in a Tag
          never loads — wrapped in a Grid, both menus stopped opening (Oct 12
-         2026, caught by the owner). -->
+         2026, caught by the owner). Both panels on the theme's menu glass
+         and frame line. -->
     <Window.Tag>
         <Popup x:Name="MapMenu" StaysOpen="False" AllowsTransparency="True"
                Placement="MousePoint" PopupAnimation="None">
-            <Border x:Name="MapMenuPanel" Focusable="True" PreviewKeyDown="MapMenu_PreviewKeyDown"
-                    Background="#F210151B" BorderBrush="#33FFFFFF" BorderThickness="1"
-                    CornerRadius="6" Padding="4" MinWidth="170">
+            <Border x:Name="MapMenuPanel" Focusable="True" PreviewKeyDown="MapMenu_PreviewKeyDown" TextElement.FontFamily="{DynamicResource Theme.Font.Family}"
+                    Background="{DynamicResource Theme.Glass.Menu}" BorderBrush="{DynamicResource Theme.Frame.Locked.Line}" BorderThickness="1"
+                    CornerRadius="{DynamicResource Theme.Corner.Menu}" Padding="4" MinWidth="170">
                 <StackPanel x:Name="MapMenuItems"/>
             </Border>
         </Popup>

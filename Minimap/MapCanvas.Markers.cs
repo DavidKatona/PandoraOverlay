@@ -23,7 +23,8 @@ public partial class MapCanvas
     private const double EdgeMargin = 8;         // inset of a tracked marker's off-panel indicator
     private const string FriendArrowGeometry = "M 0,-6 L 4.5,5 L 0,2.5 L -4.5,5 Z"; // your arrow at three quarters: you stay the anchor
 
-    private static readonly Brush MarkerOutline = new SolidColorBrush(Color.FromArgb(0x99, 0x0A, 0x15, 0x20));
+    /// <summary>The dark line round every marker and friend's arrow, the theme's (repainted in place by ApplyTheme).</summary>
+    private static Brush MarkerOutline => Theme.Current.Map.MarkerOutline.ToBrush();
 
     /// <summary>One drawn waypoint: its shape(s) and the transform that moves them.</summary>
     private sealed class Marker
@@ -222,7 +223,8 @@ public partial class MapCanvas
             {
                 // The crisp outlined name (NameLayer), in the friend's colour, gliding with the arrow.
                 var name = new NameLayer { RenderTransform = marker.Translate };
-                name.Show(new[] { (nameOf(f), NameLayer.NameFontSize, true, brush, new Point(RingSize / 2 + 1, -NameLayer.NameFontSize - 1)) });
+                var size = Theme.Current.Font.MapNameSize;
+                name.Show(new[] { (nameOf(f), size, true, brush, new Point(RingSize / 2 + 1, -size - 1)) });
                 marker.Name = name;
                 FriendLayer.Children.Add(name);
             }

@@ -90,6 +90,7 @@ public partial class MinimapWindow : OverlayWindowBase
             Top = y;
         }
         MapHost.Width = MapHost.Height = MapSize;
+        ApplyMapSquare();
         ApplyAppearance(config);
 
         _noticeTimer = new DispatcherTimer { Interval = NoticeHold };
@@ -131,7 +132,7 @@ public partial class MinimapWindow : OverlayWindowBase
 
     protected override void OnEditModeChanged(bool editMode)
     {
-        PaintFrameLine(editMode);
+        RootPanel.Lit = editMode; // the theme's edit look on the frame (ThemedBorder)
         if (!editMode && (_hover is not null || _hoverFriend is not null))
         {
             _hover = null;
@@ -142,22 +143,51 @@ public partial class MinimapWindow : OverlayWindowBase
         UpdateAreaPill();
     }
 
-    /// <summary>The frame's outline in the theme's line for edit mode or locked (the frame itself becomes a ThemedBorder in the themes' step 4).</summary>
-    private void PaintFrameLine(bool editMode) =>
-        RootPanel.BorderBrush = (editMode ? Theme.Current.Frame.Edit.Line : Theme.Current.Frame.Locked.Line).ToBrush();
-
     /// <summary>
-    /// A theme switch (MainWindow.ApplyTheme, after Theme.Apply), the minimal
-    /// part for now: the glass and the frame's line. The menu's separators are
-    /// read from the theme each time the menu is built, which is each time it
-    /// opens. The map's own drawing (your arrow, the trail, the hover outline,
-    /// the names, the pills) moves onto the tokens in the themes' step 4, with
-    /// MapCanvas.ApplyTheme and NameLayer.ForgetPrepared.
+    /// A theme switch (MainWindow.ApplyTheme, after Theme.Apply and
+    /// NameLayer.ForgetPrepared). The frame, the pills, the footer's own
+    /// colour, the map's arrow, trail and outlines and the menu's entries
+    /// follow the theme's dictionary by themselves (ThemedBorder, DynamicResource);
+    /// this repaints what was painted in code, from what the window holds:
+    /// the glass (at the player's slider), the map square's cut, the map's
+    /// markers and casing (MapCanvas.ApplyTheme, in place: nothing is
+    /// re-placed, so a glide goes on undisturbed), the area pill's text and
+    /// the footer. Never a re-feed, no placement, no request. The menu's
+    /// separators are read from the theme each time it opens.
     /// </summary>
     public void ApplyTheme()
     {
         ApplyAppearance(_config);
-        PaintFrameLine(EditMode);
+        ApplyMapSquare();
+        Map.ApplyTheme();
+        UpdateAreaPill();
+        UpdateFooter();
+    }
+
+    /// <summary>
+    /// The map square in the theme's cut (Theme.Cut.MapSquare: two corners,
+    /// as a frame's): the square clipped to the polygon, so nothing of the
+    /// map shows in a cut; the inner outline is MapOutline's, which follows
+    /// the same number by itself. No cut (Default): no clip beyond the
+    /// square's own bounds, exactly as before.
+    /// </summary>
+    private void ApplyMapSquare()
+    {
+        if (FrameGeometry.CutPolygon(MapSize, MapSize, Theme.Current.Cut.MapSquare) is { } corners)
+        {
+            var polygon = new StreamGeometry();
+            using (var context = polygon.Open())
+            {
+                context.BeginFigure(corners[0], isFilled: true, isClosed: true);
+                context.PolyLineTo(corners.Skip(1).ToList(), isStroked: false, isSmoothJoin: false);
+            }
+            polygon.Freeze();
+            MapHost.Clip = polygon;
+        }
+        else
+        {
+            MapHost.ClearValue(ClipProperty);
+        }
     }
 
     /// <summary>

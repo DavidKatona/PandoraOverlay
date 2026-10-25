@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Media;
 
 namespace PandoraOverlay;
 
@@ -18,9 +17,6 @@ namespace PandoraOverlay;
 /// </summary>
 public partial class MinimapWindow
 {
-    private static readonly Brush AreaOwn = new SolidColorBrush(Color.FromRgb(0xEC, 0xF2, 0xF8));
-    private static readonly Brush AreaHover = new SolidColorBrush(Color.FromRgb(0xFF, 0xC8, 0x64)); // the edit-mode accent
-
     /// <summary>
     /// What the pill says where there is no named area (owner's word, Oct 2
     /// 2026: neutral on purpose — it must not claim water, a future map
@@ -86,7 +82,9 @@ public partial class MinimapWindow
         var name = hovering && _hoverSpot is { } spot ? map.NameAt(spot.Fx, spot.Fy) : _area;
         AreaText.Text = name ?? Uncharted;
         AreaText.Opacity = name is null ? UnchartedOpacity : 1;
-        AreaText.Foreground = hovering ? AreaHover : AreaOwn;
+        // The theme's two colours, as the two outlines on the map wear them: the
+        // edit-mode accent for the cursor's area, your own area's soft light.
+        AreaText.Foreground = (hovering ? Theme.Current.Map.Hover : Theme.Current.Map.OwnArea).ToBrush();
         AreaPanel.Visibility = Visibility.Visible;
     }
 

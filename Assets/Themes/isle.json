@@ -15,8 +15,9 @@
 //
 // Provisional (step 3, the owner's first look): the widgets, the control
 // panel and the colours shared with what later steps convert (the text roles,
-// the glass, "you" on the maps). Steps 4 and 6 add the maps' and the
-// dialogs' own values.
+// the glass, "you" on the maps). Step 4 added the maps' own values (the
+// minimap, the map window, their menus, the names, the snap guides); step 6
+// adds the dialogs'.
 {
   "Name": "Isle",
   "Order": 1,
@@ -137,13 +138,47 @@
     },
     "Separator": "#4D7FE3F0",
     "ListRule": { "Line": "#4D7FE3F0", "Width": 1, "Gap": 8 },
+    // The maps' menus (the right-click menu, the map's Layers menu, Controls.xaml):
+    // a row in the label grey, ticked in the text colour; the row under the
+    // mouse accent faint (DESIGN's 2 px bar on its left has no token yet).
+    "MenuRow": {
+      "Idle": { "Text": "#A9C3C8" },
+      "Hover": { "Fill": "#177FE3F0", "Text": "#A9C3C8" },
+      "Pressed": { "Fill": "#2E7FE3F0", "Text": "#A9C3C8" },
+      "Disabled": { "Text": "#6F878C" },
+      "Ticked": { "Text": "#DCEBEE" },
+    },
     // You on the maps, the edit-mode hover, the snap guides, the update card's
     // bullets and ticks: gold, amber and green today, the accent here (PLAN.md,
-    // "Every gold / orange you" and "Every green good"). Drawn from step 4 on.
+    // "Every gold / orange you" and "Every green good").
     "Map": {
-      "You": { "Arrow": "#7FE3F0", "Trail": "#7FE3F0" },
+      // Your arrow in the accent with a near-black outline and the accent glow
+      // (the mock's 3 px drop shadow, painted); the trail in the accent, with
+      // no casing (Trail outline stays transparent: question 26).
+      "You": { "Arrow": "#7FE3F0", "Outline": "#051014", "Trail": "#7FE3F0", "Glow": "#737FE3F0" },
       "Hover": "#7FE3F0",
+      "OwnArea": "#ECF8FA",
+      // The map's names: near-white on a near-black outline, in Montserrat
+      // (Font.Family) at the mock's sizes (Font, below).
+      "AreaName": "#EEF8FA",
+      "Name": "#DCEBEE",
+      "NameOutline": "#F2050B0E",
+      "MarkerOutline": "#051014",
+      // The cursor readout (and the header's "you are in"): 92% glass, an
+      // accent-line outline, the name bright, the rest dim.
+      "Readout": { "Glass": "#EB050B0E", "Line": "#4D7FE3F0", "Name": "#ECF8FA", "Rest": "#7D969B" },
+      "ScaleBar": "#DCEBEE",
+      "PillText": "#DCEBEE",
+      // The Layers button: square, an accent-line outline; accent faint with the
+      // whole accent outline while its menu is open.
+      "LayerButton": {
+        "Idle": { "Fill": "#0A7FE3F0", "Line": "#4D7FE3F0", "Text": "#A9C3C8" },
+        "Open": { "Fill": "#177FE3F0", "Line": "#7FE3F0", "Text": "#ECF8FA" },
+        "HoverGlow": "#147FE3F0",
+      },
       "SnapGuide": { "Screen": "#E67FE3F0", "Peer": "#E6B8E6EC" },
+      // Square frames: Windows 11 must not round the map window (question 8).
+      "WindowRounded": false,
     },
     "UpdateCard": { "Bullet": "#7FE3F0", "Good": "#7FE3F0", "Progress": "#7FE3F0" },
     "Shapes": {
@@ -154,8 +189,9 @@
     "Cut": { "Widget": 10, "MapSquare": 6, "Dialog": 14 },
     // A 1.5 px accent line about 26 px along the edge and 20 px down the side, past each cut.
     "Lit": { "Edge": 26, "Side": 20, "Width": 1.5 },
-    // The corners' glow, edit mode's whole outline, the control panel's inner glow (within its 10 × 8 padding).
-    "Glow": { "Corners": 3, "Edit": 5, "ControlPanel": 8 },
+    // The corners' glow, edit mode's whole outline, the control panel's inner glow
+    // (within its 10 × 8 padding), your arrow on the maps.
+    "Glow": { "Corners": 3, "Edit": 5, "ControlPanel": 8, "You": 3 },
     "Corner": {
       "Widget": 0, "Dialog": 0, "Menu": 0, "Pill": 0, "Button": 0, "Card": 0, "Well": 0,
       "Bar": 0, "Check": 0, "ScrollThumb": 0, "Badge": 0, "Nav": 0, "LayerButton": 0,
@@ -170,6 +206,11 @@
       // The control panel's 10 px buttons are Default's too since the owner's
       // look (Oct 25 2026: Isle's compact panel for every theme), so not here.
       "BadgeSize": 9.5,
+      // The map's names (DESIGN: area names 9.5 px in capitals, the others 10 px).
+      // Capitals are Default's too (the map has always written them so), so
+      // MapAreaNameCaps is not here.
+      "MapAreaNameSize": 9.5,
+      "MapNameSize": 10,
     },
   },
 }

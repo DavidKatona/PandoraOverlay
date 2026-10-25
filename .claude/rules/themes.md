@@ -55,7 +55,10 @@ summary.
   `Theme.Apply` and a theme switch write nothing into config and place no window.
 - **A glow is painted, never an `Effect`** (`FrameGeometry.Glow`: three strokes under the
   line). A live DropShadowEffect halved the frame rate in the glow spike; the owner's
-  NameLayer rule says no blur effect. No exception, "Prime Elder" included.
+  NameLayer rule says no blur effect. No exception, "Prime Elder" included. Round a shape
+  (your arrow on the maps) it is a `PaintedGlow` under the shape, with its geometry and
+  transform; the inner outline of a cut surface inside a frame (the minimap's map square)
+  is a `CutOutline`. Both draw nothing at Default's 0.
 - **A redraw of a code-built Settings page calls its RENDER, never its `Open…`**:
   `OpenStoragePage` asks the website on every call past its guards, and a theme click must
   never become a trigger of a request (CLAUDE.md, constraint 2).

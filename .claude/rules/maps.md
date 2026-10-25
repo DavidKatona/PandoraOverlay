@@ -31,7 +31,14 @@ paths:
   through `MapCalibration.ToFraction` / `ToWorld`. No inline copies.
 - Map text goes through `NameLayer`: one element, each name prepared once, Display-mode
   text on whole device pixels with a one-pixel outline — never a blur effect, never an
-  element per name.
+  element per name. Its font, outline, name colours and sizes are the theme's; its cache is
+  keyed by font and emptied by `NameLayer.ForgetPrepared()` at a theme switch.
+- **The maps' chrome is the theme's, their data is not** (1.39, `.claude/rules/themes.md`):
+  your arrow and trail, the outlines, the pills, the readout, the menus, the Layers button
+  and the frames read tokens; the picture's sea, the area borders' navy, the zone hues and
+  the waypoint palette live in `MapBrushes`, the same in every theme. A theme switch reaches
+  the minimap through `MinimapWindow.ApplyTheme` and `MapCanvas.ApplyTheme` (repainted in
+  place, nothing re-placed); the map is closed during one and opens in the theme on screen.
 - A widget never changes size: anything transient on the minimap (the menu) is a Popup,
   its own HWND.
 - The maps are pure consumers of the one PollService stream: trail, scale bar, speed,

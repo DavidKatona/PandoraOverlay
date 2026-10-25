@@ -240,6 +240,35 @@ public class ThemeFileTests
         Assert.Equal(C("#FFC864"), D.Map.You.Arrow);
         Assert.Equal(C("#FFC864"), D.Map.You.Trail);
 
+        // The maps (step 4): MapCanvas.xaml, NameLayer, MapCanvas.Markers, the minimap's
+        // and the map's XAML, the map menus, SnapGuideWindow, as they were in 1.38.
+        Assert.Equal(C("#991A130A"), D.Map.You.Outline);
+        Assert.Equal(ThemeColor.None, D.Map.You.TrailOutline); // no casing under the trail
+        Assert.Equal(ThemeColor.None, D.Map.You.Glow);
+        Assert.Equal(C("#FFC864"), D.Map.Hover);
+        Assert.Equal(C("#ECF2F8"), D.Map.OwnArea);
+        Assert.Equal(C("#F2F5F8"), D.Map.AreaName);
+        Assert.Equal(C("#E2E8EE"), D.Map.Name);
+        Assert.Equal(C("#E6060A10"), D.Map.NameOutline);
+        Assert.Equal(C("#990A1520"), D.Map.MarkerOutline);
+        Assert.Equal((C("#E610151B"), C("#26FFFFFF"), C("#ECF2F8"), C("#9AA7B0")),
+                     (D.Map.Readout.Glass, D.Map.Readout.Line, D.Map.Readout.Name, D.Map.Readout.Rest));
+        Assert.Equal((C("#ECF2F8"), C("#ECF2F8")), (D.Map.ScaleBar, D.Map.PillText));
+        Assert.Equal((C("#0FFFFFFF"), C("#1FFFFFFF"), C("#6B7782")),
+                     (D.Map.LayerButton.Idle.Fill, D.Map.LayerButton.Idle.Line, D.Map.LayerButton.Idle.Text));
+        Assert.Equal((C("#2BFFFFFF"), C("#40FFFFFF"), C("#ECF2F8")),
+                     (D.Map.LayerButton.Open.Fill, D.Map.LayerButton.Open.Line, D.Map.LayerButton.Open.Text));
+        Assert.Equal(C("#1AFFFFFF"), D.Map.LayerButton.HoverGlow);
+        Assert.Equal((C("#E6FFC864"), C("#E64FC3F7")), (D.Map.SnapGuide.Screen, D.Map.SnapGuide.Peer));
+        Assert.Equal((C("#9910151B"), C("#B310151B"), C("#10151B"), C("#F210151B")),
+                     (D.Glass.Pill, D.Glass.MapPill, D.Glass.MapWindow, D.Glass.Menu));
+        Assert.Equal((C("#C7D1DA"), C("#2EFFFFFF"), C("#4DFFFFFF"), C("#5E6B76"), C("#ECF2F8")),
+                     (D.MenuRow.Idle.Text, D.MenuRow.Hover.Fill, D.MenuRow.Pressed.Fill, D.MenuRow.Disabled.Text, D.MenuRow.Ticked.Text));
+        Assert.Equal((new ThemeRadius(6), new ThemeRadius(4), new ThemeRadius(3)), (D.Corner.Menu, D.Corner.Pill, D.Corner.LayerButton));
+        Assert.Equal((13.0, 12.0), (D.Font.MapAreaNameSize, D.Font.MapNameSize));
+        Assert.True(D.Font.MapAreaNameCaps); // the map has written its area names in capitals since 1.34
+        Assert.Equal(ThemeWeight.SemiBold, D.Font.MapTitleWeight);
+
         Assert.Equal(new ThemeRadius(10), D.Corner.Widget);
         Assert.Equal(new ThemeRadius(10), D.Corner.Dialog);
         Assert.Equal(new ThemeRadius(6), D.Corner.Menu);

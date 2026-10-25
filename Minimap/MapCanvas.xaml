@@ -43,24 +43,24 @@
                  zoom). Scaled to the map in code, translated with it like the
                  heatmap, and above it. Dark navy at 70% on purpose, not light
                  lines and not the area colours (owner, Oct 2 2026); the why is
-                 on MinimapWindow.UpdateAreaBorders. -->
+                 on MinimapWindow.UpdateAreaBorders. The navy is data, never a
+                 theme's (MapBrushes.AreaBorders, set in code). -->
             <Path x:Name="AreaBordersPath" x:FieldModifier="private"
-                  Stroke="#001430"
                   Opacity="0.7"
                   StrokeLineJoin="Round"
                   Visibility="Collapsed"
                   IsHitTestVisible="False"/>
             <!-- Two highlights on that layer: the outline of YOUR area (soft
                  light), and the outline of the area under the cursor (the edit
-                 orange). -->
+                 orange); the theme's colours. -->
             <Path x:Name="AreaOwnPath" x:FieldModifier="private"
-                  Stroke="#ECF2F8"
+                  Stroke="{DynamicResource Theme.Map.OwnArea}"
                   Opacity="0.6"
                   StrokeLineJoin="Round"
                   Visibility="Collapsed"
                   IsHitTestVisible="False"/>
             <Path x:Name="AreaHoverPath" x:FieldModifier="private"
-                  Stroke="#FFC864"
+                  Stroke="{DynamicResource Theme.Map.Hover}"
                   Opacity="0.9"
                   StrokeLineJoin="Round"
                   Visibility="Collapsed"
@@ -71,11 +71,21 @@
             <!-- Solid on purpose: a dash pattern is anchored at the first
                  point, so it would crawl along the whole trail every time the
                  tail trims. -->
-            <Polyline x:Name="TrailOld" x:FieldModifier="private" Stroke="#FFC864" StrokeThickness="2"
+            <!-- A theme's casing under the trail (Theme.Map.You.TrailOutline,
+                 PLAN.md question 26): the same three bands once more, under
+                 all three, wider (CasingWidth). Collapsed and empty while the
+                 colour is transparent (Default, Isle): then nothing is drawn. -->
+            <Polyline x:Name="CasingOld" x:FieldModifier="private" Stroke="{DynamicResource Theme.Map.You.TrailOutline}"
+                      StrokeLineJoin="Round" Opacity="0.3" Visibility="Collapsed"/>
+            <Polyline x:Name="CasingMid" x:FieldModifier="private" Stroke="{DynamicResource Theme.Map.You.TrailOutline}"
+                      StrokeLineJoin="Round" Opacity="0.55" Visibility="Collapsed"/>
+            <Polyline x:Name="CasingNew" x:FieldModifier="private" Stroke="{DynamicResource Theme.Map.You.TrailOutline}"
+                      StrokeLineJoin="Round" Opacity="0.85" Visibility="Collapsed"/>
+            <Polyline x:Name="TrailOld" x:FieldModifier="private" Stroke="{DynamicResource Theme.Map.You.Trail}" StrokeThickness="2"
                       StrokeLineJoin="Round" Opacity="0.3"/>
-            <Polyline x:Name="TrailMid" x:FieldModifier="private" Stroke="#FFC864" StrokeThickness="2"
+            <Polyline x:Name="TrailMid" x:FieldModifier="private" Stroke="{DynamicResource Theme.Map.You.Trail}" StrokeThickness="2"
                       StrokeLineJoin="Round" Opacity="0.55"/>
-            <Polyline x:Name="TrailNew" x:FieldModifier="private" Stroke="#FFC864" StrokeThickness="2"
+            <Polyline x:Name="TrailNew" x:FieldModifier="private" Stroke="{DynamicResource Theme.Map.You.Trail}" StrokeThickness="2"
                       StrokeLineJoin="Round" Opacity="0.85"/>
         </Canvas>
         <Canvas>
@@ -94,10 +104,17 @@
             <!-- In-game friends as smaller arrows in their colours, above the
                  waypoints and under your own arrow. -->
             <Canvas x:Name="FriendLayer" x:FieldModifier="private"/>
+            <!-- Your arrow in the theme's colours, over its painted glow
+                 (PaintedGlow: the arrow's own geometry and transform, set in
+                 code; radius 0 in Default, so nothing at all). -->
+            <local:PaintedGlow x:Name="PlayerGlow" x:FieldModifier="private"
+                               Radius="{DynamicResource Theme.Glow.You}"
+                               Color="{DynamicResource Theme.Map.You.Glow.Color}"
+                               Visibility="Collapsed"/>
             <Path x:Name="PlayerArrow" x:FieldModifier="private"
                   Data="M 0,-8 L 6,7 L 0,3.5 L -6,7 Z"
-                  Fill="#FFC864"
-                  Stroke="#991A130A"
+                  Fill="{DynamicResource Theme.Map.You.Arrow}"
+                  Stroke="{DynamicResource Theme.Map.You.Outline}"
                   StrokeThickness="1"
                   Visibility="Collapsed"/>
         </Canvas>

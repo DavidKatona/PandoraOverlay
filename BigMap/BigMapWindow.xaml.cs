@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -67,7 +68,9 @@ public partial class BigMapWindow : Window
     public BigMapWindow(OverlayConfig config, PollService poll, WaypointLibrary library, FriendBook book,
                         BreadcrumbTrail trail, MapActions actions, Rect monitor)
     {
+        Theme.EnsureLoaded(); // the theme's resources and the shared menu styles, before the XAML reads them (a no-op in the overlay)
         InitializeComponent();
+        MapHost.Background = MapBrushes.Sea; // data: the picture's own sea in every theme
         _config = config;
         _poll = poll;
         _library = library;
@@ -90,9 +93,9 @@ public partial class BigMapWindow : Window
         {
             _noticeTimer.Stop();
             HintText.Text = Hint;
-            HintText.Foreground = HintBrush;
+            HintText.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Text.Dim"); // back to the XAML's hint colour
         };
-        _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), () => MenuSeparator, _actions, FriendBrush,
+        _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), () => Theme.Current.Separator.ToBrush(), _actions, FriendBrush,
                                           () => _lastWorld, () => MapMenu.IsOpen = false, ShowNotice);
 
         _ticks = BuildLayersMenu();
@@ -130,17 +133,6 @@ public partial class BigMapWindow : Window
         };
     }
 
-    private static readonly Brush HintBrush = Frozen(Color.FromRgb(0x7B, 0x87, 0x90));
-    private static readonly Brush NoticeBrush = Frozen(Color.FromRgb(0xEC, 0xF2, 0xF8));
-    private static readonly Brush MenuSeparator = Frozen(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
-
-    private static Brush Frozen(Color colour)
-    {
-        var brush = new SolidColorBrush(colour);
-        brush.Freeze();
-        return brush;
-    }
-
     /// <summary>
     /// Shows the backdrop, then the map over it (owned by it, so it stays
     /// above), and takes focus: the hotkey press grants foreground rights,
@@ -160,9 +152,13 @@ public partial class BigMapWindow : Window
         base.OnSourceInitialized(e);
         var hwnd = new WindowInteropHelper(this).Handle;
         SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64() | WS_EX_TOOLWINDOW)); // no Alt-Tab entry
-        // Windows 11 rounds the corners; Windows 10 doesn't know the attribute and keeps them square.
-        var round = DWMWCP_ROUND;
-        _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref round, sizeof(int));
+        // Windows 11 rounds the corners where the theme says so (Default); a theme
+        // with square frames keeps them square (Isle: PLAN.md question 8). The map
+        // opens in the theme on screen and is closed before a switch can happen
+        // (Settings closes it first), so this is read once. Windows 10 doesn't
+        // know the attribute and keeps every corner square.
+        var corners = Theme.Current.Map.WindowRounded ? DWMWCP_ROUND : DWMWCP_DONOTROUND;
+        _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref corners, sizeof(int));
     }
 
     // ---- Closing --------------------------------------------------------------
@@ -350,7 +346,7 @@ public partial class BigMapWindow : Window
     private void ShowNotice(string text)
     {
         HintText.Text = text;
-        HintText.Foreground = NoticeBrush;
+        HintText.Foreground = Theme.Current.Text.Bright.ToBrush();
         _noticeTimer.Stop();
         _noticeTimer.Start();
     }
@@ -360,6 +356,7 @@ public partial class BigMapWindow : Window
     private const int GWL_EXSTYLE = -20;
     private const long WS_EX_TOOLWINDOW = 0x80;
     private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    private const int DWMWCP_DONOTROUND = 1;
     private const int DWMWCP_ROUND = 2;
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]

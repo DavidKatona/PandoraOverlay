@@ -9,16 +9,15 @@ namespace PandoraOverlay;
 /// <summary>
 /// Full-virtual-screen, click-through, no-activate window that draws the
 /// snap guide lines while an overlay window is being dragged. One vertical
-/// and one horizontal line: orange for screen-edge/inset targets, blue for
-/// peer-window targets (matching the arrow and waypoint colours). Created
-/// lazily by OverlayWindowBase, shown only mid-drag, hidden on release —
-/// costs nothing in normal use.
+/// and one horizontal line, in the theme's two guide colours (Map.SnapGuide):
+/// one for screen-edge/inset targets, one for peer-window targets (in
+/// Default orange and blue, matching the arrow and waypoint colours; read
+/// at each drag, so a theme switch needs nothing here). Created lazily by
+/// OverlayWindowBase, shown only mid-drag, hidden on release — costs
+/// nothing in normal use.
 /// </summary>
 public sealed class SnapGuideWindow : Window
 {
-    private static readonly Brush ScreenGuide = new SolidColorBrush(Color.FromArgb(0xE6, 0xFF, 0xC8, 0x64));
-    private static readonly Brush PeerGuide = new SolidColorBrush(Color.FromArgb(0xE6, 0x4F, 0xC3, 0xF7));
-
     private readonly Line _vertical = new() { StrokeThickness = 1, Visibility = Visibility.Collapsed };
     private readonly Line _horizontal = new() { StrokeThickness = 1, Visibility = Visibility.Collapsed };
 
@@ -61,7 +60,7 @@ public sealed class SnapGuideWindow : Window
 
         if (vertical is { } v)
         {
-            _vertical.Stroke = v.FromPeer ? PeerGuide : ScreenGuide;
+            _vertical.Stroke = Guide(v);
             _vertical.X1 = _vertical.X2 = v.Position - Left;
             _vertical.Y1 = 0;
             _vertical.Y2 = Height;
@@ -74,7 +73,7 @@ public sealed class SnapGuideWindow : Window
 
         if (horizontal is { } h)
         {
-            _horizontal.Stroke = h.FromPeer ? PeerGuide : ScreenGuide;
+            _horizontal.Stroke = Guide(h);
             _horizontal.Y1 = _horizontal.Y2 = h.Position - Top;
             _horizontal.X1 = 0;
             _horizontal.X2 = Width;
@@ -85,6 +84,10 @@ public sealed class SnapGuideWindow : Window
             _horizontal.Visibility = Visibility.Collapsed;
         }
     }
+
+    /// <summary>A guide's colour: to another panel, or to the screen.</summary>
+    private static Brush Guide(SnapGuide guide) =>
+        (guide.FromPeer ? Theme.Current.Map.SnapGuide.Peer : Theme.Current.Map.SnapGuide.Screen).ToBrush();
 
     public void HideGuides()
     {

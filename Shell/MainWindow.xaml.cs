@@ -259,9 +259,9 @@ public partial class MainWindow : OverlayWindowBase
     /// DynamicResource in every open window, popup and card follows by
     /// itself, and so does every ThemedBorder (they follow by resource
     /// reference). Theme.Apply logs the theme's id, the one fact.</item>
-    /// <item>The map names' cache comes next, from the themes' step 4
-    /// (NameLayer.ForgetPrepared): it is keyed by font, so it must be emptied
-    /// before any map redraws.</item>
+    /// <item>NameLayer.ForgetPrepared: the map names' cache is keyed by font
+    /// and outline, so it is emptied before any map redraws, and the next
+    /// names are prepared once in the new theme's font.</item>
     /// <item>ApplyAppearance: the glass, read from the theme AFTER the swap,
     /// at the player's opacity slider.</item>
     /// <item>PaintStats: the bars, the badges, the header and the footer,
@@ -269,9 +269,11 @@ public partial class MainWindow : OverlayWindowBase
     /// IngestStats: replaying the snapshot would give every tracker a
     /// duplicate sample (the speed reading 0, the drain slopes flattening;
     /// REVIEW.md objection 1).</item>
-    /// <item>The other windows: the minimap (its glass and frame line until
-    /// step 4), Prime and Activity (their glass and their renders from what
-    /// they hold, never a re-feed), the control panel (its glass).</item>
+    /// <item>The other windows: the minimap (its glass, the map square's cut,
+    /// the map's markers and trail casing in place through MapCanvas.ApplyTheme,
+    /// the area pill and the footer), Prime and Activity (their glass and their
+    /// renders from what they hold, never a re-feed), the control panel (its
+    /// glass). The snap guides read the theme at each drag.</item>
     /// </list>
     /// Between the swap and the repaints a window is half-switched for one
     /// dispatcher turn; nobody sees it. The map is closed while Settings is
@@ -284,7 +286,7 @@ public partial class MainWindow : OverlayWindowBase
     private void ApplyTheme()
     {
         Theme.Apply(_config.Theme);
-        // (Step 4: NameLayer.ForgetPrepared() here, before any map redraws.)
+        NameLayer.ForgetPrepared();
         ApplyAppearance(_config);
         PaintStats();
         _minimap?.ApplyTheme();

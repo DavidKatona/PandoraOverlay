@@ -20,22 +20,27 @@ namespace PandoraOverlay;
 /// off-screen on the owner's CPU). Don't go back to an element per name or
 /// to DrawText per step, and don't bring a blur effect such as a
 /// DropShadowEffect back (owner, Oct 9 2026).
+/// <para>
+/// The look is the theme's (1.39): the typeface is <c>Theme.Font.Family</c>
+/// (Segoe UI in Default, the bundled Montserrat in Isle), the outline
+/// <c>Theme.Map.NameOutline</c>; the sizes and the fill colours come from the
+/// caller, who reads them from the theme too (MapCanvas.LabelSize /
+/// LabelBrush, a friend's name in the friend's colour). A prepared name is
+/// kept by font and outline as well, so a name prepared in one theme is
+/// never stamped in another; and a theme switch empties the cache
+/// (<see cref="ForgetPrepared"/>, MainWindow.ApplyTheme, before any map
+/// redraws), so the drawings of a theme no longer on screen don't linger.
+/// </para>
 /// </summary>
 public sealed class NameLayer : FrameworkElement
 {
-    public const double AreaFontSize = 13;
-    public const double NameFontSize = 12;
-
-    private static readonly FontFamily Font = new("Segoe UI");
-    private static readonly Typeface Regular = new(Font, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
-    private static readonly Typeface Semibold = new(Font, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
-    public static readonly Brush AreaBrush = Frozen(Color.FromRgb(0xF2, 0xF5, 0xF8));
-    public static readonly Brush NameBrush = Frozen(Color.FromRgb(0xE2, 0xE8, 0xEE));
-    private static readonly Brush Outline = Frozen(Color.FromArgb(0xE6, 0x06, 0x0A, 0x10));
     private static readonly (int X, int Y)[] Steps = { (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1) };
 
-    /// <summary>Every name prepared so far, by text, size, weight, colour and pixel density: a name is prepared once per session.</summary>
-    private static readonly Dictionary<(string Text, double Size, bool Semibold, Brush Brush, double Dpi), (Drawing Drawing, Size Box)> Prepared = new();
+    /// <summary>Every name prepared so far, by text, size, weight, colour, font, outline and pixel density: a name is prepared once per theme.</summary>
+    private static readonly Dictionary<(string Text, double Size, bool Semibold, Brush Brush, ThemeFont Font, ThemeColor Outline, double Dpi), (Drawing Drawing, Size Box)> Prepared = new();
+
+    /// <summary>The theme's family as the two faces a name is drawn in, made once per family.</summary>
+    private static (ThemeFont Font, Typeface Regular, Typeface Semibold)? _faces;
 
     private readonly List<(Drawing Drawing, TranslateTransform At)> _names = new();
 
@@ -44,11 +49,27 @@ public sealed class NameLayer : FrameworkElement
         IsHitTestVisible = false;
     }
 
-    private static Brush Frozen(Color colour)
+    /// <summary>
+    /// Forgets every prepared name: a theme switch calls it (MainWindow.ApplyTheme)
+    /// right after the theme's dictionary is swapped and before any map redraws,
+    /// so the next names are prepared afresh in the new theme's font and outline.
+    /// </summary>
+    public static void ForgetPrepared() => Prepared.Clear();
+
+    /// <summary>How many names are prepared now (for the tests).</summary>
+    internal static int PreparedCount => Prepared.Count;
+
+    private static (Typeface Regular, Typeface Semibold) Faces(ThemeFont font)
     {
-        var brush = new SolidColorBrush(colour);
-        brush.Freeze();
-        return brush;
+        if (_faces is not { } kept || kept.Font != font)
+        {
+            var family = Theme.FontFamilyOf(font.Address);
+            kept = (font,
+                    new Typeface(family, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
+                    new Typeface(family, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal));
+            _faces = kept;
+        }
+        return (kept.Regular, kept.Semibold);
     }
 
     /// <summary>
@@ -58,13 +79,16 @@ public sealed class NameLayer : FrameworkElement
     /// </summary>
     private static (Drawing Drawing, Size Box) Prepare(string text, double size, bool semibold, Brush brush, double pixelsPerDip)
     {
-        var key = (text, size, semibold, brush, pixelsPerDip);
+        var font = Theme.Current.Font.Family;
+        var outlineColour = Theme.Current.Map.NameOutline;
+        var key = (text, size, semibold, brush, font, outlineColour, pixelsPerDip);
         if (Prepared.TryGetValue(key, out var prepared)) return prepared;
 
-        var typeface = semibold ? Semibold : Regular;
+        var (regular, bold) = Faces(font);
+        var typeface = semibold ? bold : regular;
         var fill = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, size, brush,
                                      null, TextFormattingMode.Display, pixelsPerDip);
-        var outline = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, size, Outline,
+        var outline = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, size, outlineColour.ToBrush(),
                                         null, TextFormattingMode.Display, pixelsPerDip);
         var step = 1 / pixelsPerDip; // one device pixel
         var group = new DrawingGroup();

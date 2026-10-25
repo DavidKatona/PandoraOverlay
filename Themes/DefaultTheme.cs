@@ -152,7 +152,7 @@ public static class DefaultTheme
             Divider = C("#262E37"),
             BarWidth = 0,
         },
-        // MapMenuStyles.xaml's MenuButton and MenuTick.
+        // The maps' menus: Controls.xaml's MenuButton and MenuTick (Minimap/MapMenuStyles.xaml until 1.39).
         MenuRow = new()
         {
             Idle = new() { Fill = None, Text = Text },
@@ -170,8 +170,8 @@ public static class DefaultTheme
         ListRule = new() { Line = None, Width = 0, Gap = 0 },
         Map = new()
         {
-            // MapCanvas.xaml's PlayerArrow and the trail's three bands.
-            You = new() { Arrow = Gold, Outline = C("#991A130A"), Trail = Gold, Glow = None },
+            // MapCanvas.xaml's PlayerArrow and the trail's three bands; no casing under the trail.
+            You = new() { Arrow = Gold, Outline = C("#991A130A"), Trail = Gold, TrailOutline = None, Glow = None },
             Hover = Gold,                     // AreaHoverPath, AreaHover
             OwnArea = Bright,                 // AreaOwnPath, AreaOwn
             AreaName = C("#F2F5F8"),          // NameLayer.AreaBrush
@@ -236,7 +236,9 @@ public static class DefaultTheme
             BadgeSize = 10,
             MapAreaNameSize = 13,   // NameLayer.AreaFontSize
             MapNameSize = 12,       // NameLayer.NameFontSize
-            MapAreaNameCaps = false,
+            // The map has always written its area names in capitals (BigMapWindow's
+            // LayOutLabels, since 1.34); step 1's survey missed it and said false.
+            MapAreaNameCaps = true,
             SpacedCaptions = false,
         },
     };

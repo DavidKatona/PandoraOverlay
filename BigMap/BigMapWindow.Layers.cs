@@ -32,8 +32,14 @@ public partial class BigMapWindow
     private const double LabelGap = 3;          // names keep this far apart (LabelLayout)
     private const double UnchartedOpacity = 0.6; // the minimap pill's dimming of "nothing is named here"
 
-    private static readonly Brush Light = Frozen(Color.FromRgb(0xEC, 0xF2, 0xF8));
-    private static readonly Brush Grey = Frozen(Color.FromRgb(0x9A, 0xA7, 0xB0));
+    // The readout's two colours, the theme's (Map.Readout): a place's name, and
+    // the rest. The header's "you are in …" reads the same way, so it wears them too.
+    private static Brush Light => Theme.Current.Map.Readout.Name.ToBrush();
+    private static Brush Grey => Theme.Current.Map.Readout.Rest.ToBrush();
+
+    /// <summary>A place's name in the header or the readout: its colour, in the theme's value weight (the rest of the line reads lighter).</summary>
+    private static Run Place(string text, Brush colour) =>
+        new(text) { Foreground = colour, FontWeight = Theme.Current.Font.ValueWeight.ToFontWeight() };
 
     private readonly TranslateTransform _readoutAt = new(); // where the cursor readout sits (Readout.RenderTransform)
     private IReadOnlyList<FriendState>? _friends;
@@ -149,15 +155,15 @@ public partial class BigMapWindow
             LayersItems.Children.Add(tick);
             return tick;
         }
-        void Separator() => LayersItems.Children.Add(new Border { Height = 1, Background = MenuSeparator, Margin = new Thickness(4, 3, 4, 3) });
+        void Separator() => LayersItems.Children.Add(new Border { Height = 1, Background = Theme.Current.Separator.ToBrush(), Margin = new Thickness(4, 3, 4, 3) });
         object Swatched(string label, ZoneKind kind)
         {
-            var hue = MapBrushes.HueOf(kind);
+            // The zone's own hue (data), in a box with the theme's well corners.
             var line = new StackPanel { Orientation = Orientation.Horizontal };
             line.Children.Add(new Border
             {
-                Width = 10, Height = 10, Margin = new Thickness(0, 1, 7, 0), CornerRadius = new CornerRadius(2),
-                Background = Frozen(Color.FromArgb(0x99, hue.R, hue.G, hue.B)), BorderBrush = MapBrushes.OfZone(kind), BorderThickness = new Thickness(1),
+                Width = 10, Height = 10, Margin = new Thickness(0, 1, 7, 0), CornerRadius = new CornerRadius(Theme.Current.Corner.Well.Value),
+                Background = MapBrushes.SwatchOf(kind), BorderBrush = MapBrushes.OfZone(kind), BorderThickness = new Thickness(1),
                 VerticalAlignment = VerticalAlignment.Center,
             });
             line.Children.Add(new TextBlock { Text = label });
@@ -175,7 +181,8 @@ public partial class BigMapWindow
         Separator();
         LayersItems.Children.Add(new TextBlock
         {
-            Text = "ZONES", FontSize = 10, FontWeight = FontWeights.SemiBold, Foreground = HintBrush, Margin = new Thickness(12, 3, 10, 2),
+            Text = "ZONES", FontSize = 10, FontWeight = Theme.Current.Font.CaptionWeight.ToFontWeight(), Foreground = Theme.Current.Text.Caption.ToBrush(),
+            Margin = new Thickness(12, 3, 10, 2),
         });
         var migrations = Tick(Swatched("Migrations", ZoneKind.Migration), _config.BigMapMigrations);
         var patrols = Tick(Swatched("Patrol zones", ZoneKind.Patrol), _config.BigMapPatrolZones);
@@ -188,7 +195,8 @@ public partial class BigMapWindow
             Text = zones is null
                 ? "Zones unavailable"
                 : $"From {zones.Source} · game {zones.GameVersions}\nThe game picks which zone is active.",
-            FontSize = 10.5, Foreground = HintBrush, LineHeight = 15, Margin = new Thickness(12, 4, 12, 3),
+            FontSize = 10.5, FontWeight = Theme.Current.Font.BodyWeight.ToFontWeight(), Foreground = Theme.Current.Text.Dim.ToBrush(),
+            LineHeight = 15, Margin = new Thickness(12, 4, 12, 3),
         });
         return new LayerTicks(areas, names, waypoints, friends, trail, heatmap, migrations, patrols, sanctuaries);
     }
@@ -401,7 +409,7 @@ public partial class BigMapWindow
             {
                 var area = map.Areas[i];
                 var (fx, fy) = cal.ToFraction(area.X, area.Y);
-                var text = area.Name.ToUpperInvariant();
+                var text = Theme.Current.Font.MapAreaNameCaps ? area.Name.ToUpperInvariant() : area.Name; // the theme's call (Default: capitals, as since 1.34)
                 var box = MapCanvas.MeasureLabel(text, isArea: true, strong: false, dpi);
                 var at = new Point(fx * size - box.Width / 2, fy * size - box.Height / 2);
                 requests.Add(new LabelRequest(labels.Count, 2 + pixels[i] / total, new[] { new Rect(at, box) }));
@@ -453,14 +461,14 @@ public partial class BigMapWindow
         }
         else if (_area is null)
         {
-            AreaLine.Inlines.Add(new Run("Uncharted") { Foreground = Light });
+            AreaLine.Inlines.Add(Place("Uncharted", Light));
             AreaLine.Opacity = UnchartedOpacity;
             return;
         }
         else
         {
             AreaLine.Inlines.Add(new Run("you are in ") { Foreground = Grey });
-            AreaLine.Inlines.Add(new Run(_area) { Foreground = Light });
+            AreaLine.Inlines.Add(Place(_area, Light));
         }
         AreaLine.Opacity = 1;
     }
@@ -491,18 +499,18 @@ public partial class BigMapWindow
         var waypoint = friend is null ? Map.WaypointAt(pos, SnapRadius) : null;
         if (friend is { X: { } x, Y: { } y })
         {
-            ReadoutText.Inlines.Add(new Run("▲ " + FriendName(friend)) { Foreground = FriendBrush(friend) });
+            ReadoutText.Inlines.Add(Place("▲ " + FriendName(friend), FriendBrush(friend)));
             spot = (x, y);
         }
         else if (waypoint is not null)
         {
-            ReadoutText.Inlines.Add(new Run("◆ " + waypoint.Name) { Foreground = MapBrushes.Of(waypoint.Colour) });
+            ReadoutText.Inlines.Add(Place("◆ " + waypoint.Name, MapBrushes.Of(waypoint.Colour)));
             spot = (waypoint.X, waypoint.Y);
         }
         else
         {
             var name = AreaMapAsset.Shared?.NameAt(fx, fy);
-            ReadoutText.Inlines.Add(new Run(name ?? "Uncharted") { Foreground = name is null ? Grey : Light });
+            ReadoutText.Inlines.Add(Place(name ?? "Uncharted", name is null ? Grey : Light));
             spot = cal.ToWorld(fx, fy);
             if (ShownZones is var shown and not ZoneKinds.None && ZoneAsset.Shared is { } zones)
             {

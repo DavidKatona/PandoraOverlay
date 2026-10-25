@@ -80,11 +80,36 @@ public partial class MapCanvas : UserControl
         Tint(ZoneMassPath, MapBrushes.MigrationHue, MigrationTint);
         Tint(ZonePatrolPath, MapBrushes.PatrolHue, PatrolTint);
         Tint(ZoneSanctuaryPath, MapBrushes.SanctuaryHue, SanctuaryTint);
+        AreaBordersPath.Stroke = MapBrushes.AreaBorders; // data: the same navy in every theme
         AreaBordersPath.RenderTransform = _mapTranslate; // and the area borders, with their two highlights
         AreaOwnPath.RenderTransform = _mapTranslate;
         AreaHoverPath.RenderTransform = _mapTranslate;
         TrailOld.RenderTransform = TrailMid.RenderTransform = TrailNew.RenderTransform = _mapTranslate; // so does the trail
-        PlayerArrow.RenderTransform = new TransformGroup { Children = { _arrowRotate, _arrowTranslate } };
+        CasingOld.RenderTransform = CasingMid.RenderTransform = CasingNew.RenderTransform = _mapTranslate; // and its casing
+        PlayerGlow.Data = PlayerArrow.Data; // the glow lights the arrow's own shape
+        SetArrowTransform(new TransformGroup { Children = { _arrowRotate, _arrowTranslate } });
+    }
+
+    /// <summary>Your arrow's transform, worn by its glow too, so the two turn and glide as one.</summary>
+    private void SetArrowTransform(Transform transform) => PlayerArrow.RenderTransform = PlayerGlow.RenderTransform = transform;
+
+    /// <summary>
+    /// A theme switch (MinimapWindow.ApplyTheme, after Theme.Apply). The
+    /// arrow, its glow, the trail and its casing's colour, the two area
+    /// outlines follow the theme's dictionary by themselves (DynamicResource);
+    /// what was painted in code is painted again here, in place: the markers'
+    /// and the friends' outline, and whether the trail has a casing. Nothing
+    /// moves, nothing is re-placed, so a switch mid-glide shows no jump. The
+    /// names need nothing: only the big map draws them, and it is never open
+    /// while Settings is (it closes first), so it draws them in the new theme
+    /// the next time it opens. The map menus' entries follow by themselves too.
+    /// </summary>
+    public void ApplyTheme()
+    {
+        var outline = Theme.Current.Map.MarkerOutline.ToBrush();
+        foreach (var m in _markers.Values) m.Shape.Stroke = outline;
+        foreach (var m in _friendMarkers.Values) m.Arrow.Stroke = outline;
+        ShowCasing();
     }
 
     private static Brush Frozen(SolidColorBrush brush)
@@ -118,7 +143,7 @@ public partial class MapCanvas : UserControl
         _glideFps = glideFrameRate;
         StillMarks.RenderTransform = _mapTranslate;
         FriendLayer.RenderTransform = _mapTranslate;
-        PlayerArrow.RenderTransform = new TransformGroup { Children = { _arrowRotate, _arrowTranslate, _mapTranslate } };
+        SetArrowTransform(new TransformGroup { Children = { _arrowRotate, _arrowTranslate, _mapTranslate } });
         MapLayer.CacheMode = new BitmapCache { SnapsToDevicePixels = true };
         StillMarks.CacheMode = new BitmapCache { SnapsToDevicePixels = true };
         TextOptions.SetTextFormattingMode(LabelLayer, TextFormattingMode.Display);
@@ -156,7 +181,7 @@ public partial class MapCanvas : UserControl
 
     public bool ArrowVisible
     {
-        set => PlayerArrow.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+        set => PlayerArrow.Visibility = PlayerGlow.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>Moves your arrow to a point (panel space; map space with UseMapSpace): gliding, or at once.</summary>
@@ -322,6 +347,39 @@ public partial class MapCanvas : UserControl
         TrailNew.Points = newest;
         TrailMid.Points = middle;
         TrailOld.Points = oldest;
+        ShowCasing();
+    }
+
+    /// <summary>A casing is the trail plus a pixel a side (PLAN.md question 26: one colour, no width of its own).</summary>
+    private const double CasingExtra = 2;
+
+    /// <summary>
+    /// How wide the trail's casing is drawn under a trail stroke of the given
+    /// width, or null for no casing at all: a casing only where the theme
+    /// gives it a colour. Transparent (Default, Isle) draws nothing, not even
+    /// an invisible line, so the golden renders hold.
+    /// </summary>
+    internal static double? CasingWidth(ThemeColor outline, double trailWidth) =>
+        outline.A == 0 ? null : trailWidth + CasingExtra;
+
+    /// <summary>The casing under each band, on the band's own points, or collapsed and empty when the theme has none.</summary>
+    private void ShowCasing()
+    {
+        var width = CasingWidth(Theme.Current.Map.You.TrailOutline, TrailNew.StrokeThickness);
+        foreach (var (casing, band) in new[] { (CasingNew, TrailNew), (CasingMid, TrailMid), (CasingOld, TrailOld) })
+        {
+            if (width is { } w)
+            {
+                casing.Points = band.Points;
+                casing.StrokeThickness = w;
+                casing.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                casing.Visibility = Visibility.Collapsed;
+                casing.ClearValue(System.Windows.Shapes.Polyline.PointsProperty);
+            }
+        }
     }
 
     /// <summary>
@@ -365,9 +423,10 @@ public partial class MapCanvas : UserControl
     public static Size MeasureLabel(string text, bool isArea, bool strong, double pixelsPerDip) =>
         NameLayer.Measure(text, LabelSize(isArea), isArea || strong, LabelBrush(isArea), pixelsPerDip);
 
-    private static double LabelSize(bool isArea) => isArea ? NameLayer.AreaFontSize : NameLayer.NameFontSize;
+    /// <summary>A name's size and colour, the theme's: an area's, or a waypoint's (a friend's name wears the friend's colour, data).</summary>
+    private static double LabelSize(bool isArea) => isArea ? Theme.Current.Font.MapAreaNameSize : Theme.Current.Font.MapNameSize;
 
-    private static Brush LabelBrush(bool isArea) => isArea ? NameLayer.AreaBrush : NameLayer.NameBrush;
+    private static Brush LabelBrush(bool isArea) => (isArea ? Theme.Current.Map.AreaName : Theme.Current.Map.Name).ToBrush();
 
     // ---- Glides ---------------------------------------------------------------
 

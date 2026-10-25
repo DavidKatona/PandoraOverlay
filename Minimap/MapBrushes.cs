@@ -46,4 +46,29 @@ public static class MapBrushes
 
     /// <summary>A zone kind's hue, solid: the Layers menu's swatches and the readout's ■.</summary>
     public static Brush OfZone(ZoneKind kind) => ZoneBrushes[(int)kind];
+
+    private static readonly Brush[] SwatchBrushes = Enum.GetValues<ZoneKind>()
+        .Select(k => Frozen(Color.FromArgb(0x99, HueOf(k).R, HueOf(k).G, HueOf(k).B)))
+        .ToArray();
+
+    /// <summary>A zone kind's swatch in the Layers menu: its hue at 60%, inside a solid edge (<see cref="OfZone"/>).</summary>
+    public static Brush SwatchOf(ZoneKind kind) => SwatchBrushes[(int)kind];
+
+    // ---- The map itself (1.39: moved here from the maps' XAML, so the chrome
+    // there holds only theme tokens). DATA, never a theme's (PLAN.md section
+    // 11): the picture's own sea and the area borders' dark navy look the same
+    // in every theme (the owner's rule for the borders, Oct 2 2026).
+
+    /// <summary>The map picture's own sea: the map's background where a view runs past the picture's edge.</summary>
+    public static readonly Brush Sea = Frozen(Color.FromRgb(0x0A, 0x1D, 0x45));
+
+    /// <summary>The area borders' dark navy (MapCanvas draws them at 70%).</summary>
+    public static readonly Brush AreaBorders = Frozen(Color.FromRgb(0x00, 0x14, 0x30));
+
+    private static Brush Frozen(Color colour)
+    {
+        var brush = new SolidColorBrush(colour);
+        brush.Freeze();
+        return brush;
+    }
 }

@@ -501,8 +501,17 @@ public sealed record ThemeTokens
     public sealed record YouLook
     {
         public required ThemeColor Arrow { get; init; }
+        /// <summary>The arrow's outline.</summary>
         public required ThemeColor Outline { get; init; }
         public required ThemeColor Trail { get; init; }
+        /// <summary>
+        /// A casing under the trail, a road's: its strokes drawn once more
+        /// UNDERNEATH, 2 px wider, in this colour, for a light trail that would
+        /// vanish on snow or a beach (PLAN.md question 26). Transparent = none,
+        /// and then nothing at all is drawn (MapCanvas.CasingWidth).
+        /// </summary>
+        public required ThemeColor TrailOutline { get; init; }
+        /// <summary>The arrow's painted glow (its radius: <see cref="GlowNumbers.You"/>).</summary>
         public required ThemeColor Glow { get; init; }
     }
 

@@ -56,8 +56,11 @@ public class ThemedWindowsTests
     // ---- No chrome literal in a converted window ---------------------------------
 
     /// <summary>
-    /// The windows on the tokens so far; each later step adds its own (the
-    /// maps in step 4, Settings and the cards in step 5).
+    /// The windows on the tokens so far; each later step adds its own
+    /// (Settings and the cards in step 5). The maps' data colours (the sea,
+    /// the area borders, the zone hues, the waypoint palette) live in
+    /// MapBrushes and the scrim's black in ScrimWindow, never a theme's, so
+    /// neither file is here.
     /// </summary>
     private static readonly string[] Converted =
     {
@@ -67,6 +70,14 @@ public class ThemedWindowsTests
         "Shell/ControlPanelWindow.xaml", "Shell/ControlPanelWindow.xaml.cs",
         "Shell/OverlayWindowBase.cs",
         "Settings/SettingsWindow.Themes.cs", // step 3's page: built in code, no literal of its own
+        // Step 4, the maps:
+        "Minimap/MinimapWindow.xaml", "Minimap/MinimapWindow.xaml.cs", "Minimap/MinimapWindow.Area.cs",
+        "Minimap/MinimapWindow.Markers.cs", "Minimap/MinimapWindow.Friends.cs", "Minimap/MinimapWindow.Menu.cs",
+        "Minimap/MapCanvas.xaml", "Minimap/MapCanvas.xaml.cs", "Minimap/MapCanvas.Markers.cs",
+        "Minimap/NameLayer.cs", "Minimap/MapMenuBuilder.cs",
+        "BigMap/BigMapWindow.xaml", "BigMap/BigMapWindow.xaml.cs", "BigMap/BigMapWindow.Layers.cs",
+        "Shell/SnapGuideWindow.cs",
+        "Themes/Controls.xaml", // the shared templates: the panel's and the map menus'
     };
 
     private static readonly Regex XamlColour = new(@"=""#[0-9A-Fa-f]{6,8}""", RegexOptions.Compiled);
