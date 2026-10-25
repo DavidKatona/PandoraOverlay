@@ -51,10 +51,18 @@ checked, and say when a check was a tool or a render rather than an eye.
    ours. There must be none (constraint #1; Velopack's installer scan is
    the one accepted exception).
 5. **Build and tests.** Give the `dotnet test` count and result, and the
-   Release build. If anything under `Minimap/` changed, run the golden-render
-   harness (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`,
-   `run-golden.ps1`) against its baseline. Re-baseline only after the owner
-   has checked a deliberate visual change in game.
+   Release build. If anything that draws changed (`Minimap/`, `BigMap/`,
+   `Themes/`, `Assets/Themes/`, a widget, the control panel or Settings),
+   run the golden-render harness
+   (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`)
+   in both modes against their Default baselines: `run-golden.ps1` (the
+   minimap, 62 renders) and `run-windows.ps1` (the stats panel, Prime,
+   Activity, the control panel and every Settings page, 104). Then both
+   again with `-Theme isle` (and every other theme in `Assets/Themes/`):
+   every render must keep its Default twin's pixel size. The map window,
+   the update card and the sign-in window have no harness: say so.
+   Re-baseline only after the owner has checked a deliberate visual change
+   in game.
 6. **The release text.**
    - The CHANGELOG section for the version exists and is written for
      players, since the update card shows it.
@@ -72,7 +80,10 @@ checked, and say when a check was a tool or a render rather than an eye.
 
 1. **In game:** list THIS release's behaviours to try, drawn from the diff
    (not a generic list), and ask which were tried. Name anything untried in
-   the reply; don't gloss over it.
+   the reply; don't gloss over it. When the release touches a theme or the
+   look, the list always has: switch the theme with every window up and
+   Settings open, a few times: nothing moves, no widget changes size, and
+   `config.json`'s positions are identical before and after.
 2. **Requests**, when A1 or A2 changed anything: was the pace checked in
    game? A proxy such as Fiddler shows each request, or ask for a temporary
    request log in a test build.

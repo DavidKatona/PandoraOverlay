@@ -16,8 +16,9 @@ summary.
   `Theme.Corner.Widget`), code by `Theme.Current.<path>` at the moment it paints, never into
   a `static readonly` field. Data colours are the exception, never a theme's: the waypoint
   palette, friend colours, the zone hues, Discord's blue, the website's badge and diet
-  colours, the map picture and its sea, the area borders, the scrim. (Today's literals move
-  onto the tokens in the plan's steps 2 to 6; new code follows this rule from now.)
+  colours, the map picture and its sea, the area borders, the scrim. (Every window is on the
+  tokens since the plan's step 6; what has no token yet is the same in every theme: font
+  sizes, a few weights, stroke widths.)
 - **No code outside `Themes/` asks which theme is on.** The tokens carry no id and no name
   (`ThemeTokens`); identity lives only in `Theme.All`'s entries, for the loader, the
   Settings row and the harness. A difference between themes is a VALUE the code reads by
@@ -27,15 +28,18 @@ summary.
   pinned by `ThemeFileTests.DefaultIsTodaysLook`; Default stays pixel-identical to 1.38.
   A new token gets today's literal there, so Default doesn't change. The one exception
   is the owner's (Oct 25 2026): the control panel's fixed, compact frame and its 10 px
-  buttons, for every theme (`ControlPanelFrame`).
+  buttons, for every theme (`ControlPanelFrame`). (The sign-in window's Done and ✕ also
+  hover in their own family's colours now: 1.38's grey hover was a copy slip.)
 - **A shape is a pick from the catalogue** (`ShapeCatalogue`: the radio, the slider's thumb,
   the fracture badge, the title glyph), never a theme's own XAML, drawn by `ThemeShape`
   (`Slot`, `Kind="{DynamicResource Theme.Shapes.…}"`; None takes no room at all). A shape
   the catalogue lacks is added to it once, in code, for every theme.
-- **A frame is a `ThemedBorder`** (a widget's or the control panel's root, from step 2):
-  `CutCorners="{DynamicResource Theme.Cut.…}"`, `Lit` for edit mode, `Kind` for whose look;
-  no BorderBrush or Background in its XAML (the outline is its own, the glass
-  ApplyAppearance's). With Default's numbers it is the plain Border's drawing.
+- **A frame is a `ThemedBorder`** (the root of every widget, the control panel, the map
+  window, the Settings dialog and the update card): `CutCorners="{DynamicResource
+  Theme.Cut.…}"`, `Lit` for edit mode, `Kind` for whose look; no BorderBrush in its XAML (the
+  outline is its own), and on a widget no Background either (the glass is
+  ApplyAppearance's); a window that is no widget gives it its glass token (`Glass.Dialog`,
+  `Glass.MapWindow`). With Default's numbers it is the plain Border's drawing.
 - **A stats bar is a `BarTrack`** (the theme's inset line, `Bars.TrackLineWidth`) **holding a
   `BarFill`** (the theme's `Below25Halo`, set by the stats panel on the critical bars, those
   that pulse); both are the Border's own drawing at Default's 0.
@@ -92,5 +96,7 @@ summary.
   nothing to scroll; every one-line string of Settings, the update cards and the sign-in
   window within its room, its own `TrimmedByDesign` for the ellipses).
 - **The golden renders run in both themes**
-  (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`): Default must stay
-  62 of 62 identical; another theme's renders keep their Default twin's pixel size.
+  (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`), the minimap's
+  (`run-golden.ps1`) and the windows mode's (`run-windows.ps1`): Default must stay 62 of 62
+  and 104 of 104 identical; `-Theme <id>` renders another theme, whose every render must
+  keep its Default twin's pixel size.

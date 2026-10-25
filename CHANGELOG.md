@@ -5,6 +5,34 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Themes: a page of its own in Settings, after General, to choose how the
+  overlay looks. **Default** is the look you have. **Isle** is the game's
+  own look: the Montserrat font, dark glass, cyan accents, square frames
+  with lit corners, and hexagons. In Isle every bar is cyan, and health,
+  hunger and thirst turn red under 25%.
+- A theme applies the moment you click it, to every widget and to
+  Settings itself, and the map opens in it. It changes how things look and
+  nothing else: no widget changes size or moves, and every word stays the
+  same. Where Isle's font runs a little wider, a long line ends in "…".
+
+### Changed
+
+- The control panel is a little more compact, in every theme: each button
+  has a fixed size and slightly smaller text. It stays where you put it.
+- The Settings dialog keeps the same size whichever theme is on.
+- Settings › About names the font Isle uses and its licence: Montserrat,
+  under the SIL Open Font Licence, whose text comes with the program as
+  OFL.txt.
+
+### Fixed
+
+- The sign-in window's Done and ✕ buttons light up in their own colours
+  when you point at them; they turned grey before.
+
 ## [1.38.0] - 2026-10-24
 
 ### Added

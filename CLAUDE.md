@@ -195,10 +195,20 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   picture caches) live in `%AppData%\PandoraOverlay` (`DataFolder`); the
   install itself is Velopack's, under `%LocalAppData%\PandoraOverlay`, beside
   the sign-in browser's `WebView2` folder and the log's `Logs` folder.
-- The golden-render harness guards the minimap's drawing:
-  `Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders\run-golden.ps1`
-  (62 renders compared with a baseline; see the `release-pass` skill). The
-  map's plan and decisions (D1–D12) live beside it: `ACTION-PLAN.md`, Fable's
+- The themes' files are embedded (1.39): `Assets/Themes/*.json` by one
+  wildcard (the loader finds every theme by its resource name), each font
+  under `Assets/Fonts/` as a WPF Resource, and each family's `OFL.txt`
+  embedded AND copied beside the exe (`Assets\Fonts\<family>\OFL.txt`), as
+  the licence asks.
+- The golden-render harness guards the drawing, in
+  `Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders\`:
+  `run-golden.ps1`, the minimap (62 renders), and `run-windows.ps1`, the
+  windows mode (1.39; 104 renders: the stats panel, Prime, Activity, the
+  control panel and every Settings page), each compared with its Default
+  baseline. `-Theme isle` renders a theme for the record, never a baseline
+  (that waits for the owner's check in game), and fails if a render is not
+  its Default twin's pixel size. See the `release-pass` skill. The map's
+  plan and decisions (D1–D12) live beside it: `ACTION-PLAN.md`, Fable's
   `PLAN.md` and the perf spike's `perf-spike\RESULTS.md` (code comments cite
   the D-numbers).
 
@@ -223,7 +233,18 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   categories and verbosity levels) with LogFile and RequestLogHandler.
 - `Shell/` — MainWindow (the orchestrator, and also the stats panel),
   OverlayWindowBase, WidgetFrame, DefaultLayout, SnapResolver, SnapGuideWindow,
-  ControlPanelWindow, TrayIcon, OverlayFocus (the "click on the game" signal).
+  ControlPanelWindow + ControlPanelFrame, TrayIcon, OverlayFocus (the "click
+  on the game" signal).
+- `Themes/` — the look (1.39): `ThemeTokens` (the catalogue every theme
+  colours: states, numbers, fonts, shape picks; no id, no name),
+  `DefaultTheme` (Default, the 1.38 look, its one copy, in code), `Theme`
+  (the list, the loader that lays a theme file over Default, `Apply`, the
+  switch), `Controls.xaml` (every control template, shared by every window
+  and every theme), the shape catalogue (`ShapeCatalogue`, drawn by
+  `ThemeShape`), the frames (`ThemedBorder`, `FrameGeometry`, `ThemedBar`)
+  and the painted glow (`PaintedGlow`, `CutOutline`). The plan and the
+  owner's decisions: `Desktop\Pandora Overlay Files\pandora-themes\PLAN.md`,
+  with `DESIGN.md`, `REVIEW.md` and `EDITOR.md` beside it.
 - `Stats/` — the stats panel's trackers and rules.
 - `Minimap/` — MinimapWindow; MapCanvas (the drawing every map shares) and the
   shared map menu; the area map (AreaMap, AreaBorders, AreaMapAsset); the zones
@@ -235,6 +256,11 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 - `Assets/` — `map.png`, `app.ico` (WPF Resources) and the embedded data
   (`rules.json`, `calibration.json`, `areas.png` + `areas.json`, `zones.json`;
   the CHANGELOG is embedded too, for the update card).
+- `Assets/Themes/` — one sparse file per theme but Default (`isle.json`): only
+  what differs from Default, by token path. A third theme is one more file
+  there and no other change.
+- `Assets/Fonts/` — one folder per bundled family, its files and its own
+  licence as shipped (`Montserrat/`: four weights and `OFL.txt`).
 - `App.xaml(.cs)` (single-instance mutex, the settings move) and `Program.cs`
   (the entry point: Velopack's start-up call first, then WPF).
 - `PandoraOverlay.Tests/` mirrors the folders.
@@ -267,8 +293,9 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   scrambled, git-ignored `Assets/overlay-access.bin`; it never prints the line
   (see constraint 4 and Stack & build).
 - `.claude/rules/` — conventions for writing new code in `Settings/`, the maps
-  (`Minimap/`, `BigMap/`, the area tool), `Shell/` and `Core/`; each loads when a
-  matching file is touched. `.claude/skills/release-pass/` — the release
+  (`Minimap/`, `BigMap/`, the area tool), `Shell/`, `Core/` and the themes
+  (`Themes/`, `Assets/Themes/`, `Assets/Fonts/`); each loads when a matching
+  file is touched. `.claude/skills/release-pass/` — the release
   procedure (see Releases); `.claude/skills/patch-notes/` — the Discord post
   for a release (a short intro, then New / Changes / Fixes / Removed).
 
@@ -357,6 +384,37 @@ all) — say so when it matters:
   rule on other PCs. The rest was checked by the owner in game (Oct 24),
   the "not signed in" answers included, and the card after the update to
   1.38 closed on a click away.
+- From the themes (1.39, not yet released; renders, probes and tests
+  only): Isle on other PCs and DPIs (1.25× rendered only); a PC without
+  hardware rendering; the hover and pressed looks (no render shows them); a
+  real sign-in or update in Isle (probe pictures only); a theme switch
+  mid-glide on the minimap; the Settings dialog's small-screen limit (a
+  probe only) and its opening time in game (off-screen: no cost); an older
+  `config.json` resolving to Default (tests only); a restart on Isle.
+
+BUILT for 1.39, in the owner's test (Oct 24–25 2026): **Themes**, a
+Settings page of its own after General, one theme per line: **Default**,
+the 1.38 look pixel for pixel, compiled in, and **Isle**, the game's own
+look (Montserrat, dark glass, the cyan `#7FE3F0`, two cut corners lit in
+cyan, hexagons), a sparse `Assets/Themes/isle.json`; switched live. The
+owner's calls (PLAN.md's questions 1–30): every bar has the same four
+quarter states, whose lines are the code's (25% the pulse, 50% Wounded and
+the Survival wake, 75% the Combat wake); Isle is cyan and red only (health,
+hunger and thirst red under 25%; stamina and damage always cyan; an amber
+became a red text for a loss, the label colour for a state; green and gold
+the accent); the map square-cornered with lit accents and no cut (it is
+opaque). After the owner's looks in game: the control panel's compact
+fixed frame (940 × 74, 10 px buttons) and the Settings dialog's fixed
+frame in EVERY theme, the panel the one change to Default's look; an
+ellipsis wherever Isle's font runs long, never another wording; Isle's
+cards on solid surfaces. Inert in both themes, for later ones: a title
+font (`Font.TitleFamily`), a lit top edge (`Lit.Top`), lit corners on a
+rounded frame, a casing under the trail. Four more themes (Pandora,
+Nightshade, Clear, Calico) are the owner's mockups, design only, beside the
+plan; the editor is a later release (`EDITOR.md`). Guards: 916 tests;
+Default 62/62 and 104/104 identical, every Isle render its Default twin's
+size. Seen by the owner in game on the widgets, the maps and the dialogs;
+the full check and the Isle baselines come with the release pass.
 
 SHIPPED in 1.38.0 (Oct 24 2026): a player was attacked
 with Settings open, and a click on the game left it on top with every hotkey
@@ -505,6 +563,16 @@ Updates and the account
   (Velopack reads `releases.win.json` from the last ten releases at every
   launch): the owner accepts the inflation, and the badge goes if it gets silly.
 
+Themes (Oct 24–25 2026)
+- Amber anywhere in Isle, and a colour per stat in Isle: cyan and red only.
+- A theme editor, custom colours or a custom accent in 1.39: a later release,
+  if ever asked (`EDITOR.md` beside the themes plan).
+- A text size or a font-size step per theme (it could clip or rescale a
+  frame); another wording per theme (an ellipsis instead).
+- The theme choice as a radio row on General: a page of its own.
+- An `Effect` for a glow (measured: a live DropShadowEffect halves WPF's
+  frame rate); a theme's own XAML (a theme picks from the shape catalogue).
+
 ## Conventions
 
 - Code-behind over MVVM — deliberate at this size; don't introduce frameworks.
@@ -534,8 +602,21 @@ Updates and the account
   the stats panel and the Activity feed the small one) and lays its content out
   inside; additions overlay existing space, transient things are popups. An
   update must never resize an existing widget — 1.25's move to the frames was
-  the one accepted exception, never again. (How to build one:
+  the one accepted exception, never again. Since 1.39 the control panel
+  (`ControlPanelFrame`) and the Settings dialog (`SettingsFrame`) are fixed
+  frames too, the same in every theme. (How to build one:
   `.claude/rules/shell.md`.)
+- **The look is a theme's** (1.39; how: `.claude/rules/themes.md`). A colour,
+  corner, font or glow is a theme token, never a literal outside `Themes/`;
+  data colours are the exception, the same in every theme (`MapBrushes`,
+  `SiteBrushes`). No code outside `Themes/` asks which theme is on: the code
+  names STATES (a bar's quarters, a Prime row's Met / Unmet / Lost / Fresh, a
+  frame's Locked / Edit) and decides which applies; a theme colours them. A
+  theme paints only: never a size, a position, a wording or a behaviour. A
+  string that no longer fits in a theme's font ends in an ellipsis. A glow is
+  painted, never an `Effect`. A code-built Settings page redraws from the
+  data it holds, never by its `Open…` (a theme click must never become a
+  request trigger, constraint 2).
 - Settings apply at once (1.38, the owner's call, Oct 24 2026: no Save or
   Cancel, like Windows 11's Settings), and no setting ever needs a restart.
   A click on the game, Esc, ✕ or Close closes the dialog and loses nothing.
@@ -543,7 +624,8 @@ Updates and the account
 - Destructive actions are armed in place by a first click, never a modal box.
 - The app always starts visible; hidden states are runtime-only.
 - No stock WPF chrome in any of our windows: every control kind has its own
-  dark template; icons are font glyphs (✕ ♂ ♀, text badges), not image files.
+  dark template (one set, `Themes/Controls.xaml`, since 1.39); icons are font
+  glyphs (✕ ♂ ♀, text badges), not image files.
 - User content (`waypoints.json`, `friends.json`) is kept apart from config and
   the cookie vault.
 - Player-facing text states only what the API shows: never "died" (a fresh life
