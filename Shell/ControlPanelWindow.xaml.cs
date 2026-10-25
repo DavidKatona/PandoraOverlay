@@ -7,7 +7,9 @@ namespace PandoraOverlay;
 /// The edit-mode control panel: appears with edit mode, vanishes on lock. It
 /// hosts the labeled controls that used to live on per-widget banners
 /// (Settings, minimap toggles, Lock, Exit) plus the hint line — which is what
-/// lets the stats panel and minimap stay static-size in both modes. Draggable
+/// lets the stats panel and minimap stay static-size in both modes. Since 1.39
+/// it has a fixed frame of its own (ControlPanelFrame), the same in every
+/// theme, so no font can grow it. Draggable
 /// and snapping like every overlay window, but never a snap TARGET (transient
 /// chrome), and permanently interactive while visible. First show defaults to
 /// bottom-center; the position persists via config.

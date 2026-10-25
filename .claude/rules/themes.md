@@ -25,7 +25,9 @@ summary.
   own glass); branching on which theme supplied it is never.
 - **Default is today's look and never moves.** `Themes/DefaultTheme.cs` is its one copy,
   pinned by `ThemeFileTests.DefaultIsTodaysLook`; Default stays pixel-identical to 1.38.
-  A new token gets today's literal there, so Default doesn't change.
+  A new token gets today's literal there, so Default doesn't change. The one exception
+  is the owner's (Oct 25 2026): the control panel's fixed, compact frame and its 10 px
+  buttons, for every theme (`ControlPanelFrame`).
 - **A shape is a pick from the catalogue** (`ShapeCatalogue`: the radio, the slider's thumb,
   the fracture badge, the title glyph), never a theme's own XAML, drawn by `ThemeShape`
   (`Slot`, `Kind="{DynamicResource Theme.Shapes.…}"`; None takes no room at all). A shape
@@ -74,9 +76,11 @@ summary.
   Never install a bundled font into Windows on the owner's PC: it would hide a bundling
   mistake. `MontserratTests` prove the bundled faces resolve, that every weight a theme
   names is a real face (`EveryNamedWeightHasAFace`), and that what fits in Default fits
-  in the theme's font; an overflow is REPORTED to the owner (its `Reported` list, until
-  their call), never fixed by a size. `ControlPanelWidthTests` keeps the control panel's
-  row no wider than Default's.
+  in the theme's font. A string that no longer fits ends in an ellipsis (the owner, Oct
+  25 2026): never another wording per theme, never a size of its own; it is listed in
+  `TrimmedByDesign`, so a new overflow still fails and reaches the owner.
+  `ControlPanelWidthTests` checks every theme's labels, captions and hint fit the
+  control panel's fixed frame (`ControlPanelFrame`).
 - **The golden renders run in both themes**
   (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`): Default must stay
   62 of 62 identical; another theme's renders keep their Default twin's pixel size.

@@ -38,7 +38,9 @@
                  survival view, the game's Wounded state (health under 50%) in
                  the combat view. One of the two is visible. A theme's title
                  glyph sits before the name; Default has none, and None takes
-                 no room at all. -->
+                 no room at all. Where a theme's font leaves the name too
+                 little room, it ends in an ellipsis (the owner, Oct 25 2026:
+                 never another wording per theme); in Default it fits. -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                 <TextBlock x:Name="GrowthText" DockPanel.Dock="Right"
                            Foreground="{DynamicResource Theme.Growth.Growing}" FontSize="12" FontWeight="{DynamicResource Theme.Font.BodyWeight}"
@@ -49,15 +51,17 @@
                 <local:ThemeShape DockPanel.Dock="Left" Slot="TitleGlyph" Kind="{DynamicResource Theme.Shapes.TitleGlyph}"
                                   Stroke="{DynamicResource Theme.Text.Glyph}" Gap="4" VerticalAlignment="Center"/>
                 <TextBlock x:Name="DinoText" Text="Connecting…"
-                           Foreground="{DynamicResource Theme.Text.Title}" FontSize="14"
+                           Foreground="{DynamicResource Theme.Text.Title}" FontSize="14" TextTrimming="CharacterEllipsis"
                            FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontWeight="{DynamicResource Theme.Font.TitleWeight}"/>
             </DockPanel>
 
             <!-- Footer: the status line, and the active view at its right end
                  (like the minimap's footer). The two overlay one cell; the view
-                 name steps aside in code when a long status needs the room. -->
+                 name steps aside in code when a long status needs the room,
+                 and a status longer than the line ends in an ellipsis. -->
             <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
                 <TextBlock x:Name="StatusText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}"
+                           TextTrimming="CharacterEllipsis"
                            HorizontalAlignment="Left"/>
                 <TextBlock x:Name="ViewText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            HorizontalAlignment="Right"/>

@@ -213,22 +213,23 @@ public class MontserratTests
     }
 
     /// <summary>
-    /// What fits today but not in a theme's font, REPORTED to the owner and
-    /// waiting for their call (question 4: the theme's font or weights, a
-    /// size token for that one string, or its ellipsis; never a frame's
-    /// size). Listed here so the tests stay green while the owner decides,
-    /// and any NEW overflow still fails. Each with what the step found.
+    /// What fits in Default but not in a theme's font, and ends in an
+    /// ellipsis BY DESIGN: the owner's call at the first look in game (Oct 25
+    /// 2026; question 4), an ellipsis wherever a string no longer fits, never
+    /// another wording per theme and no size of its own. The elements trim
+    /// (TextTrimming: the stats panel's dino name and status line, Prime's two
+    /// footer lines). Listed one by one, so a NEW overflow still fails and
+    /// reaches the owner before the theme ships.
     /// </summary>
-    private static readonly HashSet<(string Theme, string Text)> Reported = new()
+    private static readonly HashSet<(string Theme, string Text)> TrimmedByDesign = new()
     {
-        // Step 3, Oct 25 2026: the hexagon title glyph's 16 px tip the stats
-        // panel's header over (without it, 270 px of 272): the dino name is
-        // cut at its end while growing. At the owner's first look in game.
+        // The stats panel's header: the hexagon title glyph's 16 px tip
+        // "Deinosuchus ♂" and a growth line over 272 (without it, 270): the
+        // name ends in an ellipsis while growing. The glyph stays (the owner).
         ("isle", "Deinosuchus ♂ · Growth 99.9% · ~23h 59m"),
         ("isle", "Deinosuchus ♂ · Growth 62.5% · ~2h 18m"),
-        // Step 3: four long footer lines, Montserrat being about an eighth
-        // wider than Segoe UI at 10 px. The stats panel's status line is cut
-        // at the frame; Prime's two end in an ellipsis.
+        // Four long footer lines, Montserrat being about an eighth wider than
+        // Segoe UI at 10 px: two on the stats panel's status line, Prime's two.
         ("isle", "No favourite skin for this dino: star one in Settings › Skins"),
         ("isle", "Skin not applied: give it a few seconds between applies"),
         ("isle", "Not checked yet — Check Prime: control panel or hotkey"),
@@ -238,12 +239,12 @@ public class MontserratTests
     /// <summary>
     /// A string that fits in Default's Segoe UI must fit in every theme's font
     /// too, or a theme would cut short what players read today (question 28);
-    /// what Default itself cuts short is not the theme's doing. The reported
-    /// ones are the owner's to decide (<see cref="Reported"/>).
+    /// what Default itself cuts short is not the theme's doing, and the ones
+    /// trimmed by design are listed (<see cref="TrimmedByDesign"/>).
     /// </summary>
     private static void AssertStillFits(string id, IEnumerable<(string Text, double Default, double Themed, double Room)> strings)
     {
-        var over = strings.Where(s => s.Default <= s.Room && s.Themed > s.Room && !Reported.Contains((id, s.Text)))
+        var over = strings.Where(s => s.Default <= s.Room && s.Themed > s.Room && !TrimmedByDesign.Contains((id, s.Text)))
                           .Select(s => $"\"{s.Text}\": {s.Themed:0.0} px in {s.Room:0.0} (Default {s.Default:0.0})")
                           .ToList();
         Assert.True(over.Count == 0, string.Join("; ", over));

@@ -37,15 +37,19 @@
                            FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontWeight="{DynamicResource Theme.Font.TitleWeight}"/>
             </DockPanel>
 
-            <!-- The list rule left of the lines, and its gap: both 0 wide in
-                 Default, so nothing in the layout; a theme's rule narrows the
-                 lines, never the frame. -->
-            <Border DockPanel.Dock="Left" Width="{DynamicResource Theme.ListRule.Width}"
-                    Background="{DynamicResource Theme.ListRule.Line}"/>
-            <Border DockPanel.Dock="Left" Width="{DynamicResource Theme.ListRule.Gap}"/>
-
-            <!-- Feed lines, newest at the top; built in code-behind into equal-height rows -->
-            <Grid x:Name="Lines"/>
+            <!-- Feed lines, newest at the top; built in code-behind into
+                 equal-height rows, with the list rule and its gap in the two
+                 columns left of the lines (both 0 wide in Default, so nothing
+                 in the layout; a theme's rule narrows the lines, never the
+                 frame). The rule spans the rows that hold a line, so it ends
+                 at the last one (Render). -->
+            <Grid x:Name="Lines">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+            </Grid>
         </DockPanel>
     </local:ThemedBorder>
 </local:OverlayWindowBase>

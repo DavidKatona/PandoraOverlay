@@ -9,7 +9,7 @@ public enum FrameKind
 {
     /// <summary>A widget's frame: locked (the hairline and the lit cut corners), or Lit in edit mode (the whole outline).</summary>
     Widget,
-    /// <summary>The control panel's: its own line, Lit for good with its glow painted inside the outline; no cut corners (its width varies).</summary>
+    /// <summary>The control panel's: its own line, Lit for good with its glow painted inside the outline; no cut corners (DESIGN).</summary>
     ControlPanel,
 }
 

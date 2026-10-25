@@ -44,6 +44,11 @@ paths:
   never trim a status for it.
 - Panels use our own button templates (the glow overlay) and font-glyph icons — no stock
   chrome.
+- **The control panel has a fixed frame too** (`ControlPanelFrame`, 1.39, the owner's call,
+  Oct 25 2026): its root, every button's width and height, the caption and hint rows are
+  constants, the same in every theme, and a label is centred and trimmed inside its part,
+  so no font or label grows the panel. A new button gets its width there, the sum is
+  tested (`ControlPanelWidthTests`), and every theme's text must fit it.
 - **Colours, corners, fonts and glows are theme tokens** (1.39): a widget reads them by
   `DynamicResource Theme.…` or `Theme.Current`, never as a literal, and never asks which
   theme is on — see `.claude/rules/themes.md`.

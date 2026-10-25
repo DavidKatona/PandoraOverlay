@@ -20,10 +20,15 @@
          exists in edit mode. The glass is ApplyAppearance's (the theme's
          widget glass at the Background opacity slider) and the outline's
          colour ThemedBorder's; a theme's glow is painted inside the outline,
-         within the padding, so the panel keeps its size. -->
+         within the padding. Its size is fixed (ControlPanelFrame, 1.39, the
+         owner's call: Isle's compact panel, for every theme): the root, each
+         button's width and height, the caption and hint rows; a label is
+         centred and trimmed inside its part, so no font grows the panel. -->
     <local:ThemedBorder x:Name="RootPanel"
             Kind="ControlPanel"
             Lit="True"
+            Width="{x:Static local:ControlPanelFrame.Width}"
+            Height="{x:Static local:ControlPanelFrame.Height}"
             CornerRadius="{DynamicResource Theme.Corner.Widget}"
             BorderThickness="1"
             Padding="10,8">
@@ -34,7 +39,7 @@
             <!-- ONE row is the owner's call (Sep 2026): a two-row layout was
                  tried and rejected. -->
             <StackPanel Orientation="Horizontal">
-                <Button Content="Settings…" Click="Settings_Click"
+                <Button Content="Settings…" Click="Settings_Click" Width="{x:Static local:ControlPanelFrame.SettingsButton}"
                         Style="{StaticResource PanelButton}"
                         VerticalAlignment="Bottom" Margin="0"/>
 
@@ -43,9 +48,9 @@
                 <StackPanel>
                     <TextBlock Style="{StaticResource PanelCaption}" Text="STATS"/>
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Show/hide" Click="Stats_Click"
+                        <Button Content="Show/hide" Click="Stats_Click" Width="{x:Static local:ControlPanelFrame.ShowHideButton}"
                                 Style="{StaticResource PanelButton}"/>
-                        <Button Content="View" Click="StatsView_Click"
+                        <Button Content="View" Click="StatsView_Click" Width="{x:Static local:ControlPanelFrame.ViewButton}"
                                 Style="{StaticResource PanelButton}" Margin="0"/>
                     </StackPanel>
                 </StackPanel>
@@ -55,13 +60,13 @@
                 <StackPanel>
                     <TextBlock Style="{StaticResource PanelCaption}" Text="MINIMAP"/>
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Show/hide" Click="Minimap_Click"
+                        <Button Content="Show/hide" Click="Minimap_Click" Width="{x:Static local:ControlPanelFrame.ShowHideButton}"
                                 Style="{StaticResource PanelButton}"/>
-                        <Button Content="Map view" Click="MapView_Click"
+                        <Button Content="Map view" Click="MapView_Click" Width="{x:Static local:ControlPanelFrame.MapViewButton}"
                                 Style="{StaticResource PanelButton}"/>
-                        <Button Content="Heatmap" Click="Heatmap_Click"
+                        <Button Content="Heatmap" Click="Heatmap_Click" Width="{x:Static local:ControlPanelFrame.HeatmapButton}"
                                 Style="{StaticResource PanelButton}"/>
-                        <Button Content="Areas" Click="AreaBorders_Click"
+                        <Button Content="Areas" Click="AreaBorders_Click" Width="{x:Static local:ControlPanelFrame.AreasButton}"
                                 Style="{StaticResource PanelButton}" Margin="0"
                                 ToolTip="Show or hide the borders between the island's named areas"/>
                     </StackPanel>
@@ -72,9 +77,9 @@
                 <StackPanel>
                     <TextBlock Style="{StaticResource PanelCaption}" Text="PRIME"/>
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Show/hide" Click="Prime_Click"
+                        <Button Content="Show/hide" Click="Prime_Click" Width="{x:Static local:ControlPanelFrame.ShowHideButton}"
                                 Style="{StaticResource PanelButton}"/>
-                        <Button Content="Check" Click="CheckPrime_Click"
+                        <Button Content="Check" Click="CheckPrime_Click" Width="{x:Static local:ControlPanelFrame.CheckButton}"
                                 Style="{StaticResource PanelButton}" Margin="0"/>
                     </StackPanel>
                 </StackPanel>
@@ -83,7 +88,7 @@
 
                 <StackPanel>
                     <TextBlock Style="{StaticResource PanelCaption}" Text="ACTIVITY"/>
-                    <Button Content="Show/hide" Click="Activity_Click"
+                    <Button Content="Show/hide" Click="Activity_Click" Width="{x:Static local:ControlPanelFrame.ShowHideButton}"
                             Style="{StaticResource PanelButton}" Margin="0"/>
                 </StackPanel>
 
@@ -91,11 +96,11 @@
 
                 <!-- Overlay-session controls -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
-                    <Button Content="Lock" Click="Lock_Click"
+                    <Button Content="Lock" Click="Lock_Click" Width="{x:Static local:ControlPanelFrame.LockButton}"
                             Style="{StaticResource PanelButton}"
                             Background="{DynamicResource Theme.Button.Primary.Idle.Fill}" Foreground="{DynamicResource Theme.Button.Primary.Idle.Text}"
                             BorderBrush="{DynamicResource Theme.Button.Primary.Idle.Line}"/>
-                    <Button Content="Exit" Click="Exit_Click"
+                    <Button Content="Exit" Click="Exit_Click" Width="{x:Static local:ControlPanelFrame.ExitButton}"
                             Style="{StaticResource PanelButton}"
                             Background="{DynamicResource Theme.Button.Danger.Idle.Fill}" Foreground="{DynamicResource Theme.Button.Danger.Idle.Text}"
                             BorderBrush="{DynamicResource Theme.Button.Danger.Idle.Line}"
@@ -104,7 +109,8 @@
             </StackPanel>
             <TextBlock x:Name="HintText"
                        Text="drag panels to move · right-click map = waypoint · Ctrl+F1 locks"
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}" Margin="2,7,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}" Margin="2,5,0,0"
+                       Height="{x:Static local:ControlPanelFrame.HintHeight}" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
     </local:ThemedBorder>
 </local:OverlayWindowBase>

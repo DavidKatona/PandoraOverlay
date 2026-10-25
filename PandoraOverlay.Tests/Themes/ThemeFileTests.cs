@@ -255,7 +255,10 @@ public class ThemeFileTests
         Assert.Equal(new ThemeFont("Segoe UI"), D.Font.Family);
         Assert.Equal(D.Font.Family, D.Font.TitleFamily); // the titles share the family
         Assert.Equal(ThemeWeight.Bold, D.Font.TitleWeight);
-        Assert.Equal(12, D.Font.ControlPanelButtonSize);
+        // 12 in 1.38; 10 since the owner's call of Oct 25 2026: Isle's compact control
+        // panel for every theme, on a fixed frame (ControlPanelFrame). The one Default
+        // value that moved on purpose.
+        Assert.Equal(10, D.Font.ControlPanelButtonSize);
         Assert.Equal(10, D.Font.BadgeSize);
 
         // No cut, no lit corner, no glow anywhere.

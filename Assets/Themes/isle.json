@@ -167,11 +167,8 @@
       "TitleWeight": "SemiBold",
       "ValueWeight": "SemiBold",
       "BodyWeight": "Medium",
-      // The control panel's buttons: DESIGN's 11.5 px made its row 56 px wider
-      // than Default's (ControlPanelWidthTests); a theme must never widen it
-      // (PLAN.md section 12). 10 px keeps it within today's width: provisional,
-      // the owner's call at the first look.
-      "ControlPanelButtonSize": 10,
+      // The control panel's 10 px buttons are Default's too since the owner's
+      // look (Oct 25 2026: Isle's compact panel for every theme), so not here.
       "BadgeSize": 9.5,
     },
   },

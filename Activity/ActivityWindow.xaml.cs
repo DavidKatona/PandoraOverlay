@@ -57,6 +57,7 @@ public partial class ActivityWindow : OverlayWindowBase
     private readonly DispatcherTimer _expiryTimer;    // ages the lines; runs only while there are lines
     private readonly DispatcherTimer _attentionTimer; // one-shot: lets a woken widget fade again
     private readonly List<TextBlock> _slots = new();
+    private readonly Border _rule = new(); // the list rule beside the lines (Theme.ListRule), as long as they are
 
     public ActivityWindow(OverlayConfig config, PollService poll, FriendBook book, FriendFeed feed, ActivityLog log)
     {
@@ -131,7 +132,11 @@ public partial class ActivityWindow : OverlayWindowBase
         Render();
     }
 
-    /// <summary>FeedLines equal-height rows sharing the frame under the header.</summary>
+    /// <summary>
+    /// FeedLines equal-height rows sharing the frame under the header, in the
+    /// grid's third column; the list rule and its gap in the first two (the
+    /// theme's width and colour, followed by resource reference).
+    /// </summary>
     private void BuildSlots()
     {
         Lines.Children.Clear();
@@ -150,9 +155,18 @@ public partial class ActivityWindow : OverlayWindowBase
             slot.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Activity.Line");
             slot.SetResourceReference(TextBlock.FontWeightProperty, "Theme.Font.BodyWeight");
             Grid.SetRow(slot, i);
+            Grid.SetColumn(slot, 2);
             _slots.Add(slot);
             Lines.Children.Add(slot);
         }
+
+        _rule.SetResourceReference(FrameworkElement.WidthProperty, "Theme.ListRule.Width");
+        _rule.SetResourceReference(Border.BackgroundProperty, "Theme.ListRule.Line");
+        Lines.Children.Add(_rule);
+        var gap = new Border();
+        gap.SetResourceReference(FrameworkElement.WidthProperty, "Theme.ListRule.Gap");
+        Grid.SetColumn(gap, 1);
+        Lines.Children.Add(gap);
     }
 
     private void PlaceLeftCenter()
@@ -232,6 +246,17 @@ public partial class ActivityWindow : OverlayWindowBase
                 slot.Inlines.Add(new Run(QuietLine()) { Foreground = look.Quiet.ToBrush() });
             }
         }
+
+        // The list rule runs beside the feed's lines, from the first to the
+        // last, and grows with them (the owner, Oct 25 2026: it ran the
+        // widget's full height past two lines). No lines, no rule: the quiet
+        // line stands alone. Hidden, not collapsed, so its column keeps its
+        // width and the quiet line sits where the lines do. The extent is the
+        // code's, one behaviour for every theme; a theme picks the rule's
+        // colour and width (0 for none).
+        var shown = Math.Min(lines.Count, _slots.Count);
+        Grid.SetRowSpan(_rule, Math.Max(1, shown));
+        _rule.Visibility = shown > 0 ? Visibility.Visible : Visibility.Hidden;
     }
 
     /// <summary>What the first slot says when nothing recent happened: who is on, or why nothing shows.</summary>

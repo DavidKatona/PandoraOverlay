@@ -229,7 +229,10 @@ public static class DefaultTheme
             ValueWeight = ThemeWeight.Normal,
             BodyWeight = ThemeWeight.Normal,
             CaptionWeight = ThemeWeight.SemiBold,
-            ControlPanelButtonSize = 12,
+            // 12 until 1.39. The one value here that moved on purpose: the owner saw
+            // Isle's compact control panel (Oct 25 2026) and wanted it for every theme,
+            // so the panel got a fixed frame (ControlPanelFrame) and 10 px buttons.
+            ControlPanelButtonSize = 10,
             BadgeSize = 10,
             MapAreaNameSize = 13,   // NameLayer.AreaFontSize
             MapNameSize = 12,       // NameLayer.NameFontSize
