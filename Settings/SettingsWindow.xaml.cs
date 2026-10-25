@@ -12,7 +12,8 @@ namespace PandoraOverlay;
 /// <summary>
 /// The paged settings dialog. The overlay's own pages: Account (the in-app
 /// sign-in, SettingsWindow.Account.cs), General (app-wide: start-up, the
-/// look, the sounds), Hotkeys (capture + availability check), Widgets (the
+/// look, the sounds), Themes (the theme list, 1.39, SettingsWindow.Themes.cs),
+/// Hotkeys (capture + availability check), Widgets (the
 /// stats panel, Prime tracker, Activity feed and control panel, one group
 /// each), Maps (the minimap, and the trail both maps share), Waypoints and
 /// Friends (the two lists); then the website's pages, Skins, Dino storage and
@@ -164,6 +165,9 @@ public partial class SettingsWindow : Window
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
         FadeCheck.IsChecked = config.FadeEnabled;
         FadeSlider.Value = Math.Clamp(config.FadeIdleOpacity, FadeSlider.Minimum, FadeSlider.Maximum);
+
+        // Themes: one radio row per bundled theme (SettingsWindow.Themes.cs)
+        InitThemesPage();
 
         // Minimap
         var centered = string.Equals(config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase);

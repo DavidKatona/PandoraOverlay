@@ -93,16 +93,18 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
                     <Button Content="Lock" Click="Lock_Click"
                             Style="{StaticResource PanelButton}"
-                            Background="{DynamicResource Theme.Button.Primary.Idle.Fill}" Foreground="{DynamicResource Theme.Button.Primary.Idle.Text}"/>
+                            Background="{DynamicResource Theme.Button.Primary.Idle.Fill}" Foreground="{DynamicResource Theme.Button.Primary.Idle.Text}"
+                            BorderBrush="{DynamicResource Theme.Button.Primary.Idle.Line}"/>
                     <Button Content="Exit" Click="Exit_Click"
                             Style="{StaticResource PanelButton}"
                             Background="{DynamicResource Theme.Button.Danger.Idle.Fill}" Foreground="{DynamicResource Theme.Button.Danger.Idle.Text}"
+                            BorderBrush="{DynamicResource Theme.Button.Danger.Idle.Line}"
                             Margin="0"/>
                 </StackPanel>
             </StackPanel>
             <TextBlock x:Name="HintText"
                        Text="drag panels to move · right-click map = waypoint · Ctrl+F1 locks"
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" Margin="2,7,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}" Margin="2,7,0,0"/>
         </StackPanel>
     </local:ThemedBorder>
 </local:OverlayWindowBase>

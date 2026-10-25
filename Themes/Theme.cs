@@ -147,15 +147,16 @@ public static class Theme
     /// from step 5, the plain windows' constructors), BEFORE
     /// InitializeComponent. With no Application at all, a plain one is made
     /// for the resources to live in (a harness's job; the overlay always has
-    /// its App first).
+    /// its App first). Controls.xaml is looked for on every call, not only
+    /// before the first install: a harness that applies a theme before it
+    /// builds a window (the Isle renders) would otherwise have no templates.
     /// </summary>
     public static void EnsureLoaded()
     {
-        if (_installed) return;
         var app = Host();
         if (!app.Resources.MergedDictionaries.Any(IsControls))
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(ControlsAddress, UriKind.Relative) });
-        Install(Current);
+        if (!_installed) Install(Current);
     }
 
     private static bool IsControls(ResourceDictionary d) =>

@@ -147,6 +147,20 @@ public partial class PrimeWindow : OverlayWindowBase
     /// <summary>Reapplies scale/opacity after a settings save.</summary>
     public void ApplySettingsFromConfig() => ApplyAppearance(_config);
 
+    /// <summary>
+    /// A theme switch (MainWindow.ApplyTheme, after Theme.Apply): the glass,
+    /// then every row, the status and both footer lines painted again from
+    /// what is held (the last result, the changed rows, the notice, the
+    /// cooldown). A repaint, never a re-feed: no check starts, nothing wakes
+    /// but what the cooldown's own end would wake anyway.
+    /// </summary>
+    public void ApplyTheme()
+    {
+        ApplyAppearance(_config);
+        RenderSnapshot(); // and RenderInfo
+        RenderNotice();
+    }
+
     protected override void OnEditModeChanged(bool editMode)
     {
         RootPanel.Lit = editMode; // the theme's edit look on the frame (ThemedBorder)

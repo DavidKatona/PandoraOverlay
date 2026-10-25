@@ -73,6 +73,98 @@ public class FrameGeometryTests
         Assert.Equal(46, FrameGeometry.Length(topRight), 9);
     }
 
+    /// <summary>Inset for its stroke, a square corner turns at the inset bounds' own corner, so the line never leaves the frame.</summary>
+    [Fact]
+    public void AnInsetSquareCornerTurnsAtTheInsetCorner()
+    {
+        const double d = 0.75;
+        var (topRight, bottomLeft) = FrameGeometry.LitPaths(600, 400, cut: 0, edge: 26, side: 20, inset: d)!.Value;
+
+        Assert.Equal(new[] { new Point(600 - d - 26, d), new Point(600 - d, d), new Point(600 - d, d + 20) }, topRight.Points);
+        Assert.Equal(new[] { new Point(d, 400 - d - 20), new Point(d, 400 - d), new Point(d + 26, 400 - d) }, bottomLeft.Points);
+        Assert.Equal(0, topRight.Arc);
+    }
+
+    /// <summary>
+    /// A rounded frame without a cut (question 23): each run turns its corner
+    /// along the frame's curve at the stroke's inset, an arc of the radius less
+    /// the inset, the straight runs measured past it as past a cut.
+    /// </summary>
+    [Fact]
+    public void ARoundedFramesLitRunsFollowItsCurve()
+    {
+        const double d = 0.75, radius = 10, arc = radius - d;
+        var (topRight, bottomLeft) = FrameGeometry.LitPaths(W, H, cut: 0, edge: 26, side: 20, inset: d, radius: radius)!.Value;
+
+        Assert.Equal(arc, topRight.Arc, 9);
+        Assert.Equal(arc, bottomLeft.Arc, 9);
+        Assert.Equal(3, topRight.Count); // start, the corner the arc rounds, end
+        Near(new Point(W - d - arc - 26, d), topRight[0]);
+        Near(new Point(W - d, d), topRight[1]);
+        Near(new Point(W - d, d + arc + 20), topRight[2]);
+        Near(new Point(d, H - d - arc - 20), bottomLeft[0]);
+        Near(new Point(d + arc + 26, H - d), bottomLeft[2]);
+
+        var expected = 26 + Math.PI / 2 * arc + 20; // along the edge, round the quarter arc, down the side
+        Assert.Equal(expected, FrameGeometry.Length(topRight), 9);
+        Assert.Equal(expected, FrameGeometry.Length(bottomLeft), 9);
+    }
+
+    /// <summary>The rounded run's geometry: a line to where the curve begins, the arc (radius, turning the right way), a line on.</summary>
+    [Fact]
+    public void ARoundedRunIsALineAnArcAndALine()
+    {
+        var (topRight, bottomLeft) = FrameGeometry.LitPaths(W, H, cut: 0, edge: 26, side: 20, inset: 0.75, radius: 10)!.Value;
+        var geometry = FrameGeometry.LitGeometry(topRight, bottomLeft);
+
+        Assert.True(geometry.IsFrozen);
+        Assert.Equal(2, geometry.Figures.Count);
+        foreach (var (figure, run, sweep) in new[]
+                 {
+                     (geometry.Figures[0], topRight, System.Windows.Media.SweepDirection.Clockwise), // right along the top, then down
+                     (geometry.Figures[1], bottomLeft, System.Windows.Media.SweepDirection.Counterclockwise), // down the left, then right
+                 })
+        {
+            Assert.False(figure.IsClosed);
+            Assert.Equal(run[0], figure.StartPoint);
+            Assert.Equal(3, figure.Segments.Count);
+            var into = Assert.IsType<System.Windows.Media.LineSegment>(figure.Segments[0]);
+            var arc = Assert.IsType<System.Windows.Media.ArcSegment>(figure.Segments[1]);
+            var on = Assert.IsType<System.Windows.Media.LineSegment>(figure.Segments[2]);
+            Assert.Equal(new Size(run.Arc, run.Arc), arc.Size);
+            Assert.Equal(sweep, arc.SweepDirection);
+            Assert.False(arc.IsLargeArc);
+            Assert.Equal(run.Arc, (into.Point - run[1]).Length, 9); // the curve begins an arc's radius before the corner…
+            Assert.Equal(run.Arc, (arc.Point - run[1]).Length, 9);  // …and ends one after it
+            Assert.Equal(run[2], on.Point);
+        }
+    }
+
+    /// <summary>Radius 0, or a cut, keeps the sharp runs as before: Default's are 0 long and Isle's frames have cuts, so neither changes a pixel.</summary>
+    [Fact]
+    public void ACutOrNoRadiusKeepsTheSharpRuns()
+    {
+        var withRadius = FrameGeometry.LitPaths(W, H, cut: 10, edge: 26, side: 20, inset: 0.75, radius: 10)!.Value;
+        var without = FrameGeometry.LitPaths(W, H, cut: 10, edge: 26, side: 20, inset: 0.75)!.Value;
+        Assert.Equal(without.TopRight.Points, withRadius.TopRight.Points);
+        Assert.Equal(0, withRadius.TopRight.Arc);
+
+        var square = FrameGeometry.LitPaths(600, 400, cut: 0, edge: 26, side: 20, radius: 0)!.Value;
+        var figure = FrameGeometry.LitGeometry(square.TopRight).Figures[0];
+        Assert.IsType<System.Windows.Media.PolyLineSegment>(Assert.Single(figure.Segments));
+    }
+
+    /// <summary>A rounded run snaps its ends and its corner as a polyline does and keeps its arc.</summary>
+    [Fact]
+    public void ARoundedRunSnapsAndKeepsItsArc()
+    {
+        var run = FrameGeometry.LitPaths(W, H, cut: 0, edge: 26, side: 20, inset: 0.75, radius: 10)!.Value.TopRight;
+        var snapped = FrameGeometry.SnapStroke(run, 1.5, 1.25);
+
+        Assert.Equal(run.Arc, snapped.Arc);
+        Assert.Equal(FrameGeometry.SnapStroke(run.Points, 1.5, 1.25), snapped.Points);
+    }
+
     [Fact]
     public void NoLitRunIsNoLitPaths() => Assert.Null(FrameGeometry.LitPaths(W, H, cut: 10, edge: 0, side: 0));
 

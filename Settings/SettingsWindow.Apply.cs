@@ -32,7 +32,7 @@ public enum SettingsChange
     AutoHide = 1 << 8,
     /// <summary>Reset positions, confirmed.</summary>
     Positions = 1 << 9,
-    /// <summary>The theme (General → Look). Repaints every window; never moves or resizes one.</summary>
+    /// <summary>The theme (the Themes page): MainWindow.ApplyTheme repaints every window; never moves or resizes one.</summary>
     Theme = 1 << 10,
 }
 
@@ -144,6 +144,9 @@ public partial class SettingsWindow
         Live(LowStatChimeCheck, on => _config.LowStatChimeEnabled = on); // the chimes are read live by MainWindow
         Live(GrowthChimeCheck, on => _config.GrowthChimeEnabled = on);
         Live(FriendsChimeCheck, on => _config.FriendsChimeEnabled = on);
+
+        // Themes (the rows: SettingsWindow.Themes.cs)
+        foreach (var (radio, theme) in _themeRadios) Live(radio, () => _config.Theme = theme.Id, SettingsChange.Theme);
 
         // Widgets
         Live(ScaleSlider, v => _config.UiScale = v, SettingsChange.Appearance);

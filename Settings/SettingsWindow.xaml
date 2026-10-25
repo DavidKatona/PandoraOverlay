@@ -471,6 +471,7 @@
                 <StackPanel x:Name="Nav" Margin="0,0,12,0">
                     <Button Content="Account" Tag="Account" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="General" Tag="General" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <Button Content="Themes" Tag="Themes" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Hotkeys" Tag="Hotkeys" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Widgets" Tag="Widgets" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <Button Content="Maps" Tag="Maps" Style="{StaticResource NavButton}" Click="Nav_Click"/>
@@ -627,6 +628,22 @@
             <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Chime when a friend spawns in"/>
             <TextBlock Text="Each one plays the Windows &quot;Exclamation&quot; sound."
+                       Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+            </StackPanel>
+
+            <!-- ============================ Themes ========================= -->
+            <!-- A page of its own after General (owner, Oct 25 2026): the list
+                 grows with every theme, and the theme editor joins it in a
+                 later release. One radio row per theme, built from the bundled
+                 themes (SettingsWindow.Themes.cs), so a theme's file adds its
+                 own row. A theme only paints: every window changes at once,
+                 no size or position moves. -->
+            <StackPanel Tag="Themes" Visibility="Hidden">
+            <TextBlock Style="{StaticResource PageTitle}" Text="THEMES"/>
+
+            <TextBlock Style="{StaticResource SectionCaption}" Text="THEME" Margin="0,0,0,6"/>
+            <StackPanel x:Name="ThemeList"/>
+            <TextBlock Text="Every window changes at once. Sizes and positions stay as they are."
                        Foreground="#7B8790" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 

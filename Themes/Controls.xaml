@@ -17,7 +17,9 @@
     <!-- Our own template: the default chrome paints its own bright hover
          highlight over our light text. A faint white glow overlay keeps
          every button's own colour (incl. Lock/Exit, which set their own
-         family's fill and text) and readable text. -->
+         family's fill, text and line) and readable text. The family's line
+         is a 1 px outline drawn over the fill, never a border that would
+         shrink it: transparent in Default, so nothing shows. -->
     <Style x:Key="PanelButton" TargetType="Button">
         <Setter Property="Padding" Value="12,5"/>
         <Setter Property="Margin" Value="0,0,6,0"/>
@@ -25,12 +27,14 @@
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="Background" Value="{DynamicResource Theme.Button.Neutral.Idle.Fill}"/>
         <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Neutral.Idle.Text}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Neutral.Idle.Line}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Theme.Corner.Button}"/>
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Theme.Corner.Button}"/>
                         <Border x:Name="HoverGlow" Background="{DynamicResource Theme.Button.HoverGlow}"
                                 CornerRadius="{DynamicResource Theme.Corner.Button}" Visibility="Collapsed"/>
                         <ContentPresenter Margin="{TemplateBinding Padding}"

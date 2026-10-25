@@ -102,7 +102,7 @@ public partial class MinimapWindow : OverlayWindowBase
         _actions = actions ?? new MapActions(config, library, book, Short);
         _actions.WaypointTracked += OnWaypointTracked;
         _actions.FriendTracked += OnFriendTracked;
-        _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), Theme.Current.Separator.ToBrush(), _actions, FriendBrush,
+        _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), () => Theme.Current.Separator.ToBrush(), _actions, FriendBrush,
                                           () => _lastWorld, () => MapMenu.IsOpen = false, ShowNotice);
 
         RebuildMarkers();
@@ -131,7 +131,7 @@ public partial class MinimapWindow : OverlayWindowBase
 
     protected override void OnEditModeChanged(bool editMode)
     {
-        RootPanel.BorderBrush = (editMode ? Theme.Current.Frame.Edit.Line : Theme.Current.Frame.Locked.Line).ToBrush(); // the theme's frame lines
+        PaintFrameLine(editMode);
         if (!editMode && (_hover is not null || _hoverFriend is not null))
         {
             _hover = null;
@@ -140,6 +140,24 @@ public partial class MinimapWindow : OverlayWindowBase
         }
         _hoverSpot = null; // locked: the pill is about where YOU are again
         UpdateAreaPill();
+    }
+
+    /// <summary>The frame's outline in the theme's line for edit mode or locked (the frame itself becomes a ThemedBorder in the themes' step 4).</summary>
+    private void PaintFrameLine(bool editMode) =>
+        RootPanel.BorderBrush = (editMode ? Theme.Current.Frame.Edit.Line : Theme.Current.Frame.Locked.Line).ToBrush();
+
+    /// <summary>
+    /// A theme switch (MainWindow.ApplyTheme, after Theme.Apply), the minimal
+    /// part for now: the glass and the frame's line. The menu's separators are
+    /// read from the theme each time the menu is built, which is each time it
+    /// opens. The map's own drawing (your arrow, the trail, the hover outline,
+    /// the names, the pills) moves onto the tokens in the themes' step 4, with
+    /// MapCanvas.ApplyTheme and NameLayer.ForgetPrepared.
+    /// </summary>
+    public void ApplyTheme()
+    {
+        ApplyAppearance(_config);
+        PaintFrameLine(EditMode);
     }
 
     /// <summary>

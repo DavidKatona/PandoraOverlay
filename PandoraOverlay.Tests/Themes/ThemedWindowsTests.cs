@@ -66,6 +66,7 @@ public class ThemedWindowsTests
         "Activity/ActivityWindow.xaml", "Activity/ActivityWindow.xaml.cs",
         "Shell/ControlPanelWindow.xaml", "Shell/ControlPanelWindow.xaml.cs",
         "Shell/OverlayWindowBase.cs",
+        "Settings/SettingsWindow.Themes.cs", // step 3's page: built in code, no literal of its own
     };
 
     private static readonly Regex XamlColour = new(@"=""#[0-9A-Fa-f]{6,8}""", RegexOptions.Compiled);

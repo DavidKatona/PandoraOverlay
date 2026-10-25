@@ -182,12 +182,13 @@ public class ThemedBorder : Border
                 ? Polygon(FrameGeometry.SnapStroke(inset, outlineWidth, ppd))
                 : Rounded(new Rect(0, 0, w, h), radius, outlineWidth, ppd);
 
-        // A locked widget's lit accents round its two cut corners.
+        // A locked widget's lit accents round its two cut corners (on a
+        // rounded frame without a cut, following the corners' curve).
         Geometry? accents = null;
         if (!lit && Kind == FrameKind.Widget && litWidth > 0 &&
-            FrameGeometry.LitPaths(w, h, cut, (double)GetValue(LitEdgeProperty), (double)GetValue(LitSideProperty), litWidth / 2) is { } paths)
+            FrameGeometry.LitPaths(w, h, cut, (double)GetValue(LitEdgeProperty), (double)GetValue(LitSideProperty), litWidth / 2, radius) is { } paths)
         {
-            accents = Lines(FrameGeometry.SnapStroke(paths.TopRight, litWidth, ppd), FrameGeometry.SnapStroke(paths.BottomLeft, litWidth, ppd));
+            accents = FrameGeometry.LitGeometry(FrameGeometry.SnapStroke(paths.TopRight, litWidth, ppd), FrameGeometry.SnapStroke(paths.BottomLeft, litWidth, ppd));
         }
 
         // A lit line along the whole top edge, in either state: the lit
@@ -222,8 +223,21 @@ public class ThemedBorder : Border
     }
 
     /// <summary>Device pixels per DIP here: the display scale times the widget's own size slider (ApplyAppearance's LayoutTransform).</summary>
-    private double DevicePixels() =>
-        VisualTreeHelper.GetDpi(this).PixelsPerDip * (LayoutTransform is ScaleTransform scale ? scale.ScaleX : 1);
+    private double DevicePixels() => DevicePixelsOf(this);
+
+    /// <summary>
+    /// Device pixels per DIP at any element of a themed window: the display
+    /// scale times every size slider above it (ApplyAppearance puts the
+    /// widget's on its root as a LayoutTransform). The bars' inset line
+    /// (BarTrack) snaps with it as the frame does.
+    /// </summary>
+    internal static double DevicePixelsOf(Visual element)
+    {
+        var scale = 1.0;
+        for (DependencyObject? at = element; at is not null; at = VisualTreeHelper.GetParent(at))
+            if (at is FrameworkElement { LayoutTransform: ScaleTransform s }) scale *= s.ScaleX;
+        return VisualTreeHelper.GetDpi(element).PixelsPerDip * scale;
+    }
 
     protected override void OnRenderSizeChanged(SizeChangedInfo info)
     {
@@ -238,7 +252,8 @@ public class ThemedBorder : Border
         else ClearValue(ClipProperty);
     }
 
-    private static Pen GlowPen(Color colour, FrameGeometry.GlowStroke stroke) => Frozen(new Pen(
+    /// <summary>One stroke of a painted glow in the given colour (its alpha times the stroke's opacity), with round joins and ends.</summary>
+    internal static Pen GlowPen(Color colour, FrameGeometry.GlowStroke stroke) => Frozen(new Pen(
         Brush(Color.FromArgb((byte)Math.Round(colour.A * stroke.Opacity), colour.R, colour.G, colour.B)), stroke.Width)
     {
         LineJoin = PenLineJoin.Round,

@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media;
 
 namespace PandoraOverlay;
 
@@ -8,7 +9,9 @@ namespace PandoraOverlay;
 /// <list type="bullet">
 /// <item>the frame's polygon with its two cut corners (45°, the hex angle,
 /// top-right and bottom-left), inset so a stroke can sit inside the bounds;</item>
-/// <item>the lit accents, one path round each of those two corners;</item>
+/// <item>the lit accents, one path round each of those two corners, rounded
+/// where the frame is (<see cref="LitRun"/>, and the one WPF geometry made
+/// here, <see cref="LitGeometry"/>, since a polyline has no arc);</item>
 /// <item>the glow, painted as three wider strokes under a line
 /// (<see cref="Glow"/>), never an Effect: a live DropShadowEffect halved
 /// WPF's frame rate on the owner's PC while a widget animated (glow-spike,
@@ -57,22 +60,41 @@ public static class FrameGeometry
 
     /// <summary>
     /// The two lit accents: round the top-right corner (from the top edge,
-    /// along the cut, down the right side) and round the bottom-left one (up
+    /// along the cut, down the right side) and round the bottom-left one (down
     /// the left side, along the cut, along the bottom). Each runs
     /// <paramref name="edge"/> along the top or bottom edge and
-    /// <paramref name="side"/> along the side, both measured past the cut;
-    /// with no cut it turns a square corner (the map window: square corners,
-    /// lit, no cut). <paramref name="inset"/> is where the line's centre sits
-    /// in from the bounds (half its width). Null when neither run has a length.
+    /// <paramref name="side"/> along the side, both measured past the corner.
+    /// The corner itself is the frame's: the 45° cut; with no cut, a square
+    /// turn (the map window: square corners, lit, no cut); with no cut and a
+    /// corner <paramref name="radius"/>, an arc that follows the frame's own
+    /// curve (question 23, Oct 25 2026: a rounded, lit theme's corners would
+    /// otherwise stick out of the radius). <paramref name="inset"/> is where
+    /// the line's centre sits in from the bounds (half its width), and the arc
+    /// is the frame's radius at that inset, as the Border's own rounded
+    /// outline is. Null when neither run has a length.
     /// </summary>
-    public static (IReadOnlyList<Point> TopRight, IReadOnlyList<Point> BottomLeft)? LitPaths(
-        double width, double height, double cut, double edge, double side, double inset = 0)
+    public static (LitRun TopRight, LitRun BottomLeft)? LitPaths(
+        double width, double height, double cut, double edge, double side, double inset = 0, double radius = 0)
     {
         if ((edge <= 0 && side <= 0) || width <= 0 || height <= 0) return null;
-        var c = Math.Max(0, Math.Min(cut, Math.Min(width, height) / 2));
         var d = inset;
-        var lean = c > 0 ? d * (Math.Sqrt(2) - 1) : 0;
+        var c = Math.Max(0, Math.Min(cut, Math.Min(width, height) / 2));
+        if (c <= 0)
+        {
+            // No cut: the corner is the inset bounds' own (a square turn, or the frame's curve at the inset).
+            var arc = Math.Max(0, Math.Min(radius - d, Math.Min(width, height) / 2 - d));
+            return (
+                new LitRun(Path(
+                    new Point(Math.Max(d, width - d - arc - edge), d),
+                    new Point(width - d, d),
+                    new Point(width - d, Math.Min(height - d, d + arc + side))), arc),
+                new LitRun(Path(
+                    new Point(d, Math.Max(d, height - d - arc - side)),
+                    new Point(d, height - d),
+                    new Point(Math.Min(width - d, d + arc + edge), height - d)), arc));
+        }
 
+        var lean = d * (Math.Sqrt(2) - 1);
         var topRight = Path(
             new Point(Math.Max(d, width - c - lean - edge), d),
             new Point(width - c - lean, d),
@@ -83,7 +105,50 @@ public static class FrameGeometry
             new Point(d, height - c - lean),
             new Point(c + lean, height - d),
             new Point(Math.Min(width - d, c + lean + edge), height - d));
-        return (topRight, bottomLeft);
+        return (new LitRun(topRight, 0), new LitRun(bottomLeft, 0));
+    }
+
+    /// <summary>
+    /// The geometry the lit accents are drawn with: one open figure per run,
+    /// a polyline, and on a rounded run the corner point replaced by a quarter
+    /// arc of the run's radius (a PathGeometry with an ArcSegment), the
+    /// straight parts stopping where the arc takes over. Frozen.
+    /// </summary>
+    public static PathGeometry LitGeometry(params LitRun[] runs)
+    {
+        var geometry = new PathGeometry();
+        foreach (var run in runs)
+        {
+            var figure = new PathFigure { StartPoint = run[0], IsClosed = false, IsFilled = false };
+            if (run.Arc > 0 && run.Count == 3)
+            {
+                var (from, corner, to) = (run[0], run[1], run[2]);
+                var inward = Towards(corner, from, run.Arc);
+                var outward = Towards(corner, to, run.Arc);
+                // Which way it turns: y grows downwards, so a positive cross product is clockwise on screen.
+                var a = corner - from;
+                var b = to - corner;
+                var sweep = a.X * b.Y - a.Y * b.X >= 0 ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
+                figure.Segments.Add(new LineSegment(inward, isStroked: true));
+                figure.Segments.Add(new ArcSegment(outward, new Size(run.Arc, run.Arc), 0, isLargeArc: false, sweep, isStroked: true));
+                figure.Segments.Add(new LineSegment(to, isStroked: true));
+            }
+            else
+            {
+                figure.Segments.Add(new PolyLineSegment(run.Skip(1), isStroked: true));
+            }
+            geometry.Figures.Add(figure);
+        }
+        geometry.Freeze();
+        return geometry;
+    }
+
+    // The point the given distance from a corner towards a neighbour (never past it).
+    private static Point Towards(Point corner, Point neighbour, double distance)
+    {
+        var v = neighbour - corner;
+        var length = v.Length;
+        return length <= 0 ? corner : corner + v * (Math.Min(distance, length) / length);
     }
 
     /// <summary>
@@ -122,6 +187,10 @@ public static class FrameGeometry
         for (var i = 1; i < path.Count; i++) total += (path[i] - path[i - 1]).Length;
         return total;
     }
+
+    /// <summary>A lit run's length as drawn: on a rounded run the quarter arc in place of the square corner it rounds.</summary>
+    public static double Length(LitRun run) =>
+        Length(run.Points) - (run.Arc > 0 && run.Count == 3 ? (2 - Math.PI / 2) * run.Arc : 0);
 
     // With no cut the two corner points coincide: one of them is dropped.
     private static IReadOnlyList<Point> Path(params Point[] points)
@@ -193,5 +262,33 @@ public static class FrameGeometry
     public static IReadOnlyList<Point> SnapStroke(IReadOnlyList<Point> points, double width, double pixelsPerDip) =>
         points.Select(p => new Point(SnapLine(p.X, width, pixelsPerDip), SnapLine(p.Y, width, pixelsPerDip))).ToList();
 
+    /// <summary>
+    /// A lit run snapped as a stroked path is: its line ends and its corner on
+    /// whole device pixels, the arc kept, so a rounded corner's arc runs
+    /// between the snapped edges as the Border's own rounded outline does.
+    /// </summary>
+    public static LitRun SnapStroke(LitRun run, double width, double pixelsPerDip) =>
+        new(SnapStroke(run.Points, width, pixelsPerDip), run.Arc);
+
     #endregion
+}
+
+/// <summary>
+/// One lit accent round a frame's corner (<see cref="FrameGeometry.LitPaths"/>):
+/// the polyline's points, from the run's start along the first edge, round
+/// the corner, to its end along the second. <see cref="Arc"/> 0 is a sharp
+/// run (round a cut, or a square turn); above 0 the run has three points and
+/// the middle one, the corner, is rounded by an arc of that radius
+/// (<see cref="FrameGeometry.LitGeometry"/> draws it). A list of its points,
+/// so it snaps and indexes as the polylines do.
+/// </summary>
+public sealed record LitRun(IReadOnlyList<Point> Points, double Arc) : IReadOnlyList<Point>
+{
+    public int Count => Points.Count;
+
+    public Point this[int index] => Points[index];
+
+    public IEnumerator<Point> GetEnumerator() => Points.GetEnumerator();
+
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }

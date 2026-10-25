@@ -129,10 +129,10 @@ public partial class MainWindow
             SetBar(CombatStaminaFill, CombatStaminaPct, 0);
             SetBar(DamageFill, DamagePct, 0);
             SpeedValue.Text = "—";
-            SetPulse(HealthFill, false);
-            SetPulse(CombatHealthFill, false);
-            SetPulse(HungerFill, false);
-            SetPulse(ThirstFill, false);
+            SetCritical(HealthFill, false);
+            SetCritical(CombatHealthFill, false);
+            SetCritical(HungerFill, false);
+            SetCritical(ThirstFill, false);
             SetFractures(false, false, false);
             return;
         }
@@ -182,13 +182,15 @@ public partial class MainWindow
         DamagePct.Text = $"{_damage.Total * 100:0}%"; // the bar stops at the track's end; a long fight's number does not
         SpeedValue.Text = _combatSpeed.SpeedMps is { } mps ? $"{mps * 3.6:0} km/h" : "—";
 
-        // Critical-stat pulse, on the bars' own Below25 state (the line lives
-        // once, in BarStates). Stamina is deliberately excluded — it drains to
-        // zero every sprint by design and would train the eye to ignore it.
-        SetPulse(HealthFill, health.UnderQuarter());
-        SetPulse(CombatHealthFill, health.UnderQuarter());
-        SetPulse(HungerFill, BarStates.Of(p.Hunger).UnderQuarter());
-        SetPulse(ThirstFill, BarStates.Of(p.Thirst).UnderQuarter());
+        // Critical-stat pulse (and a theme's halo), on the bars' own Below25
+        // state (the line lives once, in BarStates). Stamina is deliberately
+        // excluded — it drains to zero every sprint by design and would train
+        // the eye to ignore it; damage is a bar that grows, so its low end is
+        // the good one.
+        SetCritical(HealthFill, health.UnderQuarter());
+        SetCritical(CombatHealthFill, health.UnderQuarter());
+        SetCritical(HungerFill, BarStates.Of(p.Hunger).UnderQuarter());
+        SetCritical(ThirstFill, BarStates.Of(p.Thirst).UnderQuarter());
 
         SetFractures(p.HeadFractured, p.BodyFractured, p.LegsFractured);
     }
@@ -363,6 +365,18 @@ public partial class MainWindow
 
     // ---- Critical-stat pulse ------------------------------------------------
     private readonly HashSet<Border> _pulsing = new();
+
+    /// <summary>
+    /// A bar's critical signal: the pulse, and the theme's Below25 halo behind
+    /// its fill (one number per theme, REVIEW.md decision 16; 0 in Default, so
+    /// none). The halo is read here at every paint, so a theme switch on a bar
+    /// already pulsing gives it the new theme's at once.
+    /// </summary>
+    private void SetCritical(BarFill fill, bool on)
+    {
+        SetPulse(fill, on);
+        fill.Halo = on ? Theme.Current.Bars.Below25Halo : 0;
+    }
 
     private void SetPulse(Border fill, bool on)
     {

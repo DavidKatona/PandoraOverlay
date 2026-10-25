@@ -1,0 +1,178 @@
+// Isle: the game's own look (pandora-themes\DESIGN.md, the owner's decisions of
+// Oct 24 2026; PLAN.md question 3 for every former amber). A SPARSE override of
+// Default (Themes/ThemeFile.cs): only what differs, by the token's path; a key
+// Default lacks is a test failure, never a silent inheritance.
+//
+// One accent, #7FE3F0 (the game's hex cyan), and its derived alphas:
+//   accent line  #4D7FE3F0  30%   hairlines, the list rule, separators
+//   accent faint #177FE3F0   9%   button and badge fills
+//   accent glow  #737FE3F0  45%   the painted glows
+//   caption      #CC7FE3F0  80%   caps captions
+//   bar track    #127FE3F0   7%   with its inset line at 20%, #337FE3F0
+// The glass #050B0E (the widgets' alpha is the player's slider, never the
+// theme's). Red #F06A5A only when a stat is low, its text #FF9B8F; cyan and
+// red, nothing else: no amber, no gold, no green.
+//
+// Provisional (step 3, the owner's first look): the widgets, the control
+// panel and the colours shared with what later steps convert (the text roles,
+// the glass, "you" on the maps). Steps 4 and 6 add the maps' and the
+// dialogs' own values.
+{
+  "Name": "Isle",
+  "Order": 1,
+  "Tokens": {
+    "Bars": {
+      // Every bar the accent in every state; health, hunger and thirst red
+      // with red text only under a quarter (Below25), where the pulse runs.
+      "Health": {
+        "Above75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "From50To75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "From25To50": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "Below25": { "Fill": "#F06A5A", "Percent": "#FF9B8F", "TimeLeft": "#FF9B8F" },
+        "Track": "#127FE3F0",
+        "TrackLine": "#337FE3F0",
+        "OnFill": "#050B0E",
+      },
+      // Stamina never turns red (question 2): it empties every sprint.
+      "Stamina": {
+        "Above75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "From50To75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "From25To50": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "Below25": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "Track": "#127FE3F0",
+        "TrackLine": "#337FE3F0",
+        "OnFill": "#050B0E",
+      },
+      "Hunger": {
+        "Above75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "From50To75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "From25To50": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "Below25": { "Fill": "#F06A5A", "Percent": "#FF9B8F", "TimeLeft": "#FF9B8F" },
+        "Track": "#127FE3F0",
+        "TrackLine": "#337FE3F0",
+        "OnFill": "#050B0E",
+      },
+      "Thirst": {
+        "Above75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "From50To75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "From25To50": { "Fill": "#7FE3F0", "Percent": "#DCEBEE", "TimeLeft": "#7FE3F0" },
+        "Below25": { "Fill": "#F06A5A", "Percent": "#FF9B8F", "TimeLeft": "#FF9B8F" },
+        "Track": "#127FE3F0",
+        "TrackLine": "#337FE3F0",
+        "OnFill": "#050B0E",
+      },
+      // Damage grows as you take it: not a stat running low, so never red (question 1).
+      "Damage": {
+        "Above75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE" },
+        "From50To75": { "Fill": "#7FE3F0", "Percent": "#DCEBEE" },
+        "From25To50": { "Fill": "#7FE3F0", "Percent": "#DCEBEE" },
+        "Below25": { "Fill": "#7FE3F0", "Percent": "#DCEBEE" },
+        "Track": "#127FE3F0",
+        "TrackLine": "#337FE3F0",
+        "OnFill": "#050B0E",
+      },
+      // "Wounded" is plain text, not a colour (DESIGN decision 3).
+      "HealthReadout": { "Above75": "#A9C3C8", "From50To75": "#A9C3C8", "From25To50": "#A9C3C8", "Below25": "#A9C3C8" },
+      "Label": "#A9C3C8",
+      "Height": 8,
+      "TrackLineWidth": 1,
+      "Below25Halo": 6, // the mock's 6 px red glow round a low bar
+    },
+    "Prime": {
+      "Met": { "Icon": "#7FE3F0", "Text": "#DCEBEE", "Weight": "Medium" },
+      "Unmet": { "Icon": "#BFF06A5A", "Text": "#6F878C" }, // the ✗ red at 75%, the text off
+      "Lost": { "Icon": "#BFF06A5A", "Text": "#FF9B8F", "Weight": "Bold" }, // a loss: red text (question 3)
+      "Fresh": { "Icon": "#7FE3F0", "Text": "#FFFFFF", "Weight": "Bold" }, // newly met: white, 700
+      "Unchecked": { "Icon": "#7D969B", "Text": "#7D969B" },
+      "Status": { "PrimeElder": "#7FE3F0", "Ready": "#7FE3F0", "NotReady": "#A9C3C8", "Unknown": "#A9C3C8" },
+      // A failure in red text; the stale line is a state, in the label colour (question 3).
+      "Footer": { "Checked": "#7D969B", "Stale": "#A9C3C8", "Failed": "#FF9B8F", "Cooldown": "#7D969B" },
+    },
+    // Your bullet in the accent ("you are accent"); a fracture, a low stat or damage in red text.
+    "Activity": { "Mine": "#7FE3F0", "Line": "#C9DCDF", "Warning": "#FF9B8F", "Quiet": "#7D969B", "Count": "#A9C3C8" },
+    "Glass": {
+      "Widget": "#050B0E",
+      "Dialog": "#F2050B0E",
+      "Menu": "#F2050B0E",
+      "Pill": "#C2050B0E",
+      "MapPill": "#C2050B0E",
+      "MapWindow": "#060C0F",
+    },
+    "Frame": {
+      "Locked": { "Line": "#4D7FE3F0", "Lit": "#7FE3F0", "Glow": "#737FE3F0" },
+      "Edit": { "Line": "#7FE3F0", "Glow": "#737FE3F0" },
+      "ControlPanel": { "Line": "#7FE3F0", "Glow": "#737FE3F0" },
+    },
+    "Badge": {
+      "Intact": { "Fill": "#177FE3F0", "Text": "#56707A" },
+      "Fractured": { "Fill": "#42F06A5A", "Text": "#FFA396" }, // red at 26%
+    },
+    // Paused is a state, not a warning: the plain label colour (question 3).
+    "Growth": { "Growing": "#A9C3C8", "Paused": "#A9C3C8", "FullyGrown": "#A9C3C8" },
+    "Text": {
+      "Title": "#B8E6EC",
+      "Glyph": "#7FE3F0",
+      "PageTitle": "#A6DDE4",
+      "Bright": "#ECF8FA",
+      "Text": "#DCEBEE",
+      "Text2": "#C9DCDF",
+      "Label": "#A9C3C8",
+      "Dim": "#7D969B",
+      "Off": "#6F878C",
+      "Caption": "#CC7FE3F0",
+      "Link": "#7FE3F0",
+      "Good": "#7FE3F0",
+      "Caution": "#FF9B8F",
+      "Danger": "#FF9B8F",
+    },
+    // The control panel's buttons (the dialog's states come with step 6):
+    // accent faint with an accent-line outline; Lock filled accent with dark
+    // text; Exit the danger button, red at 14% with a red-at-50% outline.
+    "Button": {
+      "Neutral": { "Idle": { "Fill": "#177FE3F0", "Text": "#D3E8EC", "Line": "#4D7FE3F0" } },
+      "Primary": { "Idle": { "Fill": "#7FE3F0", "Text": "#051014" } },
+      "Danger": { "Idle": { "Fill": "#24F06A5A", "Text": "#FFC9C2", "Line": "#80F06A5A" } },
+      "HoverGlow": "#267FE3F0",
+      "PressedGlow": "#407FE3F0",
+    },
+    "Separator": "#4D7FE3F0",
+    "ListRule": { "Line": "#4D7FE3F0", "Width": 1, "Gap": 8 },
+    // You on the maps, the edit-mode hover, the snap guides, the update card's
+    // bullets and ticks: gold, amber and green today, the accent here (PLAN.md,
+    // "Every gold / orange you" and "Every green good"). Drawn from step 4 on.
+    "Map": {
+      "You": { "Arrow": "#7FE3F0", "Trail": "#7FE3F0" },
+      "Hover": "#7FE3F0",
+      "SnapGuide": { "Screen": "#E67FE3F0", "Peer": "#E6B8E6EC" },
+    },
+    "UpdateCard": { "Bullet": "#7FE3F0", "Good": "#7FE3F0", "Progress": "#7FE3F0" },
+    "Shapes": {
+      "Badge": "hexagon",
+      "TitleGlyph": "hexagon",
+      "ActivityBullet": "⬢ ",
+    },
+    "Cut": { "Widget": 10, "MapSquare": 6, "Dialog": 14 },
+    // A 1.5 px accent line about 26 px along the edge and 20 px down the side, past each cut.
+    "Lit": { "Edge": 26, "Side": 20, "Width": 1.5 },
+    // The corners' glow, edit mode's whole outline, the control panel's inner glow (within its 10 × 8 padding).
+    "Glow": { "Corners": 3, "Edit": 5, "ControlPanel": 8 },
+    "Corner": {
+      "Widget": 0, "Dialog": 0, "Menu": 0, "Pill": 0, "Button": 0, "Card": 0, "Well": 0,
+      "Bar": 0, "Check": 0, "ScrollThumb": 0, "Badge": 0, "Nav": 0, "LayerButton": 0,
+    },
+    // Montserrat at today's sizes, both families (the titles' does not follow the body's).
+    "Font": {
+      "Family": "Assets/Fonts/Montserrat/#Montserrat",
+      "TitleFamily": "Assets/Fonts/Montserrat/#Montserrat",
+      "TitleWeight": "SemiBold",
+      "ValueWeight": "SemiBold",
+      "BodyWeight": "Medium",
+      // The control panel's buttons: DESIGN's 11.5 px made its row 56 px wider
+      // than Default's (ControlPanelWidthTests); a theme must never widen it
+      // (PLAN.md section 12). 10 px keeps it within today's width: provisional,
+      // the owner's call at the first look.
+      "ControlPanelButtonSize": 10,
+      "BadgeSize": 9.5,
+    },
+  },
+}

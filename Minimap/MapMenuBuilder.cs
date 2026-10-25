@@ -23,7 +23,7 @@ public sealed class MapMenuBuilder
 {
     private readonly Panel _items;
     private readonly Style _button;
-    private readonly Brush _separator;
+    private readonly Func<Brush> _separator; // read at each build, so a theme switch shows at the next opening
     private readonly MapActions _actions;
     private readonly Func<FriendState, Brush> _friendBrush;
     private readonly Func<(double X, double Y)?> _me;
@@ -31,7 +31,7 @@ public sealed class MapMenuBuilder
     private readonly Action<string> _notice;
 
     /// <param name="me">Your position when an entry is CLICKED (null: not in game), so "Copy my position" copies where you are then.</param>
-    public MapMenuBuilder(Panel items, Style button, Brush separator, MapActions actions, Func<FriendState, Brush> friendBrush,
+    public MapMenuBuilder(Panel items, Style button, Func<Brush> separator, MapActions actions, Func<FriendState, Brush> friendBrush,
                           Func<(double X, double Y)?> me, Action close, Action<string> notice)
     {
         _items = items;
@@ -108,7 +108,7 @@ public sealed class MapMenuBuilder
     }
 
     private void Separator() =>
-        _items.Children.Add(new Border { Height = 1, Background = _separator, Margin = new Thickness(4, 3, 4, 3) });
+        _items.Children.Add(new Border { Height = 1, Background = _separator(), Margin = new Thickness(4, 3, 4, 3) });
 
     private void Say(string? notice)
     {

@@ -17,7 +17,8 @@ paths:
 - One partial file per page (`SettingsWindow.<Page>.cs`); a page splits further only
   along a topic of its own (CLAUDE.md, Conventions → File size).
 - The nav is grouped (owner, Oct 22 2026): the overlay's pages (Account, General,
-  Hotkeys, Widgets, Maps, Waypoints, Friends), then the website's under an
+  Themes (1.39, after General: the owner, Oct 25 2026), Hotkeys, Widgets, Maps,
+  Waypoints, Friends), then the website's under an
   ISLAPANDORA.EU caption (Skins, Dino storage, Server rules), then About. A page is a
   nav Button (Tag = the `SetPage` key); captions and dividers in `Nav` are not pages.
 - A new widget adds a captioned group to the **Widgets** page, in the control panel's

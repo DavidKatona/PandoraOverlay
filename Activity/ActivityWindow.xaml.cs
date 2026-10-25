@@ -120,6 +120,17 @@ public partial class ActivityWindow : OverlayWindowBase
         Render();
     }
 
+    /// <summary>
+    /// A theme switch (MainWindow.ApplyTheme, after Theme.Apply): the glass,
+    /// then the lines painted again from the log as it stands, with the
+    /// theme's bullet and colours. A repaint: nothing is posted, nothing wakes.
+    /// </summary>
+    public void ApplyTheme()
+    {
+        ApplyAppearance(_config);
+        Render();
+    }
+
     /// <summary>FeedLines equal-height rows sharing the frame under the header.</summary>
     private void BuildSlots()
     {

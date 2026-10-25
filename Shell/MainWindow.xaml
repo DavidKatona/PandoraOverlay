@@ -41,10 +41,10 @@
                  no room at all. -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                 <TextBlock x:Name="GrowthText" DockPanel.Dock="Right"
-                           Foreground="{DynamicResource Theme.Growth.Growing}" FontSize="12"
+                           Foreground="{DynamicResource Theme.Growth.Growing}" FontSize="12" FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            VerticalAlignment="Center"/>
                 <TextBlock x:Name="ConditionText" DockPanel.Dock="Right"
-                           Foreground="{DynamicResource Theme.Bars.HealthReadout.Above75}" FontSize="12"
+                           Foreground="{DynamicResource Theme.Bars.HealthReadout.Above75}" FontSize="12" FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            VerticalAlignment="Center" Visibility="Collapsed"/>
                 <local:ThemeShape DockPanel.Dock="Left" Slot="TitleGlyph" Kind="{DynamicResource Theme.Shapes.TitleGlyph}"
                                   Stroke="{DynamicResource Theme.Text.Glyph}" Gap="4" VerticalAlignment="Center"/>
@@ -57,9 +57,9 @@
                  (like the minimap's footer). The two overlay one cell; the view
                  name steps aside in code when a long status needs the room. -->
             <Grid DockPanel.Dock="Bottom" Margin="0,8,0,0">
-                <TextBlock x:Name="StatusText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10"
+                <TextBlock x:Name="StatusText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            HorizontalAlignment="Left"/>
-                <TextBlock x:Name="ViewText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10"
+                <TextBlock x:Name="ViewText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            HorizontalAlignment="Right"/>
             </Grid>
 
@@ -88,7 +88,10 @@
                 </Grid>
             </StackPanel>
 
-            <!-- The bars fill what is left: one of the two views is visible. -->
+            <!-- The bars fill what is left: one of the two views is visible.
+                 Each bar is a BarTrack (a theme's inset line round the empty
+                 part, none in Default) holding its BarFill (a theme's halo
+                 behind a critical bar, painted in code; none in Default). -->
             <Grid>
 
             <!-- ===== Survival view: health, stamina, hunger, thirst ===== -->
@@ -103,12 +106,13 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="Health" Foreground="{DynamicResource Theme.Bars.Label}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center"/>
-                <Border Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
-                        Background="{DynamicResource Theme.Bars.Health.Track}" VerticalAlignment="Center">
-                    <Border x:Name="HealthFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                <local:BarTrack Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                        Background="{DynamicResource Theme.Bars.Health.Track}" VerticalAlignment="Center"
+                        LineBrush="{DynamicResource Theme.Bars.Health.TrackLine}" LineWidth="{DynamicResource Theme.Bars.TrackLineWidth}">
+                    <local:BarFill x:Name="HealthFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
                             Background="{DynamicResource Theme.Bars.Health.Above75.Fill}"
                             HorizontalAlignment="Left" Width="0"/>
-                </Border>
+                </local:BarTrack>
                 <TextBlock x:Name="HealthPct" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                            TextAlignment="Right" VerticalAlignment="Center"/>
@@ -123,14 +127,15 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="Stamina" Foreground="{DynamicResource Theme.Bars.Label}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center"/>
-                <Border Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
-                        Background="{DynamicResource Theme.Bars.Stamina.Track}" VerticalAlignment="Center">
-                    <Border x:Name="StaminaFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                <local:BarTrack Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                        Background="{DynamicResource Theme.Bars.Stamina.Track}" VerticalAlignment="Center"
+                        LineBrush="{DynamicResource Theme.Bars.Stamina.TrackLine}" LineWidth="{DynamicResource Theme.Bars.TrackLineWidth}">
+                    <local:BarFill x:Name="StaminaFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
                             Background="{DynamicResource Theme.Bars.Stamina.Above75.Fill}"
                             HorizontalAlignment="Left" Width="0"/>
-                </Border>
+                </local:BarTrack>
                 <!-- Time until empty while draining, "full ~40s" while recovering (StaminaTracker). -->
-                <TextBlock x:Name="StaminaLeft" Grid.Column="1" FontSize="10"
+                <TextBlock x:Name="StaminaLeft" Grid.Column="1" FontSize="10" FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                            HorizontalAlignment="Left" VerticalAlignment="Center"
                            Visibility="Collapsed"/>
                 <TextBlock x:Name="StaminaPct" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11"
@@ -147,16 +152,17 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="Hunger" Foreground="{DynamicResource Theme.Bars.Label}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center"/>
-                <Border Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
-                        Background="{DynamicResource Theme.Bars.Hunger.Track}" VerticalAlignment="Center">
-                    <Border x:Name="HungerFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                <local:BarTrack Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                        Background="{DynamicResource Theme.Bars.Hunger.Track}" VerticalAlignment="Center"
+                        LineBrush="{DynamicResource Theme.Bars.Hunger.TrackLine}" LineWidth="{DynamicResource Theme.Bars.TrackLineWidth}">
+                    <local:BarFill x:Name="HungerFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
                             Background="{DynamicResource Theme.Bars.Hunger.Above75.Fill}"
                             HorizontalAlignment="Left" Width="0"/>
-                </Border>
+                </local:BarTrack>
                 <!-- Time left at the current drain rate: a data label riding the fill's tip
                      (positioned and coloured in code). Over the track, not in it, so the
                      12 px bar height can't clip the text. -->
-                <TextBlock x:Name="HungerLeft" Grid.Column="1" FontSize="10"
+                <TextBlock x:Name="HungerLeft" Grid.Column="1" FontSize="10" FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                            HorizontalAlignment="Left" VerticalAlignment="Center"
                            Visibility="Collapsed"/>
                 <TextBlock x:Name="HungerPct" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11"
@@ -173,13 +179,14 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="Thirst" Foreground="{DynamicResource Theme.Bars.Label}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center"/>
-                <Border Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
-                        Background="{DynamicResource Theme.Bars.Thirst.Track}" VerticalAlignment="Center">
-                    <Border x:Name="ThirstFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                <local:BarTrack Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                        Background="{DynamicResource Theme.Bars.Thirst.Track}" VerticalAlignment="Center"
+                        LineBrush="{DynamicResource Theme.Bars.Thirst.TrackLine}" LineWidth="{DynamicResource Theme.Bars.TrackLineWidth}">
+                    <local:BarFill x:Name="ThirstFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
                             Background="{DynamicResource Theme.Bars.Thirst.Above75.Fill}"
                             HorizontalAlignment="Left" Width="0"/>
-                </Border>
-                <TextBlock x:Name="ThirstLeft" Grid.Column="1" FontSize="10"
+                </local:BarTrack>
+                <TextBlock x:Name="ThirstLeft" Grid.Column="1" FontSize="10" FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                            HorizontalAlignment="Left" VerticalAlignment="Center"
                            Visibility="Collapsed"/>
                 <TextBlock x:Name="ThirstPct" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11"
@@ -205,12 +212,13 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="Health" Foreground="{DynamicResource Theme.Bars.Label}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center"/>
-                <Border Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
-                        Background="{DynamicResource Theme.Bars.Health.Track}" VerticalAlignment="Center">
-                    <Border x:Name="CombatHealthFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                <local:BarTrack Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                        Background="{DynamicResource Theme.Bars.Health.Track}" VerticalAlignment="Center"
+                        LineBrush="{DynamicResource Theme.Bars.Health.TrackLine}" LineWidth="{DynamicResource Theme.Bars.TrackLineWidth}">
+                    <local:BarFill x:Name="CombatHealthFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
                             Background="{DynamicResource Theme.Bars.Health.Above75.Fill}"
                             HorizontalAlignment="Left" Width="0"/>
-                </Border>
+                </local:BarTrack>
                 <TextBlock x:Name="CombatHealthPct" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                            TextAlignment="Right" VerticalAlignment="Center"/>
@@ -224,13 +232,14 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="Stamina" Foreground="{DynamicResource Theme.Bars.Label}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center"/>
-                <Border Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
-                        Background="{DynamicResource Theme.Bars.Stamina.Track}" VerticalAlignment="Center">
-                    <Border x:Name="CombatStaminaFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                <local:BarTrack Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                        Background="{DynamicResource Theme.Bars.Stamina.Track}" VerticalAlignment="Center"
+                        LineBrush="{DynamicResource Theme.Bars.Stamina.TrackLine}" LineWidth="{DynamicResource Theme.Bars.TrackLineWidth}">
+                    <local:BarFill x:Name="CombatStaminaFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
                             Background="{DynamicResource Theme.Bars.Stamina.Above75.Fill}"
                             HorizontalAlignment="Left" Width="0"/>
-                </Border>
-                <TextBlock x:Name="CombatStaminaLeft" Grid.Column="1" FontSize="10"
+                </local:BarTrack>
+                <TextBlock x:Name="CombatStaminaLeft" Grid.Column="1" FontSize="10" FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                            HorizontalAlignment="Left" VerticalAlignment="Center"
                            Visibility="Collapsed"/>
                 <TextBlock x:Name="CombatStaminaPct" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11"
@@ -247,12 +256,13 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="Damage" Foreground="{DynamicResource Theme.Bars.Label}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center"/>
-                <Border Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
-                        Background="{DynamicResource Theme.Bars.Damage.Track}" VerticalAlignment="Center">
-                    <Border x:Name="DamageFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                <local:BarTrack Grid.Column="1" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
+                        Background="{DynamicResource Theme.Bars.Damage.Track}" VerticalAlignment="Center"
+                        LineBrush="{DynamicResource Theme.Bars.Damage.TrackLine}" LineWidth="{DynamicResource Theme.Bars.TrackLineWidth}">
+                    <local:BarFill x:Name="DamageFill" Height="{DynamicResource Theme.Bars.Height}" CornerRadius="{DynamicResource Theme.Corner.Bar}"
                             Background="{DynamicResource Theme.Bars.Damage.Above75.Fill}"
                             HorizontalAlignment="Left" Width="0"/>
-                </Border>
+                </local:BarTrack>
                 <TextBlock x:Name="DamagePct" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11"
                            FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                            TextAlignment="Right" VerticalAlignment="Center"/>

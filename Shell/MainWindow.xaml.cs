@@ -228,6 +228,7 @@ public partial class MainWindow : OverlayWindowBase
     {
         if (_exiting) return; // Exit from the tray or a Windows shutdown with the dialog open: its last batch has nothing left to redraw, nor a roster to ask for
         bool Has(SettingsChange flag) => (what & flag) != 0;
+        if (Has(SettingsChange.Theme)) ApplyTheme(); // first: what the other flags re-apply then reads the new theme
         if (Has(SettingsChange.Log)) AppLog.Configure(_config.DetailedLog, _config.LogLevels);
         if (Has(SettingsChange.Minimap | SettingsChange.Appearance | SettingsChange.Friends)) _minimap?.ApplySettings();
         if (Has(SettingsChange.Minimap | SettingsChange.Activity)) UpdateArea(); // the pill or the feed's area lines may have been switched on: name the area now, not a poll later
@@ -247,6 +248,49 @@ public partial class MainWindow : OverlayWindowBase
         if (Has(SettingsChange.FriendsHidden)) _poll.FriendsSurfaceHidden("a friends surface switched off in Settings");
         if (Has(SettingsChange.Positions)) ResetPositions();
         if (Has(SettingsChange.AutoHide) && _autoHidden && !_config.HideWhenNotInGame) RevealAutoHidden(); // switched off while hidden by it
+    }
+
+    /// <summary>
+    /// A theme switch (Settings → Themes): every window repaints in the new
+    /// theme at once, and none moves or changes size. It swaps brushes and
+    /// repaints, in this order (PLAN.md section 2):
+    /// <list type="number">
+    /// <item>Theme.Apply: the app's theme dictionary is swapped, so every
+    /// DynamicResource in every open window, popup and card follows by
+    /// itself, and so does every ThemedBorder (they follow by resource
+    /// reference). Theme.Apply logs the theme's id, the one fact.</item>
+    /// <item>The map names' cache comes next, from the themes' step 4
+    /// (NameLayer.ForgetPrepared): it is keyed by font, so it must be emptied
+    /// before any map redraws.</item>
+    /// <item>ApplyAppearance: the glass, read from the theme AFTER the swap,
+    /// at the player's opacity slider.</item>
+    /// <item>PaintStats: the bars, the badges, the header and the footer,
+    /// painted from the trackers' state and the kept snapshot. A paint, never
+    /// IngestStats: replaying the snapshot would give every tracker a
+    /// duplicate sample (the speed reading 0, the drain slopes flattening;
+    /// REVIEW.md objection 1).</item>
+    /// <item>The other windows: the minimap (its glass and frame line until
+    /// step 4), Prime and Activity (their glass and their renders from what
+    /// they hold, never a re-feed), the control panel (its glass).</item>
+    /// </list>
+    /// Between the swap and the repaints a window is half-switched for one
+    /// dispatcher turn; nobody sees it. The map is closed while Settings is
+    /// open, and the cards can't be up then. It writes nothing into config
+    /// (the Themes page wrote the choice), calls no placement
+    /// (FillDefaultPositions, ResetPositions, ClampIntoScreen) and sends no
+    /// request (CLAUDE.md, constraint 2): a theme only paints (PLAN.md
+    /// section 12).
+    /// </summary>
+    private void ApplyTheme()
+    {
+        Theme.Apply(_config.Theme);
+        // (Step 4: NameLayer.ForgetPrepared() here, before any map redraws.)
+        ApplyAppearance(_config);
+        PaintStats();
+        _minimap?.ApplyTheme();
+        _prime?.ApplyTheme();
+        _activity?.ApplyTheme();
+        _controlPanel?.ApplySettingsFromConfig();
     }
 
     /// <summary>

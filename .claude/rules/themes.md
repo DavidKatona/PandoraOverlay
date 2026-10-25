@@ -34,6 +34,13 @@ summary.
   `CutCorners="{DynamicResource Theme.Cut.…}"`, `Lit` for edit mode, `Kind` for whose look;
   no BorderBrush or Background in its XAML (the outline is its own, the glass
   ApplyAppearance's). With Default's numbers it is the plain Border's drawing.
+- **A stats bar is a `BarTrack`** (the theme's inset line, `Bars.TrackLineWidth`) **holding a
+  `BarFill`** (the theme's `Below25Halo`, set by the stats panel on the critical bars, those
+  that pulse); both are the Border's own drawing at Default's 0.
+- **A theme switch is `MainWindow.ApplyTheme`**, in the order its comment gives (the swap,
+  the glass, then each painted part); a window that paints from code gets a public
+  `ApplyTheme()`: `ApplyAppearance` plus its renders from what it holds, never a re-feed, no
+  placement, no request. A new such window adds its call there.
 - **Code paints from `Theme.Current` at the moment it draws**, a state's colour through
   `.ToBrush()` (one kept frozen brush per colour), a weight through `.ToFontWeight()`; a
   painted part repaints from held state, never by re-feeding what it painted from (the stats
@@ -65,7 +72,11 @@ summary.
   `Theme.FontFamilyOf` addresses it by the `;component` pack form, never the plain
   `pack://application:,,,/` (the entry assembly: a harness would fall back silently).
   Never install a bundled font into Windows on the owner's PC: it would hide a bundling
-  mistake. `MontserratTests` prove the bundled faces resolve.
+  mistake. `MontserratTests` prove the bundled faces resolve, that every weight a theme
+  names is a real face (`EveryNamedWeightHasAFace`), and that what fits in Default fits
+  in the theme's font; an overflow is REPORTED to the owner (its `Reported` list, until
+  their call), never fixed by a size. `ControlPanelWidthTests` keeps the control panel's
+  row no wider than Default's.
 - **The golden renders run in both themes**
   (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`): Default must stay
   62 of 62 identical; another theme's renders keep their Default twin's pixel size.

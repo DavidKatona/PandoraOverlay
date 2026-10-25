@@ -92,7 +92,7 @@ public partial class BigMapWindow : Window
             HintText.Text = Hint;
             HintText.Foreground = HintBrush;
         };
-        _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), MenuSeparator, _actions, FriendBrush,
+        _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), () => MenuSeparator, _actions, FriendBrush,
                                           () => _lastWorld, () => MapMenu.IsOpen = false, ShowNotice);
 
         _ticks = BuildLayersMenu();
