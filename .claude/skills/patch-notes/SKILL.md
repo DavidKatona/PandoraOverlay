@@ -14,36 +14,49 @@ and paragraph per feature (the 1.27–1.35 posts), which read long.
 
 ## The format
 
-```
+The owner's format since 1.39.0 (Oct 26 2026): a Discord header and a short
+intro in normal text, then the changes in ONE code block, so they read as a
+fixed-width list, then the credit and the links in normal text again. Inside
+the block nothing of Discord's markdown renders: plain section labels, plain
+bullets, no bold, and plain characters ("..." not "…", "X" not "✕", ">" not
+"›"). It replaced bold-lead bullets outside a block (the 1.38 post), which in
+turn replaced one emoji, bold label and paragraph per feature (the 1.27–1.35
+posts), which read long.
+
+~~~
 ## Pandora Overlay X.Y.Z
 One or two plain sentences: what this version is about, and why if the why
 is a player's story.
 
-### New
-- **Short lead**: one sentence on what it does for the player.
+```
+New
+- Short lead: one sentence on what it does for the player.
 
-### Changes
-- **Short lead**: what is different now.
+Changes
+- Short lead: what is different now.
 
-### Fixes
+Fixes
 - What no longer goes wrong, said plainly.
 
-### Removed
-- **What went**: what replaces it, or why it is gone.
+Removed
+- What went: what replaces it, or why it is gone.
+```
 
+-# A credit line, where one is due.
 Download: <https://github.com/DavidKatona/PandoraOverlay/releases/latest>
 -# Questions, bugs and ideas: <https://github.com/DavidKatona/PandoraOverlay/issues>
-```
+~~~
 
 - **The sections**, in this order, each only when it has something: New
   (the CHANGELOG's Added), Changes (Changed), Fixes (Fixed), Removed
-  (Removed). Two optional ones go before the links: **Updating**, only when
-  a player must do or know something beyond the usual update card (the zip to
-  unblock, keys that stay as they were), and **Known issues**, only for a real
-  open one.
+  (Removed), all inside the one block. Two optional ones go last in the
+  block: **Updating**, only when a player must do or know something beyond
+  the usual update card (the zip to unblock, keys that stay as they were),
+  and **Known issues**, only for a real open one.
 - **One line per bullet**, about twenty words at most, the thing players
-  notice most first. A bullet naming a feature starts with a bold lead of a few
-  words and a colon; a fix can be a plain sentence. Several small items share
+  notice most first. A bullet naming a feature starts with a short lead of a few
+  words and a colon, plain, not bold (it sits inside the code block); a fix
+  can be a plain sentence. Several small items share
   one bullet rather than crowd the list.
 - **The title** is a Discord header: `## Pandora Overlay X.Y.Z`. A pre-release
   says so and who it is for: `## Pandora Overlay X.Y.Z-rc.N (test build)`, and
@@ -82,7 +95,8 @@ count); if that is unclear, ask.
   something back in.
 - **The link** is `releases/latest`, the newest version.
 - The test run for 1.36–1.38 (`pandora-discord-v1.38.0-test.txt`, 1,991
-  characters) is the worked example.
+  characters) is the worked example of a catch-up; the 1.39.0 post
+  (`pandora-discord-v1.39.0.txt`, 1,477 characters) of the code-block format.
 
 ## Where the content comes from
 
