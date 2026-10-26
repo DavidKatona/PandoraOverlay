@@ -8,94 +8,132 @@ using Xunit;
 namespace PandoraOverlay.Tests;
 
 /// <summary>
-/// The bundled Montserrat (1.39, the Isle theme's font). First the two proofs
-/// the plan asked for before anything is measured with it (PLAN.md section
-/// 5, REVIEW.md objection 7): text formats on the bundled typeface inside
-/// the test run, with no Application, and the ;component address resolves
-/// to Montserrat itself rather than a silent fallback font. Then that the
-/// four faces and the licence are in the build, that every weight a theme
-/// names is a real face of its family (question 27), and the width checks of
-/// the strings with the least room, in every bundled theme's font (section
-/// 5, question 28). The control panel's row is ControlPanelWidthTests'.
-/// The font is never installed into Windows on the owner's PC: an installed
-/// copy would let these pass with a bundling mistake.
+/// The bundled fonts (1.39), every family under Assets/Fonts, whichever theme
+/// reads it: nothing here names a family or a theme, so a theme that brings
+/// its own font is checked by adding its folder (PLAN.md section 10, "a third
+/// theme is a file"). First the two proofs the plan asked for before anything
+/// is measured with a bundled font (PLAN.md section 5, REVIEW.md objection 7):
+/// text formats on a bundled typeface inside the test run, with no
+/// Application, and the ;component address resolves to the family itself
+/// rather than a silent fallback font. Then that every face and licence is in
+/// the build, that every weight a theme names is a real face of its family
+/// (question 27) and every face bundled is one a theme names, and the width
+/// checks of the strings with the least room, in every bundled theme's font
+/// (section 5, question 28). The control panel's row is
+/// ControlPanelWidthTests'. A font is never installed into Windows on the
+/// owner's PC: an installed copy would let these pass with a bundling mistake.
 /// </summary>
 public class MontserratTests
 {
-    private static readonly string[] Faces =
-        { "Montserrat-Regular.ttf", "Montserrat-Medium.ttf", "Montserrat-SemiBold.ttf", "Montserrat-Bold.ttf" };
+    private static string FontsFolder => Path.Combine(ThemeFileTests.RepoRoot(), "Assets", "Fonts");
 
-    /// <summary>The address a theme file gives (the family's folder, then # and the family's own name).</summary>
-    private const string Address = "Assets/Fonts/Montserrat/#Montserrat";
+    /// <summary>Every bundled family: one folder each, named as the family is.</summary>
+    public static IEnumerable<object[]> Families() =>
+        Directory.EnumerateDirectories(FontsFolder).Select(d => new object[] { Path.GetFileName(d)! }).OrderBy(f => (string)f[0], StringComparer.Ordinal);
 
-    private static FontFamily Montserrat() => Theme.FontFamilyOf(Address);
+    /// <summary>The address a theme file gives a bundled family (its folder, then # and the family's own name).</summary>
+    private static string AddressOf(string family) => $"Assets/Fonts/{family}/#{family}";
+
+    /// <summary>A family's face files, lower-cased as the build's resources name them.</summary>
+    private static List<string> FilesOf(string family) =>
+        Directory.EnumerateFiles(Path.Combine(FontsFolder, family), "*.ttf")
+                 .Select(f => Path.GetFileName(f).ToLowerInvariant()).OrderBy(f => f, StringComparer.Ordinal).ToList();
+
+    private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
+
+    /// <summary>Each face the family's address reaches, as WPF lists them (its upright ones; the slanted are simulations of the same files).</summary>
+    private static List<GlyphTypeface> FacesOf(string family)
+    {
+        var faces = new List<GlyphTypeface>();
+        foreach (var typeface in Theme.FontFamilyOf(AddressOf(family)).GetTypefaces().Where(t => t.Style == FontStyles.Normal))
+            if (typeface.TryGetGlyphTypeface(out var face)) faces.Add(face);
+        return faces;
+    }
 
     // ---- The two proofs ---------------------------------------------------------
 
     /// <summary>
-    /// Proof 1: the ;component address resolves to the bundled faces. A family
-    /// WPF can't find throws nothing and draws in a fallback font, so this asks
-    /// the typeface for its glyphs and checks whose they are, weight by weight.
+    /// Proof 1: the ;component address resolves to the bundled faces, every
+    /// file in the family's folder and nothing else. A family WPF can't find
+    /// throws nothing and draws in a fallback font, so this asks each typeface
+    /// for its glyphs and checks whose they are, and that asking for a face's
+    /// own weight gives that very face, unsimulated.
     /// </summary>
     [Theory]
-    [InlineData(400)]
-    [InlineData(500)]
-    [InlineData(600)]
-    [InlineData(700)]
-    public void TheComponentAddressResolvesToTheBundledFaces(int weight)
+    [MemberData(nameof(Families))]
+    public void TheComponentAddressResolvesToTheBundledFaces(string family)
     {
-        var typeface = new Typeface(Montserrat(), FontStyles.Normal, FontWeight.FromOpenTypeWeight(weight), FontStretches.Normal);
+        var faces = FacesOf(family);
+        Assert.NotEmpty(faces);
+        foreach (var glyphs in faces)
+        {
+            // The typographic family (the Win32 name carries the weight for Medium and SemiBold: "Montserrat SemiBold").
+            Assert.Equal(family, glyphs.FamilyNames[English]);
+            Assert.Equal(StyleSimulations.None, glyphs.StyleSimulations);
+            // From inside this assembly's resources, never an installed copy.
+            Assert.Equal("pack", glyphs.FontUri.Scheme);
+            Assert.Contains($"/PandoraOverlay;component/assets/fonts/{family}/", glyphs.FontUri.AbsoluteUri, StringComparison.OrdinalIgnoreCase);
 
-        Assert.True(typeface.TryGetGlyphTypeface(out var glyphs), "no glyphs: the address did not resolve");
-        // The typographic family (the Win32 name carries the weight for Medium and SemiBold: "Montserrat SemiBold").
-        Assert.Equal("Montserrat", glyphs.FamilyNames[CultureInfo.GetCultureInfo("en-US")]);
-        Assert.Equal(weight, glyphs.Weight.ToOpenTypeWeight());
-        // From inside this assembly's resources, never an installed copy.
-        Assert.Equal("pack", glyphs.FontUri.Scheme);
-        Assert.Contains("/PandoraOverlay;component/assets/fonts/montserrat/", glyphs.FontUri.AbsoluteUri, StringComparison.OrdinalIgnoreCase);
+            var asked = new Typeface(Theme.FontFamilyOf(AddressOf(family)), FontStyles.Normal, glyphs.Weight, FontStretches.Normal);
+            Assert.True(asked.TryGetGlyphTypeface(out var same), $"{family} {glyphs.Weight}: no glyphs, the address did not resolve");
+            Assert.Equal(glyphs.FontUri, same.FontUri);
+            Assert.Equal(StyleSimulations.None, same.StyleSimulations);
+        }
+        Assert.Equal(FilesOf(family), faces.Select(g => g.FontUri.Segments[^1].ToLowerInvariant()).Distinct().OrderBy(f => f, StringComparer.Ordinal));
     }
 
     /// <summary>
     /// Proof 2: FormattedText measures with the bundled typeface in the test
     /// run (no Application, xunit's own threads), so the width checks can be
-    /// plain tests. Montserrat is wider than the fallback WPF picks for a family
-    /// it can't find, which is how a silent fallback would show.
+    /// plain tests. A bundled family measures well apart from the fallback WPF
+    /// picks for a family it can't find (wider or narrower), which is how a
+    /// silent fallback would show: the width checks below would pass in it
+    /// unseen (the Pandora build's first run did, while a stale resource file
+    /// left its fonts out of the build; only the faces' check failed).
     /// </summary>
-    [Fact]
-    public void FormattedTextMeasuresWithTheBundledTypeface()
+    [Theory]
+    [MemberData(nameof(Families))]
+    public void FormattedTextMeasuresWithTheBundledTypeface(string family)
     {
-        var bundled = Width("Stamina", new Typeface(Montserrat(), FontStyles.Normal, FontWeights.Medium, FontStretches.Normal));
-        var fallback = Width("Stamina", new Typeface(new FontFamily("No Such Font Anywhere"), FontStyles.Normal, FontWeights.Medium, FontStretches.Normal));
+        var weight = FacesOf(family).First().Weight;
+        var bundled = Width("Stamina", new Typeface(Theme.FontFamilyOf(AddressOf(family)), FontStyles.Normal, weight, FontStretches.Normal));
+        var fallback = Width("Stamina", new Typeface(new FontFamily("No Such Font Anywhere"), FontStyles.Normal, weight, FontStretches.Normal));
 
         Assert.True(bundled > 0);
-        Assert.True(bundled > fallback * 1.05, $"Montserrat {bundled:0.0} px, the fallback {fallback:0.0} px: the bundled face was not used");
+        Assert.True(Math.Abs(bundled - fallback) > fallback * 0.05, $"{family} {bundled:0.0} px, the fallback {fallback:0.0} px: the bundled face was not used");
     }
 
     // ---- In the build -----------------------------------------------------------
 
-    /// <summary>The four weights Isle uses are WPF Resources of the app (PandoraOverlay.g.resources).</summary>
+    /// <summary>Every face in the font folders is a WPF Resource of the app (PandoraOverlay.g.resources), and no other font is.</summary>
     [Fact]
-    public void TheFourFacesAreInTheBuild()
+    public void TheFacesAreInTheBuild()
     {
         using var stream = typeof(Theme).Assembly.GetManifestResourceStream("PandoraOverlay.g.resources");
         Assert.NotNull(stream);
         using var reader = new ResourceReader(stream!);
-        var names = reader.Cast<System.Collections.DictionaryEntry>().Select(e => (string)e.Key).ToHashSet();
+        var built = reader.Cast<System.Collections.DictionaryEntry>().Select(e => (string)e.Key)
+                          .Where(n => n.StartsWith("assets/fonts/", StringComparison.Ordinal))
+                          .OrderBy(n => n, StringComparer.Ordinal).ToList();
+        var onDisk = Families().Select(f => (string)f[0])
+                               .SelectMany(family => FilesOf(family).Select(file => $"assets/fonts/{family.ToLowerInvariant()}/{file}"))
+                               .OrderBy(n => n, StringComparer.Ordinal).ToList();
 
-        foreach (var face in Faces)
-            Assert.Contains("assets/fonts/montserrat/" + face.ToLowerInvariant(), names);
+        Assert.NotEmpty(onDisk);
+        Assert.Equal(onDisk, built);
     }
 
-    /// <summary>The licence travels with the font: embedded, and copied beside the program.</summary>
-    [Fact]
-    public void TheLicenceIsInTheBuild()
+    /// <summary>Each family's licence travels with its font: embedded, and copied beside the program.</summary>
+    [Theory]
+    [MemberData(nameof(Families))]
+    public void TheLicenceIsInTheBuild(string family)
     {
-        using var stream = typeof(Theme).Assembly.GetManifestResourceStream("PandoraOverlay.Assets.Fonts.Montserrat.OFL.txt");
+        using var stream = typeof(Theme).Assembly.GetManifestResourceStream($"PandoraOverlay.Assets.Fonts.{family}.OFL.txt");
         Assert.NotNull(stream);
         using var text = new StreamReader(stream!);
         Assert.Contains("SIL Open Font License", text.ReadToEnd());
 
-        var beside = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "Montserrat", "OFL.txt");
+        var beside = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", family, "OFL.txt");
         Assert.True(File.Exists(beside), "OFL.txt is not copied beside the program");
     }
 
@@ -120,24 +158,7 @@ public class MontserratTests
         var looked = 0;
         foreach (var theme in Theme.All)
         {
-            var font = theme.Tokens.Font;
-            var prime = theme.Tokens.Prime;
-            var named = new (ThemeFont Family, string Role, ThemeWeight Weight)[]
-            {
-                (font.TitleFamily, "Font.TitleWeight", font.TitleWeight),
-                (font.TitleFamily, "Font.MapTitleWeight", font.MapTitleWeight),
-                (font.Family, "Font.ValueWeight", font.ValueWeight),
-                (font.Family, "Font.BodyWeight", font.BodyWeight),
-                (font.Family, "Font.CaptionWeight", font.CaptionWeight),
-                (font.Family, "Nav.SelectedWeight", theme.Tokens.Nav.SelectedWeight),
-                (font.Family, "Prime.Met.Weight", prime.Met.Weight),
-                (font.Family, "Prime.Unmet.Weight", prime.Unmet.Weight),
-                (font.Family, "Prime.Lost.Weight", prime.Lost.Weight),
-                (font.Family, "Prime.Fresh.Weight", prime.Fresh.Weight),
-                (font.Family, "Prime.Unchecked.Weight", prime.Unchecked.Weight),
-                (font.Family, "the code's own Bold", ThemeWeight.Bold),
-            };
-            foreach (var (family, role, weight) in named)
+            foreach (var (family, role, weight) in NamedWeights(theme.Tokens))
             {
                 if (!family.Bundled) continue;
                 looked++;
@@ -153,6 +174,53 @@ public class MontserratTests
         }
         Assert.True(looked > 0, "no theme names a bundled family: nothing was checked");
         Assert.Empty(problems);
+    }
+
+    /// <summary>
+    /// The other way round: every face in the font folders is one a theme
+    /// names, with its family and its weight (or the code's own Bold in a
+    /// theme's text family). A face nobody reads is weight in every install
+    /// for nothing; a later theme that needs it adds it then (PLAN.md section 5).
+    /// </summary>
+    [Fact]
+    public void EveryBundledFaceIsOneAThemeNames()
+    {
+        var named = Theme.All.SelectMany(t => NamedWeights(t.Tokens))
+                             .Where(n => n.Family.Bundled)
+                             .Select(n => (n.Family.Address, (int)n.Weight))
+                             .ToHashSet();
+        var unread = Families().Select(f => (string)f[0])
+            .SelectMany(family => FacesOf(family).Select(face => (family, weight: face.Weight.ToOpenTypeWeight(), file: face.FontUri.Segments[^1])))
+            .Where(f => !named.Contains((AddressOf(f.family), f.weight)))
+            .Select(f => $"{f.file} ({f.family} {f.weight})")
+            .ToList();
+        Assert.True(unread.Count == 0, "bundled, but no theme names it: " + string.Join(", ", unread));
+    }
+
+    /// <summary>
+    /// Every weight a theme's tokens name, with the family it is read in: the
+    /// titles' weights in Font.TitleFamily, the rest in Font.Family, and the
+    /// code's own Bold there (the badges' text, Prime's ✓ and ✗).
+    /// </summary>
+    private static IEnumerable<(ThemeFont Family, string Role, ThemeWeight Weight)> NamedWeights(ThemeTokens t)
+    {
+        var font = t.Font;
+        var prime = t.Prime;
+        return new (ThemeFont Family, string Role, ThemeWeight Weight)[]
+        {
+            (font.TitleFamily, "Font.TitleWeight", font.TitleWeight),
+            (font.TitleFamily, "Font.MapTitleWeight", font.MapTitleWeight),
+            (font.Family, "Font.ValueWeight", font.ValueWeight),
+            (font.Family, "Font.BodyWeight", font.BodyWeight),
+            (font.Family, "Font.CaptionWeight", font.CaptionWeight),
+            (font.Family, "Nav.SelectedWeight", t.Nav.SelectedWeight),
+            (font.Family, "Prime.Met.Weight", prime.Met.Weight),
+            (font.Family, "Prime.Unmet.Weight", prime.Unmet.Weight),
+            (font.Family, "Prime.Lost.Weight", prime.Lost.Weight),
+            (font.Family, "Prime.Fresh.Weight", prime.Fresh.Weight),
+            (font.Family, "Prime.Unchecked.Weight", prime.Unchecked.Weight),
+            (font.Family, "the code's own Bold", ThemeWeight.Bold),
+        };
     }
 
     // ---- The strings with the least room, in every theme's font (section 5, question 28) ----
@@ -256,8 +324,10 @@ public class MontserratTests
     /// theme's title glyph, which takes its 12 px and a 4 px gap) beside its
     /// right-hand readout, together inside the content width. The stats
     /// panel's with "Deinosuchus ♂" and a growth line (the longest, and a
-    /// common one), and the combat view's corner; Prime's with its longest
-    /// status; Activity's with a long friends count.
+    /// common one), the combat view's corner, the longest species the server
+    /// has (Server rules' list) fully grown and growing, and the words that
+    /// stand there out of game; Prime's with its longest status; Activity's
+    /// with a long friends count.
     /// </summary>
     [Theory]
     [MemberData(nameof(BundledThemes))]
@@ -274,6 +344,12 @@ public class MontserratTests
             ("Deinosuchus ♂", "Growth 99.9% · ~23h 59m", true),
             ("Deinosuchus ♂", "Growth 62.5% · ~2h 18m", true),
             ("Deinosuchus ♂", "Wounded", true),
+            ("Pachycephalosaurus ♀", "Fully grown", true),
+            ("Pachycephalosaurus ♀", "Growth 62.5% · ~2h 18m", true),
+            ("Pachycephalosaurus ♀", "Wounded", true),
+            ("Not in-game", "", true),
+            ("Not signed in", "", true),
+            ("Connecting…", "", true),
             ("Prime", "Not ready · 10/10 (7 needed)", false),
             ("Activity", "12 of 30 friends in game", false),
         };
@@ -305,14 +381,24 @@ public class MontserratTests
         AssertStillFits(id, lines.Select(l => (l, Measure(l, d.Font.Family, d.Font.BodyWeight, 10), Measure(l, t.Font.Family, t.Font.BodyWeight, 10), Content)));
     }
 
-    /// <summary>The check itself catches a missing face: Montserrat bundles no Light (300) and no ExtraBold (800).</summary>
+    /// <summary>
+    /// The check itself catches a missing face: for every bundled family, a
+    /// weight it has no file for gives its own nearest face (or a simulated
+    /// one), never that weight; a fallback family would be no check at all.
+    /// </summary>
     [Theory]
-    [InlineData(ThemeWeight.Light)]
-    [InlineData(ThemeWeight.ExtraBold)]
-    public void AWeightTheFamilyLacksIsNoFace(ThemeWeight weight)
+    [MemberData(nameof(Families))]
+    public void AWeightTheFamilyLacksIsNoFace(string family)
     {
-        var typeface = new Typeface(Montserrat(), FontStyles.Normal, weight.ToFontWeight(), FontStretches.Normal);
-        Assert.True(typeface.TryGetGlyphTypeface(out var face));
-        Assert.True(face.Weight.ToOpenTypeWeight() != (int)weight || face.StyleSimulations != StyleSimulations.None);
+        var has = FacesOf(family).Select(f => f.Weight.ToOpenTypeWeight()).ToHashSet();
+        var lacks = Enum.GetValues<ThemeWeight>().Where(w => !has.Contains((int)w)).ToList();
+        Assert.NotEmpty(lacks); // no family bundles every weight
+        foreach (var weight in lacks)
+        {
+            var typeface = new Typeface(Theme.FontFamilyOf(AddressOf(family)), FontStyles.Normal, weight.ToFontWeight(), FontStretches.Normal);
+            Assert.True(typeface.TryGetGlyphTypeface(out var face));
+            Assert.Equal(family, face.FamilyNames[English]); // the family's own nearest face, not a fallback
+            Assert.True(face.Weight.ToOpenTypeWeight() != (int)weight || face.StyleSimulations != StyleSimulations.None);
+        }
     }
 }

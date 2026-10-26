@@ -454,6 +454,55 @@ public class ThemeFileTests
         Assert.True(montserrat.Bundled);
     }
 
+    // ---- Every theme's check and radio ---------------------------------------------
+
+    /// <summary>
+    /// The check box's and the radio's template paints the hover box over a
+    /// TICKED box too and keeps the ticked mark (Controls.xaml's Check and
+    /// Radio), so in every theme the mark must show on the hover box as on the
+    /// ticked one, at 3 : 1 at least on the dialog's ground (WCAG's for a
+    /// control's parts). It matters for a theme with a DARK mark on a solid
+    /// box: a dark hover box would hide the tick, and a just-chosen radio's
+    /// dot, under the mouse (the Pandora theme's first design did).
+    /// </summary>
+    [Fact]
+    public void EveryThemesMarkShowsUnderTheMouse()
+    {
+        var problems = new List<string>();
+        foreach (var theme in Theme.All)
+        {
+            var c = theme.Tokens.Check;
+            var ground = theme.Tokens.Glass.Dialog with { A = 0xFF };
+            foreach (var (state, box) in new[] { ("Ticked", c.Ticked.Box), ("Hover", c.Hover.Box) })
+            {
+                var ratio = Contrast(Over(c.Ticked.Mark, ground), Over(box, ground));
+                if (ratio < 3) problems.Add($"{theme.Id}: the mark on Check.{state}.Box {ratio:0.00} : 1");
+            }
+        }
+        Assert.True(problems.Count == 0, string.Join("; ", problems));
+    }
+
+    /// <summary>A colour laid over an opaque one, as the screen shows it.</summary>
+    private static ThemeColor Over(ThemeColor top, ThemeColor under)
+    {
+        var a = top.A / 255.0;
+        byte Mix(byte t, byte u) => (byte)Math.Round(t * a + u * (1 - a));
+        return new ThemeColor(0xFF, Mix(top.R, under.R), Mix(top.G, under.G), Mix(top.B, under.B));
+    }
+
+    /// <summary>WCAG's contrast ratio of two opaque colours.</summary>
+    private static double Contrast(ThemeColor x, ThemeColor y)
+    {
+        static double Channel(byte v)
+        {
+            var s = v / 255.0;
+            return s <= 0.04045 ? s / 12.92 : Math.Pow((s + 0.055) / 1.055, 2.4);
+        }
+        static double Luminance(ThemeColor c) => 0.2126 * Channel(c.R) + 0.7152 * Channel(c.G) + 0.0722 * Channel(c.B);
+        var (l1, l2) = (Luminance(x), Luminance(y));
+        return (Math.Max(l1, l2) + 0.05) / (Math.Min(l1, l2) + 0.05);
+    }
+
     /// <summary>
     /// A drawn slider thumb takes the themed slider's Style from Controls.xaml
     /// (Theme.Apply looks it up by key, Theme.ThemedSliderKey; the themes'

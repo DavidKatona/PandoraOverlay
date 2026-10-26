@@ -1,0 +1,330 @@
+// Pandora: the server's own website, islapandora.eu (pandora-themes\PANDORA.md,
+// the design of Oct 24–25 2026, and the owner's answers to its five questions,
+// Oct 26). A SPARSE override of Default (Themes/ThemeFile.cs): only what
+// differs, by the token's path; a key Default lacks is a test failure, never a
+// silent inheritance.
+//
+// One accent, #FF7A1A (the mock's orange; the site's own is #FF6A00, a little
+// redder: the owner kept the mock's), and its derived alphas:
+//   accent 50% #80FF7A1A   the painted glows
+//   accent 22% #38FF7A1A   the frames' line, separators, the nav's divider
+//   accent 18% #2EFF7A1A   the bar track's inset line, a pressed menu row
+//   accent 10% #1AFF7A1A   the selected nav row, a menu row under the mouse
+//   accent  8% #14FF7A1A   the bar track
+// The warm near-black ground #0E0906 (the site's body is #0A0604, its panels
+// #120C08), text #F0E6DA (the site's), and the warm lines, the text colour at
+// 14% #24F0E6DA and 22% #38F0E6DA. Red #FF3B3B only when a stat is low, its
+// text #FF8A80; the site's leaderboard gold #FFA700 for the top rank, "Prime
+// Elder". No logo, no artwork: the title glyph is none (PANDORA decision 5).
+//
+// M = taken from the mock (pandora-mockup\*.dc.html); P = proposed for a state
+// the mock does not show, to be judged in game.
+//
+// The owner's answers (Oct 26 2026): the accent stays #FF7A1A; no title glow
+// (the top edge carries the glow, and there is no such token); the menu row
+// under the mouse an orange tint and orange text, no outline; the badges
+// without an outline; the check and the radio ONE look, a solid orange box
+// or circle with a dark mark when ticked or chosen. Red against orange and
+// Rajdhani at today's sizes are judged in game.
+{
+  "Name": "Pandora",
+  "Order": 2,
+  "Tokens": {
+    "Bars": {
+      // Isle's rule (PANDORA decision 4): every bar the accent in every state;
+      // health, hunger and thirst red with red text only under a quarter
+      // (Below25), where the pulse and the halo run. The time left the light
+      // orange #FFB070 on the dark glass. M
+      "Health": {
+        "Above75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From50To75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From25To50": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "Below25": { "Fill": "#FF3B3B", "Percent": "#FF8A80", "TimeLeft": "#FF8A80" },
+        "Track": "#14FF7A1A",
+        "TrackLine": "#2EFF7A1A",
+        "OnFill": "#1A0B02", // the dark text on orange
+      },
+      // Stamina never turns red: it empties every sprint.
+      "Stamina": {
+        "Above75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From50To75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From25To50": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "Below25": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "Track": "#14FF7A1A",
+        "TrackLine": "#2EFF7A1A",
+        "OnFill": "#1A0B02",
+      },
+      "Hunger": {
+        "Above75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From50To75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From25To50": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "Below25": { "Fill": "#FF3B3B", "Percent": "#FF8A80", "TimeLeft": "#FF8A80" },
+        "Track": "#14FF7A1A",
+        "TrackLine": "#2EFF7A1A",
+        "OnFill": "#1A0B02",
+      },
+      "Thirst": {
+        "Above75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From50To75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From25To50": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "Below25": { "Fill": "#FF3B3B", "Percent": "#FF8A80", "TimeLeft": "#FF8A80" },
+        "Track": "#14FF7A1A",
+        "TrackLine": "#2EFF7A1A",
+        "OnFill": "#1A0B02",
+      },
+      // Damage grows as you take it: not a stat running low, so never red. No
+      // time label is ever drawn on it; the light orange all the same, so no
+      // cool grey stays in the file.
+      "Damage": {
+        "Above75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From50To75": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "From25To50": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "Below25": { "Fill": "#FF7A1A", "Percent": "#F0E6DA", "TimeLeft": "#FFB070" },
+        "Track": "#14FF7A1A",
+        "TrackLine": "#2EFF7A1A",
+        "OnFill": "#1A0B02",
+      },
+      // "Wounded" is plain text, the label colour: no amber. M
+      "HealthReadout": { "Above75": "#B5A89C", "From50To75": "#B5A89C", "From25To50": "#B5A89C", "Below25": "#B5A89C" },
+      "Label": "#B5A89C",
+      "Height": 8,
+      "TrackLineWidth": 1,
+      "Below25Halo": 3, // the mock's red glow round a low bar
+    },
+    "Prime": {
+      "Met": { "Icon": "#FF7A1A", "Text": "#F0E6DA", "Weight": "SemiBold" }, // M
+      "Unmet": { "Icon": "#B3FF3B3B", "Text": "#7A6E66", "Weight": "Medium" }, // M: the ✗ red at 70%, the text off
+      "Fresh": { "Icon": "#FF7A1A", "Text": "#FFFFFF", "Weight": "Bold" }, // M
+      "Lost": { "Icon": "#FF3B3B", "Text": "#FF8A80", "Weight": "SemiBold" }, // P: a loss in red text, as Isle's
+      "Unchecked": { "Icon": "#6E625A", "Text": "#7A6E66", "Weight": "Medium" }, // P
+      // The site's gold for the top rank. PrimeElder and NotReady M, the others P.
+      "Status": { "PrimeElder": "#FFA700", "Ready": "#FF7A1A", "NotReady": "#B5A89C", "Unknown": "#8A7D72" },
+      // Checked and Cooldown M; a stale check in the light orange, a failure in red text: P.
+      "Footer": { "Checked": "#8A7D72", "Stale": "#FFB070", "Failed": "#FF8A80", "Cooldown": "#8A7D72" },
+    },
+    // Your bullet in the accent; a fracture, a low stat or damage in the warn line. M (Quiet P)
+    "Activity": { "Mine": "#FF7A1A", "Line": "#DDD0C3", "Warning": "#FF6B5E", "Quiet": "#8A7D72", "Count": "#B5A89C" },
+    // The ground at the mock's alphas (a widget's alpha is the player's slider). M
+    "Glass": {
+      "Widget": "#DB0E0906",
+      "Dialog": "#F50E0906",
+      "Menu": "#F70E0906",
+      "Pill": "#CC0E0906",
+      "MapPill": "#D10E0906",
+      "MapWindow": "#FF0E0906",
+      "SignIn": "#0E0906", // P: opaque, as it must be (WebView2): the ground without its alpha
+    },
+    // The frames: the accent at 22%, lit orange along the top edge with its
+    // glow (Lit.Top, below); edit mode and the control panel the whole accent. M
+    "Frame": {
+      "Locked": { "Line": "#38FF7A1A", "Lit": "#FF7A1A", "Glow": "#80FF7A1A" },
+      "Edit": { "Line": "#FF7A1A", "Glow": "#80FF7A1A" },
+      "ControlPanel": { "Line": "#FF7A1A", "Glow": "#80FF7A1A" },
+    },
+    // The fracture badges, without an outline (the owner's answer). M
+    "Badge": {
+      "Intact": { "Fill": "#0AF0E6DA", "Text": "#6E625A" },
+      "Fractured": { "Fill": "#33FF3B3B", "Text": "#FF8A80" }, // red at 20%
+    },
+    // Paused is a state, not a warning: the dim colour, no amber. FullyGrown M, the others P.
+    "Growth": { "Growing": "#B5A89C", "Paused": "#8A7D72", "FullyGrown": "#B5A89C" },
+    "Text": {
+      "Title": "#FF7A1A", // the site's orange headlines, in Orbitron (Font.TitleFamily); no glow (the owner's answer)
+      "Glyph": "#FF7A1A", // drawn by no shape: the title glyph is none
+      "PageTitle": "#FF7A1A",
+      "Bright": "#FFFFFF",
+      "Text": "#F0E6DA",
+      "Text2": "#DDD0C3",
+      "Label": "#B5A89C",
+      "Dim": "#8A7D72",
+      "Off": "#7A6E66",
+      "Caption": "#9C8E82",
+      "Link": "#FFB070", // P
+      "Caution": "#FFB070", // P: the light orange, not Default's gold
+      "Danger": "#FF6B5E",
+      // Good stays Default's green (PANDORA's table): a hint that is good, a ✓ on the update card.
+      // P: yours, or what stands out in a list (your species on Server rules, a
+      // stored dino's name, the ★ and the A–F row on Skins), and the sign-in's
+      // step numbers: the accent, as "you" is everywhere (your bullet, your
+      // arrow); Default's gold and amber would clash with the orange.
+      "Highlight": "#FF7A1A",
+      "Marker": "#FF7A1A",
+    },
+    // Settings → Dino storage, P throughout (no board shows it): the growth
+    // bar the accent on the slider's dark track, the Prime badge the site's
+    // gold, the Elder badge neutral. The website's own meanings stay its own
+    // (SiteBrushes): sex, mutations, compensated, the vitals' colours, the
+    // stored spot's blue. The marker's white rim and your arrow's dark outline
+    // there are Default's (warm or neutral already).
+    "Storage": {
+      "BarTrack": "#2A1E16",
+      "Growth": "#FF7A1A",
+      "Slots": "#99FF7A1A", // the "3 of 10 slots" bar: the accent at 60% on the track
+      "SlotsTrack": "#2A1E16",
+      "NoPosition": "#B00E0906",
+      "Prime": { "Fill": "#33FFA700", "Text": "#FFA700" }, // the gold at 20%
+      "Elder": { "Fill": "#2A1E16", "Text": "#DDD0C3" },
+    },
+    // The three families: dark buttons with a thin warm outline (the site's
+    // "Server rules"), a solid orange one (its "Join us now"; the control
+    // panel's Lock), the danger button red at 12% with a red-at-50% outline
+    // (Exit, ✕). Idle M, every other state P: a step lighter under the mouse
+    // and more when pressed; disabled the fill and outline faint, the text dim.
+    // The control panel lays its glow over the idle fill (HoverGlow,
+    // PressedGlow). One row's ✕ keeps Default's soft red glyph (RowDelete
+    // #FFB4AE), which is the danger family's own idle text here.
+    "Button": {
+      "Neutral": {
+        "Idle": { "Fill": "#17100B", "Text": "#EADFD2", "Line": "#24F0E6DA" },
+        "Hover": { "Fill": "#1F160F", "Text": "#F0E6DA", "Line": "#3DF0E6DA" },
+        "Pressed": { "Fill": "#2A1E16", "Text": "#F0E6DA", "Line": "#3DF0E6DA" },
+        "Disabled": { "Fill": "#120C08", "Text": "#6E625A", "Line": "#14F0E6DA" },
+      },
+      "Primary": {
+        "Idle": { "Fill": "#FF7A1A", "Text": "#1A0B02", "Line": "#FF7A1A" },
+        "Hover": { "Fill": "#FF8A33", "Text": "#1A0B02", "Line": "#FF8A33" },
+        "Pressed": { "Fill": "#E8590C", "Text": "#1A0B02", "Line": "#E8590C" },
+        "Disabled": { "Fill": "#3D2414", "Text": "#8A7D72", "Line": "#3D2414" },
+      },
+      "Danger": {
+        "Idle": { "Fill": "#1FFF3B3B", "Text": "#FFB4AE", "Line": "#80FF3B3B" },
+        "Hover": { "Fill": "#33FF3B3B", "Text": "#FFC9C4", "Line": "#A6FF3B3B" },
+        "Pressed": { "Fill": "#4DFF3B3B", "Text": "#FFC9C4", "Line": "#A6FF3B3B" },
+        "Disabled": { "Fill": "#0FFF3B3B", "Text": "#6E625A", "Line": "#33FF3B3B" },
+      },
+      "HoverGlow": "#14FF7A1A",
+      "PressedGlow": "#26FF7A1A",
+    },
+    // The check and the radio, ONE look (the owner's answer): unticked a dark
+    // box or ring with the warm line; ticked or chosen a solid orange box or
+    // circle with a dark mark, the chosen radio glowing (Glow.Radio, in
+    // Ticked.Glow). M
+    // Hover is P, and NOT the table's dark #1F160F: the template paints the
+    // hover box over a TICKED box too and keeps the ticked mark, so a dark
+    // hover box would hide the dark tick (and a just-chosen radio's dot) under
+    // the mouse. The accent at 60% keeps the mark at 3 : 1 on the dialog's
+    // ground (ThemeFileTests.EveryThemesMarkShowsUnderTheMouse) and still
+    // reads dimmer than a ticked box; an unticked box's line lifts to it too.
+    // The marks of the other states are read by nothing (the tick and the dot
+    // are always Ticked.Mark), set as the table has them.
+    "Check": {
+      "Unticked": { "Box": "#17100B", "Line": "#38F0E6DA", "Mark": "#00000000", "Glow": "#00000000" },
+      "Ticked": { "Box": "#FF7A1A", "Line": "#FF7A1A", "Mark": "#1A0B02", "Glow": "#80FF7A1A" },
+      "Hover": { "Box": "#99FF7A1A", "Line": "#99FF7A1A", "Mark": "#00000000", "Glow": "#00000000" },
+      "Disabled": { "Box": "#120C08", "Line": "#1FF0E6DA", "Mark": "#6E625A", "Glow": "#00000000" },
+    },
+    // The drawn slider (Shapes.SliderThumb, below): the dark track, the accent
+    // left of a solid orange round thumb with a dark rim and the accent's glow. M
+    "Slider": { "Track": "#2A1E16", "Fill": "#FF7A1A", "Thumb": "#FF7A1A", "ThumbLine": "#1A0B02", "Glow": "#80FF7A1A" },
+    // P: the button's dark fill, the warm line, lighter under the mouse, the
+    // accent with the caret in it; an orange caret and selection.
+    "TextBox": {
+      "Idle": { "Fill": "#17100B", "Line": "#24F0E6DA", "Text": "#F0E6DA", "Caret": "#FF7A1A", "Selection": "#59FF7A1A" },
+      "Hover": { "Fill": "#17100B", "Line": "#3DF0E6DA", "Text": "#F0E6DA", "Caret": "#FF7A1A", "Selection": "#59FF7A1A" },
+      "Focus": { "Fill": "#17100B", "Line": "#FF7A1A", "Text": "#F0E6DA", "Caret": "#FF7A1A", "Selection": "#59FF7A1A" },
+    },
+    "ScrollBar": { "Track": "#17100B", "Thumb": "#3A2A20" }, // P; app-wide
+    // The nav (the site's selected tab): rows in the nav colour; the selected
+    // one the accent at 10% with a 2 px orange bar on its left and white
+    // SemiBold text (M); under the mouse a faint warm fill (P).
+    "Nav": {
+      "Idle": { "Fill": "#00000000", "Text": "#C9BDB1", "Bar": "#00000000" },
+      "Hover": { "Fill": "#0FF0E6DA", "Text": "#F0E6DA", "Bar": "#00000000" },
+      "Selected": { "Fill": "#1AFF7A1A", "Text": "#FFFFFF", "Bar": "#FF7A1A" },
+      "Caption": "#9C8E82",
+      "Divider": "#38FF7A1A",
+      "BarWidth": 2,
+      "SelectedWeight": "SemiBold",
+    },
+    // The maps' menus: a row in text 2, ticked in the text colour; under the
+    // mouse an orange tint and orange text, with no outline (the owner's
+    // answer: the menu row has no line token). Idle, Hover, Ticked M; Pressed, Disabled P.
+    "MenuRow": {
+      "Idle": { "Fill": "#00000000", "Text": "#DDD0C3" },
+      "Hover": { "Fill": "#1AFF7A1A", "Text": "#FF7A1A" },
+      "Pressed": { "Fill": "#2EFF7A1A", "Text": "#FF7A1A" },
+      "Disabled": { "Fill": "#00000000", "Text": "#6E625A" },
+      "Ticked": { "Fill": "#00000000", "Text": "#F0E6DA" },
+    },
+    "Separator": "#38FF7A1A", // M
+    // The surfaces, SOLID, a step above the ground (Isle's lesson: a tint is
+    // invisible on the dialog's glass): the site's panel #120C08, its table's
+    // dark brown line and band, zebra rows at the text colour's 3%. P
+    // The list pages' cards (Waypoints, Friends; Skins' tiles, Dino storage's
+    // cards); a clickable card's outline under the mouse the accent at 60% (P).
+    "Card": { "Surface": "#120C08", "Line": "#2B1B12", "Band": "#17100B", "Stripe": "#08F0E6DA", "HoverLine": "#99FF7A1A" },
+    // Account's cards, What's new's notes, the sign-in's result; a box inside
+    // one the site's body ground, a step darker than the card (P), as Default's is.
+    "InfoCard": { "Surface": "#120C08", "Line": "#2B1B12", "Inner": "#0A0604" },
+    // A colour well, a skin's picture well, the stored dino's map well: a step
+    // above the card, as Default's is; the rim round a skin's colour dots the
+    // text colour at Default's 33% (P).
+    "Well": { "Surface": "#17100B", "Line": "#38F0E6DA", "DotLine": "#55F0E6DA" },
+    "Map": {
+      // Your arrow in the accent with a near-black outline and the accent glow
+      // (painted); the trail in the accent with no casing (Trail outline stays
+      // transparent: it is the Clear theme's, question 26). M
+      "You": { "Arrow": "#FF7A1A", "Outline": "#120804", "Trail": "#FF7A1A", "Glow": "#80FF7A1A" },
+      "Hover": "#FF7A1A",
+      // Your area's outline and the plain names: Default's near-whites until
+      // seen in game (PANDORA's table). The area names a warm white over black. M
+      "AreaName": "#F6EEE6",
+      "NameOutline": "#000000",
+      "MarkerOutline": "#120804",
+      // The cursor readout (and the header's "you are in"). M
+      "Readout": { "Glass": "#F00E0906", "Line": "#38FF7A1A", "Name": "#FFFFFF", "Rest": "#8A7D72" },
+      "ScaleBar": "#F0E6DA",
+      "PillText": "#F0E6DA",
+      // The Layers button: dark with the warm line (P); orange outline and
+      // orange text on the accent at 10% while its menu is open (M, the site's selected tab).
+      "LayerButton": {
+        "Idle": { "Fill": "#17100B", "Line": "#24F0E6DA", "Text": "#C9BDB1" },
+        "Open": { "Fill": "#1AFF7A1A", "Line": "#FF7A1A", "Text": "#FF7A1A" },
+        "HoverGlow": "#14FF7A1A",
+      },
+      // P: to the screen the accent, to another panel the gold, two colours apart.
+      "SnapGuide": { "Screen": "#FF7A1A", "Peer": "#FFA700" },
+      // The map window keeps Windows 11's rounded corners (Default's): Pandora's frames are rounded.
+    },
+    // The update cards and What's new: the bullets and the download in the accent
+    // on the dark track (P); the ✓ after an update stays Default's green.
+    "UpdateCard": { "Bullet": "#FF7A1A", "Progress": "#FF7A1A", "ProgressTrack": "#2A1E16" },
+    // The site's round controls (M). The radio's circle, the fracture badge's
+    // box, no title glyph and the "● " bullet are Default's picks too, so not here.
+    "Shapes": {
+      "SliderThumb": "circle", // the drawn slider (Controls.xaml's ThemedSlider), not WPF's own
+    },
+    // No cut, no lit corners (Cut and the Edge, Side and Width of Lit are
+    // Default's 0): a 2 px lit line along every frame's whole top edge instead,
+    // the leaderboard cards' coloured top, in the lit colour with the corners' glow. M
+    "Lit": { "Top": 2 },
+    // The top edge's glow, edit mode's whole outline, the control panel's inner
+    // glow (within its 10 × 8 padding), your arrow on the maps, the chosen radio
+    // and the slider's thumb. M (the radii P)
+    "Glow": { "Corners": 4, "Edit": 5, "ControlPanel": 8, "Radio": 3, "Thumb": 3, "You": 3 },
+    // Small radii everywhere (M); the four the table did not name (a card's
+    // band, the big Discord button, a filling bar, the website's tags on a
+    // stored dino) small like the others (P). Button, Well and Check are
+    // Default's 2 already.
+    "Corner": {
+      "Widget": 3, "Dialog": 3, "Menu": 3, "Pill": 2, "Card": 2, "Bar": 1,
+      "ScrollThumb": 2, "Badge": 2, "Nav": 2, "LayerButton": 2,
+      "Band": 2, "LargeButton": 2, "Progress": 1, "Tag": 2,
+    },
+    // Rajdhani for the text and Orbitron for the titles, both the site's own
+    // (PANDORA decision 1), at today's sizes: Rajdhani reads small, so it is
+    // answered with heavier weights (decision 3), judged in game. M
+    "Font": {
+      "Family": "Assets/Fonts/Rajdhani/#Rajdhani",
+      "TitleFamily": "Assets/Fonts/Orbitron/#Orbitron",
+      "TitleWeight": "SemiBold", // the map's "Map" is Default's SemiBold too, so MapTitleWeight is not here
+      "ValueWeight": "Bold",
+      "BodyWeight": "SemiBold",
+      "CaptionWeight": "Bold",
+      "BadgeSize": 9.5,
+      // The map's names at Default's sizes (13 / 12): the mock's 10.5 / 11 were
+      // drawn too small. Capitals are Default's too, so MapAreaNameCaps is not here.
+      "SpacedCaptions": true, // the site's spaced caps; read by nothing yet (WPF has no tracking)
+    },
+  },
+}

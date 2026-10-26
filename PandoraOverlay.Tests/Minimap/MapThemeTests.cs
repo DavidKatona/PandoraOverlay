@@ -32,7 +32,7 @@ public class MapThemeTests
         Assert.Equal(5, MapCanvas.CasingWidth(C("#000000"), 3));
     }
 
-    /// <summary>No bundled theme has a casing yet (Default and Isle), so the trail is drawn exactly as in 1.38.</summary>
+    /// <summary>No bundled theme has a casing yet (it is the Clear theme's, not bundled), so the trail is drawn exactly as in 1.38.</summary>
     [Fact]
     public void NoBundledThemeHasACasingYet()
     {
