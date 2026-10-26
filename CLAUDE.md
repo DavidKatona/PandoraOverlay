@@ -567,8 +567,12 @@ Themes (Oct 24–25 2026)
 - Amber anywhere in Isle, and a colour per stat in Isle: cyan and red only.
 - A theme editor, custom colours or a custom accent in 1.39: a later release,
   if ever asked (`EDITOR.md` beside the themes plan).
-- A text size or a font-size step per theme (it could clip or rescale a
-  frame); another wording per theme (an ellipsis instead).
+- A text-size step or a font-size offset per theme, or any size of a
+  widget, a frame or a window (it could clip or rescale a frame); the few
+  sizes inside a frame that the catalogue names (the badges, the map's two
+  name sizes, the bar height, the panel's button size; themes PLAN.md
+  section 12) are the exception. Another wording per theme (an ellipsis
+  instead).
 - The theme choice as a radio row on General: a page of its own.
 - An `Effect` for a glow (measured: a live DropShadowEffect halves WPF's
   frame rate); a theme's own XAML (a theme picks from the shape catalogue).

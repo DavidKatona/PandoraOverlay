@@ -1,8 +1,5 @@
-using System.Net;
-using System.Net.Http;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
-using System.Text;
 using System.Text.Json;
 using System.Windows.Controls;
 using Xunit;
@@ -42,9 +39,12 @@ public sealed class TheThemeOnScreen
 /// never by its Open…, so a theme click sends the website nothing (CLAUDE.md,
 /// constraint 2: Dino storage's opening asks for the list past its guards).
 /// The pixels are the golden renders' windows mode; this is the behaviour.
-/// The dialog is built as the harness builds it: fresh objects, no cookie, a
-/// PollService never started, never shown; its website client is a counting
-/// fake, so even a mistake here could reach nothing.
+/// The dialog is built as the harness builds it (fresh objects, a PollService
+/// never started, never shown), but SIGNED IN with a made-up cookie, so the
+/// pages' guards would let a stray Open… through; its website client is a
+/// counting fake (<see cref="CountingSite"/>), which counts that request and
+/// lets nothing reach the website (the 1.39 constraint review, note 1: signed
+/// out, the count could not fail).
 /// </summary>
 [Collection(TheThemeOnScreen.Name)]
 public class SettingsThemeTests
@@ -75,33 +75,49 @@ public class SettingsThemeTests
         var before = DefaultTheme.Tokens.Card.Surface.ToBrush();
         var other = DefaultTheme.Tokens with { Card = DefaultTheme.Tokens.Card with { Surface = ThemeColor.Parse("#123456") } };
         var after = other.Card.Surface.ToBrush();
-        var site = new CountingSite();
         try
         {
             var config = new OverlayConfig();
+            config.SetCookie("made-up-test-value-not-a-session"); // signed in: a stray Open… would get past the pages' guards
             var library = new WaypointLibrary();
             library.Add("Near Spot", 1000, 2000, 0);
-            var poll = new PollService(config); // never started, no cookie
-            AnswerFrom(poll, site);
+            var poll = new PollService(config); // never started
+            var site = CountingSite.Install(poll);
+            SetStatic(typeof(SettingsWindow), "_lastPage", "General"); // the dialog opens on a page that asks nothing (signed in, Account asks auth/me)
             var dialog = new SettingsWindow(config, library, new FriendBook(), poll);
+            Assert.Equal(0, site.Requests);
 
-            // Two code-built pages drawn in Default: Dino storage from a held list, the waypoint rows on their first look.
+            // Three code-built pages drawn in Default: Dino storage and the skin tiles from held lists
+            // (drawn, never opened: signed in, their openings would ask), the waypoint rows on their first look.
             Set(dialog, "_storage", StoredDinos.ParseList(JsonDocument.Parse(Storage).RootElement));
             Call(dialog, "RenderStorage");
             var storageCards = (StackPanel)dialog.FindName("StorageCards");
+            Set(dialog, "_skins", PatreonSkins.ParseList(JsonDocument.Parse(DialogLayoutTests.Skins).RootElement)); // no pictures: nothing to fetch
+            Call(dialog, "RenderSkins");
+            var skinTiles = (Panel)dialog.FindName("SkinTiles");
             Call(dialog, "SetPage", "Waypoints");
             var waypointCards = (StackPanel)dialog.FindName("WaypointRows");
             Assert.Same(before, ((Border)storageCards.Children[0]).Background);
+            Assert.Same(before, ((Border)skinTiles.Children[0]).Background);
             Assert.Same(before, ((Border)waypointCards.Children[0]).Background);
 
             // A theme switch with Dino storage on screen (MainWindow.ApplyTheme: the swap, then the dialog's repaint).
             SetStatic(typeof(SettingsWindow), "_lastPage", "Storage");
             Install(other);
             dialog.ApplyTheme();
+            Assert.Equal(0, site.Requests); // the redraw asked nothing (an opening would have asked for the list)
 
             Assert.Same(after, ((Border)storageCards.Children[0]).Background); // the page shown: redrawn at once
-            Assert.NotNull(Get(dialog, "_storage")); // from the list it held (its opening, signed out, would have dropped it)
-            Assert.Same(before, ((Border)waypointCards.Children[0]).Background); // a page not shown waits for its look
+            Assert.NotNull(Get(dialog, "_storage")); // from the list it held
+            Assert.Same(before, ((Border)skinTiles.Children[0]).Background); // the pages not shown wait for their look
+            Assert.Same(before, ((Border)waypointCards.Children[0]).Background);
+
+            // The same switch seen from Skins (its opening would nudge a poll and ask for the list).
+            SetStatic(typeof(SettingsWindow), "_lastPage", "Skins");
+            dialog.ApplyTheme();
+            Assert.Equal(0, site.Requests);
+            Assert.Same(after, ((Border)skinTiles.Children[0]).Background); // redrawn from the held list
+            Assert.NotNull(Get(dialog, "_skins"));
 
             Call(dialog, "SetPage", "Waypoints");
             Assert.Same(after, ((Border)waypointCards.Children[0]).Background); // redrawn on its next look
@@ -118,31 +134,6 @@ public class SettingsThemeTests
             SetStatic(typeof(SettingsWindow), "_lastPage", "Account");
         }
     });
-
-    /// <summary>The website, as far as these tests go: counts what reaches it and answers an empty storage.</summary>
-    private sealed class CountingSite : HttpMessageHandler
-    {
-        private int _requests;
-
-        public int Requests => _requests;
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            Interlocked.Increment(ref _requests);
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent("""{"success":true,"dinos":[],"storageLimit":10}""", Encoding.UTF8, "application/json")
-            });
-        }
-    }
-
-    /// <summary>Points the poll service's website client at the fake: nothing can leave the test.</summary>
-    private static void AnswerFrom(PollService poll, HttpMessageHandler site)
-    {
-        var client = Get(poll, "_client")!;
-        (client.GetType().GetField("_http", Any) ?? throw new MissingFieldException(nameof(PandoraClient), "_http"))
-            .SetValue(client, new HttpClient(site));
-    }
 
     /// <summary>Puts tokens on screen as Theme.Apply does, for a theme no file has (one card colour changed).</summary>
     private static void Install(ThemeTokens tokens) =>

@@ -28,8 +28,10 @@ namespace PandoraOverlay;
 /// application's resources in place of the previous theme's. Every XAML
 /// property that reads a token by DynamicResource, in every open window,
 /// popup and card, then follows by itself; code that painted from
-/// <see cref="Current"/> repaints on <see cref="Changed"/> (MainWindow's
-/// ApplyTheme, in the order its comment gives, from step 3). The dictionary
+/// <see cref="Current"/> is repainted by MainWindow's ApplyTheme, in the
+/// order its comment gives. There is no event to repaint on, on purpose
+/// (the 1.39 constraint review, note 5): an explicit list keeps every
+/// repaint in that order and in sight of its review. The dictionary
 /// is the application's, not a window's, because the maps' popup menus
 /// resolve through the application.
 /// </para>
@@ -71,9 +73,6 @@ public static class Theme
 
     /// <summary>The theme on screen, as its tokens. Default until <see cref="Apply"/> says otherwise.</summary>
     public static ThemeTokens Current { get; private set; } = DefaultTheme.Tokens;
-
-    /// <summary>Raised after <see cref="Apply"/> has swapped the dictionary: code-painted parts repaint from <see cref="Current"/>.</summary>
-    public static event Action? Changed;
 
     #region Which theme
 
@@ -125,8 +124,9 @@ public static class Theme
     /// <summary>
     /// Puts a theme on screen: fills a fresh dictionary from its tokens,
     /// merges it into the application's resources in place of the previous
-    /// one, sets <see cref="Current"/>, raises <see cref="Changed"/> and logs
-    /// one fact. Writes nothing into config and places no window: a theme
+    /// one, sets <see cref="Current"/> and logs one fact (the code-painted
+    /// parts are MainWindow.ApplyTheme's to repaint, after this). Writes
+    /// nothing into config and places no window: a theme
     /// changes paint, never a size or a position (PLAN.md section 12). On the
     /// UI thread.
     /// </summary>
@@ -134,7 +134,6 @@ public static class Theme
     {
         var entry = Resolve(id);
         Install(entry.Tokens);
-        Changed?.Invoke();
         AppLog.App.Log($"Theme: {entry.Id}");
     }
 

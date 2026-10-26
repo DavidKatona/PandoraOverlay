@@ -74,7 +74,7 @@ public class DialogLayoutTests
     [MemberData(nameof(Themes))]
     public void TheSettingsDialogKeepsItsFrameAndEveryPageFitsIt(string id) => OnScreen(id, () =>
     {
-        var dialog = Dialog();
+        var (dialog, site) = Dialog();
         var problems = new List<string>();
         foreach (var page in Pages)
         {
@@ -87,6 +87,7 @@ public class DialogLayoutTests
         }
         dialog.Close();
         Assert.True(problems.Count == 0, string.Join("; ", problems));
+        Assert.Equal(0, site.Requests); // every page looked at, the website's three included: nothing asked
     });
 
     /// <summary>Every one-line text on every Settings page, the nav, the title and the footer, with a few waypoints, three skins' tiles and an open stored dino.</summary>
@@ -94,7 +95,7 @@ public class DialogLayoutTests
     [MemberData(nameof(Themes))]
     public void NoLineInTheSettingsDialogRunsPastItsRoom(string id) => OnScreen(id, () =>
     {
-        var dialog = Dialog();
+        var (dialog, site) = Dialog();
         var found = new List<Overflow>();
         foreach (var page in Pages)
         {
@@ -103,6 +104,7 @@ public class DialogLayoutTests
         }
         dialog.Close();
         AssertOnlyByDesign(id, Settings, found);
+        Assert.Equal(0, site.Requests);
     });
 
     /// <summary>The update cards (available, downloading, updated, What's new) and the sign-in window's states.</summary>
@@ -154,8 +156,15 @@ public class DialogLayoutTests
 
     // ---- The dialog, as the harness builds it --------------------------------------
 
-    /// <summary>Fresh objects, no cookie, a PollService never started; three waypoints (the skins and the stored dino come with their pages).</summary>
-    private static SettingsWindow Dialog()
+    /// <summary>
+    /// Fresh objects, no cookie, a PollService never started; three waypoints
+    /// (the skins and the stored dino come with their pages). Its website
+    /// client is the counting fake: the pages it opens (Account, Skins, Dino
+    /// storage) are held back by their signed-out guards, and should one ever
+    /// get past them, the test fails on the count instead of asking the
+    /// website (the 1.39 constraint review, near miss N1).
+    /// </summary>
+    private static (SettingsWindow Dialog, CountingSite Site) Dialog()
     {
         var config = new OverlayConfig();
         var library = new WaypointLibrary();
@@ -163,14 +172,15 @@ public class DialogLayoutTests
         library.Add("A waypoint with a long name here", -150000, 230000, 4); // 32 letters, the most a name takes
         library.Add("Lake", 52000, -98000, 9);
         var poll = new PollService(config);
+        var site = CountingSite.Install(poll);
         var dialog = new SettingsWindow(config, library, new FriendBook(), poll);
         // The frame is the test's, not this PC's: the work area's limit is a small screen's safety net.
         ((FrameworkElement)dialog.Content).MaxHeight = double.PositiveInfinity;
-        return dialog;
+        return (dialog, site);
     }
 
-    /// <summary>Three skins as the website lists them, one locked, none with a picture (so nothing is ever fetched).</summary>
-    private const string Skins = """
+    /// <summary>Three skins as the website lists them, one locked, none with a picture (so nothing is ever fetched; SettingsThemeTests draws them too).</summary>
+    internal const string Skins = """
         { "success": true, "skins": [
           { "id": 12, "name": "Ember", "requiredRole": "Patreon | Silver", "locked": false,
             "colors": { "md": {"R":0.9,"G":0.3,"B":0.1}, "m": {"R":0.3,"G":0.1,"B":0.05}, "b": {"R":0.95,"G":0.7,"B":0.2} } },
