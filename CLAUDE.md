@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.38.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.39.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -388,8 +388,9 @@ all) — say so when it matters:
   1.38 closed on a click away.
 - From the themes (1.39): Isle on other PCs and display scales (1.25×
   rendered only); a PC without hardware rendering; a real update in Isle
-  (the card is drawn by the copy that runs: the "updated" card first shows
-  at the update to 1.39, "update available" at 1.40); the Settings
+  (the cards are drawn by the copy that runs: the "updated" card first
+  shows at the update to 1.39.0, from 1.38 or the rc; "update available"
+  when the rc copy is offered 1.39.0, else at 1.40); the Settings
   dialog's small-screen limit (a probe only). The rest was checked by the
   owner in game (Oct 25–26, `pandora-themes\CHECKLIST.md`, no tweaks): the
   switch with every window up and Settings open (`config.json`'s layout
@@ -398,7 +399,8 @@ all) — say so when it matters:
   the glow over the game (about 100 fps in every phase; the painted glow
   cost what none did, a live effect more).
 
-BUILT for 1.39, in the owner's test (Oct 24–25 2026): **Themes**, a
+SHIPPED in 1.39.0 (Oct 26 2026), after the pre-release 1.39.0-rc.1 the
+same day: **Themes**, a
 Settings page of its own after General, one theme per line: **Default**,
 the 1.38 look pixel for pixel, compiled in, and **Isle**, the game's own
 look (Montserrat, dark glass, the cyan `#7FE3F0`, two cut corners lit in
@@ -430,7 +432,10 @@ in the tests (a dialog test opening the website's pages with the real
 site client), fixed before the tag with the notes that made the proof
 stronger (a46eed1: a counting fake behind every Settings dialog a test
 opens, the theme switch's test signed in so its count can fail, the unused
-`Theme.Changed` gone).
+`Theme.Changed` gone). The rc.1 round: the owner installed it by hand,
+not through the overlay's own update (so no update card was seen), and ran
+Isle on it. No tester on another PC or display scale, so those stay
+untried.
 
 SHIPPED in 1.38.0 (Oct 24 2026): a player was attacked
 with Settings open, and a click on the game left it on top with every hotkey
@@ -665,7 +670,7 @@ Themes (Oct 24–25 2026)
 
 ## Releases
 
-- Current: 1.38.0. The csproj `<Version>` is the single source of truth
+- Current: 1.39.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
