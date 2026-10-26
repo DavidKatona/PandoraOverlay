@@ -9,7 +9,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 [![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
 [![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
-![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centered minimap and the stats panel in its Combat view top-right, and the control panel bottom-center, over a Deinosuchus resting on a beach at sunset; the minimap's pill names the area, "South Plains", with the heatmap and the area borders on, and the Activity feed reads "You spawned as Deinosuchus 100% · South Plains". A caption box names version 1.38.0 and what is new: Settings applies at once, your favourite skin on a key; no Save or Cancel, a click on the game closes it, new keys](docs/screenshot.png)
+![The overlay in-game in the Isle theme, the game's own look (the Montserrat font, dark glass, cyan accents, square frames with two cut corners lit in cyan, hexagons), in the default two-column layout over a Pteranodon on a clifftop under a cloudy evening sky: the Prime tracker ("Ready · 6/10", the ten conditions as a ✓/✗ list) and the Activity feed top-left, the player-centered minimap with the heatmap on and its pill naming the area, "Eastern Jungle", and the stats panel in its Survival view (growth 96.2%, health, stamina, hunger and thirst as cyan bars, the three fracture badges) top-right. A caption box in the same look names version 1.39.0 and what is new: themes, and Isle, the game's own look; Settings › Themes, applied at once, nothing moves](docs/screenshot.png)
 
 
 ## Contents

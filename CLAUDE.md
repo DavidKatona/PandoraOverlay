@@ -205,9 +205,11 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   `run-golden.ps1`, the minimap (62 renders), and `run-windows.ps1`, the
   windows mode (1.39; 104 renders: the stats panel, Prime, Activity, the
   control panel and every Settings page), each compared with its Default
-  baseline. `-Theme isle` renders a theme for the record, never a baseline
-  (that waits for the owner's check in game), and fails if a render is not
-  its Default twin's pixel size. See the `release-pass` skill. The map's
+  baseline. `-Theme isle` renders Isle at 1×, 1.25× and 2× (93 and 156
+  renders), fails if a render is not its Default twin's pixel size, and
+  compares it with Isle's own baseline (`baseline-isle`, recorded Oct 26
+  2026 after the owner's check in game; a new theme gets one only after
+  that check). See the `release-pass` skill. The map's
   plan and decisions (D1–D12) live beside it: `ACTION-PLAN.md`, Fable's
   `PLAN.md` and the perf spike's `perf-spike\RESULTS.md` (code comments cite
   the D-numbers).
@@ -384,13 +386,17 @@ all) — say so when it matters:
   rule on other PCs. The rest was checked by the owner in game (Oct 24),
   the "not signed in" answers included, and the card after the update to
   1.38 closed on a click away.
-- From the themes (1.39, not yet released; renders, probes and tests
-  only): Isle on other PCs and DPIs (1.25× rendered only); a PC without
-  hardware rendering; the hover and pressed looks (no render shows them); a
-  real sign-in or update in Isle (probe pictures only); a theme switch
-  mid-glide on the minimap; the Settings dialog's small-screen limit (a
-  probe only) and its opening time in game (off-screen: no cost); an older
-  `config.json` resolving to Default (tests only); a restart on Isle.
+- From the themes (1.39): Isle on other PCs and display scales (1.25×
+  rendered only); a PC without hardware rendering; a real update in Isle
+  (the card is drawn by the copy that runs: the "updated" card first shows
+  at the update to 1.39, "update available" at 1.40); the Settings
+  dialog's small-screen limit (a probe only). The rest was checked by the
+  owner in game (Oct 25–26, `pandora-themes\CHECKLIST.md`, no tweaks): the
+  switch with every window up and Settings open (`config.json`'s layout
+  keys identical, only `Theme` changed), hover and press, a real sign-in on
+  Isle, a restart on Isle, an older `config.json`, a switch mid-glide, and
+  the glow over the game (about 100 fps in every phase; the painted glow
+  cost what none did, a live effect more).
 
 BUILT for 1.39, in the owner's test (Oct 24–25 2026): **Themes**, a
 Settings page of its own after General, one theme per line: **Default**,
@@ -413,8 +419,18 @@ rounded frame, a casing under the trail. Four more themes (Pandora,
 Nightshade, Clear, Calico) are the owner's mockups, design only, beside the
 plan; the editor is a later release (`EDITOR.md`). Guards: 916 tests;
 Default 62/62 and 104/104 identical, every Isle render its Default twin's
-size. Seen by the owner in game on the widgets, the maps and the dialogs;
-the full check and the Isle baselines come with the release pass.
+size. Checked by the owner in game, the whole checklist (Oct 25–26, no
+tweaks), and Isle's renders made a baseline of their own (Oct 26: 93 and
+156). Out first as the pre-release 1.39.0-rc.1 (the owner's call: Isle's
+1.5 px lit strokes and its glow depend on the display scale and hardware
+rendering, and only the owner's PC had run them), after a fresh
+reviewer's read of the diff against the hard constraints
+(`pandora-themes\REVIEW-1.39-constraints.md`): no violation, one near miss
+in the tests (a dialog test opening the website's pages with the real
+site client), fixed before the tag with the notes that made the proof
+stronger (a46eed1: a counting fake behind every Settings dialog a test
+opens, the theme switch's test signed in so its count can fail, the unused
+`Theme.Changed` gone).
 
 SHIPPED in 1.38.0 (Oct 24 2026): a player was attacked
 with Settings open, and a click on the game left it on top with every hotkey
