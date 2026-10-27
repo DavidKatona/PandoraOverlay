@@ -642,6 +642,13 @@ Themes (Oct 24–25 2026)
   painted, never an `Effect`. A code-built Settings page redraws from the
   data it holds, never by its `Open…` (a theme click must never become a
   request trigger, constraint 2).
+- **Tests test the theme framework, never a theme** (the owner, Oct 27
+  2026): every theme, a player's own later included, must work within the
+  framework, so no test names a bundled theme, pins its values or keeps a
+  list of exceptions per theme. A test holds EVERY theme to a framework rule
+  (iterating `Theme.All`) or builds a sample theme of its own; a theme's
+  design is judged in game and in the golden renders. The one exception is
+  Default's pin (`DefaultIsTodaysLook`): today's look must never move.
 - Settings apply at once (1.38, the owner's call, Oct 24 2026: no Save or
   Cancel, like Windows 11's Settings), and no setting ever needs a restart.
   A click on the game, Esc, ✕ or Close closes the dialog and loses nothing.

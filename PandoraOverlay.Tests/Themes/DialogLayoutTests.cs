@@ -14,10 +14,10 @@ namespace PandoraOverlay.Tests;
 /// keeps its fixed frame (SettingsFrame, the owner's call, Oct 25 2026,
 /// question 30) and every page fits inside it with nothing to scroll; and
 /// no line of text in the Settings dialog, the update cards or the sign-in
-/// window runs past its room in a theme's font. A string that no longer fits
-/// ends in an ellipsis (the owner, question 29: never another wording, never
-/// a size of its own) and is listed in <see cref="TrimmedByDesign"/>, so a
-/// NEW overflow still fails and reaches the owner before the theme ships.
+/// window is ever cut off in a theme's font: it fits its room, or it ends in
+/// an ellipsis (the owner, question 29: never another wording, never a size
+/// of its own). The rules of the framework, held for every theme alike: no
+/// test names a theme, so one a player makes later is held to the same.
 /// <para>
 /// Laid out, not guessed: each window is built as the harness builds it
 /// (fresh objects, no cookie, a PollService never started, never shown),
@@ -39,29 +39,6 @@ public class DialogLayoutTests
     /// <summary>Every page by its SetPage key, in the nav's order.</summary>
     private static readonly string[] Pages =
         { "Account", "General", "Themes", "Hotkeys", "Widgets", "Maps", "Waypoints", "Friends", "Skins", "Storage", "Rules", "About" };
-
-    /// <summary>
-    /// What fits in Default but not in a theme's font, and ends in an
-    /// ellipsis BY DESIGN (question 29). Listed one by one: a string that runs
-    /// over and isn't here fails, one listed here must trim (never run past
-    /// the edge), and one that fits again must come off the list.
-    /// </summary>
-    private static readonly HashSet<(string Theme, string Window, string Text)> TrimmedByDesign = new()
-    {
-        // Widgets → Activity, 12 px Montserrat Medium: 450 px in the 437 the
-        // page leaves a checkbox's label (Segoe UI: 392). The checkbox trims
-        // its label (Controls.xaml's Check) rather than wrap it: a second
-        // line would move the rows under it in Isle only.
-        ("isle", Settings, "Name the island's areas: entering one, and where you or a friend spawned"),
-        // Skins, a locked tile's tier line, 10 px: 133 px in the tile's 124
-        // (Segoe UI: 117). The line has always trimmed a long tier; the tile
-        // is dimmed and its button says Locked, so the cut word is said twice.
-        ("isle", Settings, "Pandorian Fanatic · locked"),
-    };
-
-    // The windows the list names: what each test lays out.
-    private const string Settings = "the Settings dialog";
-    private const string Cards = "the cards and the sign-in window";
 
     public static IEnumerable<object[]> Themes() => Theme.All.Select(e => new object[] { e.Id });
 
@@ -93,7 +70,7 @@ public class DialogLayoutTests
     /// <summary>Every one-line text on every Settings page, the nav, the title and the footer, with a few waypoints, three skins' tiles and an open stored dino.</summary>
     [Theory]
     [MemberData(nameof(Themes))]
-    public void NoLineInTheSettingsDialogRunsPastItsRoom(string id) => OnScreen(id, () =>
+    public void NoLineInTheSettingsDialogIsCutOff(string id) => OnScreen(id, () =>
     {
         var (dialog, site) = Dialog();
         var found = new List<Overflow>();
@@ -103,18 +80,18 @@ public class DialogLayoutTests
             found.AddRange(Overflows(root).Select(o => o with { Where = page }));
         }
         dialog.Close();
-        AssertOnlyByDesign(id, Settings, found);
+        AssertNoneIsCutOff(found);
         Assert.Equal(0, site.Requests);
     });
 
     /// <summary>The update cards (available, downloading, updated, What's new) and the sign-in window's states.</summary>
     [Theory]
     [MemberData(nameof(Themes))]
-    public void NoLineInTheCardsOrTheSignInWindowRunsPastItsRoom(string id) => OnScreen(id, () =>
+    public void NoLineInTheCardsOrTheSignInWindowIsCutOff(string id) => OnScreen(id, () =>
     {
         const string notes = """
             ### New
-            - A Themes page in Settings: Default, the look you have, and Isle, the game's own look.
+            - A Themes page in Settings: every window changes at once, sizes and positions stay.
             ### Fixes
             - A fix with a line long enough to wrap onto a second line inside the card's notes box, as real notes do.
             """;
@@ -151,7 +128,7 @@ public class DialogLayoutTests
         SignIn("no Steam", w => Call(w, "ShowNoSteam", new AccountInfo(true, "Dave", null, "AB12CD", true, false)));
         SignIn("failed", w => Call(w, "ShowFailed", "the website did not answer (HttpRequestException)"));
 
-        AssertOnlyByDesign(id, Cards, found);
+        AssertNoneIsCutOff(found);
     });
 
     // ---- The dialog, as the harness builds it --------------------------------------
@@ -218,13 +195,14 @@ public class DialogLayoutTests
 
     // ---- The check ------------------------------------------------------------
 
-    private sealed record Overflow(string Text, double Natural, double Room, bool Trims, string Where = "");
+    /// <summary>A line wider than its room: whether it ends in an ellipsis, and whether its own box fits that room (or the ellipsis itself is cut off).</summary>
+    private sealed record Overflow(string Text, double Natural, double Room, bool Trims, bool BoxFits, string Where = "");
 
     /// <summary>
     /// Every one-line text that is on screen (no hidden page or collapsed
     /// part around it) and runs past its room: its natural width, in its own
     /// font, against the narrowest box around it up to the window's root (a
-    /// trimming text's room is its own width).
+    /// trimming text's room is its own width, and its box must fit the rest).
     /// </summary>
     private static IEnumerable<Overflow> Overflows(FrameworkElement root)
     {
@@ -232,30 +210,27 @@ public class DialogLayoutTests
         {
             if (text.TextWrapping != TextWrapping.NoWrap || !Shown(text, root) || NaturalWidth(text) is not { } natural) continue;
             var origin = text.TranslatePoint(new Point(0, 0), root).X;
-            var room = text.TextTrimming == TextTrimming.None ? double.MaxValue : text.ActualWidth;
+            var around = double.MaxValue;
             for (var up = VisualTreeHelper.GetParent(text); up is not null; up = VisualTreeHelper.GetParent(up))
             {
                 if (up is FrameworkElement { ActualWidth: > 0 } box)
-                    room = Math.Min(room, box.TranslatePoint(new Point(box.ActualWidth, 0), root).X - origin);
+                    around = Math.Min(around, box.TranslatePoint(new Point(box.ActualWidth, 0), root).X - origin);
                 if (ReferenceEquals(up, root)) break;
             }
-            if (natural > room + Slack) yield return new Overflow(TextOf(text), natural, room, text.TextTrimming != TextTrimming.None);
+            var trims = text.TextTrimming != TextTrimming.None;
+            var room = trims ? Math.Min(text.ActualWidth, around) : around;
+            if (natural > room + Slack) yield return new Overflow(TextOf(text), natural, room, trims, text.ActualWidth <= around + Slack);
         }
     }
 
-    private static void AssertOnlyByDesign(string id, string window, IReadOnlyList<Overflow> found)
+    /// <summary>The framework's rule, the same for every theme: a line that runs past its room ends in an ellipsis, and the ellipsis shows.</summary>
+    private static void AssertNoneIsCutOff(IReadOnlyList<Overflow> found)
     {
-        var problems = new List<string>();
-        foreach (var o in found)
-        {
-            var listed = TrimmedByDesign.Contains((id, window, o.Text));
-            if (!listed) problems.Add($"{o.Where}: \"{o.Text}\" {o.Natural:0.0} px in {o.Room:0.0}");
-            else if (!o.Trims) problems.Add($"{o.Where}: \"{o.Text}\" is listed as trimmed by design but runs past the edge without an ellipsis");
-        }
-        foreach (var (_, _, text) in TrimmedByDesign.Where(t => t.Theme == id && t.Window == window))
-        {
-            if (!found.Any(o => o.Text == text)) problems.Add($"\"{text}\" fits again in {id}: take it off TrimmedByDesign");
-        }
+        var problems = found.Where(o => !o.Trims || !o.BoxFits)
+                            .Select(o => o.Trims
+                                ? $"{o.Where}: \"{o.Text}\" ends in an ellipsis past the edge, so the ellipsis is cut off ({o.Room:0.0} px of room)"
+                                : $"{o.Where}: \"{o.Text}\" {o.Natural:0.0} px in {o.Room:0.0}, cut off without an ellipsis")
+                            .ToList();
         Assert.True(problems.Count == 0, string.Join("; ", problems));
     }
 

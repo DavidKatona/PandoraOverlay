@@ -460,13 +460,15 @@
     <!-- Dark checkbox and radio: the stock white glyphs float on these
          surfaces. A content-less box (the list rows) drops the label gap.
          IsChecked = null draws the "mixed" square (group checkboxes). Hover
-         changes the box (and an unticked box's line); disabled is the whole
+         changes the box (and an unticked box's line), a ticked one's too, under
+         the ticked mark: a theme's hover box must keep the mark visible
+         (ThemeFileTests.EveryThemesMarkShowsUnderTheMouse); disabled is the whole
          control at half opacity. The checkbox's label takes the room its
          box leaves (a DockPanel, 1.39; a StackPanel gave it all the room it
          asked for) and ends in an ellipsis where a theme's font makes it too
          long for the page (the owner, Oct 25 2026: an ellipsis, never another
          wording). Every label fits in Default, where it lies as it always did;
-         DialogLayoutTests lists the ones a theme trims. -->
+         DialogLayoutTests holds every theme to it. -->
     <Style x:Key="Check" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Text2}"/>
         <Setter Property="FontSize" Value="12"/>

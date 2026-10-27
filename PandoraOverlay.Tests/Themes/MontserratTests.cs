@@ -282,103 +282,75 @@ public class MontserratTests
     }
 
     /// <summary>
-    /// What fits in Default but not in a theme's font, and ends in an
-    /// ellipsis BY DESIGN: the owner's call at the first look in game (Oct 25
-    /// 2026; question 4), an ellipsis wherever a string no longer fits, never
-    /// another wording per theme and no size of its own. The elements trim
-    /// (TextTrimming: the stats panel's dino name and status line, Prime's two
-    /// footer lines). Listed one by one, so a NEW overflow still fails and
-    /// reaches the owner before the theme ships.
-    /// </summary>
-    private static readonly HashSet<(string Theme, string Text)> TrimmedByDesign = new()
-    {
-        // The stats panel's header: the hexagon title glyph's 16 px tip
-        // "Deinosuchus ♂" and a growth line over 272 (without it, 270): the
-        // name ends in an ellipsis while growing. The glyph stays (the owner).
-        ("isle", "Deinosuchus ♂ · Growth 99.9% · ~23h 59m"),
-        ("isle", "Deinosuchus ♂ · Growth 62.5% · ~2h 18m"),
-        // Four long footer lines, Montserrat being about an eighth wider than
-        // Segoe UI at 10 px: two on the stats panel's status line, Prime's two.
-        ("isle", "No favourite skin for this dino: star one in Settings › Skins"),
-        ("isle", "Skin not applied: give it a few seconds between applies"),
-        ("isle", "Not checked yet — Check Prime: control panel or hotkey"),
-        ("isle", "Checked Oct 19 14:00 as Herrerasaurus — now Deinosuchus"),
-    };
-
-    /// <summary>
-    /// A string that fits in Default's Segoe UI must fit in every theme's font
-    /// too, or a theme would cut short what players read today (question 28);
-    /// what Default itself cuts short is not the theme's doing, and the ones
-    /// trimmed by design are listed (<see cref="TrimmedByDesign"/>).
-    /// </summary>
-    private static void AssertStillFits(string id, IEnumerable<(string Text, double Default, double Themed, double Room)> strings)
-    {
-        var over = strings.Where(s => s.Default <= s.Room && s.Themed > s.Room && !TrimmedByDesign.Contains((id, s.Text)))
-                          .Select(s => $"\"{s.Text}\": {s.Themed:0.0} px in {s.Room:0.0} (Default {s.Default:0.0})")
-                          .ToList();
-        Assert.True(over.Count == 0, string.Join("; ", over));
-    }
-
-    /// <summary>
-    /// The three headers: the title (its own family and weight, after the
-    /// theme's title glyph, which takes its 12 px and a 4 px gap) beside its
-    /// right-hand readout, together inside the content width. The stats
-    /// panel's with "Deinosuchus ♂" and a growth line (the longest, and a
-    /// common one), the combat view's corner, the longest species the server
-    /// has (Server rules' list) fully grown and growing, and the words that
-    /// stand there out of game; Prime's with its longest status; Activity's
-    /// with a long friends count.
+    /// The three headers, in every theme's fonts: the title (its own family
+    /// and weight, after the theme's title glyph and its 4 px gap) beside its
+    /// right-hand readout, inside the content width. Prime's and Activity's
+    /// titles don't trim, so their headers must fit whole. The stats panel's
+    /// dino name ends in an ellipsis where it runs long (MainWindow.xaml's
+    /// DinoText: an ellipsis, never another wording, the owner's rule), so
+    /// there the readout and the glyph must still leave the name its first
+    /// letter and the ellipsis, whatever the font. With "Deinosuchus ♂" and a
+    /// growth line (the longest, and a common one), the combat view's corner,
+    /// the longest species the server has (Server rules' list), and the words
+    /// that stand there out of game.
     /// </summary>
     [Theory]
     [MemberData(nameof(BundledThemes))]
-    public void TheHeadersStillFit(string id)
+    public void EveryHeaderFitsOrItsNameTrims(string id)
     {
         var t = TokensOf(id);
-        var d = DefaultTheme.Tokens;
-        double Header(ThemeTokens k, string title, string corner, bool glyph) =>
-            (glyph && ShapeCatalogue.NaturalSize(ShapeSlot.TitleGlyph, k.Shapes.TitleGlyph) is { Width: > 0 } g ? g.Width + 4 : 0)
-            + Measure(title, k.Font.TitleFamily, k.Font.TitleWeight, 14) + Measure(corner, k.Font.Family, k.Font.BodyWeight, 12);
+        var glyph = ShapeCatalogue.NaturalSize(ShapeSlot.TitleGlyph, t.Shapes.TitleGlyph) is { Width: > 0 } g ? g.Width + 4 : 0;
+        double Title(string s) => Measure(s, t.Font.TitleFamily, t.Font.TitleWeight, 14);
+        double Corner(string s) => Measure(s, t.Font.Family, t.Font.BodyWeight, 12);
 
-        var headers = new[]
+        var stats = new[]
         {
-            ("Deinosuchus ♂", "Growth 99.9% · ~23h 59m", true),
-            ("Deinosuchus ♂", "Growth 62.5% · ~2h 18m", true),
-            ("Deinosuchus ♂", "Wounded", true),
-            ("Pachycephalosaurus ♀", "Fully grown", true),
-            ("Pachycephalosaurus ♀", "Growth 62.5% · ~2h 18m", true),
-            ("Pachycephalosaurus ♀", "Wounded", true),
-            ("Not in-game", "", true),
-            ("Not signed in", "", true),
-            ("Connecting…", "", true),
-            ("Prime", "Not ready · 10/10 (7 needed)", false),
-            ("Activity", "12 of 30 friends in game", false),
+            ("Deinosuchus ♂", "Growth 99.9% · ~23h 59m"),
+            ("Deinosuchus ♂", "Growth 62.5% · ~2h 18m"),
+            ("Deinosuchus ♂", "Wounded"),
+            ("Pachycephalosaurus ♀", "Fully grown"),
+            ("Pachycephalosaurus ♀", "Growth 62.5% · ~2h 18m"),
+            ("Pachycephalosaurus ♀", "Wounded"),
+            ("Not in-game", ""),
+            ("Not signed in", ""),
+            ("Connecting…", ""),
         };
-        AssertStillFits(id, headers.Select(h => ($"{h.Item1} · {h.Item2}", Header(d, h.Item1, h.Item2, h.Item3), Header(t, h.Item1, h.Item2, h.Item3), Content)));
+        var whole = new[] { ("Prime", "Not ready · 10/10 (7 needed)"), ("Activity", "12 of 30 friends in game") };
+
+        var problems = new List<string>();
+        foreach (var (name, corner) in stats)
+        {
+            var least = glyph + Title(name[..1] + "…") + Corner(corner);
+            if (least > Content) problems.Add($"\"{name} · {corner}\": the readout leaves the name no room ({least:0.0} px in {Content:0.0})");
+        }
+        foreach (var (title, corner) in whole)
+        {
+            var width = Title(title) + Corner(corner);
+            if (width > Content) problems.Add($"\"{title} · {corner}\": {width:0.0} px in {Content:0.0}, and the title does not trim");
+        }
+        Assert.True(problems.Count == 0, $"{id}: " + string.Join("; ", problems));
     }
 
-    /// <summary>The long one-line footers (10 px, the body weight): the stats panel's status lines and Prime's two lines.</summary>
+    /// <summary>
+    /// The one-line texts whose words a theme's wider font can push past
+    /// their room end in an ellipsis, never cut off (the owner's rule: an
+    /// ellipsis, never another wording, never a size of its own): the stats
+    /// panel's dino name and status line, Prime's two footer lines. So any
+    /// theme's font, a player's own included later, can only shorten them.
+    /// </summary>
     [Theory]
-    [MemberData(nameof(BundledThemes))]
-    public void TheLongStatusLinesStillFit(string id)
+    [InlineData("Shell/MainWindow.xaml", "DinoText")]
+    [InlineData("Shell/MainWindow.xaml", "StatusText")]
+    [InlineData("Prime/PrimeWindow.xaml", "InfoText")]
+    [InlineData("Prime/PrimeWindow.xaml", "NoticeText")]
+    public void TheLinesThatCanRunLongEndInAnEllipsis(string file, string name)
     {
-        var t = TokensOf(id);
-        var d = DefaultTheme.Tokens;
-        var lines = new[]
-        {
-            "Hotkey Ctrl+Shift+F12 in use by another app — rebind in Settings",
-            "Hotkey Ctrl+Shift+F10 unavailable — keeping Ctrl+F10",
-            "Connected · checking every 60s · 12:00:00",
-            "Connected · waiting for spawn · 12:00:00",
-            "Disconnected · retrying (secure connection failed)",
-            "Session ended · sign in again from the tray",
-            "Open Settings from the tray icon to sign in",
-            "No favourite skin for this dino: star one in Settings › Skins",
-            "Skin not applied: give it a few seconds between applies",
-            "Not checked yet — Check Prime: control panel or hotkey",
-            "Checked Oct 19 14:00 as Herrerasaurus — now Deinosuchus",
-            "check failed (HttpRequestException) · retry in 4:59",
-        };
-        AssertStillFits(id, lines.Select(l => (l, Measure(l, d.Font.Family, d.Font.BodyWeight, 10), Measure(l, t.Font.Family, t.Font.BodyWeight, 10), Content)));
+        var xaml = File.ReadAllText(Path.Combine(ThemeFileTests.RepoRoot(), file));
+        var at = xaml.IndexOf($"x:Name=\"{name}\"", StringComparison.Ordinal);
+        Assert.True(at >= 0, $"{file} has no {name}");
+        var start = xaml.LastIndexOf('<', at);
+        var element = xaml[start..(xaml.IndexOf('>', at) + 1)];
+        Assert.Contains("TextTrimming=\"CharacterEllipsis\"", element);
     }
 
     /// <summary>

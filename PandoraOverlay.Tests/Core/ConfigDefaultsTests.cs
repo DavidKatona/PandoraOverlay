@@ -110,17 +110,17 @@ public class ConfigDefaultsTests
         Assert.Equal(Theme.DefaultId, Theme.Resolve(cfg.Theme).Id);
     }
 
-    /// <summary>The id is matched ignoring case and spaces: a hand-typed "Isle" is the isle theme.</summary>
+    /// <summary>The id is matched ignoring case and spaces: a hand-typed "Sample" is the sample theme.</summary>
     [Fact]
     public void AThemeResolvesIgnoringCase()
     {
         Assert.Equal(Theme.DefaultId, Theme.Resolve("DEFAULT").Id);
 
-        var isle = new ThemeEntry("isle", "Isle", 1, DefaultTheme.Tokens);
-        var among = Theme.Ordered(new[] { isle });
-        Assert.Same(isle, Theme.Resolve("Isle", among));
-        Assert.Same(isle, Theme.Resolve(" ISLE ", among));
-        Assert.Equal(Theme.DefaultId, Theme.Resolve("isles", among).Id);
+        var sample = new ThemeEntry("sample", "Sample", 1, DefaultTheme.Tokens);
+        var among = Theme.Ordered(new[] { sample });
+        Assert.Same(sample, Theme.Resolve("Sample", among));
+        Assert.Same(sample, Theme.Resolve(" SAMPLE ", among));
+        Assert.Equal(Theme.DefaultId, Theme.Resolve("samples", among).Id);
     }
 
     [Fact]

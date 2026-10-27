@@ -20,7 +20,7 @@ public class ThemeFileTests
     private static ThemeTokens D => DefaultTheme.Tokens;
     private static ThemeColor C(string hex) => ThemeColor.Parse(hex);
 
-    // A sample theme of the tests' own (Isle's bundled file is checked further down).
+    // A sample theme of the tests' own: no test names a bundled theme, each holds every theme to the framework's rules.
     private const string Sample = """
         {
           // Comments and trailing commas are allowed, as in any theme file.
@@ -379,62 +379,19 @@ public class ThemeFileTests
         Assert.Equal(files, bundled);
     }
 
-    // ---- Isle, the bundled file ----------------------------------------------------
-
-    private static ThemeEntry Isle => Theme.All.Single(e => e.Id == "isle");
-
-    [Fact]
-    public void IsleIsBundledAfterDefault()
-    {
-        Assert.Equal(new[] { "default", "isle" }, Theme.All.Take(2).Select(e => e.Id));
-        Assert.Equal("Isle", Isle.Name);
-        Assert.Same(Isle, Theme.Resolve("Isle")); // config's id, in any case
-    }
-
     /// <summary>
-    /// Cyan and red, nothing else (DESIGN decision 3, PLAN.md questions 3 and
-    /// 10): none of Isle's colours, resolved over Default, is today's amber,
-    /// the edit and "you" gold, or the update card's orange, at any alpha. A
-    /// token Isle forgets to name inherits Default's, which this catches.
+    /// Every bundled theme is found by its id as config.json holds it, in any
+    /// case and with spaces round it, and the files stand after Default by
+    /// their Order, then id (Theme.Ordered): the loader's rules, whatever the
+    /// themes are.
     /// </summary>
     [Fact]
-    public void IsleHasNoAmber()
+    public void EveryBundledThemeResolvesByItsIdInOrder()
     {
-        var banned = new[] { C("#FFB300"), C("#FFC864"), C("#FFAA00") };
-        var found = Theme.Leaves(Isle.Tokens)
-            .Where(l => l.Value is ThemeColor c && banned.Any(b => b.R == c.R && b.G == c.G && b.B == c.B))
-            .Select(l => l.Key)
-            .ToList();
-        Assert.Empty(found);
-    }
-
-    /// <summary>The cut corners (widgets 10, the minimap's map square 6, Settings 14) and the painted glows' radii (the lit corners 3, edit mode 5, the control panel 8).</summary>
-    [Fact]
-    public void IslesCutsAndGlowsAreDesigns()
-    {
-        var t = Isle.Tokens;
-        Assert.Equal((10.0, 6.0, 14.0), (t.Cut.Widget, t.Cut.MapSquare, t.Cut.Dialog));
-        Assert.Equal((3.0, 5.0, 8.0), (t.Glow.Corners, t.Glow.Edit, t.Glow.ControlPanel));
-        Assert.Equal((26.0, 20.0, 1.5), (t.Lit.Edge, t.Lit.Side, t.Lit.Width));
-        Assert.Equal(0, t.Lit.Top); // no lit top line in Isle (question 21)
-        Assert.Equal(new ThemeRadius(0), t.Corner.Widget); // square, but for the cuts
-    }
-
-    /// <summary>
-    /// The dialogs' look (step 6, DESIGN's Settings board): hexagon radios
-    /// and the drawn slider with a hexagon thumb, both glowing 2 px; the nav's
-    /// selected row with a 2 px bar and SemiBold text; every corner square.
-    /// </summary>
-    [Fact]
-    public void IslesDialogsAreDesigns()
-    {
-        var t = Isle.Tokens;
-        Assert.Equal((ShapeKind.Hexagon, ShapeKind.Hexagon), (t.Shapes.Radio, t.Shapes.SliderThumb));
-        Assert.Equal((2.0, 2.0), (t.Glow.Radio, t.Glow.Thumb));
-        Assert.Equal((2.0, ThemeWeight.SemiBold), (t.Nav.BarWidth, t.Nav.SelectedWeight));
-        var corners = Theme.Leaves(t).Where(l => l.Key.StartsWith("Theme.Corner.", StringComparison.Ordinal)).ToList();
-        Assert.Equal(typeof(ThemeTokens.CornerNumbers).GetProperties().Length, corners.Count);
-        Assert.All(corners, l => Assert.Equal(new ThemeRadius(0), l.Value));
+        foreach (var theme in Theme.All)
+            Assert.Same(theme, Theme.Resolve($" {theme.Id.ToUpperInvariant()} "));
+        var files = Theme.All.Skip(1).ToList();
+        Assert.Equal(files.OrderBy(e => e.Order).ThenBy(e => e.Id, StringComparer.Ordinal).Select(e => e.Id), files.Select(e => e.Id));
     }
 
     /// <summary>The control panel's glow is painted inside its outline, so it must fit the panel's padding (10 × 8, ControlPanelWindow.xaml) or a button would sit on it.</summary>
@@ -442,16 +399,6 @@ public class ThemeFileTests
     public void EveryControlPanelGlowFitsThePanelsPadding()
     {
         foreach (var theme in Theme.All) Assert.InRange(theme.Tokens.Glow.ControlPanel, 0, 8);
-    }
-
-    /// <summary>Montserrat for both families: the titles' does not follow the body's on its own (question 20).</summary>
-    [Fact]
-    public void IsleSetsBothFamiliesToTheBundledMontserrat()
-    {
-        var montserrat = new ThemeFont("Assets/Fonts/Montserrat/#Montserrat");
-        Assert.Equal(montserrat, Isle.Tokens.Font.Family);
-        Assert.Equal(montserrat, Isle.Tokens.Font.TitleFamily);
-        Assert.True(montserrat.Bundled);
     }
 
     // ---- Every theme's check and radio ---------------------------------------------

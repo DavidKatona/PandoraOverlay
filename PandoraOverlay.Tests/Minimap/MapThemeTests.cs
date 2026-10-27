@@ -6,14 +6,12 @@ namespace PandoraOverlay.Tests;
 /// <summary>
 /// The maps on the theme's tokens (the themes' step 4): the trail's casing
 /// draws nothing at all until a theme gives it a colour, the names' cache
-/// is forgotten on a switch, and the bundled themes' map values are the
-/// designs. The pixels themselves are the golden renders' (outside the repo).
+/// is forgotten on a switch, and every theme keeps the maps' rules. The
+/// pixels themselves are the golden renders' (outside the repo).
 /// </summary>
 public class MapThemeTests
 {
     private static ThemeColor C(string hex) => ThemeColor.Parse(hex);
-
-    private static ThemeTokens Isle => Theme.All.Single(e => e.Id == "isle").Tokens;
 
     // ---- The trail's casing (PLAN.md question 26) ------------------------------------
 
@@ -60,23 +58,6 @@ public class MapThemeTests
         NameLayer.ForgetPrepared();
         Assert.Equal(0, NameLayer.PreparedCount);
         Assert.Equal(first, NameLayer.Measure("Swamps", 12, false, brush, 1)); // prepared afresh, the same box
-    }
-
-    // ---- Isle on the maps (DESIGN.md, the map board) -----------------------------------
-
-    [Fact]
-    public void IslesMapIsSquareAndItsNamesSmall()
-    {
-        var t = Isle;
-        Assert.False(t.Map.WindowRounded); // square frames: Windows 11 must not round the map (question 8)
-        Assert.Equal(6, t.Cut.MapSquare);
-        Assert.Equal((9.5, 10.0), (t.Font.MapAreaNameSize, t.Font.MapNameSize));
-        Assert.True(t.Font.MapAreaNameCaps);
-        Assert.Equal(3, t.Glow.You);
-        Assert.Equal(C("#7FE3F0"), t.Map.You.Arrow); // you are the accent
-        Assert.Equal(C("#7FE3F0"), t.Map.You.Trail);
-        Assert.Equal(C("#7FE3F0"), t.Map.Hover);
-        Assert.NotEqual(0, t.Map.You.Glow.A); // a radius with a colour: the glow is drawn
     }
 
     /// <summary>Default's arrow has no glow: the painted glow (PaintedGlow) draws nothing at a radius of 0.</summary>

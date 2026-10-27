@@ -3,6 +3,7 @@ paths:
   - "Themes/**"
   - "Assets/Themes/**"
   - "Assets/Fonts/**"
+  - "PandoraOverlay.Tests/Themes/**"
 ---
 
 # Writing code for the themes (1.39)
@@ -85,17 +86,28 @@ summary.
   `Theme.FontFamilyOf` addresses it by the `;component` pack form, never the plain
   `pack://application:,,,/` (the entry assembly: a harness would fall back silently).
   Never install a bundled font into Windows on the owner's PC: it would hide a bundling
-  mistake. `MontserratTests` prove the bundled faces resolve, that every weight a theme
-  names is a real face (`EveryNamedWeightHasAFace`), and that what fits in Default fits
-  in the theme's font. A string that no longer fits ends in an ellipsis (the owner, Oct
-  25 2026): never another wording per theme, never a size of its own; it is listed in
-  `TrimmedByDesign`, so a new overflow still fails and reaches the owner.
-  `ControlPanelWidthTests` checks every theme's labels, captions and hint fit the
-  control panel's fixed frame (`ControlPanelFrame`); `DialogLayoutTests` lays the dialogs
-  out in every theme (the Settings dialog in its frame, `SettingsFrame`, every page with
-  nothing to scroll; every one-line string of Settings, the update cards and the sign-in
-  window within its room, its own `TrimmedByDesign` for the ellipses).
-- **The golden renders run in both themes**
+  mistake. A new font needs a build `--no-incremental` once: files a glob adds are not
+  seen by an incremental build, and a theme then measures and renders in a fallback font.
+  `MontserratTests` read every folder there: each family's faces resolve and are in the
+  build, every weight a theme names is a real face (`EveryNamedWeightHasAFace`) and every
+  face bundled is one a theme names (`EveryBundledFaceIsOneAThemeNames`: no face that no
+  theme reads), and the strings with the least room fit or trim. A string that no longer
+  fits ends in an ellipsis (the owner, Oct 25 2026): never another wording per theme,
+  never a size of its own. `ControlPanelWidthTests` checks every theme's labels, captions
+  and hint fit the control panel's fixed frame (`ControlPanelFrame`); `DialogLayoutTests`
+  lays the dialogs out in every theme (the Settings dialog in its frame, `SettingsFrame`,
+  every page with nothing to scroll; no one-line string of Settings, the update cards and
+  the sign-in window cut off: it fits, or it ends in an ellipsis that shows).
+- **A theme test tests the framework, never a theme** (the owner, Oct 27 2026): every
+  theme, a player's own later included, must work within the framework, so no test names
+  a bundled theme, pins its values or keeps a list of exceptions per theme. A test either
+  holds EVERY theme to a rule of the framework (iterating `Theme.All`: it loads, its faces
+  exist, its text fits or ends in an ellipsis, its frames keep their size, a ticked mark
+  shows under the mouse) or builds a sample theme of its own (`ThemeFileTests.Sample`).
+  A theme's design is judged in game and in the golden renders, not in the tests. The one
+  exception is Default's pin (`DefaultIsTodaysLook` and its siblings): Default is the
+  compiled base, and the pin keeps today's look from moving.
+- **The golden renders run in every theme**
   (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`), the minimap's
   (`run-golden.ps1`) and the windows mode's (`run-windows.ps1`): Default must stay 62 of 62
   and 104 of 104 identical; `-Theme <id>` renders another theme, whose every render must
