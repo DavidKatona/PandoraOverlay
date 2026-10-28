@@ -58,10 +58,11 @@ checked, and say when a check was a tool or a render rather than an eye.
    in both modes against their Default baselines: `run-golden.ps1` (the
    minimap, 62 renders) and `run-windows.ps1` (the stats panel, Prime,
    Activity, the control panel and every Settings page, 104). Then both
-   again with `-Theme isle` (and every other theme in `Assets/Themes/`):
-   every render must keep its Default twin's pixel size, and a theme with
-   a baseline of its own (Isle's `baseline-isle`, 93 and 156 renders,
-   since Oct 26 2026) must match it as Default matches Default's. The map window,
+   again for every theme in `Assets/Themes/` (`-Theme isle`, `-Theme
+   pandora`): every render must keep its Default twin's pixel size, and a
+   theme with a baseline of its own (93 and 156 renders: Isle's
+   `baseline-isle` since Oct 26 2026, Pandora's `baseline-pandora` since
+   Oct 27) must match it as Default matches Default's. The map window,
    the update card and the sign-in window have no harness: say so.
    Re-baseline only after the owner has checked a deliberate visual change
    in game.

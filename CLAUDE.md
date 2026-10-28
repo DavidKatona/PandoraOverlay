@@ -205,11 +205,11 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   `run-golden.ps1`, the minimap (62 renders), and `run-windows.ps1`, the
   windows mode (1.39; 104 renders: the stats panel, Prime, Activity, the
   control panel and every Settings page), each compared with its Default
-  baseline. `-Theme isle` renders Isle at 1×, 1.25× and 2× (93 and 156
-  renders), fails if a render is not its Default twin's pixel size, and
-  compares it with Isle's own baseline (`baseline-isle`, recorded Oct 26
-  2026 after the owner's check in game; a new theme gets one only after
-  that check). See the `release-pass` skill. The map's
+  baseline. `-Theme <id>` renders another theme at 1×, 1.25× and 2× (93
+  and 156 renders), fails if a render is not its Default twin's pixel
+  size, and compares it with that theme's own baseline (`baseline-isle`,
+  recorded Oct 26 2026, and `baseline-pandora`, Oct 27, each after the
+  owner's check in game; a new theme gets one only after that check). See the `release-pass` skill. The map's
   plan and decisions (D1–D12) live beside it: `ACTION-PLAN.md`, Fable's
   `PLAN.md` and the perf spike's `perf-spike\RESULTS.md` (code comments cite
   the D-numbers).
@@ -258,11 +258,13 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 - `Assets/` — `map.png`, `app.ico` (WPF Resources) and the embedded data
   (`rules.json`, `calibration.json`, `areas.png` + `areas.json`, `zones.json`;
   the CHANGELOG is embedded too, for the update card).
-- `Assets/Themes/` — one sparse file per theme but Default (`isle.json`): only
-  what differs from Default, by token path. A third theme is one more file
-  there and no other change.
+- `Assets/Themes/` — one sparse file per theme but Default (`isle.json`,
+  `pandora.json`): only what differs from Default, by token path. A new
+  theme is one more file there and no other change (Pandora, the third,
+  was).
 - `Assets/Fonts/` — one folder per bundled family, its files and its own
-  licence as shipped (`Montserrat/`: four weights and `OFL.txt`).
+  licence as shipped (`Montserrat/`: four weights; `Rajdhani/`: three;
+  `Orbitron/`: one; each with its `OFL.txt`).
 - `App.xaml(.cs)` (single-instance mutex, the settings move) and `Program.cs`
   (the entry point: Velopack's start-up call first, then WPF).
 - `PandoraOverlay.Tests/` mirrors the folders.
@@ -398,6 +400,23 @@ all) — say so when it matters:
   Isle, a restart on Isle, an older `config.json`, a switch mid-glide, and
   the glow over the game (about 100 fps in every phase; the painted glow
   cost what none did, a live effect more).
+- Pandora (not yet released): other PCs and display scales (1.25×
+  rendered only). The owner looked at it in game on a Release build (Oct
+  27): no tweaks.
+
+BUILT for the next release, not released (Oct 26–27 2026): **Pandora**,
+the third theme, the islapandora.eu website's own look (Rajdhani with
+Orbitron titles, near-black glass, the orange `#FF7A1A`, a 2 px lit top
+edge on every frame, red only under 25%, a gold "Prime Elder"): one more
+theme file, `Assets/Themes/pandora.json`, and its fonts, with no change
+in `Themes/` (1.39's inert `Font.TitleFamily` and `Lit.Top` came alive).
+The owner's calls on `pandora-themes\PANDORA.md`: no title glow, no
+menu-row outline (an orange tint and orange text), no badge outline, the
+check and the radio one look (solid orange, a dark mark). With it, the
+rule that theme tests test the framework, never a theme (Conventions,
+Oct 27). Pandora's baselines (93 and 156) after the owner's look. The
+word to the server team about a theme named after the server is the
+owner's.
 
 SHIPPED in 1.39.0 (Oct 26 2026), after the pre-release 1.39.0-rc.1 the
 same day: **Themes**, a

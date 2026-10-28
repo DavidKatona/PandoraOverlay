@@ -784,12 +784,15 @@
                 <TextBlock Text="Free and open source. Questions, bugs and ideas go to the GitHub issues."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
-            <!-- The bundled font's credit (1.39): the SIL Open Font Licence asks
-                 for its licence to travel with the font, and it does (the build
-                 copies Assets\Fonts\Montserrat\OFL.txt beside the program); this
-                 line says so in every theme. ONE line in every theme's font: a
-                 second would make About taller than the dialog's frame. -->
-            <TextBlock Text="Isle's font: Montserrat, SIL Open Font Licence (OFL.txt beside the program)."
+            <!-- The bundled fonts' credit (1.39; Rajdhani and Orbitron with the
+                 Pandora theme): the SIL Open Font Licence asks for its licence to
+                 travel with the font, and it does (the build copies each
+                 Assets\Fonts\<family>\OFL.txt beside the program); this line says
+                 so in every theme. ONE line in every theme's font: a second would
+                 make About taller than the dialog's frame. "OFL.txt beside the
+                 program" no longer fit once it named three fonts (Montserrat,
+                 the widest, measured 413 of the 459 px; the README says where). -->
+            <TextBlock Text="Fonts: Montserrat, Rajdhani, Orbitron (SIL Open Font Licence, see OFL.txt)."
                        Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 

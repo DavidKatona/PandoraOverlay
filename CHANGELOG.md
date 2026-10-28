@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- A third theme, **Pandora**: the islapandora.eu website's own look. The
+  website's fonts (Rajdhani, with Orbitron for titles), near-black glass,
+  the website's orange, and an orange line along the top of every frame.
+  Every bar is orange, and health, hunger and thirst turn red under 25%;
+  "Prime Elder" is gold. Pick it on Settings › Themes.
+
+### Changed
+
+- Settings › About names every theme's font and their licence: Montserrat,
+  Rajdhani and Orbitron, under the SIL Open Font Licence, whose text comes
+  with the program (an OFL.txt for each).
+
 ## [1.39.0] - 2026-10-26
 
 ### Added
