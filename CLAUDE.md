@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.40.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.40.1 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -409,6 +409,21 @@ all) — say so when it matters:
   values the same, only `Theme` changed), About's font line in each theme,
   Skins, Dino storage and the sign-in window signed in, the map and its
   Layers menu, and a restart on Pandora.
+- From 1.40.1 (no pre-release, the owner's call): the sign-in window at
+  its new width on small screens and other display scales, and Discord's
+  QR code showing in it without zoom (the layout test and the Oct 26
+  measurement of Discord's page only). The QR login itself works in the
+  window: a player signed in with it on 1.40 after zooming the page out
+  (Oct 29).
+
+SHIPPED in 1.40.1 (Oct 29 2026, no pre-release, the owner's call): **the
+sign-in window shows Discord's QR code**. Discord's login leaves the code
+out on a page under about 831 px; the window was 620 wide from 1.31 on
+(its browser 584), so every sign-in took a password, which Discord can
+follow with an email check for a new device (the window forgets Discord
+on close), and a player without access to their email could not sign in
+(a support ticket, Oct 26). Now 920 × 690 (`SignInFrame`), the browser
+884, held to 860 by `SignInFrameTests`, with no theme in the test.
 
 SHIPPED in 1.40.0 (Oct 29 2026, no pre-release, the owner's call: no code
 changed, and the owner checked it in game): **Pandora**,
@@ -705,7 +720,7 @@ Themes (Oct 24–25 2026)
 
 ## Releases
 
-- Current: 1.40.0. The csproj `<Version>` is the single source of truth
+- Current: 1.40.1. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
