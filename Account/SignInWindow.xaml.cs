@@ -14,16 +14,19 @@ public sealed record SignInOutcome(string CookieHeader, string UserAgent, Accoun
 /// The in-app sign-in (v1.31): the website's own Discord login, inside a
 /// WebView2 that browses IN PRIVATE, so Discord's login lives in memory and
 /// is gone when the window closes. The player logs in on Discord's real page
-/// (or scans its QR code); when Discord sends them back and the site wants
-/// to show a page, the window stops that navigation, reads the site's
-/// session cookie from the browser, confirms it with one /api/auth/me and
-/// hands the result to the caller — no site page (and so none of its
-/// polling) ever renders here. Navigation is held to islapandora.eu's login
-/// routes and discord.com (SignInPolicy); anything else a player clicks
-/// opens in their real browser. The address strip is read-only and always
-/// shows the real host, since the password is typed into a window that is
-/// ours. Nothing in here logs, shows or keeps the cookie's value. Rehearsed
-/// as a spike Oct 7 2026 (see PLAN.md in the design folder).
+/// or scans its QR code, which Discord shows only on a wide enough page
+/// (SignInFrame: until 1.40.1 the window was too narrow, so Discord left it
+/// out and every sign-in took a password); when Discord sends them back and
+/// the site wants to show a page, the window stops that navigation, reads
+/// the site's session cookie from the browser, confirms it with one
+/// /api/auth/me and hands the result to the caller — no site page (and so
+/// none of its polling) ever renders here. Navigation is held to
+/// islapandora.eu's login routes and discord.com (SignInPolicy); anything
+/// else a player clicks opens in their real browser. The address strip is
+/// read-only and always shows the real host, since the password is typed
+/// into a window that is ours. Nothing in here logs, shows or keeps the
+/// cookie's value. Rehearsed as a spike Oct 7 2026 (see PLAN.md in the
+/// design folder).
 /// The design folder: Desktop\Pandora Overlay Files\pandora-webview-sign-in.
 /// </summary>
 public partial class SignInWindow : Window

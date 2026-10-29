@@ -115,12 +115,12 @@ public class DialogLayoutTests
         Check("the updated card", UpdateCardWindow.Updated("1.39.0", "1.38.0", notes), 460);
         Check("What's new", UpdateCardWindow.Notes("1.38.0", notes), 460);
 
-        // Never shown: its WebView2 starts only on Loaded. 620 x 690, its XAML's size.
+        // Never shown: its WebView2 starts only on Loaded. At its frame's size (SignInFrame).
         void SignIn(string where, Action<SignInWindow> state)
         {
             var window = new SignInWindow();
             state(window);
-            Check($"the sign-in window, {where}", window, 620, 690);
+            Check($"the sign-in window, {where}", window, SignInFrame.Width, SignInFrame.Height);
         }
         SignIn("browsing", w => Call(w, "ShowAddress", "https://discord.com/login"));
         SignIn("checking", w => Call(w, "ShowChecking"));
