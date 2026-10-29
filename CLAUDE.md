@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.39.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.40.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -389,22 +389,29 @@ all) — say so when it matters:
   the "not signed in" answers included, and the card after the update to
   1.38 closed on a click away.
 - From the themes (1.39): Isle on other PCs and display scales (1.25×
-  rendered only); a PC without hardware rendering; a real update in Isle
-  (the cards are drawn by the copy that runs: the "updated" card first
-  shows at the update to 1.39.0, from 1.38 or the rc; "update available"
-  when the rc copy is offered 1.39.0, else at 1.40); the Settings
-  dialog's small-screen limit (a probe only). The rest was checked by the
-  owner in game (Oct 25–26, `pandora-themes\CHECKLIST.md`, no tweaks): the
-  switch with every window up and Settings open (`config.json`'s layout
-  keys identical, only `Theme` changed), hover and press, a real sign-in on
-  Isle, a restart on Isle, an older `config.json`, a switch mid-glide, and
-  the glow over the game (about 100 fps in every phase; the painted glow
-  cost what none did, a live effect more).
-- Pandora (not yet released): other PCs and display scales (1.25×
-  rendered only). The owner looked at it in game on a Release build (Oct
-  27): no tweaks.
+  rendered only); a PC without hardware rendering; the "update available"
+  card in Isle (drawn by the copy that runs: a 1.39 copy offered 1.40.0);
+  the Settings dialog's small-screen limit (a probe only). The rest was
+  checked by the owner in game (Oct 25–26, `pandora-themes\CHECKLIST.md`,
+  no tweaks): the switch with every window up and Settings open
+  (`config.json`'s layout keys identical, only `Theme` changed), hover and
+  press, a real sign-in on Isle, a restart on Isle, an older
+  `config.json`, a switch mid-glide, and the glow over the game (about 100
+  fps in every phase; the painted glow cost what none did, a live effect
+  more); and the "updated" card at the update to 1.39.0, which closed on a
+  click away.
+- From Pandora (1.40, no pre-release, the owner's call): other PCs and
+  display scales (1.25× rendered only); a real update in Pandora (the
+  cards are drawn by the copy that runs, and a 1.39 copy has no Pandora:
+  its cards first show at 1.41). The rest was checked by the owner in game
+  on a Release build (Oct 27–29, no tweaks): the switch between all three
+  themes with every window up and Settings open (positions and Scale
+  values the same, only `Theme` changed), About's font line in each theme,
+  Skins, Dino storage and the sign-in window signed in, the map and its
+  Layers menu, and a restart on Pandora.
 
-BUILT for the next release, not released (Oct 26–27 2026): **Pandora**,
+SHIPPED in 1.40.0 (Oct 29 2026, no pre-release, the owner's call: no code
+changed, and the owner checked it in game): **Pandora**,
 the third theme, the islapandora.eu website's own look (Rajdhani with
 Orbitron titles, near-black glass, the orange `#FF7A1A`, a 2 px lit top
 edge on every frame, red only under 25%, a gold "Prime Elder"): one more
@@ -414,9 +421,11 @@ The owner's calls on `pandora-themes\PANDORA.md`: no title glow, no
 menu-row outline (an orange tint and orange text), no badge outline, the
 check and the radio one look (solid orange, a dark mark). With it, the
 rule that theme tests test the framework, never a theme (Conventions,
-Oct 27). Pandora's baselines (93 and 156) after the owner's look. The
-word to the server team about a theme named after the server is the
-owner's.
+Oct 27). Pandora's baselines (93 and 156) after the owner's look. Guards:
+905 tests; Default 62/62 and 104/104 identical, Isle and Pandora 93/93 and
+156/156 against their own baselines, every themed render its Default
+twin's size. The owner told the server team about a theme named after the
+server before the release.
 
 SHIPPED in 1.39.0 (Oct 26 2026), after the pre-release 1.39.0-rc.1 the
 same day: **Themes**, a
@@ -696,7 +705,7 @@ Themes (Oct 24–25 2026)
 
 ## Releases
 
-- Current: 1.39.0. The csproj `<Version>` is the single source of truth
+- Current: 1.40.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
