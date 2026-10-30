@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The map's Layers menu has a tick for each kind of name: **Area names**,
+  **Waypoint names** and **Friend names**. Your friends' names can show
+  without the area names now, or the other way round; one Names tick did
+  all three before. Each starts as your Names tick was.
 - Settings › About names every theme's font: Montserrat, Rajdhani,
   Orbitron, Nunito and Cinzel, under the SIL Open Font Licence, whose text
   comes with the program (an OFL.txt for each).

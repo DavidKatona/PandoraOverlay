@@ -12,19 +12,22 @@ namespace PandoraOverlay;
 /// BigMapWindow, layers part: what the map draws and the Layers menu's
 /// ticks (D3: remembered in config, independent of the minimap's) —
 /// Areas (the borders, your area's outline, the outline under the cursor),
-/// Names (area names at the legend's label points, waypoint names, friends'
-/// names, decluttered by LabelLayout), Waypoints (every one with its Show
-/// tick, and the tracked one: the minimap's visibility policy is a
-/// small-map rule), Friends (the server's consent and each friend's Map
-/// tick, as on the minimap), Trail (the shared path, its length the shared
-/// setting), Heatmap (off by default: it costs requests) and the three zone
-/// kinds (off by default; the map's only, never the minimap's: owner, Oct 12
-/// 2026). Your arrow is always drawn while in game. Also the header's "you
-/// are in", the cursor readout and the scale bar. Same class as
-/// BigMapWindow.xaml.cs.
+/// Waypoints (every one with its Show tick, and the tracked one: the
+/// minimap's visibility policy is a small-map rule), Friends (the server's
+/// consent and each friend's Map tick, as on the minimap), Trail (the shared
+/// path, its length the shared setting), the three kinds of name (area
+/// names at the legend's label points and waypoint names, decluttered by
+/// LabelLayout; friends' names beside their arrows), Heatmap (off by
+/// default: it costs requests) and the three zone kinds (off by default; the
+/// map's only, never the minimap's: owner, Oct 12 2026). Your arrow is
+/// always drawn while in game. Also the header's "you are in", the cursor
+/// readout and the scale bar. Same class as BigMapWindow.xaml.cs.
 /// The six layer buttons of 1.34 became ONE menu when the zones came (the
 /// owner's idea, Oct 12 2026): the header no longer grows with the layers,
-/// and the zones' swatches double as the map's legend.
+/// and the zones' swatches double as the map's legend. Its one Names tick
+/// (the map plan's D10) became three on a player's ask (Oct 30 2026), in a
+/// section of their own under the layers (the owner's layout): area names
+/// are not part of the Areas layer, they show without the borders too.
 /// </summary>
 public partial class BigMapWindow
 {
@@ -132,18 +135,21 @@ public partial class BigMapWindow
 
     // ---- The Layers menu --------------------------------------------------------
 
-    /// <summary>The Layers menu's ticks, one per layer.</summary>
-    private sealed record LayerTicks(ToggleButton Areas, ToggleButton Names, ToggleButton Waypoints, ToggleButton Friends,
-                                     ToggleButton Trail, ToggleButton Heatmap,
+    /// <summary>The Layers menu's ticks, one per layer and one per kind of name.</summary>
+    private sealed record LayerTicks(ToggleButton Areas, ToggleButton Waypoints, ToggleButton Friends, ToggleButton Trail,
+                                     ToggleButton AreaNames, ToggleButton WaypointNames, ToggleButton FriendNames,
+                                     ToggleButton Heatmap,
                                      ToggleButton Migrations, ToggleButton Patrols, ToggleButton Sanctuaries);
 
     /// <summary>
     /// Fills the Layers menu, each tick as config has it: the map's own
-    /// layers, the heatmap, then the zones under a caption, each with a
-    /// swatch of its hue (the map's legend), and a foot line naming where the
-    /// zones come from and that the game picks the active one — read from
-    /// the zones file, so a data refresh changes it without code. Without
-    /// the file the zone ticks are greyed and the foot line says so.
+    /// layers, their names in the same order (a names tick whose layer is
+    /// off just has nothing to name, so it is never greyed), the heatmap,
+    /// then the zones under a caption, each with a swatch of its hue (the
+    /// map's legend), and a foot line naming where the zones come from and
+    /// that the game picks the active one — read from the zones file, so a
+    /// data refresh changes it without code. Without the file the zone
+    /// ticks are greyed and the foot line says so.
     /// </summary>
     private LayerTicks BuildLayersMenu()
     {
@@ -171,11 +177,13 @@ public partial class BigMapWindow
         }
 
         var areas = Tick("Areas", _config.BigMapAreas);
-        var names = Tick("Names", _config.BigMapNames);
-        Separator();
         var waypoints = Tick("Waypoints", _config.BigMapWaypoints);
         var friends = Tick("Friends", _config.BigMapFriends);
         var trail = Tick("Trail", _config.BigMapTrail);
+        Separator();
+        var areaNames = Tick("Area names", _config.BigMapNames);
+        var waypointNames = Tick("Waypoint names", _config.BigMapWaypointNames);
+        var friendNames = Tick("Friend names", _config.BigMapFriendNames);
         Separator();
         var heatmap = Tick("Heatmap", _config.BigMapHeatmap);
         Separator();
@@ -198,7 +206,8 @@ public partial class BigMapWindow
             FontSize = Theme.Current.Size(10.5), FontWeight = Theme.Current.Font.BodyWeight.ToFontWeight(), Foreground = Theme.Current.Text.Dim.ToBrush(),
             LineHeight = 15, Margin = new Thickness(12, 4, 12, 3),
         });
-        return new LayerTicks(areas, names, waypoints, friends, trail, heatmap, migrations, patrols, sanctuaries);
+        return new LayerTicks(areas, waypoints, friends, trail, areaNames, waypointNames, friendNames, heatmap,
+                              migrations, patrols, sanctuaries);
     }
 
     /// <summary>Right-aligned under the Layers button, a little below it (both sizes come in the same units, so the alignment holds at any DPI).</summary>
@@ -239,10 +248,12 @@ public partial class BigMapWindow
     private void Layer_Click(object sender, RoutedEventArgs e)
     {
         _config.BigMapAreas = _ticks.Areas.IsChecked == true; // persisted with the next config Save
-        _config.BigMapNames = _ticks.Names.IsChecked == true;
         _config.BigMapWaypoints = _ticks.Waypoints.IsChecked == true;
         _config.BigMapFriends = _ticks.Friends.IsChecked == true;
         _config.BigMapTrail = _ticks.Trail.IsChecked == true;
+        _config.BigMapNames = _ticks.AreaNames.IsChecked == true;
+        _config.BigMapWaypointNames = _ticks.WaypointNames.IsChecked == true;
+        _config.BigMapFriendNames = _ticks.FriendNames.IsChecked == true;
         _config.BigMapHeatmap = _ticks.Heatmap.IsChecked == true;
         _config.BigMapMigrations = _ticks.Migrations.IsChecked == true;
         _config.BigMapPatrolZones = _ticks.Patrols.IsChecked == true;
@@ -322,7 +333,7 @@ public partial class BigMapWindow
         var drawn = _friends is null || !_config.BigMapFriends
             ? Array.Empty<FriendState>()
             : _friends.Where(f => f.OnMap && f.SteamId is not null && _book.ShowsOnMap(f.SteamId));
-        Map.ShowFriends(drawn, _config.TrackedFriendSteamId, FriendBrush, _config.BigMapNames ? FriendName : null);
+        Map.ShowFriends(drawn, _config.TrackedFriendSteamId, FriendBrush, _config.BigMapFriendNames ? FriendName : null);
     }
 
     private void PlaceFriends(TimeSpan? glide)
@@ -381,17 +392,20 @@ public partial class BigMapWindow
     // ---- Names --------------------------------------------------------------------
 
     /// <summary>
-    /// The Names layer, laid out for the current zoom (a pan moves every box
-    /// together, so it needs none): area names centred on the legend's label
-    /// points, waypoint names beside their dots (right, else left, above,
-    /// below). LabelLayout keeps them apart; what doesn't fit is left out
-    /// and appears on zooming in. Priorities: the tracked waypoint, then the
-    /// areas (a bigger area's name first), then the other waypoints.
-    /// Friends' names ride their arrows (MapCanvas.ShowFriends).
+    /// The area and waypoint names whose ticks are on, laid out for the
+    /// current zoom (a pan moves every box together, so it needs none): area
+    /// names centred on the legend's label points, waypoint names beside
+    /// their dots (right, else left, above, below). LabelLayout keeps them
+    /// apart; what doesn't fit is left out and appears on zooming in.
+    /// Priorities: the tracked waypoint, then the areas (a bigger area's name
+    /// first), then the other waypoints. Friends' names ride their arrows
+    /// (MapCanvas.ShowFriends), outside the layout.
     /// </summary>
     private void LayOutLabels()
     {
-        if (!_hasView || !_config.BigMapNames || _poll.Calibration is not { } cal)
+        var areaNames = _config.BigMapNames;
+        var waypointNames = _config.BigMapWaypointNames;
+        if (!_hasView || !(areaNames || waypointNames) || _poll.Calibration is not { } cal)
         {
             Map.ShowLabels(Array.Empty<MapLabel>());
             return;
@@ -401,7 +415,7 @@ public partial class BigMapWindow
         var requests = new List<LabelRequest>();
         var labels = new List<(string Text, bool IsArea, bool Strong)>();
 
-        if (AreaMapAsset.Shared is { } map)
+        if (areaNames && AreaMapAsset.Shared is { } map)
         {
             var pixels = AreaPixels(map);
             var total = Math.Max(1.0, pixels.Sum());
@@ -417,7 +431,7 @@ public partial class BigMapWindow
             }
         }
 
-        foreach (var w in ShownWaypoints())
+        foreach (var w in waypointNames ? ShownWaypoints() : new List<Waypoint>())
         {
             var tracked = w.Id == _config.TrackedWaypointId;
             var (fx, fy) = cal.ToFraction(w.X, w.Y);

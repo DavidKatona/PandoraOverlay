@@ -131,4 +131,54 @@ public class ConfigDefaultsTests
         Assert.Equal(1.3, cfg!.UiScale);
         Assert.Equal(1.0, cfg.ControlPanelScale);
     }
+
+    // ---- The map's names (Oct 30 2026) ------------------------------------------
+
+    /// <summary>
+    /// Before the split one Names tick (BigMapNames) drew every name on the
+    /// map. A file from then opens the map as it was: the waypoint and
+    /// friend names follow its value, so a player who had Names off gets
+    /// none back.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AnOlderFilesNamesTickCarriesOverToEveryKindOfName(bool names)
+    {
+        var cfg = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>($$"""{ "BigMapNames": {{(names ? "true" : "false")}} }""");
+        Assert.NotNull(cfg);
+        Assert.Equal(names, cfg!.BigMapNames);
+        Assert.Equal(names, cfg.BigMapWaypointNames);
+        Assert.Equal(names, cfg.BigMapFriendNames);
+    }
+
+    /// <summary>A file with its own names ticks keeps them, whatever the area names' tick says and wherever the keys stand in the file.</summary>
+    [Fact]
+    public void EachKindOfNameKeepsItsOwnTick()
+    {
+        var cfg = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>(
+            """{ "BigMapFriendNames": true, "BigMapNames": false, "BigMapWaypointNames": false }""");
+        Assert.NotNull(cfg);
+        Assert.False(cfg!.BigMapNames);
+        Assert.False(cfg.BigMapWaypointNames);
+        Assert.True(cfg.BigMapFriendNames);
+
+        cfg.BigMapNames = true; // the area names' tick no longer moves the others once they are set
+        Assert.False(cfg.BigMapWaypointNames);
+        Assert.True(cfg.BigMapFriendNames);
+    }
+
+    /// <summary>The carried-over value is written with the first save (Load saves at once), so from then on each tick stands alone.</summary>
+    [Fact]
+    public void TheCarriedOverNamesAreSavedAsTheirOwn()
+    {
+        var old = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>("""{ "BigMapNames": false }""");
+        var saved = System.Text.Json.JsonSerializer.Serialize(old);
+        var cfg = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>(saved);
+        Assert.NotNull(cfg);
+
+        cfg!.BigMapNames = true;
+        Assert.False(cfg.BigMapWaypointNames);
+        Assert.False(cfg.BigMapFriendNames);
+    }
 }

@@ -42,7 +42,7 @@ public partial class MapCanvas
         public required FriendState Friend { get; set; }
         public required Path Arrow { get; init; }
         public Ellipse? Ring { get; init; }
-        public UIElement? Name { get; set; } // the map's Names layer: beside the arrow, moving with it
+        public UIElement? Name { get; set; } // the map's Friend names: beside the arrow, moving with it
         public RotateTransform Rotate { get; } = new();
         public TranslateTransform Translate { get; } = new();
         public bool Tracked { get; init; }
@@ -178,7 +178,7 @@ public partial class MapCanvas
     /// drawn before keeps their arrow's current place and turn, so a rebuild
     /// never makes one jump; a new one is placed at once, later ones glide.
     /// With <paramref name="nameOf"/> each arrow carries the friend's name
-    /// beside it in their colour, moving with it (the big map's Names).
+    /// beside it in their colour, moving with it (the big map's Friend names).
     /// </summary>
     public void ShowFriends(IEnumerable<FriendState> drawn, string? trackedId, Func<FriendState, Brush> brushOf,
                             Func<FriendState, string>? nameOf = null)

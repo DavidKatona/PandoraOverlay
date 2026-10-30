@@ -183,10 +183,36 @@ public sealed class OverlayConfig
     // position or zoom is saved: it opens fitted to the land every time.
 
     public bool BigMapAreas { get; set; } = true;
-    public bool BigMapNames { get; set; } = true;
     public bool BigMapWaypoints { get; set; } = true;
     public bool BigMapFriends { get; set; } = true;
     public bool BigMapTrail { get; set; } = true;
+
+    // The names, one tick per kind (Oct 30 2026, a player's ask: one Names
+    // tick for every label, the map plan's D10, put area names and friends'
+    // names on together). BigMapNames keeps its key and now means the area
+    // names only. The two newer ticks follow it until a file holds their own
+    // value, so an update opens the map as it was: a player who had Names off
+    // gets none of the three back.
+
+    /// <summary>Area names at the legend's label points (before the split: every name on the map).</summary>
+    public bool BigMapNames { get; set; } = true;
+
+    private bool? _bigMapWaypointNames;
+    private bool? _bigMapFriendNames;
+
+    /// <summary>Waypoint names beside their dots; a file without the key reads as BigMapNames.</summary>
+    public bool BigMapWaypointNames
+    {
+        get => _bigMapWaypointNames ?? BigMapNames;
+        set => _bigMapWaypointNames = value;
+    }
+
+    /// <summary>Friends' names beside their arrows; a file without the key reads as BigMapNames.</summary>
+    public bool BigMapFriendNames
+    {
+        get => _bigMapFriendNames ?? BigMapNames;
+        set => _bigMapFriendNames = value;
+    }
 
     /// <summary>Off until asked for: the layer costs requests (the site's picture, at the minimap's 60 s pace, only while shown).</summary>
     public bool BigMapHeatmap { get; set; }

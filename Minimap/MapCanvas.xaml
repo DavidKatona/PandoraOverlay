@@ -96,7 +96,7 @@
                      ringed diamond. Shapes are created in code; the layer sits
                      under the arrows on purpose. -->
                 <Canvas x:Name="MarkerLayer" x:FieldModifier="private"/>
-                <!-- Names: area and waypoint labels (the map's Names layer),
+                <!-- Names: area and waypoint labels (the map's Area and Waypoint names),
                      all drawn by this one element (NameLayer); empty on the
                      minimap. -->
                 <local:NameLayer x:Name="LabelLayer" x:FieldModifier="private"/>

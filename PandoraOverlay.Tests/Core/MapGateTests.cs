@@ -95,7 +95,8 @@ public sealed class MapGateTests
     {
         var c = new OverlayConfig();
 
-        Assert.True(c.BigMapAreas && c.BigMapNames && c.BigMapWaypoints && c.BigMapFriends && c.BigMapTrail);
+        Assert.True(c.BigMapAreas && c.BigMapWaypoints && c.BigMapFriends && c.BigMapTrail);
+        Assert.True(c.BigMapNames && c.BigMapWaypointNames && c.BigMapFriendNames);
         Assert.False(c.BigMapHeatmap); // it costs requests: off until asked for
         Assert.False(c.BigMapMigrations || c.BigMapPatrolZones || c.BigMapSanctuaries); // the map an update opens looks as it did
         Assert.Equal("Ctrl+M", c.HotkeyBigMap);
