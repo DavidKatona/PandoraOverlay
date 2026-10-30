@@ -1,0 +1,318 @@
+// Nightshade: moody violet and black (pandora-themes\NIGHTSHADE.md, the design
+// of Oct 25 2026, the owner's ask: a dark-purple theme for the server's gamer
+// girls; the owner's answers to its questions, Oct 29: the name, the violet,
+// the pink and Cinzel titles as mocked). A SPARSE override of Default
+// (Themes/ThemeFile.cs): only what differs, by the token's path; a key Default
+// lacks is a test failure, never a silent inheritance.
+//
+// One accent, the violet #A879FF, and its derived alphas:
+//   violet 55% #8CA879FF   the painted glows
+//   violet 28% #47A879FF   the frames' line, separators, the nav's divider
+//   violet 20% #33A879FF   the bar track's inset line
+//   violet 16% #29A879FF   the selected nav row, a menu row under the mouse
+//   violet 10% #1AA879FF   the bar track
+// An orchid-pink neon #F38BD9 (50% #80F38BD9) lights two corners of every frame
+// and "Prime Elder", and stands wherever Default has its gold. The ground is a
+// near-black with a violet tint, #0D0814; text a lavender white #EDE6F7, the
+// lavender lines at 14% #24EDE6F7 and 22% #38EDE6F7; the dark mark on violet
+// #140A22. Red #FF5544 only when a stat is low, its text #FF9A8F. Cinzel titles
+// over Nunito; soft corners; no title glyph, no logo, no pictures.
+//
+// M = taken from the mock (nightshade-mockup\*.dc.html); P = proposed for a
+// state the mock does not show, to be judged in game.
+{
+  "Name": "Nightshade",
+  "Order": 3,
+  "Fit": 0.98, // the fit factor: FitFactorTests' computed value (Nunito's line box runs taller than Segoe UI's; at 0.99 the Settings Skins page is 457.0 px in its 455.6 px column, Oct 30 2026)
+  "Tokens": {
+    "Bars": {
+      // Isle's and Pandora's rule: every bar the accent in every state; health,
+      // hunger and thirst red with red text only under a quarter (Below25),
+      // where the pulse and the halo run. Red reads clearly against violet. The
+      // time left the light violet #CDB4FF. M
+      "Health": {
+        "Above75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From50To75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From25To50": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "Below25": { "Fill": "#FF5544", "Percent": "#FF9A8F", "TimeLeft": "#FF9A8F" },
+        "Track": "#1AA879FF",
+        "TrackLine": "#33A879FF",
+        "OnFill": "#140A22", // the dark text on violet
+      },
+      // Stamina never turns red: it empties every sprint.
+      "Stamina": {
+        "Above75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From50To75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From25To50": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "Below25": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "Track": "#1AA879FF",
+        "TrackLine": "#33A879FF",
+        "OnFill": "#140A22",
+      },
+      "Hunger": {
+        "Above75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From50To75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From25To50": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "Below25": { "Fill": "#FF5544", "Percent": "#FF9A8F", "TimeLeft": "#FF9A8F" },
+        "Track": "#1AA879FF",
+        "TrackLine": "#33A879FF",
+        "OnFill": "#140A22",
+      },
+      "Thirst": {
+        "Above75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From50To75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From25To50": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "Below25": { "Fill": "#FF5544", "Percent": "#FF9A8F", "TimeLeft": "#FF9A8F" },
+        "Track": "#1AA879FF",
+        "TrackLine": "#33A879FF",
+        "OnFill": "#140A22",
+      },
+      // Damage grows as you take it: not a stat running low, so never red. No
+      // time label is ever drawn on it; the light violet all the same.
+      "Damage": {
+        "Above75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From50To75": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "From25To50": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "Below25": { "Fill": "#A879FF", "Percent": "#EDE6F7", "TimeLeft": "#CDB4FF" },
+        "Track": "#1AA879FF",
+        "TrackLine": "#33A879FF",
+        "OnFill": "#140A22",
+      },
+      // "Wounded" is plain text, the label colour: no amber. M
+      "HealthReadout": { "Above75": "#A99BBF", "From50To75": "#A99BBF", "From25To50": "#A99BBF", "Below25": "#A99BBF" },
+      "Label": "#A99BBF",
+      "Height": 8,
+      "TrackLineWidth": 1,
+      "Below25Halo": 3, // the mock's red glow round a low bar
+    },
+    "Prime": {
+      "Met": { "Icon": "#A879FF", "Text": "#EDE6F7", "Weight": "Bold" }, // M
+      "Unmet": { "Icon": "#A6FF5544", "Text": "#6E6386", "Weight": "Medium" }, // M: the ✗ red at 65%, the text off
+      "Fresh": { "Icon": "#A879FF", "Text": "#FFFFFF", "Weight": "ExtraBold" }, // M
+      "Lost": { "Icon": "#FF5544", "Text": "#FF9A8F", "Weight": "SemiBold" }, // P: a loss in red text, as Isle's
+      "Unchecked": { "Icon": "#625879", "Text": "#6E6386", "Weight": "Medium" }, // P
+      // The neon for the top rank. PrimeElder and NotReady M, the others P.
+      "Status": { "PrimeElder": "#F38BD9", "Ready": "#A879FF", "NotReady": "#A99BBF", "Unknown": "#8577A0" },
+      // Checked and Cooldown M; a stale check in the light violet, a failure in red text: P.
+      "Footer": { "Checked": "#8577A0", "Stale": "#CDB4FF", "Failed": "#FF9A8F", "Cooldown": "#8577A0" },
+    },
+    // Your bullet in the accent; a fracture, a low stat or damage in the warn line. M (Quiet P)
+    "Activity": { "Mine": "#A879FF", "Line": "#D6CCE6", "Warning": "#FF6F61", "Quiet": "#8577A0", "Count": "#A99BBF" },
+    // The plum ground at the mock's alphas (a widget's alpha is the player's slider). M
+    "Glass": {
+      "Widget": "#DB0D0814",
+      "Dialog": "#F50D0814",
+      "Menu": "#F70D0814",
+      "Pill": "#CC0D0814",
+      "MapPill": "#D10D0814",
+      "MapWindow": "#FF0D0814",
+      "SignIn": "#0D0814", // P: opaque, as it must be (WebView2): the ground without its alpha
+    },
+    // The frames: the violet at 28%, two corners lit in the pink neon with its
+    // glow, following the rounded corner (Lit, below); edit mode and the control
+    // panel the whole violet with the violet's glow. M
+    "Frame": {
+      "Locked": { "Line": "#47A879FF", "Lit": "#F38BD9", "Glow": "#80F38BD9" },
+      "Edit": { "Line": "#A879FF", "Glow": "#8CA879FF" },
+      "ControlPanel": { "Line": "#A879FF", "Glow": "#8CA879FF" },
+    },
+    // The fracture badges, pills without an outline (Corner.Badge, below). M
+    "Badge": {
+      "Intact": { "Fill": "#0DEDE6F7", "Text": "#625879" },
+      "Fractured": { "Fill": "#38FF5544", "Text": "#FF9A8F" }, // red at 22%
+    },
+    // Paused is a state, not a warning: the dim colour, no amber. FullyGrown M, the others P.
+    "Growth": { "Growing": "#A99BBF", "Paused": "#8577A0", "FullyGrown": "#A99BBF" },
+    "Text": {
+      "Title": "#E8D9FF", // a pale violet, in Cinzel (Font.TitleFamily); no title glow
+      "Glyph": "#A879FF", // drawn by no shape: the title glyph is none
+      "PageTitle": "#CDB4FF",
+      "Bright": "#FFFFFF",
+      "Text": "#EDE6F7",
+      "Text2": "#D6CCE6",
+      "Label": "#A99BBF",
+      "Dim": "#8577A0",
+      "Off": "#6E6386",
+      "Caption": "#9A8BB5",
+      "Link": "#CDB4FF", // P
+      "Caution": "#F38BD9", // P: the neon, not Default's gold
+      "Danger": "#FF6F61",
+      // Good stays Default's green: a hint that is good, a ✓ on the update card.
+      // P: what stands out in a list (your species on Server rules, a stored
+      // dino's name, the ★ and the A–F row on Skins) and the sign-in's step
+      // numbers: the neon, which stands wherever Default has its gold.
+      "Highlight": "#F38BD9",
+      "Marker": "#F38BD9",
+    },
+    // Settings → Dino storage, P throughout (no board shows it): the growth bar
+    // the accent on the slider's dark track, the Prime badge the neon, the Elder
+    // badge neutral. The website's own meanings stay its own (SiteBrushes).
+    "Storage": {
+      "BarTrack": "#241A33",
+      "Growth": "#A879FF",
+      "Slots": "#99A879FF", // the "3 of 10 slots" bar: the accent at 60% on the track
+      "SlotsTrack": "#241A33",
+      "NoPosition": "#B00D0814",
+      "Prime": { "Fill": "#33F38BD9", "Text": "#F38BD9" }, // the neon at 20%
+      "Elder": { "Fill": "#241A33", "Text": "#D6CCE6" },
+    },
+    // The three families: dark buttons with a thin lavender outline, a solid
+    // violet one (the control panel's Lock), the danger button red at 12% with a
+    // red-at-50% outline (Exit, ✕). Idle M, every other state P: a step lighter
+    // under the mouse and more when pressed; disabled the fill and outline
+    // faint, the text dim. The control panel lays its glow over the idle fill.
+    "Button": {
+      "Neutral": {
+        "Idle": { "Fill": "#1A1226", "Text": "#E6DDF3", "Line": "#24EDE6F7" },
+        "Hover": { "Fill": "#231936", "Text": "#EDE6F7", "Line": "#3DEDE6F7" },
+        "Pressed": { "Fill": "#2C2042", "Text": "#EDE6F7", "Line": "#3DEDE6F7" },
+        "Disabled": { "Fill": "#120C1B", "Text": "#625879", "Line": "#14EDE6F7" },
+      },
+      "Primary": {
+        "Idle": { "Fill": "#A879FF", "Text": "#140A22", "Line": "#A879FF" },
+        "Hover": { "Fill": "#B88FFF", "Text": "#140A22", "Line": "#B88FFF" },
+        "Pressed": { "Fill": "#9563F0", "Text": "#140A22", "Line": "#9563F0" },
+        "Disabled": { "Fill": "#2C2042", "Text": "#8577A0", "Line": "#2C2042" },
+      },
+      "Danger": {
+        "Idle": { "Fill": "#1FFF5544", "Text": "#FFB8B0", "Line": "#80FF5544" },
+        "Hover": { "Fill": "#33FF5544", "Text": "#FFCCC6", "Line": "#A6FF5544" },
+        "Pressed": { "Fill": "#4DFF5544", "Text": "#FFCCC6", "Line": "#A6FF5544" },
+        "Disabled": { "Fill": "#0FFF5544", "Text": "#625879", "Line": "#33FF5544" },
+      },
+      "HoverGlow": "#14A879FF",
+      "PressedGlow": "#26A879FF",
+    },
+    // The check and the radio, ONE look (NIGHTSHADE decision 2): unticked a
+    // dark box or ring with the lavender line; ticked or chosen a solid violet
+    // box or circle with a dark mark, the chosen radio glowing. M
+    // Hover is P, and NOT the sketch's dark #231936: the template paints the
+    // hover box over a TICKED box too and keeps the ticked mark, so a dark hover
+    // box would hide the dark tick under the mouse (Pandora's lesson). The
+    // violet at 70% keeps the mark at 3 : 1 on the dialog's ground
+    // (ThemeFileTests.EveryThemesMarkShowsUnderTheMouse; 60% falls short on this
+    // violet) and still reads dimmer than a ticked box.
+    "Check": {
+      "Unticked": { "Box": "#1A1226", "Line": "#38EDE6F7", "Mark": "#00000000", "Glow": "#00000000" },
+      "Ticked": { "Box": "#A879FF", "Line": "#A879FF", "Mark": "#140A22", "Glow": "#8CA879FF" },
+      "Hover": { "Box": "#B3A879FF", "Line": "#B3A879FF", "Mark": "#00000000", "Glow": "#00000000" },
+      "Disabled": { "Box": "#120C1B", "Line": "#1FEDE6F7", "Mark": "#625879", "Glow": "#00000000" },
+    },
+    // The drawn slider (Shapes.SliderThumb, below): the dark track, the accent
+    // left of a solid violet round thumb with a dark rim and the violet's glow. M
+    "Slider": { "Track": "#241A33", "Fill": "#A879FF", "Thumb": "#A879FF", "ThumbLine": "#140A22", "Glow": "#8CA879FF" },
+    // P: the button's dark fill, the lavender line, lighter under the mouse,
+    // the violet with the caret in it; a violet caret and selection.
+    "TextBox": {
+      "Idle": { "Fill": "#1A1226", "Line": "#24EDE6F7", "Text": "#EDE6F7", "Caret": "#A879FF", "Selection": "#59A879FF" },
+      "Hover": { "Fill": "#1A1226", "Line": "#3DEDE6F7", "Text": "#EDE6F7", "Caret": "#A879FF", "Selection": "#59A879FF" },
+      "Focus": { "Fill": "#1A1226", "Line": "#A879FF", "Text": "#EDE6F7", "Caret": "#A879FF", "Selection": "#59A879FF" },
+    },
+    "ScrollBar": { "Track": "#1A1226", "Thumb": "#3A2C52" }, // P; app-wide
+    // The nav: rows in the nav colour; the selected one the violet at 16% with
+    // a 2 px violet bar on its left and white ExtraBold text (M; Default's
+    // Normal is no face Nunito bundles); under the mouse a faint lavender fill (P).
+    "Nav": {
+      "Idle": { "Fill": "#00000000", "Text": "#C9BEDB", "Bar": "#00000000" },
+      "Hover": { "Fill": "#0FEDE6F7", "Text": "#EDE6F7", "Bar": "#00000000" },
+      "Selected": { "Fill": "#29A879FF", "Text": "#FFFFFF", "Bar": "#A879FF" },
+      "Caption": "#9A8BB5",
+      "Divider": "#47A879FF",
+      "BarWidth": 2,
+      "SelectedWeight": "ExtraBold",
+    },
+    // The maps' menus: a row in text 2, ticked in the text colour; under the
+    // mouse the violet at 16% with a near-white text, no outline. Idle, Hover,
+    // Ticked M; Pressed, Disabled P.
+    "MenuRow": {
+      "Idle": { "Fill": "#00000000", "Text": "#D6CCE6" },
+      "Hover": { "Fill": "#29A879FF", "Text": "#F3ECFF" },
+      "Pressed": { "Fill": "#40A879FF", "Text": "#F3ECFF" },
+      "Disabled": { "Fill": "#00000000", "Text": "#625879" },
+      "Ticked": { "Fill": "#00000000", "Text": "#EDE6F7" },
+    },
+    "Separator": "#47A879FF", // M
+    // The surfaces, SOLID, a step above the ground (Isle's lesson: a tint is
+    // invisible on the dialog's glass), plum, with zebra rows at the text
+    // colour's 3%. P. A clickable card's outline under the mouse the violet at 60% (P).
+    "Card": { "Surface": "#130C1D", "Line": "#2A1F3D", "Band": "#1A1226", "Stripe": "#08EDE6F7", "HoverLine": "#99A879FF" },
+    // Account's cards, What's new's notes, the sign-in's result; a box inside one
+    // the ground, a step darker than the card (P), as Default's is.
+    "InfoCard": { "Surface": "#130C1D", "Line": "#2A1F3D", "Inner": "#0D0814" },
+    // A colour well, a skin's picture well, the stored dino's map well: a step
+    // above the card; the rim round a skin's colour dots the text colour at
+    // Default's 33% (P).
+    "Well": { "Surface": "#1A1226", "Line": "#38EDE6F7", "DotLine": "#55EDE6F7" },
+    "Map": {
+      // Your arrow in the accent with a near-black outline and the violet glow
+      // (painted); the trail in the accent with no casing. M
+      "You": { "Arrow": "#A879FF", "Outline": "#12081E", "Trail": "#A879FF", "Glow": "#8CA879FF" },
+      "Hover": "#A879FF",
+      // Your area's outline and the plain names: Default's near-whites. The area
+      // names a lavender white over black, in mixed case (Font.MapAreaNameCaps). M
+      "AreaName": "#F3ECFF",
+      "NameOutline": "#000000",
+      "MarkerOutline": "#12081E",
+      // The cursor readout (and the header's "you are in"). M
+      "Readout": { "Glass": "#F00D0814", "Line": "#47A879FF", "Name": "#FFFFFF", "Rest": "#8577A0" },
+      "ScaleBar": "#EDE6F7",
+      "PillText": "#EDE6F7",
+      // The Layers button: dark with the lavender line (P); the violet outline
+      // and white text on the violet at 16% while its menu is open (M).
+      "LayerButton": {
+        "Idle": { "Fill": "#1A1226", "Line": "#24EDE6F7", "Text": "#C9BEDB" },
+        "Open": { "Fill": "#29A879FF", "Line": "#A879FF", "Text": "#FFFFFF" },
+        "HoverGlow": "#14A879FF",
+      },
+      // P: to the screen the violet, to another panel the pink, two colours apart.
+      "SnapGuide": { "Screen": "#A879FF", "Peer": "#F38BD9" },
+      // The map window keeps Windows 11's rounded corners (Default's): Nightshade's frames are rounded.
+    },
+    // The update cards and What's new: the bullets and the download in the
+    // accent on the dark track (P); the ✓ after an update stays Default's green.
+    "UpdateCard": { "Bullet": "#A879FF", "Progress": "#A879FF", "ProgressTrack": "#241A33" },
+    // Round controls and your own Activity lines starting with "✦" (M). Nunito
+    // has no "✦": Windows' symbol font draws it (judged in the renders). The
+    // radio's circle, the fracture badge's box and no title glyph are Default's
+    // picks too, so not here.
+    "Shapes": {
+      "SliderThumb": "circle", // the drawn slider (Controls.xaml's ThemedSlider), not WPF's own
+      "ActivityBullet": "✦ ",
+    },
+    // No cut (Cut stays Default's 0): two corners lit in the neon, a 1.5 px line
+    // about 22 px along the edge and 18 px down the side, following the rounded
+    // corner (FrameGeometry.LitPaths at cut 0). M
+    "Lit": { "Edge": 22, "Side": 18, "Width": 1.5 },
+    // The lit corners' glow, edit mode's whole outline, the control panel's
+    // inner glow (within its 10 × 8 padding), your arrow on the maps, the chosen
+    // radio and the slider's thumb. M (the radii P)
+    "Glow": { "Corners": 3, "Edit": 5, "ControlPanel": 8, "Radio": 3, "Thumb": 3, "You": 4 },
+    // Soft corners (M): 8 on a widget, Default's 10 on a dialog and the map,
+    // pills for the bars and the badges. The ones the sketch did not name (a
+    // card's band, the big Discord button) the card's 6 (P); a filling bar and
+    // the website's tags Default's already. ScrollThumb is Default's 4.
+    "Corner": {
+      "Widget": 8, "Menu": 8, "Pill": 6, "Button": 6, "Card": 6, "Well": 6,
+      "Bar": 4, "Check": 4, "Badge": 8, "Nav": 6, "LayerButton": 6,
+      "Band": 6, "LargeButton": 6,
+    },
+    // Nunito for the text, rounded and friendly, at today's sizes (its x-height
+    // is close to Segoe UI's: no size step needed); Cinzel, classical capitals,
+    // for the titles (the owner's answer, Oct 29: measured, it trims nothing
+    // Isle's Montserrat does not). The mock's weights; the badges a little
+    // smaller, as Pandora's. M
+    "Font": {
+      "Family": "Assets/Fonts/Nunito/#Nunito",
+      "TitleFamily": "Assets/Fonts/Cinzel/#Cinzel",
+      "TitleWeight": "Bold",
+      "MapTitleWeight": "Bold",
+      "ValueWeight": "ExtraBold",
+      "BodyWeight": "SemiBold",
+      "CaptionWeight": "ExtraBold",
+      "BadgeSize": 9.5,
+      // The map's names at Default's sizes (13 / 12), in mixed case (the mock): M
+      "MapAreaNameCaps": false,
+      "SpacedCaptions": true, // read by nothing yet (WPF has no tracking)
+    },
+  },
+}
