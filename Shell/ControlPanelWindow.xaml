@@ -109,7 +109,7 @@
             </StackPanel>
             <TextBlock x:Name="HintText"
                        Text="drag panels to move · right-click map = waypoint · Ctrl+F1 locks"
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}" Margin="2,5,0,0"
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" FontWeight="{DynamicResource Theme.Font.BodyWeight}" Margin="2,5,0,0"
                        Height="{x:Static local:ControlPanelFrame.HintHeight}" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
     </local:ThemedBorder>

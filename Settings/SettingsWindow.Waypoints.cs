@@ -45,7 +45,8 @@ public partial class SettingsWindow
     /// dialog opens: with 122 waypoints (the five packs) the rows more than
     /// doubled the time every Settings opening took (measured Oct 2026:
     /// ~0.25 s empty, ~0.6 s with the packs, ~0.9 s with a full library),
-    /// whichever page was shown — hidden pages are still laid out. Applying
+    /// whichever page was shown (the pages were Hidden then, and laid out; they
+    /// are Collapsed since the fit factor's release, but the rule stands). Applying
     /// never needed the rows: it works on the copy.
     /// </summary>
     private void OpenWaypointsPage()
@@ -77,7 +78,7 @@ public partial class SettingsWindow
             WaypointRows.Children.Add(new TextBlock
             {
                 Text = "No waypoints yet.",
-                Foreground = HintNeutral, FontSize = 12, Margin = new Thickness(0, 6, 0, 0)
+                Foreground = HintNeutral, FontSize = Theme.Current.Size(12), Margin = new Thickness(0, 6, 0, 0)
             });
             return;
         }
@@ -251,7 +252,7 @@ public partial class SettingsWindow
 
         var caption = new TextBlock
         {
-            Text = text.ToUpperInvariant(), Foreground = HintNeutral, FontSize = 10,
+            Text = text.ToUpperInvariant(), Foreground = HintNeutral, FontSize = Theme.Current.Size(10),
             FontWeight = CaptionWeight, VerticalAlignment = VerticalAlignment.Center
         };
         Grid.SetColumn(caption, 1);
@@ -271,7 +272,7 @@ public partial class SettingsWindow
         {
             var delete = new Button
             {
-                Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
+                Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = Theme.Current.Size(10),
                 Style = (Style)FindResource("DangerButtonStyle"),
                 HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Delete this pack"
             };
@@ -449,7 +450,7 @@ public partial class SettingsWindow
 
         var delete = new Button
         {
-            Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = 10,
+            Content = "✕", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = Theme.Current.Size(10),
             // Grey button, soft red glyph: still "remove", but not the only alarm on every row.
             // The band's pack delete and Delete all stay red — they remove many at once.
             Style = (Style)FindResource("NeutralButtonStyle"), Foreground = RowDeleteGlyph,

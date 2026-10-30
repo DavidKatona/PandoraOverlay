@@ -28,21 +28,21 @@
             <!-- Header: icon, what this card is, ✕ (= Later). Draggable. -->
             <DockPanel MouseLeftButtonDown="Header_MouseLeftButtonDown" Background="Transparent">
                 <Button x:Name="CloseButton" DockPanel.Dock="Right" Content="&#x2715;" Click="Close_Click"
-                        Style="{StaticResource DangerButtonStyle}" Width="22" Height="22" Padding="0" FontSize="10" VerticalAlignment="Center"/>
+                        Style="{StaticResource DangerButtonStyle}" Width="22" Height="22" Padding="0" FontSize="{DynamicResource Theme.Size.10}" VerticalAlignment="Center"/>
                 <Image DockPanel.Dock="Left" Source="pack://application:,,,/PandoraOverlay;component/Assets/app.ico" Width="26" Height="26" VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
                     <TextBlock x:Name="HeaderText" Foreground="{DynamicResource Theme.Text.Title}" FontSize="14" VerticalAlignment="Center"
                                FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontWeight="{DynamicResource Theme.Font.TitleWeight}"/>
-                    <TextBlock x:Name="HeaderCheck" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource Theme.UpdateCard.Good}"
+                    <TextBlock x:Name="HeaderCheck" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="{DynamicResource Theme.Size.14}" Foreground="{DynamicResource Theme.UpdateCard.Good}"
                                Margin="8,1,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                 </StackPanel>
             </DockPanel>
 
-            <TextBlock x:Name="VersionText" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="20" FontWeight="Bold" Margin="0,14,0,0"/>
-            <TextBlock x:Name="SubText" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            <TextBlock x:Name="VersionText" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.20}" FontWeight="Bold" Margin="0,14,0,0"/>
+            <TextBlock x:Name="SubText" FontSize="{DynamicResource Theme.Size.12}" Margin="0,2,0,0" TextWrapping="Wrap"/>
 
             <StackPanel x:Name="NotesArea" Margin="0,18,0,0">
-                <TextBlock Text="WHAT'S NEW" Foreground="{DynamicResource Theme.Text.PageTitle}" FontSize="11" FontWeight="Bold" Margin="0,0,0,8"/>
+                <TextBlock Text="WHAT'S NEW" Foreground="{DynamicResource Theme.Text.PageTitle}" FontSize="{DynamicResource Theme.Size.11}" FontWeight="Bold" Margin="0,0,0,8"/>
                 <Border Background="{DynamicResource Theme.InfoCard.Surface}" BorderBrush="{DynamicResource Theme.InfoCard.Line}" BorderThickness="1"
                         CornerRadius="{DynamicResource Theme.Corner.Card}" Padding="12,10,6,10">
                     <ScrollViewer x:Name="NotesScroll" MaxHeight="200" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -58,15 +58,15 @@
                         <Button x:Name="LaterButton" Content="Later" Click="Close_Click" Style="{StaticResource NeutralButtonStyle}" Margin="0,0,8,0"/>
                         <Button x:Name="PrimaryButton" Click="Primary_Click" Style="{StaticResource SaveButtonStyle}"/>
                     </StackPanel>
-                    <TextBlock x:Name="HintText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock x:Name="HintText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"/>
                 </DockPanel>
                 <StackPanel x:Name="ProgressRow" Visibility="Collapsed">
-                    <TextBlock x:Name="ProgressText" Foreground="{DynamicResource Theme.Text.Text}" FontSize="12"/>
+                    <TextBlock x:Name="ProgressText" Foreground="{DynamicResource Theme.Text.Text}" FontSize="{DynamicResource Theme.Size.12}"/>
                     <Grid Height="8" Margin="0,8,0,0">
                         <Border Background="{DynamicResource Theme.UpdateCard.ProgressTrack}" CornerRadius="{DynamicResource Theme.Corner.Progress}"/>
                         <Border x:Name="ProgressFill" Background="{DynamicResource Theme.UpdateCard.Progress}" CornerRadius="{DynamicResource Theme.Corner.Progress}" HorizontalAlignment="Left" Width="0"/>
                     </Grid>
-                    <TextBlock Text="The overlay closes and comes back in a few seconds." Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" Margin="0,8,0,0"/>
+                    <TextBlock Text="The overlay closes and comes back in a few seconds." Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" Margin="0,8,0,0"/>
                 </StackPanel>
             </Grid>
         </StackPanel>

@@ -31,7 +31,7 @@
             <!-- Header: title + overall status (its colour per status, in code) -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,7">
                 <TextBlock x:Name="StatusText" DockPanel.Dock="Right"
-                           Foreground="{DynamicResource Theme.Prime.Status.Unknown}" FontSize="12" FontWeight="{DynamicResource Theme.Font.BodyWeight}"
+                           Foreground="{DynamicResource Theme.Prime.Status.Unknown}" FontSize="{DynamicResource Theme.Size.12}" FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            VerticalAlignment="Center"/>
                 <TextBlock Text="Prime"
                            Foreground="{DynamicResource Theme.Text.Title}" FontSize="14"
@@ -41,10 +41,10 @@
             <!-- Footer: what the rows reflect, then cooldown / notices (coloured in code) -->
             <StackPanel DockPanel.Dock="Bottom">
                 <TextBlock x:Name="InfoText"
-                           Foreground="{DynamicResource Theme.Prime.Footer.Checked}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}" Margin="0,8,0,0"
+                           Foreground="{DynamicResource Theme.Prime.Footer.Checked}" FontSize="{DynamicResource Theme.Size.10}" FontWeight="{DynamicResource Theme.Font.BodyWeight}" Margin="0,8,0,0"
                            TextTrimming="CharacterEllipsis"/>
                 <TextBlock x:Name="NoticeText"
-                           Foreground="{DynamicResource Theme.Prime.Footer.Cooldown}" FontSize="10" FontWeight="{DynamicResource Theme.Font.BodyWeight}" Margin="0,2,0,0"
+                           Foreground="{DynamicResource Theme.Prime.Footer.Cooldown}" FontSize="{DynamicResource Theme.Size.10}" FontWeight="{DynamicResource Theme.Font.BodyWeight}" Margin="0,2,0,0"
                            TextTrimming="CharacterEllipsis"/>
             </StackPanel>
 

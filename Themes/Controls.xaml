@@ -79,7 +79,7 @@
          a fixed height in the panel's frame, trimmed rather than wider. -->
     <Style x:Key="PanelCaption" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Caption}"/>
-        <Setter Property="FontSize" Value="9"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.9}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.CaptionWeight}"/>
         <Setter Property="Height" Value="{x:Static local:ControlPanelFrame.CaptionHeight}"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
@@ -102,7 +102,7 @@
     <Style x:Key="MenuButton" TargetType="Button">
         <Setter Property="Padding" Value="10,4"/>
         <Setter Property="Margin" Value="0,0,0,1"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="Foreground" Value="{DynamicResource Theme.MenuRow.Idle.Text}"/>
         <Setter Property="Background" Value="Transparent"/>
@@ -142,7 +142,7 @@
     <Style x:Key="MenuTick" TargetType="ToggleButton">
         <Setter Property="Padding" Value="10,4,16,4"/>
         <Setter Property="Margin" Value="0,0,0,1"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="Foreground" Value="{DynamicResource Theme.MenuRow.Idle.Text}"/>
         <Setter Property="Focusable" Value="False"/>
@@ -203,7 +203,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Primary.Idle.Line}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="Padding" Value="18,5"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -245,7 +245,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Neutral.Idle.Line}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="Padding" Value="14,5"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -287,7 +287,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Danger.Idle.Line}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="Padding" Value="14,5"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -331,7 +331,7 @@
         <Setter Property="Background" Value="{x:Static local:SiteBrushes.Discord}"/>
         <Setter Property="Foreground" Value="{x:Static local:SiteBrushes.DiscordText}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.13}"/>
         <Setter Property="Padding" Value="22,9"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -367,7 +367,7 @@
     <Style x:Key="NavButton" TargetType="ToggleButton">
         <Setter Property="Padding" Value="12,7"/>
         <Setter Property="Margin" Value="0,0,0,2"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="Foreground" Value="{DynamicResource Theme.Nav.Idle.Text}"/>
         <Setter Property="Background" Value="{DynamicResource Theme.Nav.Idle.Fill}"/>
@@ -412,7 +412,7 @@
 
     <Style x:Key="PageTitle" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.PageTitle}"/>
-        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.11}"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Margin" Value="0,4,0,10"/>
     </Style>
@@ -422,7 +422,7 @@
          sets its own top margin to 0. -->
     <Style x:Key="SectionCaption" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Caption}"/>
-        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.10}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.CaptionWeight}"/>
         <Setter Property="Margin" Value="0,16,0,6"/>
     </Style>
@@ -430,14 +430,14 @@
     <!-- A caption over a group of nav buttons, in line with their text. -->
     <Style x:Key="NavCaption" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Nav.Caption}"/>
-        <Setter Property="FontSize" Value="9.5"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.9.5}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.CaptionWeight}"/>
         <Setter Property="Margin" Value="12,12,0,4"/>
     </Style>
 
     <Style x:Key="FieldLabel" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Text2}"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
@@ -450,7 +450,7 @@
 
     <Style x:Key="SliderValue" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Bright}"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.ValueWeight}"/>
         <Setter Property="TextAlignment" Value="Right"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
@@ -471,7 +471,7 @@
          DialogLayoutTests holds every theme to it. -->
     <Style x:Key="Check" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Text2}"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -543,7 +543,7 @@
          Glow.Radio (0 in Default). -->
     <Style x:Key="Radio" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Text2}"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -663,7 +663,7 @@
 
     <Style x:Key="Link" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource Theme.Text.Link}"/>
-        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.11}"/>
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
 
@@ -680,7 +680,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Theme.TextBox.Idle.Line}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="5,2"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
         <Setter Property="CaretBrush" Value="{DynamicResource Theme.TextBox.Idle.Caret}"/>
         <Setter Property="SelectionBrush" Value="{DynamicResource Theme.TextBox.Idle.Selection}"/>
         <Setter Property="SelectionOpacity" Value="0.7"/>

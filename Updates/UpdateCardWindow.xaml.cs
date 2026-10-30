@@ -137,7 +137,7 @@ public partial class UpdateCardWindow : Window
             NotesList.Children.Add(new TextBlock
             {
                 Text = "No notes came with this version. The Releases page on GitHub lists every change.",
-                Foreground = Soft, FontSize = 12, TextWrapping = TextWrapping.Wrap
+                Foreground = Soft, FontSize = Theme.Current.Size(12), TextWrapping = TextWrapping.Wrap
             });
             return;
         }
@@ -148,7 +148,7 @@ public partial class UpdateCardWindow : Window
             {
                 NotesList.Children.Add(new TextBlock
                 {
-                    Text = section.Title, Foreground = NoteTitle, FontSize = 10.5, FontWeight = FontWeights.Bold,
+                    Text = section.Title, Foreground = NoteTitle, FontSize = Theme.Current.Size(10.5), FontWeight = FontWeights.Bold,
                     Margin = new Thickness(0, first ? 0 : 8, 0, 4)
                 });
             }
@@ -163,7 +163,7 @@ public partial class UpdateCardWindow : Window
         var dot = new Ellipse { Width = 4.5, Height = 4.5, Fill = Bullet, Margin = new Thickness(1, 6, 9, 0), VerticalAlignment = VerticalAlignment.Top };
         DockPanel.SetDock(dot, Dock.Left);
         row.Children.Add(dot);
-        row.Children.Add(new TextBlock { Text = text, Foreground = NoteText, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+        row.Children.Add(new TextBlock { Text = text, Foreground = NoteText, FontSize = Theme.Current.Size(12), TextWrapping = TextWrapping.Wrap });
         return row;
     }
 

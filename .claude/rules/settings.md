@@ -34,19 +34,23 @@ paths:
   start-up, the look, and every chime (a chime plays whether or not its widget is on
   screen). Groups inside a page use `SectionCaption`.
 - Content built in code is built on the page's **first look** (`SetPage` →
-  `Open<Page>Page`), never for a page you aren't on: hidden pages are still laid out, and
-  the dialog opened slowly twice before this rule (owner, Oct 1 2026). Long lists go in
-  **batches**: the first screenful at once, the rest per `DispatcherPriority.Background`
-  tick, a version counter so a newer rebuild stops an older one, and the "building… N of
-  M" notice after 300 ms. Only what sets a page's height stays eager.
+  `Open<Page>Page`), never for a page you aren't on: anything built up front is paid for
+  on every opening, and the dialog opened slowly twice before this rule (owner, Oct 1
+  2026). Long lists go in **batches**: the first screenful at once, the rest per
+  `DispatcherPriority.Background` tick, a version counter so a newer rebuild stops an
+  older one, and the "building… N of M" notice after 300 ms.
 - **The dialog has a fixed frame** (`SettingsFrame`, 1.39, the owner's call, Oct 25 2026):
   660 × 551.77 at 100%, Default's 1.38 size to the sub-pixel, the same in every theme. The
   root takes it and the window sizes to the root; the small-screen limit is the root's
-  MaxHeight. A new page must fit within the frame in every theme's font, and a one-line
-  string within its room (`DialogLayoutTests`; one that doesn't ends in an ellipsis and is
-  listed there): a page never grows the dialog, it would scroll. Pages are **Hidden, not
-  Collapsed** (the grid keeps the tallest page's height, as when that page set the
-  dialog's). Lists live in fixed-height ScrollViewers.
+  MaxHeight. A new page must fit within the frame in every theme's font at its fit factor,
+  and a one-line string within its room or end in an ellipsis that shows
+  (`DialogLayoutTests`, `FitFactorTests`): a page never grows the dialog, it would scroll.
+  The pages not shown are **Collapsed** (since the fit factor's release; Hidden before,
+  from the days the tallest page set the dialog's height): each page is measured on its
+  own, and only a page that overflows ever scrolls. The page column is marked
+  `FitProbe.HoldsWhole`, the scroll area the walk holds whole. Lists live in fixed-height
+  ScrollViewers. Every body text size is a `Theme.Size.N` key or `Theme.Current.Size(n)`,
+  never a number (`.claude/rules/themes.md`).
 - Actions inside a list change it **in place** (rows ticked, removed, re-striped); only
   structural changes (Import, Delete all) rebuild — a rebuild loses the reader's place.
 - **Everything applies at once** (1.38, no Save or Cancel): a new setting writes its config

@@ -48,7 +48,7 @@
                 <local:MapCanvas x:Name="Map"/>
                 <TextBlock x:Name="MapStatus"
                            Text="connecting…"
-                           Foreground="{DynamicResource Theme.Text.Label}" FontSize="11"
+                           Foreground="{DynamicResource Theme.Text.Label}" FontSize="{DynamicResource Theme.Size.11}"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <!-- Scale bar: bottom-left (the heatmap's baked caption owns the
@@ -58,7 +58,7 @@
                         Background="{DynamicResource Theme.Glass.Pill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="5,1,5,4"
                         IsHitTestVisible="False" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock x:Name="ScaleBarLabel" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="9"
+                        <TextBlock x:Name="ScaleBarLabel" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="{DynamicResource Theme.Size.9}"
                                    FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                                    HorizontalAlignment="Center"/>
                         <Border x:Name="ScaleBarLine" Height="4" HorizontalAlignment="Center"
@@ -70,7 +70,7 @@
                         HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6"
                         Background="{DynamicResource Theme.Glass.Pill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="5,2"
                         IsHitTestVisible="False" Visibility="Collapsed">
-                    <TextBlock x:Name="SpeedText" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="9"
+                    <TextBlock x:Name="SpeedText" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="{DynamicResource Theme.Size.9}"
                                FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
                 </Border>
                 <!-- The area you are in: top-right, the one free corner (the
@@ -81,7 +81,7 @@
                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6"
                         Background="{DynamicResource Theme.Glass.Pill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="5,2"
                         IsHitTestVisible="False" Visibility="Collapsed">
-                    <TextBlock x:Name="AreaText" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="9"
+                    <TextBlock x:Name="AreaText" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="{DynamicResource Theme.Size.9}"
                                FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
                 </Border>
                 <local:CutOutline x:Name="MapOutline"
@@ -92,7 +92,7 @@
             <!-- Footer: view (+ zoom when centered) · nearest waypoint distance and ETA; built in code.
                  Where a theme's font makes it too long, it ends in an ellipsis (in Default it fits). -->
             <TextBlock x:Name="ModeFooter" Grid.Row="1"
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10"
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}"
                        FontWeight="{DynamicResource Theme.Font.BodyWeight}" TextTrimming="CharacterEllipsis"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Grid>

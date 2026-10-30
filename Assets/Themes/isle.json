@@ -22,6 +22,7 @@
 {
   "Name": "Isle",
   "Order": 1,
+  "Fit": 1.00, // the fit factor: FitFactorTests' computed value (Montserrat fits the frames at full size, Oct 30 2026)
   "Tokens": {
     "Bars": {
       // Every bar the accent in every state; health, hunger and thirst red

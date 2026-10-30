@@ -223,7 +223,7 @@ public partial class MapCanvas
             {
                 // The crisp outlined name (NameLayer), in the friend's colour, gliding with the arrow.
                 var name = new NameLayer { RenderTransform = marker.Translate };
-                var size = Theme.Current.Font.MapNameSize;
+                var size = Theme.Current.Size(Theme.Current.Font.MapNameSize); // a text-size token, at the fit factor like the body sizes
                 name.Show(new[] { (nameOf(f), size, true, brush, new Point(RingSize / 2 + 1, -size - 1)) });
                 marker.Name = name;
                 FriendLayer.Children.Add(name);

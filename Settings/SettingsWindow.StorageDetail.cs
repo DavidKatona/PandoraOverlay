@@ -65,7 +65,7 @@ public partial class SettingsWindow
 
         var warning = new TextBlock
         {
-            Text = "Can't be undone.", Foreground = HintWarn, FontSize = 11, TextAlignment = TextAlignment.Center,
+            Text = "Can't be undone.", Foreground = HintWarn, FontSize = Theme.Current.Size(11), TextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 0, 0, 4), Visibility = Visibility.Collapsed
         };
         var really = SmallButton("Delete", "DangerButtonStyle");
@@ -122,7 +122,7 @@ public partial class SettingsWindow
         {
             view.Children.Add(new TextBlock
             {
-                Text = description, Foreground = CaptionBrush, FontSize = 11, FontStyle = FontStyles.Italic,
+                Text = description, Foreground = CaptionBrush, FontSize = Theme.Current.Size(11), FontStyle = FontStyles.Italic,
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 7)
             });
         }
@@ -140,12 +140,12 @@ public partial class SettingsWindow
 
     private static TextBlock Caption(string text, double top = 0) => new()
     {
-        Text = text, Foreground = CaptionBrush, FontSize = 10, FontWeight = FontWeights.Bold, Margin = new Thickness(0, top, 0, 3)
+        Text = text, Foreground = CaptionBrush, FontSize = Theme.Current.Size(10), FontWeight = FontWeights.Bold, Margin = new Thickness(0, top, 0, 3)
     };
 
     private Button SmallButton(string text, string style) => new()
     {
-        Content = text, Style = (Style)FindResource(style), FontSize = 11, Padding = new Thickness(12, 3, 12, 3)
+        Content = text, Style = (Style)FindResource(style), FontSize = Theme.Current.Size(11), Padding = new Thickness(12, 3, 12, 3)
     };
 
     private static Grid VitalRow(string label, StoredVital vital, Brush fill)
@@ -154,11 +154,11 @@ public partial class SettingsWindow
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(54) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(78) });
-        row.Children.Add(new TextBlock { Text = label, Foreground = RuleText, FontSize = 11 });
+        row.Children.Add(new TextBlock { Text = label, Foreground = RuleText, FontSize = Theme.Current.Size(11) });
         var bar = Bar(vital.Fraction, fill, 5);
         Grid.SetColumn(bar, 1);
         row.Children.Add(bar);
-        var value = new TextBlock { Text = vital.Text, Foreground = HintNeutral, FontSize = 10.5, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var value = new TextBlock { Text = vital.Text, Foreground = HintNeutral, FontSize = Theme.Current.Size(10.5), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(value, 2);
         row.Children.Add(value);
         return row;
@@ -169,11 +169,11 @@ public partial class SettingsWindow
         var row = new Grid { Margin = new Thickness(0, 1, 0, 1) };
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(54) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row.Children.Add(new TextBlock { Text = label, Foreground = HintNeutral, FontSize = 11 });
+        row.Children.Add(new TextBlock { Text = label, Foreground = HintNeutral, FontSize = Theme.Current.Size(11) });
         var text = new TextBlock
         {
             Text = mutations.Count == 0 ? "none" : string.Join(" · ", mutations),
-            Foreground = mutations.Count == 0 ? HintNeutral : TileName, FontSize = 11, TextWrapping = TextWrapping.Wrap
+            Foreground = mutations.Count == 0 ? HintNeutral : TileName, FontSize = Theme.Current.Size(11), TextWrapping = TextWrapping.Wrap
         };
         Grid.SetColumn(text, 1);
         row.Children.Add(text);
@@ -209,7 +209,7 @@ public partial class SettingsWindow
 
         var line = new TextBlock
         {
-            FontSize = 11, Width = StoredMapSize, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
+            FontSize = Theme.Current.Size(11), Width = StoredMapSize, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
             HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 5, 0, 0)
         };
         panel.Children.Add(line);
@@ -226,7 +226,7 @@ public partial class SettingsWindow
         {
             var none = new TextBlock
             {
-                Text = "no position stored", Foreground = TileName, FontSize = 10.5, Width = StoredMapSize,
+                Text = "no position stored", Foreground = TileName, FontSize = Theme.Current.Size(10.5), Width = StoredMapSize,
                 TextAlignment = TextAlignment.Center, Padding = new Thickness(0, 3, 0, 3), Background = NoPositionBand
             };
             Canvas.SetTop(none, StoredMapSize / 2 - 10);
@@ -458,8 +458,8 @@ public partial class SettingsWindow
     private static Grid FieldHeader(string label, TextBox box, int max, double top)
     {
         var header = new Grid { Margin = new Thickness(0, top, 0, 3) };
-        header.Children.Add(new TextBlock { Text = label, Foreground = HintNeutral, FontSize = 11 });
-        var count = new TextBlock { Foreground = HintNeutral, FontSize = 10.5, HorizontalAlignment = HorizontalAlignment.Right };
+        header.Children.Add(new TextBlock { Text = label, Foreground = HintNeutral, FontSize = Theme.Current.Size(11) });
+        var count = new TextBlock { Foreground = HintNeutral, FontSize = Theme.Current.Size(10.5), HorizontalAlignment = HorizontalAlignment.Right };
         void Update() => count.Text = $"{box.Text.Length} / {max}";
         Update();
         box.TextChanged += (_, _) => Update();

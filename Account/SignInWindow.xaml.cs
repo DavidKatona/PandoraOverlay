@@ -328,7 +328,7 @@ public partial class SignInWindow : Window
         var row = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
         row.Children.Add(new TextBlock
         {
-            Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 12, Foreground = tone,
+            Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = Theme.Current.Size(12), Foreground = tone,
             Margin = new Thickness(0, 2, 10, 0), VerticalAlignment = VerticalAlignment.Top
         });
         row.Children.Add(new TextBlock { Text = text, Style = (Style)FindResource("Fact"), Margin = default });
@@ -342,7 +342,7 @@ public partial class SignInWindow : Window
         var row = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
         row.Children.Add(new TextBlock
         {
-            Text = $"{number}.", FontSize = 12, FontWeight = FontWeights.Bold, Foreground = Highlight,
+            Text = $"{number}.", FontSize = Theme.Current.Size(12), FontWeight = FontWeights.Bold, Foreground = Highlight,
             Width = 22, VerticalAlignment = VerticalAlignment.Top
         });
         row.Children.Add(new TextBlock { Text = text, Style = (Style)FindResource("Fact"), Margin = default });
@@ -358,7 +358,7 @@ public partial class SignInWindow : Window
         Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(22, 0, 0, 10), HorizontalAlignment = HorizontalAlignment.Left,
         Child = new TextBlock
         {
-            Text = code, FontFamily = new FontFamily("Consolas"), FontSize = 16, FontWeight = FontWeights.Bold,
+            Text = code, FontFamily = new FontFamily("Consolas"), FontSize = Theme.Current.Size(16), FontWeight = FontWeights.Bold,
             Foreground = Theme.Current.TextBox.Idle.Text.ToBrush()
         }
     });

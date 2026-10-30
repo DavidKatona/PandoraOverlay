@@ -147,13 +147,14 @@ public partial class ActivityWindow : OverlayWindowBase
             Lines.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             var slot = new TextBlock
             {
-                FontSize = 11,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            // The slot's own text look follows the theme by itself; each run is painted in Render.
+            // The slot's own text look follows the theme by itself, its size
+            // too (the body's 11 at the theme's fit factor); each run is painted in Render.
             slot.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Activity.Line");
             slot.SetResourceReference(TextBlock.FontWeightProperty, "Theme.Font.BodyWeight");
+            slot.SetResourceReference(TextBlock.FontSizeProperty, Theme.SizeKey(11));
             Grid.SetRow(slot, i);
             Grid.SetColumn(slot, 2);
             _slots.Add(slot);

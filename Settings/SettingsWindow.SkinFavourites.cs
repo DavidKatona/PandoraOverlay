@@ -27,7 +27,7 @@ public partial class SettingsWindow
     {
         var star = new Button
         {
-            FontSize = 11, Height = 20, MinWidth = 22, Padding = new Thickness(4, 0, 4, 0),
+            FontSize = Theme.Current.Size(11), Height = 20, MinWidth = 22, Padding = new Thickness(4, 0, 4, 0),
             HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(3),
             Style = (Style)FindResource("NeutralButtonStyle")
         };
@@ -77,7 +77,7 @@ public partial class SettingsWindow
             var letter = PatreonSkins.PatternLetter(i);
             var button = new Button
             {
-                Content = letter.ToString(), FontSize = 11, Padding = new Thickness(0, 3, 0, 3),
+                Content = letter.ToString(), FontSize = Theme.Current.Size(11), Padding = new Thickness(0, 3, 0, 3),
                 Margin = new Thickness(i == 0 ? 0 : 2, 0, 0, 0), Style = (Style)FindResource("NeutralButtonStyle"),
                 Foreground = Highlight, ToolTip = $"Make {skin.Name} with pattern {letter} your favourite. Nothing is sent."
             };

@@ -24,7 +24,7 @@
         <Style x:Key="LayerButton" TargetType="ToggleButton">
             <Setter Property="Margin" Value="6,0,0,0"/>
             <Setter Property="Padding" Value="11,4"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="{DynamicResource Theme.Size.12}"/>
             <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
             <Setter Property="Foreground" Value="{DynamicResource Theme.Map.LayerButton.Idle.Text}"/>
             <Setter Property="Focusable" Value="False"/>
@@ -75,7 +75,7 @@
                                       Stroke="{DynamicResource Theme.Text.Glyph}" Gap="4" VerticalAlignment="Center"/>
                     <TextBlock Text="Map" FontSize="16" Foreground="{DynamicResource Theme.Text.Title}"
                                FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontWeight="{DynamicResource Theme.Font.MapTitleWeight}"/>
-                    <TextBlock x:Name="AreaLine" FontSize="12" Margin="12,2,0,0" VerticalAlignment="Center"
+                    <TextBlock x:Name="AreaLine" FontSize="{DynamicResource Theme.Size.12}" Margin="12,2,0,0" VerticalAlignment="Center"
                                FontWeight="{DynamicResource Theme.Font.BodyWeight}"/>
                 </StackPanel>
                 <!-- Every layer behind one menu (owner, Oct 12 2026): the header
@@ -103,9 +103,9 @@
             </Grid>
 
             <Grid DockPanel.Dock="Bottom" Height="26">
-                <TextBlock x:Name="HintText" FontSize="11" Foreground="{DynamicResource Theme.Text.Dim}"
+                <TextBlock x:Name="HintText" FontSize="{DynamicResource Theme.Size.11}" Foreground="{DynamicResource Theme.Text.Dim}"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center"/>
-                <TextBlock Text="M or Esc closes" FontSize="11" Foreground="{DynamicResource Theme.Text.Dim}"
+                <TextBlock Text="M or Esc closes" FontSize="{DynamicResource Theme.Size.11}" Foreground="{DynamicResource Theme.Text.Dim}"
                            FontWeight="{DynamicResource Theme.Font.BodyWeight}"
                            HorizontalAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
@@ -128,7 +128,7 @@
                 <Border x:Name="Readout" HorizontalAlignment="Left" VerticalAlignment="Top"
                         Background="{DynamicResource Theme.Map.Readout.Glass}" BorderBrush="{DynamicResource Theme.Map.Readout.Line}" BorderThickness="1"
                         CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="8,3,8,4" IsHitTestVisible="False" Visibility="Collapsed">
-                    <TextBlock x:Name="ReadoutText" FontSize="12" Foreground="{DynamicResource Theme.Map.Readout.Name}"
+                    <TextBlock x:Name="ReadoutText" FontSize="{DynamicResource Theme.Size.12}" Foreground="{DynamicResource Theme.Map.Readout.Name}"
                                FontWeight="{DynamicResource Theme.Font.BodyWeight}"/>
                 </Border>
 
@@ -136,7 +136,7 @@
                         Background="{DynamicResource Theme.Glass.MapPill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="8,2,8,6"
                         IsHitTestVisible="False" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock x:Name="ScaleBarLabel" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="11"
+                        <TextBlock x:Name="ScaleBarLabel" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="{DynamicResource Theme.Size.11}"
                                    FontWeight="{DynamicResource Theme.Font.ValueWeight}" HorizontalAlignment="Center"/>
                         <Border x:Name="ScaleBarLine" Height="5" HorizontalAlignment="Center"
                                 BorderBrush="{DynamicResource Theme.Map.ScaleBar}" BorderThickness="1.5,0,1.5,1.5"/>
@@ -145,7 +145,7 @@
 
                 <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10"
                         Background="{DynamicResource Theme.Glass.MapPill}" CornerRadius="{DynamicResource Theme.Corner.Pill}" Padding="7,3" IsHitTestVisible="False">
-                    <TextBlock x:Name="ZoomText" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="11"
+                    <TextBlock x:Name="ZoomText" Foreground="{DynamicResource Theme.Map.PillText}" FontSize="{DynamicResource Theme.Size.11}"
                                FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
                 </Border>
             </Grid>

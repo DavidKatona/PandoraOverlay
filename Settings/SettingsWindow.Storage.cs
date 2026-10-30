@@ -242,7 +242,7 @@ public partial class SettingsWindow
                 },
                 new TextBlock
                 {
-                    Text = text, Foreground = HintNeutral, FontSize = 11,
+                    Text = text, Foreground = HintNeutral, FontSize = Theme.Current.Size(11),
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 }
             }
@@ -272,30 +272,30 @@ public partial class SettingsWindow
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        header.Children.Add(new TextBlock { Text = d.Species, Foreground = TileName, FontSize = 13, FontWeight = FontWeights.SemiBold });
+        header.Children.Add(new TextBlock { Text = d.Species, Foreground = TileName, FontSize = Theme.Current.Size(13), FontWeight = FontWeights.SemiBold });
         if (d.Gender is "Male" or "Female")
         {
             var sex = new TextBlock
             {
                 Text = d.Gender == "Male" ? "♂" : "♀", Foreground = d.Gender == "Male" ? SiteBrushes.Male : SiteBrushes.Female,
-                FontSize = 13, Margin = new Thickness(5, 0, 0, 0), ToolTip = d.Gender
+                FontSize = Theme.Current.Size(13), Margin = new Thickness(5, 0, 0, 0), ToolTip = d.Gender
             };
             Grid.SetColumn(sex, 1);
             header.Children.Add(sex);
         }
-        var name = new TextBlock { FontSize = 12.5, Margin = new Thickness(7, 0, 10, 0), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Bottom };
+        var name = new TextBlock { FontSize = Theme.Current.Size(12.5), Margin = new Thickness(7, 0, 10, 0), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Bottom };
         name.Inlines.Add(new Run("· ") { Foreground = HintNeutral });
         name.Inlines.Add(d.Name is { } given ? new Run(given) { Foreground = Highlight } : new Run("unnamed") { Foreground = HintNeutral });
         Grid.SetColumn(name, 2);
         header.Children.Add(name);
-        var chevron = new TextBlock { Text = "▾", Foreground = RuleText, FontSize = 11, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var chevron = new TextBlock { Text = "▾", Foreground = RuleText, FontSize = Theme.Current.Size(11), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         var right = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         if (d.StoredAtUtc is { } stored)
         {
             var local = stored.ToLocalTime();
             right.Children.Add(new TextBlock
             {
-                Text = "stored " + StoredDinos.StoredText(local, DateTime.Now.Year), Foreground = HintNeutral, FontSize = 10.5,
+                Text = "stored " + StoredDinos.StoredText(local, DateTime.Now.Year), Foreground = HintNeutral, FontSize = Theme.Current.Size(10.5),
                 VerticalAlignment = VerticalAlignment.Center, ToolTip = local.ToString("d MMM yyyy, HH:mm", System.Globalization.CultureInfo.InvariantCulture)
             });
         }
@@ -308,13 +308,13 @@ public partial class SettingsWindow
         growth.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
         growth.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         growth.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(124) });
-        growth.Children.Add(new TextBlock { Text = "Growth", Foreground = HintNeutral, FontSize = 11, VerticalAlignment = VerticalAlignment.Center });
+        growth.Children.Add(new TextBlock { Text = "Growth", Foreground = HintNeutral, FontSize = Theme.Current.Size(11), VerticalAlignment = VerticalAlignment.Center });
         var bar = Bar(d.Growth, GrowthFill, 6);
         Grid.SetColumn(bar, 1);
         growth.Children.Add(bar);
         var growthText = new TextBlock
         {
-            Text = StoredDinos.GrowthText(d.Growth), Foreground = RuleText, FontSize = 11,
+            Text = StoredDinos.GrowthText(d.Growth), Foreground = RuleText, FontSize = Theme.Current.Size(11),
             Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center
         };
         Grid.SetColumn(growthText, 2);
@@ -339,7 +339,7 @@ public partial class SettingsWindow
     private static Border Badge(string text, (Brush Fore, Brush Back) look) => new()
     {
         Background = look.Back, CornerRadius = Theme.Current.Corner.Tag.ToCornerRadius(), Padding = new Thickness(7, 1, 7, 2), Margin = new Thickness(0, 0, 4, 0),
-        Child = new TextBlock { Text = text, Foreground = look.Fore, FontSize = 10.5 }
+        Child = new TextBlock { Text = text, Foreground = look.Fore, FontSize = Theme.Current.Size(10.5) }
     };
 
     /// <summary>A rounded bar on a dark track, filled to a fraction; the fill is a star column, so it follows the card's width.</summary>

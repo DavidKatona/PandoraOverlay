@@ -25,6 +25,9 @@ public partial class PrimeWindow : OverlayWindowBase
     private const double EdgeInset = 16; // matches SnapResolver's comfort inset
     private const int NeededForPrime = PrimeConditions.NeededForPrime;
 
+    /// <summary>The ✓ / ✗ column left of each row (the fit factor's frame contract measures a row in what it leaves).</summary>
+    internal const double IconColumn = 16;
+
     private static readonly string[] ConditionTexts = PrimeConditions.Texts; // shared with the Activity feed's "now met / lost" lines
 
     // The colours are the theme's (Theme.Current.Prime), read at each paint:
@@ -111,20 +114,26 @@ public partial class PrimeWindow : OverlayWindowBase
         }
     }
 
-    /// <summary>Ten equal-height rows sharing the frame's middle — the frame sets the spacing, not the rows.</summary>
+    /// <summary>
+    /// Ten equal-height rows sharing the frame's middle — the frame sets the
+    /// spacing, not the rows. Built once: their text size follows a theme
+    /// switch by resource reference (the body's 11 at the theme's fit factor),
+    /// their colours and weights are PaintRow's.
+    /// </summary>
     private void BuildRows()
     {
         for (var i = 0; i < ConditionTexts.Length; i++)
         {
             ConditionRows.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            _icons[i] = new TextBlock { Width = 16, FontSize = 11, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center };
+            _icons[i] = new TextBlock { Width = IconColumn, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center };
+            _icons[i].SetResourceReference(TextBlock.FontSizeProperty, Theme.SizeKey(11));
             _labels[i] = new TextBlock
             {
                 Text = ConditionTexts[i],
-                FontSize = 11,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
             };
+            _labels[i].SetResourceReference(TextBlock.FontSizeProperty, Theme.SizeKey(11));
             var row = new DockPanel { VerticalAlignment = VerticalAlignment.Center };
             DockPanel.SetDock(_icons[i], Dock.Left);
             row.Children.Add(_icons[i]);

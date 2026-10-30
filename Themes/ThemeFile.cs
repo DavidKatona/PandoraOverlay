@@ -12,6 +12,7 @@ namespace PandoraOverlay;
 /// {
 ///   "Name": "Isle",            // what players read on Settings → General
 ///   "Order": 1,                // its place in that row, after Default
+///   "Fit": 1.00,               // the fit factor, computed by FitFactorTests (not a token; absent = 1.00)
 ///   "Tokens": {                // only what differs, by the token's path
 ///     "Text": { "Title": "#B8E6EC" },
 ///     "Shapes": { "Radio": "hexagon" },
@@ -27,6 +28,16 @@ namespace PandoraOverlay;
 /// it (fail-soft loading belongs to the day players have files of their own,
 /// the theme editor's release). Comments and trailing commas are allowed.
 /// WPF-free, so the tests read the files without WPF.
+/// <para>
+/// <b>"Fit"</b> (the fit factor, FIT.md): the number the body font's sizes
+/// are multiplied by so that the font fits the frames, from 0.85 to 1.00 in
+/// steps of 0.01 (<see cref="FitFactor"/>). OUTSIDE Tokens on purpose: it is
+/// derived, not designed. <c>FitFactorTests</c> compute it from the theme's
+/// font and fail when the file's number differs, so the session that builds a
+/// theme writes in the test's own value (the theme editor will, the same way).
+/// A file without it is at 1.00 (every file written before the fit factor's
+/// release). Carried into the tokens (<see cref="ThemeTokens.Size"/>).
+/// </para>
 /// </summary>
 public static class ThemeFile
 {
@@ -50,7 +61,7 @@ public static class ThemeFile
         },
     };
 
-    private static readonly string[] FileKeys = { "Name", "Order", "Tokens" };
+    private static readonly string[] FileKeys = { "Name", "Order", "Fit", "Tokens" };
 
     /// <summary>
     /// Reads a theme file and lays it over <paramref name="over"/> (Default).
@@ -81,7 +92,25 @@ public static class ThemeFile
             : throw new ThemeFileException(id, "has no Order (a whole number)");
         var tokens = file["Tokens"] as JsonObject ?? throw new ThemeFileException(id, "has no Tokens object");
 
-        return new ThemeEntry(id, name, order, Overlay(id, tokens, over));
+        return new ThemeEntry(id, name, order, Overlay(id, tokens, over) with { Fit = FitOf(id, file) });
+    }
+
+    /// <summary>
+    /// The file's fit factor: a number with at most two decimals from the
+    /// floor to full size; absent is full size. Read as a decimal, so "0.91"
+    /// is two decimals exactly, then handed on as the double nearest it (the
+    /// one FitFactor's candidates give for 91 hundredths).
+    /// </summary>
+    private static double FitOf(string id, JsonObject file)
+    {
+        if (!file.ContainsKey("Fit")) return FitFactor.Full;
+        if (file["Fit"] is not JsonValue v || !v.TryGetValue<decimal>(out var fit))
+            throw new ThemeFileException(id, "Fit is not a number (the fit factor, from 0.85 to 1.00)");
+        if (decimal.Round(fit, 2) != fit)
+            throw new ThemeFileException(id, FormattableString.Invariant($"Fit {fit} has more than two decimals (the fit factor goes in steps of 0.01)"));
+        if (fit < (decimal)FitFactor.Floor || fit > (decimal)FitFactor.Full)
+            throw new ThemeFileException(id, FormattableString.Invariant($"Fit {fit} is not from {FitFactor.Floor:0.00} to {FitFactor.Full:0.00}"));
+        return (double)fit;
     }
 
     /// <summary>

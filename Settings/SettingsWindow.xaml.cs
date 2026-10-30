@@ -244,9 +244,14 @@ public partial class SettingsWindow : Window
 
     /// <summary>
     /// Shows one page and checks its nav button (the NavButton template draws
-    /// the selected row in the theme's look). Unselected pages are Hidden
-    /// rather than Collapsed so the page grid keeps the tallest page's height
-    /// and the dialog never jumps between pages.
+    /// the selected row in the theme's look). The pages not shown are
+    /// Collapsed, so each page is measured on its own and only a page that
+    /// overflows the frame ever scrolls (the fit factor's plan, FIT.md section
+    /// 6). Until then they were Hidden, which kept the page grid as tall as
+    /// the tallest page: the dialog sized itself to its content then, and must
+    /// not jump between pages. The fixed frame (<see cref="SettingsFrame"/>,
+    /// 1.39) took that job over, so a Hidden page only made every page scroll
+    /// once one theme's tallest did (the Nightshade attempt, Oct 29 2026).
     /// </summary>
     private void SetPage(string key)
     {
@@ -257,21 +262,23 @@ public partial class SettingsWindow : Window
         }
         foreach (var page in Pages.Children.OfType<FrameworkElement>())
         {
-            page.Visibility = (string)page.Tag == key ? Visibility.Visible : Visibility.Hidden;
+            page.Visibility = (string)page.Tag == key ? Visibility.Visible : Visibility.Collapsed;
         }
         // A page built in code in an earlier theme is redrawn from what it
         // holds first (SettingsWindow.Themes.cs), then opened as on any look.
         RedrawIfStale(key);
         // Pages whose content is built in code build it on the first look:
-        // hidden pages are still laid out, so anything built up front is
-        // paid for on every opening of the dialog, whichever page shows.
+        // anything built up front is paid for on every opening of the dialog,
+        // whichever page shows (the pages were Hidden, and so laid out, until
+        // the fit factor's release; Collapsed ones are not, which only makes
+        // the rule cheaper to keep).
         // The RULE for every page (the owner reported slow openings twice,
         // Oct 1 2026): build on the first look, here; a long list goes in
         // batches — the first screenful at once, the rest per Background
         // tick, a version counter letting a newer build stop an older one
-        // (AddWaypointRowBatch, the skin tiles). The one exception: what
-        // sets a page's HEIGHT stays eager, since the tallest page sets the
-        // dialog's (PrepareRulesPage).
+        // (AddWaypointRowBatch, the skin tiles). The one exception, from the
+        // days the tallest page set the dialog's height: Server rules' stamp
+        // and note are still filled eagerly (PrepareRulesPage).
         switch (key)
         {
             case "Account": OpenAccountPage(); break; // one auth/me per dialog, for the card's live facts

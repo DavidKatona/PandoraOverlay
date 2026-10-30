@@ -77,7 +77,7 @@ public partial class SettingsWindow
             var column = new StackPanel { Margin = new Thickness(i == 0 ? 0 : 10, 0, 0, 0) };
             column.Children.Add(new TextBlock
             {
-                Text = category.Category, FontSize = 11, FontWeight = FontWeights.SemiBold,
+                Text = category.Category, FontSize = Theme.Current.Size(11), FontWeight = FontWeights.SemiBold,
                 Foreground = CategoryBrush(category.Category), Margin = new Thickness(0, 0, 0, 4)
             });
             foreach (var s in category.Species)
@@ -86,14 +86,14 @@ public partial class SettingsWindow
                 var row = new DockPanel { Margin = new Thickness(0, 1, 0, 1) };
                 var value = new TextBlock
                 {
-                    Text = s.Limit.ToString(), FontSize = 11, Foreground = mine ? Highlight : RuleText,
+                    Text = s.Limit.ToString(), FontSize = Theme.Current.Size(11), Foreground = mine ? Highlight : RuleText,
                     FontWeight = mine ? FontWeights.Bold : FontWeights.Normal
                 };
                 DockPanel.SetDock(value, Dock.Right);
                 row.Children.Add(value);
                 row.Children.Add(new TextBlock
                 {
-                    Text = s.Name, FontSize = 11, Foreground = mine ? Highlight : RuleText,
+                    Text = s.Name, FontSize = Theme.Current.Size(11), Foreground = mine ? Highlight : RuleText,
                     FontWeight = mine ? FontWeights.Bold : FontWeights.Normal,
                     TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 6, 0)
                 });
@@ -120,14 +120,14 @@ public partial class SettingsWindow
             };
             var number = new TextBlock
             {
-                Text = (i + 1).ToString("00"), Width = 30, FontSize = 11, Foreground = RuleNumber,
+                Text = (i + 1).ToString("00"), Width = 30, FontSize = Theme.Current.Size(11), Foreground = RuleNumber,
                 FontWeight = FontWeights.SemiBold, Margin = new Thickness(8, 3, 0, 3), VerticalAlignment = VerticalAlignment.Top
             };
             DockPanel.SetDock(number, Dock.Left);
             row.Children.Add(number);
             row.Children.Add(new TextBlock
             {
-                Text = doc.Rules[i], FontSize = 11, Foreground = RuleText, TextWrapping = TextWrapping.Wrap,
+                Text = doc.Rules[i], FontSize = Theme.Current.Size(11), Foreground = RuleText, TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 3, 8, 3)
             });
             body.Children.Add(row);
@@ -139,7 +139,7 @@ public partial class SettingsWindow
     {
         Child = new TextBlock
         {
-            Text = text, Foreground = HintNeutral, FontSize = 10, FontWeight = CaptionWeight,
+            Text = text, Foreground = HintNeutral, FontSize = Theme.Current.Size(10), FontWeight = CaptionWeight,
             Margin = new Thickness(8, 0, 8, 0), TextTrimming = TextTrimming.CharacterEllipsis
         },
         Background = BandSurface, CornerRadius = BandCorner,

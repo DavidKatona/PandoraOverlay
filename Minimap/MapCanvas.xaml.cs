@@ -423,8 +423,8 @@ public partial class MapCanvas : UserControl
     public static Size MeasureLabel(string text, bool isArea, bool strong, double pixelsPerDip) =>
         NameLayer.Measure(text, LabelSize(isArea), isArea || strong, LabelBrush(isArea), pixelsPerDip);
 
-    /// <summary>A name's size and colour, the theme's: an area's, or a waypoint's (a friend's name wears the friend's colour, data).</summary>
-    private static double LabelSize(bool isArea) => isArea ? Theme.Current.Font.MapAreaNameSize : Theme.Current.Font.MapNameSize;
+    /// <summary>A name's size and colour, the theme's: an area's, or a waypoint's (a friend's name wears the friend's colour, data). The size at the theme's fit factor, like every text size.</summary>
+    private static double LabelSize(bool isArea) => Theme.Current.Size(isArea ? Theme.Current.Font.MapAreaNameSize : Theme.Current.Font.MapNameSize);
 
     private static Brush LabelBrush(bool isArea) => (isArea ? Theme.Current.Map.AreaName : Theme.Current.Map.Name).ToBrush();
 

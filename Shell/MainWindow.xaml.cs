@@ -285,6 +285,13 @@ public partial class MainWindow : OverlayWindowBase
     /// (FillDefaultPositions, ResetPositions, ClampIntoScreen) and sends no
     /// request (CLAUDE.md, constraint 2): a theme only paints (PLAN.md
     /// section 12).
+    /// <para>
+    /// Last, the fit factor's self-check (the owner, Oct 30 2026): once the
+    /// windows have been laid out in the new theme (the Loaded priority runs
+    /// after layout), the walk over every window of ours on screen and one
+    /// line in the log, the theme's id, its factor and a count
+    /// (Theme.LogFit). It reads our own windows only.
+    /// </para>
     /// </summary>
     private void ApplyTheme()
     {
@@ -297,6 +304,8 @@ public partial class MainWindow : OverlayWindowBase
         _activity?.ApplyTheme();
         _controlPanel?.ApplySettingsFromConfig();
         _settings?.ApplyTheme();
+        Dispatcher.BeginInvoke(() => Theme.LogFit(_config.Theme, Application.Current.Windows.OfType<Window>().Select(w => w.Content).OfType<FrameworkElement>()),
+                               System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     /// <summary>

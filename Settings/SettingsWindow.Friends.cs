@@ -60,7 +60,7 @@ public partial class SettingsWindow
                 Text = _roster is null
                     ? "The friends list loads once the overlay is connected and the Activity widget or the minimap's friend arrows are on."
                     : "No friends yet — add them on islapandora.eu.",
-                Foreground = HintNeutral, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0)
+                Foreground = HintNeutral, FontSize = Theme.Current.Size(12), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0)
             });
             return;
         }
@@ -103,7 +103,7 @@ public partial class SettingsWindow
         row.Margin = new Thickness(0);
         var caption = new TextBlock
         {
-            Text = "YOUR FRIENDS", Foreground = HintNeutral, FontSize = 10,
+            Text = "YOUR FRIENDS", Foreground = HintNeutral, FontSize = Theme.Current.Size(10),
             FontWeight = CaptionWeight, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0)
         };
         Grid.SetColumn(caption, 1);
@@ -164,7 +164,7 @@ public partial class SettingsWindow
 
         var seen = new TextBlock
         {
-            FontSize = 11, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center
+            FontSize = Theme.Current.Size(11), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center
         };
         if (IsInGame(entry.SteamId))
         {

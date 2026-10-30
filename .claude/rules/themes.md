@@ -18,8 +18,35 @@ summary.
   a `static readonly` field. Data colours are the exception, never a theme's: the waypoint
   palette, friend colours, the zone hues, Discord's blue, the website's badge and diet
   colours, the map picture and its sea, the area borders, the scrim. (Every window is on the
-  tokens since the plan's step 6; what has no token yet is the same in every theme: font
-  sizes, a few weights, stroke widths.)
+  tokens since the plan's step 6; what has no token yet is the same in every theme: a few
+  weights, stroke widths.)
+- **A theme's font is held to the frames by its fit factor** (the fit factor's release,
+  `Desktop\Pandora Overlay Files\pandora-themes\FIT.md`; the owner, Oct 29–30 2026): the
+  frames never move, so a font whose line box or glyphs run taller or wider than Segoe UI's
+  is drawn smaller, by ONE number per theme, `"Fit"` in its file beside `Name` and `Order`
+  (outside `Tokens`: derived, not designed), 0.85 to 1.00 in steps of 0.01
+  (`Themes/Fit/FitFactor.cs`). `FitFactorTests` compute it for every theme in `Theme.All`
+  (from 1.00 down: the frame contract's strings, `Themes/Fit/FrameContract.cs`, then the walk,
+  `Themes/Fit/FitProbe.cs`, over the Settings dialog on every page, the cards and the sign-in
+  window) and fail when the file's number differs, with the number to write; below the floor
+  the font is REFUSED (the message names the theme, the font, the factor and what did not
+  fit), never drawn smaller. A theme has still no size token: the factor is the code's.
+- **No body text size is a literal**: XAML reads `{DynamicResource Theme.Size.11}` (the keys
+  are `Theme.BodySizes`; a new size is one more number there), code `Theme.Current.Size(11)`
+  as it builds, or `SetResourceReference(…FontSizeProperty, Theme.SizeKey(11))` for a text
+  built once that must follow a switch (Prime's rows, Activity's slots). The four text-size
+  tokens (`Font.BadgeSize`, `ControlPanelButtonSize`, `MapAreaNameSize`, `MapNameSize`) are
+  written at the factor too; read one in code through `Theme.Current.Size(…)`. A TITLE (a text
+  in `Font.TitleFamily`) keeps its literal: titles are single lines that trim, and the factor
+  holds the body font, which sets the rows and the wrapping. `ThemedWindowsTests` scan for it.
+  With a factor of 1.00 (Default's, and every bundled theme's so far) `Theme.Size.11` is 11.
+- **The walk is the app's** (`FitProbe`): a one-line text past its room (cut off unless it
+  trims inside its box, half a pixel of slack), a scroll area marked `FitProbe.HoldsWhole`
+  (the Settings page column) that would scroll. The tests hold every theme to it; after a
+  switch the overlay walks its own windows and logs ONE line, the theme's id, its factor and
+  a count of overflows (`Theme.LogFit`, facts only). The frame contract is the one hand-kept
+  list: what the walk can't reach yet (the widgets, the control panel), each string with its
+  box from the frame constants less the XAML's known insets.
 - **No code outside `Themes/` asks which theme is on.** The tokens carry no id and no name
   (`ThemeTokens`); identity lives only in `Theme.All`'s entries, for the loader, the
   Settings row and the harness. A difference between themes is a VALUE the code reads by
@@ -56,7 +83,8 @@ summary.
   their lines are `Stats/BarState.cs`; the pulse and StatsAttention's wake lines read them.
   A new coloured thing names its states in code and asks the theme for each one's look.
 - **A theme has no size of a widget, a frame or a window, no scale and no position**
-  (PLAN.md section 12). Its only sizes are text sizes and the bar height, inside a frame.
+  (PLAN.md section 12). Its only sizes are text sizes and the bar height, inside a frame
+  (and its fit factor, which only ever shrinks its text).
   `Theme.Apply` and a theme switch write nothing into config and place no window.
 - **A glow is painted, never an `Effect`** (`FrameGeometry.Glow`: three strokes under the
   line). A live DropShadowEffect halved the frame rate in the glow spike; the owner's
@@ -75,10 +103,11 @@ summary.
   `InitializeComponent`**, so a harness without the App has the theme's resources. A theme
   key read by `StaticResource` never follows a switch: always `DynamicResource`.
 - **A theme file** (`Assets/Themes/<id>.json`) is a sparse override of Default: `Name`,
-  `Order` and the `Tokens` that differ, by their paths. A key Default lacks or a value that
-  doesn't parse fails `ThemeFileTests`; it never inherits silently. **A third theme is one
-  file there and nothing else**: the loader, the Settings row, the tests and the harness
-  iterate `Theme.All`.
+  `Order`, `Fit` (the fit factor, `FitFactorTests`' number; absent is 1.00) and the `Tokens`
+  that differ, by their paths. A key Default lacks or a value that doesn't parse fails
+  `ThemeFileTests`; it never inherits silently. **A third theme is one file there and
+  nothing else**: the loader, the Settings row, the tests and the harness iterate
+  `Theme.All`; the session that builds it writes in the `Fit` the test computes.
 - **Fonts**: one folder per family under `Assets/Fonts/`, the family's files and its own
   licence as shipped (`Assets/Fonts/** -text` keeps them byte for byte). The csproj takes
   them by wildcard (`*.ttf` as WPF Resources, each `OFL.txt` embedded and copied beside the
@@ -89,15 +118,18 @@ summary.
   mistake. A new font needs a build `--no-incremental` once: files a glob adds are not
   seen by an incremental build, and a theme then measures and renders in a fallback font.
   `MontserratTests` read every folder there: each family's faces resolve and are in the
-  build, every weight a theme names is a real face (`EveryNamedWeightHasAFace`) and every
-  face bundled is one a theme names (`EveryBundledFaceIsOneAThemeNames`: no face that no
-  theme reads), and the strings with the least room fit or trim. A string that no longer
-  fits ends in an ellipsis (the owner, Oct 25 2026): never another wording per theme,
-  never a size of its own. `ControlPanelWidthTests` checks every theme's labels, captions
-  and hint fit the control panel's fixed frame (`ControlPanelFrame`); `DialogLayoutTests`
-  lays the dialogs out in every theme (the Settings dialog in its frame, `SettingsFrame`,
-  every page with nothing to scroll; no one-line string of Settings, the update cards and
-  the sign-in window cut off: it fits, or it ends in an ellipsis that shows).
+  build (every glyph measured through the theme's address is the file's own advance, so a
+  silent fallback fails), every weight a theme names is a real face (`EveryNamedWeightHasAFace`)
+  and every face bundled is one a theme names (`EveryBundledFaceIsOneAThemeNames`: no face
+  that no theme reads), and the frame contract's strings with the least room fit or trim at
+  every theme's factor. A string that no longer fits ends in an ellipsis (the owner, Oct 25
+  2026): never another wording per theme, never a size of its own. `ControlPanelWidthTests`
+  checks every theme's labels, captions and hint fit the control panel's fixed frame
+  (`ControlPanelFrame`); `DialogLayoutTests` lays the dialogs out in every theme at its
+  factor (the Settings dialog in its frame, `SettingsFrame`, every page with nothing to
+  scroll, each page measured on its own since the others are Collapsed; no one-line string
+  of Settings, the update cards and the sign-in window cut off: it fits, or it ends in an
+  ellipsis that shows).
 - **A theme test tests the framework, never a theme** (the owner, Oct 27 2026): every
   theme, a player's own later included, must work within the framework, so no test names
   a bundled theme, pins its values or keeps a list of exceptions per theme. A test either

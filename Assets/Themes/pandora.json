@@ -29,6 +29,7 @@
 {
   "Name": "Pandora",
   "Order": 2,
+  "Fit": 1.00, // the fit factor: FitFactorTests' computed value (Rajdhani fits the frames at full size, Oct 30 2026)
   "Tokens": {
     "Bars": {
       // Isle's rule (PANDORA decision 4): every bar the accent in every state;

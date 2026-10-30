@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Windows;
-using System.Windows.Media;
 using Xunit;
 
 namespace PandoraOverlay.Tests;
@@ -10,63 +7,36 @@ namespace PandoraOverlay.Tests;
 /// Isle's compact panel and wanted that size for every theme (Oct 25 2026),
 /// so its parts have fixed sizes and every label is trimmed inside its part.
 /// Two things to hold: the frame's numbers add up, with the gaps the XAML
-/// puts between the parts (ControlPanelWindow.xaml and Controls.xaml), to the
-/// panel's outer size; and every theme's labels, captions and hint fit their
-/// parts in its own font, so nothing is trimmed in a shipped theme (a theme
-/// whose font no longer fits fails here, and the owner hears it).
+/// puts between the parts (ControlPanelWindow.xaml and Controls.xaml, kept as
+/// the frame contract's known insets), to the panel's outer size; and every
+/// theme's labels, captions and hint fit their parts in its own font at its
+/// fit factor, so nothing is trimmed in a shipped theme. The row, its gaps
+/// and the strings are the app's frame contract since the fit factor's
+/// release (Themes/Fit/FrameContract.cs), measured here and at every
+/// candidate factor by FitFactorTests; a line within half a pixel of its row
+/// is drawn whole (the Nightshade attempt's captions came to 12.28 px in
+/// their 12 px row, empty descender room under capitals, and failed here for
+/// nothing the owner could see).
 /// </summary>
 public class ControlPanelWidthTests
 {
-    // The gaps, as the XAML has them.
-    private const double Border = 1;
-    private const double PaddingX = 10, PaddingY = 8;   // RootPanel's Padding="10,8"
-    private const double ButtonGap = 6;                 // PanelButton's Margin, none on a group's last
-    private const double Separator = 1 + 2 * 10;        // PanelSeparator: 1 wide, 10 a side
-    private const double CaptionMargin = 1;             // PanelCaption's Margin="1,0,0,3"
-    private const double CaptionGap = 3;
-    private const double HintMargin = 2, HintGap = 5;   // HintText's Margin="2,5,0,0"
-    private const double LabelPadding = 6;              // PanelButton's Padding="6,0": how close a label may come to the edges
-
-    /// <summary>The row as the XAML has it: a lone Settings button, then each group's caption over its buttons, then Lock and Exit.</summary>
-    private static readonly (string? Caption, (string Label, double Width)[] Buttons)[] Row =
-    {
-        (null, new[] { ("Settings…", ControlPanelFrame.SettingsButton) }),
-        ("STATS", new[] { ("Show/hide", ControlPanelFrame.ShowHideButton), ("View", ControlPanelFrame.ViewButton) }),
-        ("MINIMAP", new[]
-        {
-            ("Show/hide", ControlPanelFrame.ShowHideButton), ("Map view", ControlPanelFrame.MapViewButton),
-            ("Heatmap", ControlPanelFrame.HeatmapButton), ("Areas", ControlPanelFrame.AreasButton),
-        }),
-        ("PRIME", new[] { ("Show/hide", ControlPanelFrame.ShowHideButton), ("Check", ControlPanelFrame.CheckButton) }),
-        ("ACTIVITY", new[] { ("Show/hide", ControlPanelFrame.ShowHideButton) }),
-        (null, new[] { ("Lock", ControlPanelFrame.LockButton), ("Exit", ControlPanelFrame.ExitButton) }),
-    };
-
-    /// <summary>The longest hint SetHotkeyLabel can write: a two-modifier F-key.</summary>
-    private const string Hint = "drag panels to move · right-click map = waypoints · Ctrl+Shift+F12 locks";
-
-    private static FormattedText Text(string text, ThemeFont font, ThemeWeight weight, double size) =>
-        new(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-            new Typeface(Theme.FontFamilyOf(font.Address), FontStyles.Normal, weight.ToFontWeight(), FontStretches.Normal),
-            size, Brushes.White, 1.0);
-
-    private static double GroupWidth((string Label, double Width)[] buttons) =>
-        buttons.Sum(b => b.Width) + ButtonGap * (buttons.Length - 1);
+    private static double GroupWidth((string Label, double Width)[] buttons) => FrameContract.PanelGroupWidth(buttons);
 
     /// <summary>The row's buttons, gaps and separators, the padding and the border are the frame's width; nothing is left over or short.</summary>
     [Fact]
     public void TheFramesWidthIsItsRow()
     {
-        var row = Row.Sum(g => GroupWidth(g.Buttons)) + Separator * (Row.Length - 1);
-        Assert.Equal(ControlPanelFrame.Width, row + 2 * (PaddingX + Border));
+        var row = FrameContract.PanelRow.Sum(g => GroupWidth(g.Buttons)) + FrameContract.PanelSeparator * (FrameContract.PanelRow.Count - 1);
+        Assert.Equal(ControlPanelFrame.Width, row + 2 * (FrameContract.PanelPaddingX + FrameContract.PanelBorder));
     }
 
     /// <summary>A caption, the buttons and the hint, with their gaps, the padding and the border, are the frame's height.</summary>
     [Fact]
     public void TheFramesHeightIsItsRows()
     {
-        var rows = ControlPanelFrame.CaptionHeight + CaptionGap + ControlPanelFrame.ButtonHeight + HintGap + ControlPanelFrame.HintHeight;
-        Assert.Equal(ControlPanelFrame.Height, rows + 2 * (PaddingY + Border));
+        var rows = ControlPanelFrame.CaptionHeight + FrameContract.PanelCaptionGap + ControlPanelFrame.ButtonHeight
+                   + FrameContract.PanelHintGap + ControlPanelFrame.HintHeight;
+        Assert.Equal(ControlPanelFrame.Height, rows + 2 * (FrameContract.PanelPaddingY + FrameContract.PanelBorder));
     }
 
     /// <summary>The compact size the owner chose (Isle's panel at 100%, step 3's render, Oct 25 2026).</summary>
@@ -87,31 +57,19 @@ public class ControlPanelWidthTests
     [MemberData(nameof(EveryTheme))]
     public void EveryThemesTextFitsTheFrame(string id)
     {
-        var f = Theme.All.Single(e => e.Id == id).Tokens.Font;
-        var problems = new List<string>();
-        foreach (var (caption, buttons) in Row)
-        {
-            foreach (var (label, width) in buttons)
-            {
-                var t = Text(label, f.Family, f.BodyWeight, f.ControlPanelButtonSize);
-                if (t.WidthIncludingTrailingWhitespace > width - 2 * LabelPadding)
-                    problems.Add($"\"{label}\" {t.WidthIncludingTrailingWhitespace:0.0} px in a {width} px button");
-                if (t.Height > ControlPanelFrame.ButtonHeight)
-                    problems.Add($"\"{label}\" {t.Height:0.0} px tall in a {ControlPanelFrame.ButtonHeight} px button");
-            }
-            if (caption is null) continue;
-            var c = Text(caption, f.Family, f.CaptionWeight, 9);
-            if (CaptionMargin + c.WidthIncludingTrailingWhitespace > GroupWidth(buttons))
-                problems.Add($"\"{caption}\" {c.WidthIncludingTrailingWhitespace:0.0} px over a {GroupWidth(buttons)} px group");
-            if (c.Height > ControlPanelFrame.CaptionHeight)
-                problems.Add($"\"{caption}\" {c.Height:0.0} px tall in a {ControlPanelFrame.CaptionHeight} px row");
-        }
-        var hint = Text(Hint, f.Family, f.BodyWeight, 10);
-        var inside = ControlPanelFrame.Width - 2 * (PaddingX + Border) - HintMargin;
-        if (hint.WidthIncludingTrailingWhitespace > inside)
-            problems.Add($"the hint {hint.WidthIncludingTrailingWhitespace:0.0} px in {inside}");
-        if (hint.Height > ControlPanelFrame.HintHeight)
-            problems.Add($"the hint {hint.Height:0.0} px tall in a {ControlPanelFrame.HintHeight} px row");
+        var tokens = Theme.All.Single(e => e.Id == id).Tokens;
+        var problems = FrameContract.Misses(tokens).Where(m => m.Where == FrameContract.ControlPanel).Select(m => m.ToString()).ToList();
         Assert.True(problems.Count == 0, $"{id}: " + string.Join("; ", problems));
+    }
+
+    /// <summary>The half pixel of slack is the walk's (FitProbe.Slack), and every part of the row is in the contract.</summary>
+    [Fact]
+    public void TheContractHoldsEveryPartOfTheRow()
+    {
+        var panel = FrameContract.Slots.Where(s => s.Where == FrameContract.ControlPanel).ToList();
+        var labels = FrameContract.PanelRow.Sum(g => g.Buttons.Length);
+        var captions = FrameContract.PanelRow.Count(g => g.Caption is not null);
+        Assert.Equal(labels + captions + 1, panel.Count); // and the hint
+        Assert.Equal(0.5, FitProbe.Slack);
     }
 }

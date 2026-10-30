@@ -67,6 +67,36 @@ public sealed record ThemeTokens
     public required CornerNumbers Corner { get; init; }
     public required FontLook Font { get; init; }
 
+    #region The fit factor (not a token)
+
+    /// <summary>
+    /// The fit factor (FIT.md, the owner's decision of Oct 29 2026): the body
+    /// font's sizes are multiplied by it, a number from 0.85 to 1.00, so that
+    /// a theme's font is held to the frames that never move instead of the
+    /// frames to the font. NOT a token, so not a member like the others: a
+    /// theme file names it OUTSIDE its Tokens (<c>"Fit": 0.91</c> beside Name
+    /// and Order), <c>FitFactorTests</c> compute it and fail when the file's
+    /// number differs (nobody types it), and the loader carries it here, so
+    /// the tokens on screen size their own text. Internal, so neither the
+    /// JSON (a "Fit" inside Tokens is "not a token") nor the token walk nor
+    /// the resource keys see it; 1.00 unless a file says otherwise (Default's,
+    /// and every bundled theme's so far).
+    /// </summary>
+    internal double Fit { get; init; } = 1.0;
+
+    /// <summary>
+    /// A BODY text size in this theme, for text sized in code:
+    /// <c>Theme.Current.Size(11)</c> is 11 times the fit factor, the number
+    /// XAML reads as <c>{DynamicResource Theme.Size.11}</c>. Every text in
+    /// the windows is body text but a title (a text in
+    /// <see cref="FontLook.TitleFamily"/>), which keeps its own size: titles
+    /// are single lines that end in an ellipsis, and the factor holds the body
+    /// font, which sets the rows' heights and the wrapping (FIT.md section 1).
+    /// </summary>
+    public double Size(double size) => size * Fit;
+
+    #endregion
+
     #region Lookups by state
 
     /// <summary>
@@ -731,4 +761,8 @@ public sealed record ThemeTokens
 /// the name players read, and its tokens. The tokens themselves never learn
 /// the id (<see cref="ThemeTokens"/>).
 /// </summary>
-public sealed record ThemeEntry(string Id, string Name, int Order, ThemeTokens Tokens);
+public sealed record ThemeEntry(string Id, string Name, int Order, ThemeTokens Tokens)
+{
+    /// <summary>The theme's fit factor (FIT.md): its file's "Fit", carried in its tokens; 1.00 for Default.</summary>
+    public double Fit => Tokens.Fit;
+}

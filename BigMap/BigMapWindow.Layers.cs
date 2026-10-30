@@ -181,7 +181,7 @@ public partial class BigMapWindow
         Separator();
         LayersItems.Children.Add(new TextBlock
         {
-            Text = "ZONES", FontSize = 10, FontWeight = Theme.Current.Font.CaptionWeight.ToFontWeight(), Foreground = Theme.Current.Text.Caption.ToBrush(),
+            Text = "ZONES", FontSize = Theme.Current.Size(10), FontWeight = Theme.Current.Font.CaptionWeight.ToFontWeight(), Foreground = Theme.Current.Text.Caption.ToBrush(),
             Margin = new Thickness(12, 3, 10, 2),
         });
         var migrations = Tick(Swatched("Migrations", ZoneKind.Migration), _config.BigMapMigrations);
@@ -195,7 +195,7 @@ public partial class BigMapWindow
             Text = zones is null
                 ? "Zones unavailable"
                 : $"From {zones.Source} · game {zones.GameVersions}\nThe game picks which zone is active.",
-            FontSize = 10.5, FontWeight = Theme.Current.Font.BodyWeight.ToFontWeight(), Foreground = Theme.Current.Text.Dim.ToBrush(),
+            FontSize = Theme.Current.Size(10.5), FontWeight = Theme.Current.Font.BodyWeight.ToFontWeight(), Foreground = Theme.Current.Text.Dim.ToBrush(),
             LineHeight = 15, Margin = new Thickness(12, 4, 12, 3),
         });
         return new LayerTicks(areas, names, waypoints, friends, trail, heatmap, migrations, patrols, sanctuaries);

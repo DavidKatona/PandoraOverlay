@@ -137,7 +137,7 @@ public partial class SettingsWindow
             Text = _skins.Count == 0 ? "No Patreon skins on this account. The website's Patreon page shows how to unlock them."
                  : _skinSearch.Length > 0 ? "No skins match the search."
                  : "Nothing unlocked yet — choose All to see what each tier has.",
-            Foreground = HintNeutral, FontSize = 12, TextWrapping = TextWrapping.Wrap, Width = 3 * TileWidth, Margin = new Thickness(2, 8, 0, 0)
+            Foreground = HintNeutral, FontSize = Theme.Current.Size(12), TextWrapping = TextWrapping.Wrap, Width = 3 * TileWidth, Margin = new Thickness(2, 8, 0, 0)
         });
     }
 
@@ -178,7 +178,7 @@ public partial class SettingsWindow
         var note = new TextBlock
         {
             Text = skin.Pictures.Count == 0 ? NoPicture : _skinPictureProblems.ContainsKey(skin.Id) ? PictureUnavailable : PictureLoading,
-            Foreground = RuleNumber, FontSize = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            Foreground = RuleNumber, FontSize = Theme.Current.Size(10), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             Visibility = has ? Visibility.Collapsed : Visibility.Visible
         };
         _tilePictures[skin.Id] = picture;
@@ -194,13 +194,13 @@ public partial class SettingsWindow
 
         body.Children.Add(new TextBlock
         {
-            Text = skin.Name, Foreground = TileName, FontSize = 12, FontWeight = FontWeights.SemiBold,
+            Text = skin.Name, Foreground = TileName, FontSize = Theme.Current.Size(12), FontWeight = FontWeights.SemiBold,
             TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 5, 0, 0)
         });
         body.Children.Add(new TextBlock
         {
             Text = skin.RequiredRole is null ? (skin.Locked ? "locked" : " ") : skin.Locked ? $"{skin.RequiredRole} · locked" : skin.RequiredRole,
-            Foreground = skin.Locked ? HintBad : Highlight, FontSize = 10, TextTrimming = TextTrimming.CharacterEllipsis
+            Foreground = skin.Locked ? HintBad : Highlight, FontSize = Theme.Current.Size(10), TextTrimming = TextTrimming.CharacterEllipsis
         });
 
         var dots = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 6) };
@@ -234,7 +234,7 @@ public partial class SettingsWindow
         var area = new Grid { Height = 24 };
         var apply = new Button
         {
-            Content = skin.Locked ? "Locked" : "Apply", IsEnabled = !skin.Locked, FontSize = 11, Padding = new Thickness(0, 3, 0, 3),
+            Content = skin.Locked ? "Locked" : "Apply", IsEnabled = !skin.Locked, FontSize = Theme.Current.Size(11), Padding = new Thickness(0, 3, 0, 3),
             Style = (Style)FindResource("NeutralButtonStyle")
         };
         area.Children.Add(apply);
@@ -270,7 +270,7 @@ public partial class SettingsWindow
             var index = i;
             var button = new Button
             {
-                Content = PatreonSkins.PatternLetter(i).ToString(), FontSize = 11, Padding = new Thickness(0, 3, 0, 3),
+                Content = PatreonSkins.PatternLetter(i).ToString(), FontSize = Theme.Current.Size(11), Padding = new Thickness(0, 3, 0, 3),
                 Margin = new Thickness(i == 0 ? 0 : 2, 0, 0, 0), Style = (Style)FindResource("SaveButtonStyle"),
                 ToolTip = $"Apply {skin.Name} with pattern {PatreonSkins.PatternLetter(i)}"
             };
@@ -305,16 +305,16 @@ public partial class SettingsWindow
         var panel = new StackPanel { MaxWidth = 300 };
         var large = new Image { Width = 300, Stretch = Stretch.Uniform, Margin = new Thickness(0, 0, 0, 6) };
         panel.Children.Add(large);
-        panel.Children.Add(new TextBlock { Text = skin.Name, Foreground = TileName, FontSize = 12, FontWeight = FontWeights.SemiBold });
+        panel.Children.Add(new TextBlock { Text = skin.Name, Foreground = TileName, FontSize = Theme.Current.Size(12), FontWeight = FontWeights.SemiBold });
         if (skin.RequiredRole is not null)
         {
-            panel.Children.Add(new TextBlock { Text = skin.Locked ? $"{skin.RequiredRole} · locked" : skin.RequiredRole, Foreground = HintNeutral, FontSize = 11 });
+            panel.Children.Add(new TextBlock { Text = skin.Locked ? $"{skin.RequiredRole} · locked" : skin.RequiredRole, Foreground = HintNeutral, FontSize = Theme.Current.Size(11) });
         }
         if (skin.Description is not null)
         {
-            panel.Children.Add(new TextBlock { Text = skin.Description, Foreground = RuleText, FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
+            panel.Children.Add(new TextBlock { Text = skin.Description, Foreground = RuleText, FontSize = Theme.Current.Size(11), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
         }
-        var why = new TextBlock { Foreground = HintNeutral, FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
+        var why = new TextBlock { Foreground = HintNeutral, FontSize = Theme.Current.Size(10), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
         panel.Children.Add(why);
         tip.Content = panel;
         return () =>

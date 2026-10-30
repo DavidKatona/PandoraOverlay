@@ -17,8 +17,10 @@ namespace PandoraOverlay;
 /// purpose: WPF lays the dialog out at exactly this height, so Default's
 /// pages land where they always did, to the sub-pixel, on screen and in the
 /// golden renders' windows mode. A theme whose text runs shorter gets the
-/// slack under its pages (Isle about 7.7 px); one whose text runs taller has
-/// its page scroll, never a taller dialog (the page column's ScrollViewer).
+/// slack under its pages (Isle about 7.7 px); one whose text runs taller is
+/// drawn smaller by its fit factor until every page fits (FitFactorTests), and
+/// a page that still does not would scroll, never a taller dialog (the page
+/// column's ScrollViewer, which the fit factor's walk holds whole).
 /// Outer sizes, border included. A new page must fit within them: the
 /// Settings layout tests hold every page of every theme to the frame.
 /// </para>

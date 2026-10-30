@@ -1,10 +1,7 @@
-using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Media;
 using Xunit;
 
 namespace PandoraOverlay.Tests;
@@ -16,16 +13,20 @@ namespace PandoraOverlay.Tests;
 /// no line of text in the Settings dialog, the update cards or the sign-in
 /// window is ever cut off in a theme's font: it fits its room, or it ends in
 /// an ellipsis (the owner, question 29: never another wording, never a size
-/// of its own). The rules of the framework, held for every theme alike: no
-/// test names a theme, so one a player makes later is held to the same.
+/// of its own). The rules of the framework, held for every theme alike, at
+/// its fit factor: no test names a theme, so one a player makes later is
+/// held to the same.
 /// <para>
 /// Laid out, not guessed: each window is built as the harness builds it
 /// (fresh objects, no cookie, a PollService never started, never shown),
-/// on every page, and each one-line text's natural width in its own font is
-/// held to the narrowest of the boxes around it. A wrapping line can't run
-/// past an edge; it can only make its page taller, which the frame check
-/// catches (the hints, the footer sentence beside Close). The pixels are the
-/// golden renders' windows mode.
+/// on every page, and walked by the app's own probe (<see cref="FitProbe"/>,
+/// this test's private code until the fit factor's release): each one-line
+/// text's natural width in its own font against the narrowest of the boxes
+/// around it, and the page column held whole. Since the fit factor's
+/// release the pages not shown are Collapsed, so each page is measured on
+/// its own. The pixels are the golden renders' windows mode. The builders
+/// here are FitFactorTests' too: it lays the same windows out at every
+/// candidate factor.
 /// </para>
 /// </summary>
 [Collection(TheThemeOnScreen.Name)]
@@ -33,11 +34,8 @@ public class DialogLayoutTests
 {
     private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
-    /// <summary>Layout rounding's room: a line within half a pixel of its box is drawn whole.</summary>
-    private const double Slack = 0.5;
-
     /// <summary>Every page by its SetPage key, in the nav's order.</summary>
-    private static readonly string[] Pages =
+    internal static readonly string[] Pages =
         { "Account", "General", "Themes", "Hotkeys", "Widgets", "Maps", "Waypoints", "Friends", "Skins", "Storage", "Rules", "About" };
 
     public static IEnumerable<object[]> Themes() => Theme.All.Select(e => new object[] { e.Id });
@@ -53,18 +51,24 @@ public class DialogLayoutTests
     {
         var (dialog, site) = Dialog();
         var problems = new List<string>();
-        foreach (var page in Pages)
-        {
-            var root = ShowPage(dialog, page);
-            if (root.DesiredSize != new Size(SettingsFrame.Width, SettingsFrame.Height))
-                problems.Add($"{page}: the dialog is {root.DesiredSize.Width:0.##} x {root.DesiredSize.Height:0.##}, not its frame");
-            var column = (ScrollViewer)((FrameworkElement)dialog.FindName("Pages")).Parent;
-            if (column.ExtentHeight > column.ViewportHeight + Slack)
-                problems.Add($"{page}: {column.ExtentHeight:0.0} px of pages in {column.ViewportHeight:0.0}");
-        }
+        foreach (var (page, root) in EveryPage(dialog)) problems.AddRange(FrameProblems(page, root));
         dialog.Close();
         Assert.True(problems.Count == 0, string.Join("; ", problems));
         Assert.Equal(0, site.Requests); // every page looked at, the website's three included: nothing asked
+    });
+
+    /// <summary>The walk sees the page column it holds whole: a page made taller than the frame is caught, as a theme's font would make it.</summary>
+    [Fact]
+    public void ThePageColumnIsHeldWhole() => OnScreen(Theme.DefaultId, () =>
+    {
+        var (dialog, _) = Dialog();
+        Call(dialog, "SetPage", "About");
+        var about = ((Grid)dialog.FindName("Pages")).Children.OfType<FrameworkElement>().Single(p => (string)p.Tag == "About");
+        Assert.Empty(FrameProblems("About", LaidOut(dialog)));
+        about.MinHeight = SettingsFrame.Height; // taller than the column can show
+        var spill = Assert.Single(FitProbe.Spills(LaidOut(dialog)));
+        Assert.True(spill.Extent > spill.Viewport + FitProbe.Slack);
+        dialog.Close();
     });
 
     /// <summary>Every one-line text on every Settings page, the nav, the title and the footer, with a few waypoints, three skins' tiles and an open stored dino.</summary>
@@ -73,14 +77,10 @@ public class DialogLayoutTests
     public void NoLineInTheSettingsDialogIsCutOff(string id) => OnScreen(id, () =>
     {
         var (dialog, site) = Dialog();
-        var found = new List<Overflow>();
-        foreach (var page in Pages)
-        {
-            var root = ShowPage(dialog, page);
-            found.AddRange(Overflows(root).Select(o => o with { Where = page }));
-        }
+        var problems = new List<string>();
+        foreach (var (page, root) in EveryPage(dialog)) problems.AddRange(LineProblems(page, root));
         dialog.Close();
-        AssertNoneIsCutOff(found);
+        Assert.True(problems.Count == 0, string.Join("; ", problems));
         Assert.Equal(0, site.Requests);
     });
 
@@ -89,49 +89,28 @@ public class DialogLayoutTests
     [MemberData(nameof(Themes))]
     public void NoLineInTheCardsOrTheSignInWindowIsCutOff(string id) => OnScreen(id, () =>
     {
-        const string notes = """
-            ### New
-            - A Themes page in Settings: every window changes at once, sizes and positions stay.
-            ### Fixes
-            - A fix with a line long enough to wrap onto a second line inside the card's notes box, as real notes do.
-            """;
-        var found = new List<Overflow>();
-        void Check(string where, Window window, double width, double? height = null)
-        {
-            var root = (FrameworkElement)window.Content;
-            root.Measure(new Size(width, height ?? double.PositiveInfinity));
-            root.Arrange(new Rect(new Size(width, height ?? root.DesiredSize.Height)));
-            root.UpdateLayout();
-            found.AddRange(Overflows(root).Select(o => o with { Where = where }));
-            window.Close();
-        }
-
-        Check("the update card", UpdateCardWindow.Available("1.39.0", "1.38.0", notes, _ => Task.FromResult(false)), 460);
-        var downloading = UpdateCardWindow.Available("1.39.0", "1.38.0", notes, _ => Task.FromResult(false));
-        ((FrameworkElement)downloading.FindName("ButtonRow")).Visibility = Visibility.Collapsed;
-        ((FrameworkElement)downloading.FindName("ProgressRow")).Visibility = Visibility.Visible;
-        Call(downloading, "ShowProgress", 42);
-        Check("the update card, downloading", downloading, 460);
-        Check("the updated card", UpdateCardWindow.Updated("1.39.0", "1.38.0", notes), 460);
-        Check("What's new", UpdateCardWindow.Notes("1.38.0", notes), 460);
-
-        // Never shown: its WebView2 starts only on Loaded. At its frame's size (SignInFrame).
-        void SignIn(string where, Action<SignInWindow> state)
-        {
-            var window = new SignInWindow();
-            state(window);
-            Check($"the sign-in window, {where}", window, SignInFrame.Width, SignInFrame.Height);
-        }
-        SignIn("browsing", w => Call(w, "ShowAddress", "https://discord.com/login"));
-        SignIn("checking", w => Call(w, "ShowChecking"));
-        SignIn("done", w => Call(w, "ShowDone", new AccountInfo(true, "Dave", "76561190000000001", null, true, true)));
-        SignIn("no Steam", w => Call(w, "ShowNoSteam", new AccountInfo(true, "Dave", null, "AB12CD", true, false)));
-        SignIn("failed", w => Call(w, "ShowFailed", "the website did not answer (HttpRequestException)"));
-
-        AssertNoneIsCutOff(found);
+        var problems = CardsAndSignIn().SelectMany(w => LineProblems(w.Where, w.Root)).ToList();
+        Assert.True(problems.Count == 0, string.Join("; ", problems));
     });
 
-    // ---- The dialog, as the harness builds it --------------------------------------
+    // ---- What the walk finds, as the messages say it ---------------------------------
+
+    /// <summary>The dialog not its frame, or a page that would scroll.</summary>
+    internal static IEnumerable<string> FrameProblems(string page, FrameworkElement root)
+    {
+        if (root.DesiredSize != new Size(SettingsFrame.Width, SettingsFrame.Height))
+            yield return FormattableString.Invariant($"{page}: the dialog is {root.DesiredSize.Width:0.##} x {root.DesiredSize.Height:0.##}, not its frame");
+        foreach (var spill in FitProbe.Spills(root))
+            yield return FormattableString.Invariant($"{page}: {spill.Extent:0.0} px of pages in {spill.Viewport:0.0}");
+    }
+
+    /// <summary>The framework's rule, the same for every theme: a line that runs past its room ends in an ellipsis, and the ellipsis shows.</summary>
+    internal static IEnumerable<string> LineProblems(string where, FrameworkElement root) =>
+        FitProbe.LongLines(root).Where(l => l.CutOff).Select(o => o.Trims
+            ? FormattableString.Invariant($"{where}: \"{o.Text}\" ends in an ellipsis past the edge, so the ellipsis is cut off ({o.Room:0.0} px of room)")
+            : FormattableString.Invariant($"{where}: \"{o.Text}\" {o.Natural:0.0} px in {o.Room:0.0}, cut off without an ellipsis"));
+
+    // ---- The windows, as the harness builds them -------------------------------------
 
     /// <summary>
     /// Fresh objects, no cookie, a PollService never started; three waypoints
@@ -141,7 +120,7 @@ public class DialogLayoutTests
     /// get past them, the test fails on the count instead of asking the
     /// website (the 1.39 constraint review, near miss N1).
     /// </summary>
-    private static (SettingsWindow Dialog, CountingSite Site) Dialog()
+    internal static (SettingsWindow Dialog, CountingSite Site) Dialog()
     {
         var config = new OverlayConfig();
         var library = new WaypointLibrary();
@@ -166,6 +145,12 @@ public class DialogLayoutTests
         ] }
         """;
 
+    /// <summary>Every page on screen in turn, laid out at the dialog's own size; the caller closes the dialog.</summary>
+    internal static IEnumerable<(string Page, FrameworkElement Root)> EveryPage(SettingsWindow dialog)
+    {
+        foreach (var page in Pages) yield return (page, ShowPage(dialog, page));
+    }
+
     /// <summary>One page on screen, laid out at the dialog's own size (as WPF lays the shown window out).</summary>
     private static FrameworkElement ShowPage(SettingsWindow dialog, string page)
     {
@@ -186,89 +171,77 @@ public class DialogLayoutTests
             Set(dialog, "_openDinoId", list.Dinos[0].Id);
             Call(dialog, "RenderStorage");
         }
-        var root = (FrameworkElement)dialog.Content;
+        return LaidOut(dialog);
+    }
+
+    private static FrameworkElement LaidOut(Window window)
+    {
+        var root = (FrameworkElement)window.Content;
         root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         root.Arrange(new Rect(root.DesiredSize));
         root.UpdateLayout();
         return root;
     }
 
-    // ---- The check ------------------------------------------------------------
-
-    /// <summary>A line wider than its room: whether it ends in an ellipsis, and whether its own box fits that room (or the ellipsis itself is cut off).</summary>
-    private sealed record Overflow(string Text, double Natural, double Room, bool Trims, bool BoxFits, string Where = "");
-
     /// <summary>
-    /// Every one-line text that is on screen (no hidden page or collapsed
-    /// part around it) and runs past its room: its natural width, in its own
-    /// font, against the narrowest box around it up to the window's root (a
-    /// trimming text's room is its own width, and its box must fit the rest).
+    /// The update cards in four states and the sign-in window in five, each
+    /// laid out at its width (the sign-in at its frame) and closed once the
+    /// caller has walked it. Nothing here talks to anyone: the cards' install
+    /// is a stand-in, and the sign-in's WebView2 starts only on Loaded, which a
+    /// window never shown never reaches.
     /// </summary>
-    private static IEnumerable<Overflow> Overflows(FrameworkElement root)
+    internal static IEnumerable<(string Where, FrameworkElement Root)> CardsAndSignIn()
     {
-        foreach (var text in Walk(root).OfType<TextBlock>())
+        const string notes = """
+            ### New
+            - A Themes page in Settings: every window changes at once, sizes and positions stay.
+            ### Fixes
+            - A fix with a line long enough to wrap onto a second line inside the card's notes box, as real notes do.
+            """;
+        static FrameworkElement At(Window window, double width, double? height = null)
         {
-            if (text.TextWrapping != TextWrapping.NoWrap || !Shown(text, root) || NaturalWidth(text) is not { } natural) continue;
-            var origin = text.TranslatePoint(new Point(0, 0), root).X;
-            var around = double.MaxValue;
-            for (var up = VisualTreeHelper.GetParent(text); up is not null; up = VisualTreeHelper.GetParent(up))
+            var root = (FrameworkElement)window.Content;
+            root.Measure(new Size(width, height ?? double.PositiveInfinity));
+            root.Arrange(new Rect(new Size(width, height ?? root.DesiredSize.Height)));
+            root.UpdateLayout();
+            return root;
+        }
+
+        var windows = new List<(string, Func<Window>, double, double?)>
+        {
+            ("the update card", () => UpdateCardWindow.Available("1.39.0", "1.38.0", notes, _ => Task.FromResult(false)), 460, null),
+            ("the update card, downloading", () =>
             {
-                if (up is FrameworkElement { ActualWidth: > 0 } box)
-                    around = Math.Min(around, box.TranslatePoint(new Point(box.ActualWidth, 0), root).X - origin);
-                if (ReferenceEquals(up, root)) break;
-            }
-            var trims = text.TextTrimming != TextTrimming.None;
-            var room = trims ? Math.Min(text.ActualWidth, around) : around;
-            if (natural > room + Slack) yield return new Overflow(TextOf(text), natural, room, trims, text.ActualWidth <= around + Slack);
-        }
-    }
+                var downloading = UpdateCardWindow.Available("1.39.0", "1.38.0", notes, _ => Task.FromResult(false));
+                ((FrameworkElement)downloading.FindName("ButtonRow")).Visibility = Visibility.Collapsed;
+                ((FrameworkElement)downloading.FindName("ProgressRow")).Visibility = Visibility.Visible;
+                Call(downloading, "ShowProgress", 42);
+                return downloading;
+            }, 460, null),
+            ("the updated card", () => UpdateCardWindow.Updated("1.39.0", "1.38.0", notes), 460, null),
+            ("What's new", () => UpdateCardWindow.Notes("1.38.0", notes), 460, null),
+        };
+        // Never shown: its WebView2 starts only on Loaded. At its frame's size (SignInFrame).
+        void SignIn(string where, Action<SignInWindow> state) =>
+            windows.Add(($"the sign-in window, {where}", () => { var w = new SignInWindow(); state(w); return w; }, SignInFrame.Width, SignInFrame.Height));
+        SignIn("browsing", w => Call(w, "ShowAddress", "https://discord.com/login"));
+        SignIn("checking", w => Call(w, "ShowChecking"));
+        SignIn("done", w => Call(w, "ShowDone", new AccountInfo(true, "Dave", "76561190000000001", null, true, true)));
+        SignIn("no Steam", w => Call(w, "ShowNoSteam", new AccountInfo(true, "Dave", null, "AB12CD", true, false)));
+        SignIn("failed", w => Call(w, "ShowFailed", "the website did not answer (HttpRequestException)"));
 
-    /// <summary>The framework's rule, the same for every theme: a line that runs past its room ends in an ellipsis, and the ellipsis shows.</summary>
-    private static void AssertNoneIsCutOff(IReadOnlyList<Overflow> found)
-    {
-        var problems = found.Where(o => !o.Trims || !o.BoxFits)
-                            .Select(o => o.Trims
-                                ? $"{o.Where}: \"{o.Text}\" ends in an ellipsis past the edge, so the ellipsis is cut off ({o.Room:0.0} px of room)"
-                                : $"{o.Where}: \"{o.Text}\" {o.Natural:0.0} px in {o.Room:0.0}, cut off without an ellipsis")
-                            .ToList();
-        Assert.True(problems.Count == 0, string.Join("; ", problems));
-    }
-
-    /// <summary>On screen if nothing around it is hidden or collapsed (a window never shown has no IsVisible to ask).</summary>
-    private static bool Shown(DependencyObject element, FrameworkElement root)
-    {
-        for (var up = element; up is not null; up = VisualTreeHelper.GetParent(up))
+        foreach (var (where, build, width, height) in windows)
         {
-            if (up is UIElement { Visibility: not Visibility.Visible }) return false;
-            if (ReferenceEquals(up, root)) return true;
+            var window = build();
+            try
+            {
+                yield return (where, At(window, width, height));
+            }
+            finally
+            {
+                window.Close();
+            }
         }
-        return true;
-    }
-
-    /// <summary>A text's one line in its own fonts, run by run; null for what is no single line of runs (a line break, nothing at all).</summary>
-    private static double? NaturalWidth(TextBlock text)
-    {
-        if (text.Inlines.Count == 0) return string.IsNullOrEmpty(text.Text) ? null : Width(text.Text, text);
-        if (text.Inlines.Any(i => i is not Run)) return null;
-        var width = text.Inlines.Cast<Run>().Sum(r => string.IsNullOrEmpty(r.Text) ? 0 : Width(r.Text, r));
-        return width > 0 ? width : null;
-    }
-
-    private static string TextOf(TextBlock text) =>
-        text.Inlines.Count == 0 ? text.Text : string.Concat(text.Inlines.OfType<Run>().Select(r => r.Text));
-
-    private static double Width(string s, DependencyObject font) =>
-        new FormattedText(s, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                new Typeface((FontFamily)font.GetValue(TextElement.FontFamilyProperty), (FontStyle)font.GetValue(TextElement.FontStyleProperty),
-                             (FontWeight)font.GetValue(TextElement.FontWeightProperty), (FontStretch)font.GetValue(TextElement.FontStretchProperty)),
-                (double)font.GetValue(TextElement.FontSizeProperty), Brushes.White, 1.0)
-            .WidthIncludingTrailingWhitespace;
-
-    private static IEnumerable<DependencyObject> Walk(DependencyObject d)
-    {
-        yield return d;
-        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(d); i++)
-            foreach (var child in Walk(VisualTreeHelper.GetChild(d, i))) yield return child;
     }
 
     // ---- On screen --------------------------------------------------------------

@@ -85,22 +85,36 @@ public class MontserratTests
     /// <summary>
     /// Proof 2: FormattedText measures with the bundled typeface in the test
     /// run (no Application, xunit's own threads), so the width checks can be
-    /// plain tests. A bundled family measures well apart from the fallback WPF
-    /// picks for a family it can't find (wider or narrower), which is how a
-    /// silent fallback would show: the width checks below would pass in it
-    /// unseen (the Pandora build's first run did, while a stale resource file
-    /// left its fonts out of the build; only the faces' check failed).
+    /// plain tests. For every face file in the family's folder, read straight
+    /// from the disk: "Stamina" formatted through the theme's address at that
+    /// face's weight, glyph by glyph, is as wide as the file's own advance
+    /// widths say, within 1%. A silent fallback would measure another font's
+    /// widths, and the width checks would pass in it unseen (the Pandora
+    /// build's first run did, while a stale resource file left its fonts out
+    /// of the build; only the faces' check failed). Glyph by glyph, because a
+    /// whole line is kerned and the advances are not: Cinzel Bold kerns
+    /// "Stamina" 1.4% tighter than its advances (the fit factor's Nightshade
+    /// trial, Oct 30 2026). Until the fit factor's release this compared with
+    /// the fallback's width and asked for 5% apart, which a font as wide as
+    /// Segoe UI could not pass (Nunito, 40.8 px against 40.2; the Nightshade
+    /// attempt, Oct 29 2026).
     /// </summary>
     [Theory]
     [MemberData(nameof(Families))]
     public void FormattedTextMeasuresWithTheBundledTypeface(string family)
     {
-        var weight = FacesOf(family).First().Weight;
-        var bundled = Width("Stamina", new Typeface(Theme.FontFamilyOf(AddressOf(family)), FontStyles.Normal, weight, FontStretches.Normal));
-        var fallback = Width("Stamina", new Typeface(new FontFamily("No Such Font Anywhere"), FontStyles.Normal, weight, FontStretches.Normal));
+        const string text = "Stamina";
+        const double size = 11;
+        foreach (var file in Directory.EnumerateFiles(Path.Combine(FontsFolder, family), "*.ttf"))
+        {
+            var own = new GlyphTypeface(new Uri(file));
+            var expected = text.Sum(c => own.AdvanceWidths[own.CharacterToGlyphMap[c]]) * size;
+            var typeface = new Typeface(Theme.FontFamilyOf(AddressOf(family)), FontStyles.Normal, own.Weight, FontStretches.Normal);
+            var measured = text.Sum(c => Width(c.ToString(), typeface));
 
-        Assert.True(bundled > 0);
-        Assert.True(Math.Abs(bundled - fallback) > fallback * 0.05, $"{family} {bundled:0.0} px, the fallback {fallback:0.0} px: the bundled face was not used");
+            Assert.True(Math.Abs(measured - expected) <= expected * 0.01,
+                $"{Path.GetFileName(file)}: \"{text}\" measures {measured:0.00} px, the file's own advances {expected:0.00} px: the bundled face was not used");
+        }
     }
 
     // ---- In the build -----------------------------------------------------------
@@ -224,111 +238,76 @@ public class MontserratTests
     }
 
     // ---- The strings with the least room, in every theme's font (section 5, question 28) ----
+    //
+    // The strings themselves are the app's frame contract since the fit factor's
+    // release (Themes/Fit/FrameContract.cs: each a string, a size, a weight and a
+    // box from the frame constants), measured here at every theme's factor, and
+    // at every candidate factor by FitFactorTests. A theme whose font doesn't fit
+    // is drawn smaller by its factor, or refused below the floor: never a size of
+    // its own, never another wording (question 28).
 
-    /// <summary>A widget's content width: the 298 frame less its border (1) and padding (12) a side, as every widget's XAML has them.</summary>
-    private const double Content = WidgetFrame.Width - 2 * 1 - 2 * 12;
+    /// <summary>Every theme, Default included (the layout was made with it, so it is the control).</summary>
+    public static IEnumerable<object[]> EveryTheme() => Theme.All.Select(e => new object[] { e.Id });
 
-    /// <summary>Prime's ✓ / ✗ column (PrimeWindow.BuildRows).</summary>
-    private const double PrimeIcon = 16;
-
-    /// <summary>The stats panel's row names' column (MainWindow.xaml).</summary>
-    private const double LabelColumn = 58;
-
-    private static readonly string[] BarLabels = { "Health", "Stamina", "Hunger", "Thirst", "Damage", "Speed" };
-
-    private static double Measure(string text, ThemeFont font, ThemeWeight weight, double size) =>
-        new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                new Typeface(Theme.FontFamilyOf(font.Address), FontStyles.Normal, weight.ToFontWeight(), FontStretches.Normal),
-                size, Brushes.White, 1.0)
-            .WidthIncludingTrailingWhitespace;
-
-    /// <summary>The themes whose type is a bundled family: the ones these checks are for (Default's Segoe UI is what the layout was made with).</summary>
-    public static IEnumerable<object[]> BundledThemes() =>
-        Theme.All.Where(e => e.Tokens.Font.Family.Bundled || e.Tokens.Font.TitleFamily.Bundled).Select(e => new object[] { e.Id });
-
-    private static ThemeTokens TokensOf(string id) => Theme.All.Single(e => e.Id == id).Tokens;
+    private static List<string> MissesIn(string id, string where) =>
+        FrameContract.Misses(Theme.All.Single(e => e.Id == id).Tokens).Where(m => m.Where == where).Select(m => m.ToString()).ToList();
 
     /// <summary>
     /// Every Prime condition, at every row state's weight (a newly met row is
     /// the widest), fits the room a row has: the content width less the list
-    /// rule and its gap and the icon column. A row that doesn't fit ends in an
-    /// ellipsis in game: the owner hears it before the theme ships, and the
-    /// remedy is the theme's font or weights, never a size (question 28).
+    /// rule and its gap and the icon column.
     /// </summary>
     [Theory]
-    [MemberData(nameof(BundledThemes))]
+    [MemberData(nameof(EveryTheme))]
     public void EveryPrimeRowFits(string id)
     {
-        var t = TokensOf(id);
-        var room = Content - t.ListRule.Width - t.ListRule.Gap - PrimeIcon;
-        var rows = new[] { t.Prime.Met, t.Prime.Unmet, t.Prime.Lost, t.Prime.Fresh, t.Prime.Unchecked };
-        var over = (from text in PrimeConditions.Texts
-                    from row in rows
-                    let w = Measure(text, t.Font.Family, row.Weight, 11)
-                    where w > room
-                    select $"\"{text}\" at {row.Weight}: {w:0.0} px in {room:0.0}").Distinct().ToList();
+        var over = MissesIn(id, FrameContract.PrimeRows);
         Assert.True(over.Count == 0, string.Join("; ", over));
     }
 
     /// <summary>The bars' row names in their 58 px column, at the body weight.</summary>
     [Theory]
-    [MemberData(nameof(BundledThemes))]
+    [MemberData(nameof(EveryTheme))]
     public void TheBarLabelsFitTheirColumn(string id)
     {
-        var t = TokensOf(id);
-        var over = BarLabels.Select(l => (l, w: Measure(l, t.Font.Family, t.Font.BodyWeight, 11)))
-                            .Where(x => x.w > LabelColumn).Select(x => $"\"{x.l}\" {x.w:0.0} px").ToList();
+        var over = MissesIn(id, FrameContract.BarLabels);
         Assert.True(over.Count == 0, string.Join("; ", over));
     }
 
     /// <summary>
     /// The three headers, in every theme's fonts: the title (its own family
-    /// and weight, after the theme's title glyph and its 4 px gap) beside its
-    /// right-hand readout, inside the content width. Prime's and Activity's
-    /// titles don't trim, so their headers must fit whole. The stats panel's
-    /// dino name ends in an ellipsis where it runs long (MainWindow.xaml's
-    /// DinoText: an ellipsis, never another wording, the owner's rule), so
-    /// there the readout and the glyph must still leave the name its first
-    /// letter and the ellipsis, whatever the font. With "Deinosuchus ♂" and a
-    /// growth line (the longest, and a common one), the combat view's corner,
-    /// the longest species the server has (Server rules' list), and the words
-    /// that stand there out of game.
+    /// and weight; the stats panel's after the theme's title glyph and its
+    /// 4 px gap) beside its right-hand readout, inside the content width.
+    /// Prime's and Activity's titles don't trim, so their headers must fit
+    /// whole. The stats panel's dino name ends in an ellipsis where it runs
+    /// long (MainWindow.xaml's DinoText: an ellipsis, never another wording,
+    /// the owner's rule), so there the readout and the glyph must still leave
+    /// the name its first letter and the ellipsis, whatever the font.
     /// </summary>
     [Theory]
-    [MemberData(nameof(BundledThemes))]
+    [MemberData(nameof(EveryTheme))]
     public void EveryHeaderFitsOrItsNameTrims(string id)
     {
-        var t = TokensOf(id);
-        var glyph = ShapeCatalogue.NaturalSize(ShapeSlot.TitleGlyph, t.Shapes.TitleGlyph) is { Width: > 0 } g ? g.Width + 4 : 0;
-        double Title(string s) => Measure(s, t.Font.TitleFamily, t.Font.TitleWeight, 14);
-        double Corner(string s) => Measure(s, t.Font.Family, t.Font.BodyWeight, 12);
-
-        var stats = new[]
-        {
-            ("Deinosuchus ♂", "Growth 99.9% · ~23h 59m"),
-            ("Deinosuchus ♂", "Growth 62.5% · ~2h 18m"),
-            ("Deinosuchus ♂", "Wounded"),
-            ("Pachycephalosaurus ♀", "Fully grown"),
-            ("Pachycephalosaurus ♀", "Growth 62.5% · ~2h 18m"),
-            ("Pachycephalosaurus ♀", "Wounded"),
-            ("Not in-game", ""),
-            ("Not signed in", ""),
-            ("Connecting…", ""),
-        };
-        var whole = new[] { ("Prime", "Not ready · 10/10 (7 needed)"), ("Activity", "12 of 30 friends in game") };
-
-        var problems = new List<string>();
-        foreach (var (name, corner) in stats)
-        {
-            var least = glyph + Title(name[..1] + "…") + Corner(corner);
-            if (least > Content) problems.Add($"\"{name} · {corner}\": the readout leaves the name no room ({least:0.0} px in {Content:0.0})");
-        }
-        foreach (var (title, corner) in whole)
-        {
-            var width = Title(title) + Corner(corner);
-            if (width > Content) problems.Add($"\"{title} · {corner}\": {width:0.0} px in {Content:0.0}, and the title does not trim");
-        }
+        var problems = MissesIn(id, FrameContract.Headers);
         Assert.True(problems.Count == 0, $"{id}: " + string.Join("; ", problems));
+    }
+
+    /// <summary>
+    /// The contract catches what it is for: Default's tokens at a factor of
+    /// 2 (its body text twice as big, as a font far wider and taller than any
+    /// bundled one would be) miss in every group, and a miss names its string;
+    /// at its own 1.00 nothing misses.
+    /// </summary>
+    [Fact]
+    public void TheContractFindsAStringThatDoesNotFit()
+    {
+        var d = DefaultTheme.Tokens;
+        var wide = d with { Fit = 2 };
+        var misses = FrameContract.Misses(wide).ToList();
+        foreach (var where in new[] { FrameContract.PrimeRows, FrameContract.BarLabels, FrameContract.Headers, FrameContract.ControlPanel })
+            Assert.Contains(misses, m => m.Where == where);
+        Assert.Contains(misses, m => m.Name == "Stamina");
+        Assert.Empty(FrameContract.Misses(d));
     }
 
     /// <summary>

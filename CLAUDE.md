@@ -244,7 +244,9 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   switch), `Controls.xaml` (every control template, shared by every window
   and every theme), the shape catalogue (`ShapeCatalogue`, drawn by
   `ThemeShape`), the frames (`ThemedBorder`, `FrameGeometry`, `ThemedBar`)
-  and the painted glow (`PaintedGlow`, `CutOutline`). The plan and the
+  and the painted glow (`PaintedGlow`, `CutOutline`); the fit factor
+  (`Themes/Fit/`: `FitProbe`, the walk; `FrameContract`, the tight strings;
+  `FitFactor`, the numbers). The plan and the
   owner's decisions: `Desktop\Pandora Overlay Files\pandora-themes\PLAN.md`,
   with `DESIGN.md`, `REVIEW.md` and `EDITOR.md` beside it.
 - `Stats/` — the stats panel's trackers and rules.
@@ -415,6 +417,18 @@ all) — say so when it matters:
   measurement of Discord's page only). The QR login itself works in the
   window: a player signed in with it on 1.40 after zooming the page out
   (Oct 29).
+
+BUILT Oct 30 2026, not released (the owner's look in game next; no
+CHANGELOG line while every bundled theme is at 1.00): **the fit factor**
+(`pandora-themes\FIT.md`), so that Nightshade and Calico, both designed in
+Nunito, fit the frames that never move. A theme's body font is drawn at one
+factor, `"Fit"` in its file (0.85 to 1.00), computed by `FitFactorTests`
+from the frame contract and the walk over the dialogs; below 0.85 a font is
+refused. Every body text size is a `Theme.Size.N` key now, the Settings
+pages not shown are Collapsed (each measured on its own), and a theme switch
+logs one line with the theme's factor and a count of overflows. Default,
+Isle and Pandora compute 1.00; the Nightshade draft, tried and taken out
+again, 0.98.
 
 SHIPPED in 1.40.1 (Oct 29 2026, no pre-release, the owner's call): **the
 sign-in window shows Discord's QR code**. Discord's login leaves the code
@@ -681,8 +695,13 @@ Themes (Oct 24–25 2026)
   names STATES (a bar's quarters, a Prime row's Met / Unmet / Lost / Fresh, a
   frame's Locked / Edit) and decides which applies; a theme colours them. A
   theme paints only: never a size, a position, a wording or a behaviour. A
-  string that no longer fits in a theme's font ends in an ellipsis. A glow is
-  painted, never an `Effect`. A code-built Settings page redraws from the
+  string that no longer fits in a theme's font ends in an ellipsis. A theme's
+  body font is held to the frames by its fit factor (FIT.md, Oct 30 2026: one
+  number per theme, `"Fit"` in its file, 0.85 to 1.00, computed and checked
+  by `FitFactorTests`; below 0.85 the font is refused), so no body text size
+  is a literal: `Theme.Size.N` in XAML, `Theme.Current.Size(n)` in code, a
+  title alone keeping its own. A glow is painted, never an `Effect`. A
+  code-built Settings page redraws from the
   data it holds, never by its `Open…` (a theme click must never become a
   request trigger, constraint 2).
 - **Tests test the theme framework, never a theme** (the owner, Oct 27

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Reflection;
@@ -45,6 +46,18 @@ namespace PandoraOverlay;
 /// WPF's own slider, which no drawing can be, so it is a Style choice made
 /// here (REVIEW.md objection 6).
 /// </para>
+/// <para>
+/// <b>Text sizes</b> (the fit factor, FIT.md): every body text size the
+/// windows use has a key of its own, <c>Theme.Size.11</c> for 11
+/// (<see cref="BodySizes"/>), holding that size times the theme's fit factor,
+/// and the four text-size tokens (<see cref="TextSizeTokens"/>) are written
+/// multiplied the same way; code sizes its text by
+/// <c>Theme.Current.Size(11)</c>. So a theme whose font runs taller or wider
+/// than the frames were built for is drawn a little smaller, by one number
+/// for the whole overlay, and never changes a frame. With a factor of 1.00
+/// (Default's, and every bundled theme's so far) <c>Theme.Size.11</c> is 11:
+/// the pixels are the ones a literal 11 drew.
+/// </para>
 /// </summary>
 public static class Theme
 {
@@ -59,6 +72,27 @@ public static class Theme
 
     /// <summary>The key, in Controls.xaml, of the drawn slider's Style; a Stock thumb needs none.</summary>
     public const string ThemedSliderKey = "ThemedSlider";
+
+    /// <summary>
+    /// Every body text size the windows use (the survey of FIT.md section 5,
+    /// with 9.5, the nav's captions, and 10.5, sized in code, which it
+    /// missed), each a key of its own: <c>Theme.Size.9</c> … <c>Theme.Size.30</c>.
+    /// A size a window needs and this list lacks is one more number here
+    /// (ThemedWindowsTests holds every Theme.Size key the XAML names to it).
+    /// </summary>
+    public static readonly IReadOnlyList<double> BodySizes = new[] { 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 14, 15, 16, 18, 20, 30 };
+
+    /// <summary>The four text sizes a theme names as tokens, written multiplied by its fit factor like the body sizes.</summary>
+    internal static readonly IReadOnlySet<string> TextSizeTokens = new HashSet<string>(StringComparer.Ordinal)
+    {
+        KeyPrefix + "Font.ControlPanelButtonSize",
+        KeyPrefix + "Font.BadgeSize",
+        KeyPrefix + "Font.MapAreaNameSize",
+        KeyPrefix + "Font.MapNameSize",
+    };
+
+    /// <summary>A body size's resource key: <c>Theme.Size.11</c>, <c>Theme.Size.11.5</c>.</summary>
+    public static string SizeKey(double size) => KeyPrefix + "Size." + size.ToString(CultureInfo.InvariantCulture);
 
     private const string ResourcePrefix = "Themes/";
     private const string ControlsAddress = "/PandoraOverlay;component/Themes/Controls.xaml";
@@ -138,6 +172,26 @@ public static class Theme
     }
 
     /// <summary>
+    /// The self-check after a switch (the fit factor, the owner's answer of
+    /// Oct 30 2026): once the live windows are laid out in the theme just
+    /// applied, the walk (<see cref="FitProbe"/>) over their roots, and ONE
+    /// line at the log's quiet level: the theme's id, its fit factor and how
+    /// many overflows it found (a line past its room, an ellipsis included,
+    /// and a page that would scroll). Facts only, never a string's text. A
+    /// theme file whose factor its font does not keep shows here as a number,
+    /// and nothing else happens: the overflow is on screen as the ellipsis or
+    /// the scrollbar it is. A bundled theme's factor is the tests' (0 here on
+    /// most screens; a long dino name trims in Default too). Reads the windows,
+    /// changes nothing, asks nothing.
+    /// </summary>
+    public static void LogFit(string? id, IEnumerable<FrameworkElement> roots)
+    {
+        var entry = Resolve(id);
+        var overflows = FitProbe.Count(roots);
+        AppLog.App.Log(FormattableString.Invariant($"Theme fit: {entry.Id} at {entry.Fit:0.00}, {overflows} overflow{(overflows == 1 ? "" : "s")}"));
+    }
+
+    /// <summary>
     /// For windows built without the App (the golden-render harness, and any
     /// harness after it): merges Controls.xaml and puts Default's dictionary
     /// in place, once. In the overlay App.xaml has merged Controls.xaml and
@@ -164,7 +218,12 @@ public static class Theme
     private static Application Host() =>
         Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
 
-    private static void Install(ThemeTokens tokens)
+    /// <summary>
+    /// The tokens on screen, with no entry behind them: Apply's work, and the
+    /// tests' way to lay the windows out in a sample theme or at a candidate
+    /// fit factor (FitFactorTests), which no entry has.
+    /// </summary>
+    internal static void Install(ThemeTokens tokens)
     {
         var app = Host();
         var fresh = BuildDictionary(tokens, app);
@@ -205,11 +264,15 @@ public static class Theme
                     dictionary[key] = b;
                     dictionary[key + ".Visibility"] = b ? Visibility.Visible : Visibility.Collapsed;
                     break;
+                case double size when TextSizeTokens.Contains(key):
+                    dictionary[key] = tokens.Size(size);
+                    break;
                 default: // double, string, ShapeKind
                     dictionary[key] = value;
                     break;
             }
         }
+        foreach (var size in BodySizes) dictionary[SizeKey(size)] = tokens.Size(size);
         dictionary[SliderStyleKey] = SliderStyle(tokens.Shapes.SliderThumb, app);
         return dictionary;
     }
@@ -274,6 +337,7 @@ public static class Theme
     private static HashSet<string> BuildKeys()
     {
         var keys = new HashSet<string>(StringComparer.Ordinal) { SliderStyleKey };
+        keys.UnionWith(BodySizes.Select(SizeKey));
         foreach (var (key, type) in LeafTypes(typeof(ThemeTokens), KeyPrefix.TrimEnd('.')))
         {
             keys.Add(key);

@@ -173,6 +173,45 @@ public class ThemeFileTests
     public void ABrokenFileFails(string json, string message) =>
         Assert.Contains(message, Assert.Throws<ThemeFileException>(() => Parse(json)).Message);
 
+    // ---- The fit factor, beside Name and Order (FIT.md) ---------------------------
+
+    /// <summary>"Fit" parses with two decimals from the floor to full size, into the tokens (their text sizes) and the entry; absent is 1.00.</summary>
+    [Theory]
+    [InlineData("1.00", 1.00)]
+    [InlineData("1", 1.00)]
+    [InlineData("0.91", 0.91)]
+    [InlineData("0.85", 0.85)]
+    [InlineData("0.9", 0.90)]
+    public void AFitFactorParses(string fit, double expected)
+    {
+        var entry = Parse($$"""{ "Name": "Sample", "Order": 1, "Fit": {{fit}}, "Tokens": {} }""");
+        Assert.Equal(expected, entry.Fit);
+        Assert.Equal(expected, entry.Tokens.Fit);
+        Assert.Equal(11 * expected, entry.Tokens.Size(11), 10);
+        // The very number FitFactor's candidates give: the test's computed value compares equal.
+        Assert.Contains(entry.Fit, FitFactor.Candidates());
+    }
+
+    /// <summary>A file written before the fit factor's release has no "Fit": full size, and otherwise Default.</summary>
+    [Fact]
+    public void NoFitIsFullSize()
+    {
+        var entry = Parse(WithTokens("{}"));
+        Assert.Equal(FitFactor.Full, entry.Fit);
+        Assert.Equal(D, entry.Tokens);
+    }
+
+    /// <summary>A fit factor outside the floor and full size, with a third decimal, not a number, or among the Tokens (it is no token), fails.</summary>
+    [Theory]
+    [InlineData("""{ "Name": "Sample", "Order": 1, "Fit": 0.84, "Tokens": {} }""", "Fit 0.84 is not from 0.85 to 1.00")]
+    [InlineData("""{ "Name": "Sample", "Order": 1, "Fit": 1.01, "Tokens": {} }""", "Fit 1.01 is not from 0.85 to 1.00")]
+    [InlineData("""{ "Name": "Sample", "Order": 1, "Fit": 0.915, "Tokens": {} }""", "more than two decimals")]
+    [InlineData("""{ "Name": "Sample", "Order": 1, "Fit": "0.91", "Tokens": {} }""", "Fit is not a number")]
+    [InlineData("""{ "Name": "Sample", "Order": 1, "Fit": null, "Tokens": {} }""", "Fit is not a number")]
+    [InlineData("""{ "Name": "Sample", "Order": 1, "Tokens": { "Fit": 0.91 } }""", "Tokens.Fit is not a token")]
+    public void ABadFitFails(string json, string message) =>
+        Assert.Contains(message, Assert.Throws<ThemeFileException>(() => Parse(json)).Message);
+
     // ---- Default is today's look ------------------------------------------------
 
     /// <summary>
@@ -549,6 +588,9 @@ public class ThemeFileTests
         Assert.Equal(FontWeights.Bold, dictionary["Theme.Font.TitleWeight"]);
         Assert.Equal("Segoe UI", Assert.IsType<FontFamily>(dictionary["Theme.Font.Family"]).Source);
         Assert.Equal("Segoe UI", Assert.IsType<FontFamily>(dictionary["Theme.Font.TitleFamily"]).Source);
+        Assert.Equal(11.0, dictionary["Theme.Size.11"]); // Default's fit factor is 1.00: a size key is its size
+        Assert.Equal(11.5, dictionary["Theme.Size.11.5"]);
+        Assert.Equal(10.0, dictionary["Theme.Font.BadgeSize"]);
         Assert.Equal(true, dictionary["Theme.Map.WindowRounded"]);
         Assert.Equal(Visibility.Visible, dictionary["Theme.Map.WindowRounded.Visibility"]);
         Assert.Equal(ShapeKind.Circle, dictionary["Theme.Shapes.Radio"]);
@@ -559,6 +601,32 @@ public class ThemeFileTests
         Assert.Equal(typeof(Slider), slider.TargetType);
         Assert.Empty(slider.Setters);
         Assert.Null(slider.BasedOn);
+    }
+
+    /// <summary>
+    /// A fit factor below 1.00 (a sample theme's) shrinks exactly the text
+    /// sizes: every Theme.Size key and the four text-size tokens, by the one
+    /// number, and Size(n) in code alike; nothing else in the dictionary moves
+    /// (the bar height is a size inside a frame, not text). FIT.md section 4.
+    /// </summary>
+    [Fact]
+    public void AFitFactorShrinksTheTextSizesOnly()
+    {
+        var full = Theme.BuildDictionary(D);
+        var fitted = D with { Fit = 0.9 };
+        var small = Theme.BuildDictionary(fitted);
+
+        Assert.Equal(9.9, fitted.Size(11), 10);
+        foreach (var size in Theme.BodySizes) Assert.Equal(size * 0.9, (double)small[Theme.SizeKey(size)], 10);
+        Assert.Equal(D.Font.BadgeSize * 0.9, (double)small["Theme.Font.BadgeSize"], 10);
+        Assert.Equal(D.Font.ControlPanelButtonSize * 0.9, (double)small["Theme.Font.ControlPanelButtonSize"], 10);
+        Assert.Equal(D.Font.MapAreaNameSize * 0.9, (double)small["Theme.Font.MapAreaNameSize"], 10);
+        Assert.Equal(D.Font.MapNameSize * 0.9, (double)small["Theme.Font.MapNameSize"], 10);
+
+        var moved = full.Keys.Cast<string>()
+            .Where(k => full[k] is double && !Equals(full[k], small[k]))
+            .OrderBy(k => k, StringComparer.Ordinal);
+        Assert.Equal(Theme.BodySizes.Select(Theme.SizeKey).Concat(Theme.TextSizeTokens).OrderBy(k => k, StringComparer.Ordinal), moved);
     }
 
     /// <summary>The tokens carry no identity: no code outside Themes/ can ask which theme is on (PLAN.md section 0).</summary>

@@ -36,7 +36,7 @@
                        Margin="0,0,0,8" Background="Transparent">
                 <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Close_Click"
                         Style="{StaticResource DangerButtonStyle}"
-                        Width="22" Height="22" Padding="0" FontSize="10"/>
+                        Width="22" Height="22" Padding="0" FontSize="{DynamicResource Theme.Size.10}"/>
                 <local:ThemeShape DockPanel.Dock="Left" Slot="TitleGlyph" Kind="{DynamicResource Theme.Shapes.TitleGlyph}"
                                   Stroke="{DynamicResource Theme.Text.Glyph}" Gap="4"/>
                 <TextBlock Text="Pandora Overlay settings"
@@ -55,14 +55,14 @@
                 <Button DockPanel.Dock="Right" Content="Close" Click="Close_Click"
                         Style="{StaticResource NeutralButtonStyle}"/>
                 <TextBlock Text="Changes apply as you make them. A click on the game closes this window."
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
 
             <!-- Nav on the left, one page on the right. Pages that aren't
-                 selected are Hidden (not Collapsed), so the grid keeps the
-                 tallest page's height, as when the tallest page set the
-                 dialog's (until 1.39); the frame is fixed now, and every page
-                 must fit inside it (SettingsFrame). -->
+                 selected are Collapsed (Hidden until the fit factor's release,
+                 which kept the grid as tall as the tallest page, from the days
+                 that page set the dialog's height): each page is measured on its
+                 own in the fixed frame (SettingsFrame), and must fit inside it. -->
             <!-- Our own nav, not the stock TabControl: its light chrome doesn't
                  theme. The nav is grouped (owner, Oct 22 2026): the overlay's
                  own pages, then the website's pages under a caption, then
@@ -103,7 +103,9 @@
                 </StackPanel>
 
                 <Border Grid.Column="1" BorderBrush="{DynamicResource Theme.Separator}" BorderThickness="1,0,0,0" Padding="16,0,0,0">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <!-- The page column: the frame holds every page whole in every theme (FitProbe.HoldsWhole,
+                         the fit factor's walk); a page that does not fit scrolls, never the dialog. -->
+                    <ScrollViewer local:FitProbe.HoldsWhole="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <Grid x:Name="Pages">
 
             <!-- ============================ Account ======================== -->
@@ -116,7 +118,7 @@
             <StackPanel Tag="Account">
             <TextBlock Style="{StaticResource PageTitle}" Text="ACCOUNT"/>
 
-            <TextBlock x:Name="AccountStatus" FontSize="12" TextWrapping="Wrap"/>
+            <TextBlock x:Name="AccountStatus" FontSize="{DynamicResource Theme.Size.12}" TextWrapping="Wrap"/>
 
             <!-- Not signed in: the button, and what happens when it is clicked. -->
             <Border x:Name="SignInCard" Background="{DynamicResource Theme.InfoCard.Surface}" BorderBrush="{DynamicResource Theme.InfoCard.Line}" BorderThickness="1"
@@ -126,22 +128,22 @@
                         <Button x:Name="SignInButton" DockPanel.Dock="Left" Content="Sign in with Discord"
                                 Click="SignIn_Click" Style="{StaticResource DiscordButtonStyle}" VerticalAlignment="Center"/>
                         <TextBlock Text="Opens the website's own login in a small window. About a minute."
-                                   Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                   Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,0"/>
                     </DockPanel>
                     <Border Height="1" Background="{DynamicResource Theme.InfoCard.Line}" Margin="0,12,0,10"/>
                     <DockPanel Margin="0,0,0,8">
-                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource Theme.Text.Good}" Margin="0,2,10,0" VerticalAlignment="Top"/>
-                        <TextBlock Foreground="{DynamicResource Theme.Text.Text2}" FontSize="11.5" TextWrapping="Wrap"
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="{DynamicResource Theme.Size.11}" Foreground="{DynamicResource Theme.Text.Good}" Margin="0,2,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Foreground="{DynamicResource Theme.Text.Text2}" FontSize="{DynamicResource Theme.Size.11.5}" TextWrapping="Wrap"
                                    Text="You log in on Discord's page, as on islapandora.eu. Your password goes to Discord, never to the overlay — or skip typing it and scan the QR code with the Discord app."/>
                     </DockPanel>
                     <DockPanel Margin="0,0,0,8">
-                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource Theme.Text.Good}" Margin="0,2,10,0" VerticalAlignment="Top"/>
-                        <TextBlock Foreground="{DynamicResource Theme.Text.Text2}" FontSize="11.5" TextWrapping="Wrap"
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="{DynamicResource Theme.Size.11}" Foreground="{DynamicResource Theme.Text.Good}" Margin="0,2,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Foreground="{DynamicResource Theme.Text.Text2}" FontSize="{DynamicResource Theme.Size.11.5}" TextWrapping="Wrap"
                                    Text="The overlay keeps only the website session, encrypted for your Windows user. Nothing to copy, nothing on the clipboard."/>
                     </DockPanel>
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource Theme.Text.Good}" Margin="0,2,10,0" VerticalAlignment="Top"/>
-                        <TextBlock Foreground="{DynamicResource Theme.Text.Text2}" FontSize="11.5" TextWrapping="Wrap"
+                        <TextBlock DockPanel.Dock="Left" Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="{DynamicResource Theme.Size.11}" Foreground="{DynamicResource Theme.Text.Good}" Margin="0,2,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Foreground="{DynamicResource Theme.Text.Text2}" FontSize="{DynamicResource Theme.Size.11.5}" TextWrapping="Wrap"
                                    Text="Your Steam account must be linked on the website (one LinkID typed in game chat, once)."/>
                     </DockPanel>
                 </StackPanel>
@@ -162,7 +164,7 @@
                              is drawn over it once a saved or downloaded copy is there. -->
                         <Grid DockPanel.Dock="Left" Width="40" Height="40" VerticalAlignment="Center">
                             <Border CornerRadius="{x:Static local:SettingsWindow.AvatarCircle}" Background="{x:Static local:SiteBrushes.Discord}">
-                                <TextBlock x:Name="AccountInitial" Foreground="{x:Static local:SiteBrushes.DiscordText}" FontSize="18" FontWeight="Bold"
+                                <TextBlock x:Name="AccountInitial" Foreground="{x:Static local:SiteBrushes.DiscordText}" FontSize="{DynamicResource Theme.Size.18}" FontWeight="Bold"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <Ellipse x:Name="AccountAvatar" Visibility="Collapsed">
@@ -172,8 +174,8 @@
                             </Ellipse>
                         </Grid>
                         <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                            <TextBlock x:Name="AccountNameText" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="15" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="on islapandora.eu" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11"/>
+                            <TextBlock x:Name="AccountNameText" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.15}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="on islapandora.eu" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}"/>
                         </StackPanel>
                     </DockPanel>
                     <Grid Margin="0,14,0,0">
@@ -185,14 +187,14 @@
                             <RowDefinition/>
                             <RowDefinition/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Steam" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11.5" Margin="0,0,0,6"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="SteamText" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Signed in" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11.5"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="SignedInText" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11.5" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Steam" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11.5}" Margin="0,0,0,6"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="SteamText" Foreground="{DynamicResource Theme.Text.Text}" FontSize="{DynamicResource Theme.Size.11.5}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Signed in" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11.5}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="SignedInText" Foreground="{DynamicResource Theme.Text.Text}" FontSize="{DynamicResource Theme.Size.11.5}" TextWrapping="Wrap"/>
                     </Grid>
                 </StackPanel>
             </Border>
-            <TextBlock x:Name="AccountHint" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+            <TextBlock x:Name="AccountHint" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 
             <!-- ============================ General ======================== -->
@@ -201,7 +203,7 @@
                  their widgets: each plays whether or not its widget is on
                  screen (owner, Oct 22 2026; the friend chime came from Friends,
                  the two stat chimes from the stats panel's page). -->
-            <StackPanel Tag="General" Visibility="Hidden">
+            <StackPanel Tag="General" Visibility="Collapsed">
             <TextBlock Style="{StaticResource PageTitle}" Text="GENERAL"/>
 
             <CheckBox x:Name="StartupCheck" Style="{StaticResource Check}" Content="Start with Windows"/>
@@ -234,7 +236,7 @@
                 <Button x:Name="ResetPositionsButton" DockPanel.Dock="Left" Content="Reset positions" Click="ResetPositions_Click"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="Puts every panel back in the default layout: Prime tracker and Activity feed top-left, minimap and stats panel top-right, control panel bottom-centre. Sizes stay as they are."
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="SOUNDS"/>
@@ -245,7 +247,7 @@
             <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Chime when a friend spawns in"/>
             <TextBlock Text="Each one plays the Windows &quot;Exclamation&quot; sound."
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 
             <!-- ============================ Themes ========================= -->
@@ -255,13 +257,13 @@
                  themes (SettingsWindow.Themes.cs), so a theme's file adds its
                  own row. A theme only paints: every window changes at once,
                  no size or position moves. -->
-            <StackPanel Tag="Themes" Visibility="Hidden">
+            <StackPanel Tag="Themes" Visibility="Collapsed">
             <TextBlock Style="{StaticResource PageTitle}" Text="THEMES"/>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="THEME" Margin="0,0,0,6"/>
             <StackPanel x:Name="ThemeList"/>
             <TextBlock Text="Every window changes at once. Sizes and positions stay as they are."
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 
             <!-- ============================ Hotkeys ======================== -->
@@ -269,7 +271,7 @@
                  the overlay itself (F1–F4), the widgets in the control panel's
                  order (F5–F8), the website (F9), the map (M). Was "Controls"
                  until 1.37: the name read like the control panel. -->
-            <StackPanel Tag="Hotkeys" Visibility="Hidden">
+            <StackPanel Tag="Hotkeys" Visibility="Collapsed">
             <TextBlock Style="{StaticResource PageTitle}" Text="HOTKEYS"/>
 
             <StackPanel Orientation="Horizontal">
@@ -337,7 +339,7 @@
             </StackPanel>
             <TextBlock x:Name="HotkeyHint"
                        Text="Click a box, then press the combination you want."
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap"
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap"
                        Margin="0,6,0,0"/>
             <!-- 1.38: an update keeps a player's keys (OverlayConfig.DefaultHotkey);
                  this moves them to the layout a fresh install gets. Two clicks:
@@ -346,7 +348,7 @@
                 <Button x:Name="DefaultKeysButton" DockPanel.Dock="Left" Content="Use the default keys" Click="DefaultKeys_Click"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="F1–F4 the overlay, F5–F8 the widgets in the control panel's order, F9 the website, M the map. Updating the overlay keeps the keys you have."
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
             </StackPanel>
 
@@ -356,7 +358,7 @@
                  (owner, Oct 22 2026: the Prime tracker's page held one slider).
                  The minimap is on the Maps page. The control panel has a Scale
                  of its own since 1.37; it used to ride the stats panel's. -->
-            <StackPanel Tag="Widgets" Visibility="Hidden">
+            <StackPanel Tag="Widgets" Visibility="Collapsed">
             <TextBlock Style="{StaticResource PageTitle}" Text="WIDGETS"/>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="STATS PANEL" Margin="0,0,0,6"/>
@@ -411,7 +413,7 @@
                       Content="Name the island's areas: entering one, and where you or a friend spawned"/>
             <!-- The full list of what the feed posts is the README's: the page keeps
                  what a choice here changes, the friends list's request included. -->
-            <TextBlock Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"
+            <TextBlock Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"
                        Text="The feed keeps the last ten minutes of your own events. With friends' events included it also shows theirs, and the friends list is fetched while the widget is shown."/>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="CONTROL PANEL"/>
@@ -433,7 +435,7 @@
                  here (removed Sep 2026): something flipped mid-game is not a
                  preference — the heatmap hotkey and the control panel's Heatmap
                  button own it. -->
-            <StackPanel Tag="Maps" Visibility="Hidden">
+            <StackPanel Tag="Maps" Visibility="Collapsed">
             <TextBlock Style="{StaticResource PageTitle}" Text="MAPS"/>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="MINIMAP" Margin="0,0,0,6"/>
@@ -491,16 +493,16 @@
                              GroupName="Trail" Margin="14,0,0,0"/>
             </StackPanel>
             <TextBlock Text="Everything else on the map is in its Layers menu, at its top right."
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 
             <!-- ============================ Waypoints ===================== -->
             <!-- The rows edit the page's own copy of the library, copied into it
                  as they change (SettingsWindow.Apply.cs). -->
-            <StackPanel Tag="Waypoints" Visibility="Hidden">
+            <StackPanel Tag="Waypoints" Visibility="Collapsed">
             <DockPanel Margin="0,4,0,8">
                 <TextBlock x:Name="WaypointCount" DockPanel.Dock="Right"
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" VerticalAlignment="Center"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" VerticalAlignment="Center"/>
                 <TextBlock Style="{StaticResource PageTitle}" Text="WAYPOINTS" Margin="0"/>
             </DockPanel>
             <!-- The column labels; the side margins are set in code to match the cards below. -->
@@ -512,11 +514,11 @@
                     <ColumnDefinition Width="52"/>
                     <ColumnDefinition Width="46"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Colour" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="1" Text="Name" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" Margin="8,0,0,0"/>
-                <TextBlock Grid.Column="2" Text="Show" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="3" Text="Track" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="4" Text="Delete" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="0" Text="Colour" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="Name" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" Margin="8,0,0,0"/>
+                <TextBlock Grid.Column="2" Text="Show" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="3" Text="Track" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="4" Text="Delete" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
             </Grid>
             <!-- The bar's space is always reserved so the cards keep one width; the
                  bar itself fades out when there is nothing to scroll (DarkScrollBar).
@@ -528,7 +530,7 @@
                 </ScrollViewer.Resources>
                 <StackPanel x:Name="WaypointRows" Margin="0,0,6,0"/>
             </ScrollViewer>
-            <TextBlock x:Name="WaypointStatus" Foreground="{DynamicResource Theme.Text.Label}" FontSize="11" TextWrapping="Wrap"
+            <TextBlock x:Name="WaypointStatus" Foreground="{DynamicResource Theme.Text.Label}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap"
                        Margin="0,6,0,0" Visibility="Collapsed"/>
             <DockPanel Margin="0,8,0,0">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -540,7 +542,7 @@
                             Style="{StaticResource DangerButtonStyle}"/>
                 </StackPanel>
                 <TextBlock Text="Right-click the map in edit mode to add one; click a dot to recolour."
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
             </StackPanel>
 
@@ -549,10 +551,10 @@
                  (managed there), the nickname, colour, map and feed choices
                  are yours, edited on the page's own copy and applied as they
                  change. -->
-            <StackPanel Tag="Friends" Visibility="Hidden">
+            <StackPanel Tag="Friends" Visibility="Collapsed">
             <DockPanel Margin="0,4,0,8">
                 <TextBlock x:Name="FriendCount" DockPanel.Dock="Right"
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" VerticalAlignment="Center"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" VerticalAlignment="Center"/>
                 <TextBlock Style="{StaticResource PageTitle}" Text="FRIENDS" Margin="0"/>
             </DockPanel>
             <!-- The friend-spawn chime moved to General's Sounds (1.37): a friends
@@ -571,12 +573,12 @@
                     <ColumnDefinition Width="46"/>
                     <ColumnDefinition Width="46"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Colour" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="1" Text="Name" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" Margin="8,0,0,0"/>
-                <TextBlock Grid.Column="2" Text="Last seen" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="3" Text="Map" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="4" Text="Feed" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="5" Text="Track" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="10" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="0" Text="Colour" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="Name" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" Margin="8,0,0,0"/>
+                <TextBlock Grid.Column="2" Text="Last seen" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="3" Text="Map" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="4" Text="Feed" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="5" Text="Track" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
             </Grid>
             <ScrollViewer x:Name="FriendList" Height="200" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
                 <ScrollViewer.Resources>
@@ -588,26 +590,26 @@
                 <Button DockPanel.Dock="Right" Content="Manage on islapandora.eu" Click="ManageFriends_Click"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="Names and colours here stay on this PC. Adding, removing and hiding your location happen on the website."
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
             </StackPanel>
 
             <!-- ============================ Skins ========================== -->
             <!-- The website's Patreon skins page as tiles (built in code). Apply
                  changes your dino's skin in game, like the site's own button. -->
-            <StackPanel Tag="Skins" Visibility="Hidden">
+            <StackPanel Tag="Skins" Visibility="Collapsed">
             <DockPanel Margin="0,4,0,6">
                 <TextBlock x:Name="SkinCount" DockPanel.Dock="Right"
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" VerticalAlignment="Center"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" VerticalAlignment="Center"/>
                 <TextBlock Style="{StaticResource PageTitle}" Text="PATREON SKINS" Margin="0"/>
             </DockPanel>
             <!-- Status on the left, "Apply your favourite" for your current dino on the
                  right; the row keeps its height so the list never shifts. -->
             <DockPanel Height="30" Margin="0,0,0,6">
                 <Button x:Name="SkinFavouriteButton" DockPanel.Dock="Right" Click="SkinFavourite_Click"
-                        Style="{StaticResource SaveButtonStyle}" Padding="10,4" FontSize="11"
+                        Style="{StaticResource SaveButtonStyle}" Padding="10,4" FontSize="{DynamicResource Theme.Size.11}"
                         MaxWidth="210" VerticalAlignment="Center" Margin="10,0,0,0" Visibility="Hidden"/>
-                <TextBlock x:Name="SkinStatus" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap"
+                <TextBlock x:Name="SkinStatus" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap"
                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
             </DockPanel>
             <DockPanel Margin="0,0,0,8">
@@ -632,7 +634,7 @@
                  the LIST again (one small request); Reload pictures discards the
                  saved thumbnails, so it is its own, knowingly pressed button. -->
             <TextBlock Text="Apply presses the same button as the website's Patreon page and changes your dino in game. Tiers and the cooldown are the server's."
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                 <Button x:Name="SkinRefreshButton" Content="Refresh" Click="SkinRefresh_Click"
                         Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"
@@ -653,10 +655,10 @@
                  the cards built in code every time the page is opened, like
                  the website's page; the list's height keeps the page no
                  taller than the Skins page, so the dialog doesn't grow. -->
-            <StackPanel Tag="Storage" Visibility="Hidden">
+            <StackPanel Tag="Storage" Visibility="Collapsed">
             <DockPanel Margin="0,4,0,6">
                 <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
-                    <TextBlock x:Name="StorageCount" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" HorizontalAlignment="Right"/>
+                    <TextBlock x:Name="StorageCount" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" HorizontalAlignment="Right"/>
                     <Border x:Name="StorageSlotBar" Width="90" Height="3" Background="{DynamicResource Theme.Storage.SlotsTrack}"
                             HorizontalAlignment="Right" Margin="0,3,0,0" Visibility="Collapsed">
                         <Border x:Name="StorageSlotFill" Width="0" HorizontalAlignment="Left" Background="{DynamicResource Theme.Storage.Slots}"/>
@@ -666,7 +668,7 @@
             </DockPanel>
             <!-- The status keeps its height so the list never shifts. -->
             <DockPanel Height="30" Margin="0,0,0,6">
-                <TextBlock x:Name="StorageStatus" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap"
+                <TextBlock x:Name="StorageStatus" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap"
                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
             </DockPanel>
             <ScrollViewer x:Name="StorageList" Height="331" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
@@ -677,7 +679,7 @@
             </ScrollViewer>
             <!-- One line on purpose: every pixel of height went to the list, so an open card fits in it. -->
             <TextBlock Text="Rename and Delete send the same requests as the website's own buttons."
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                 <Button x:Name="StorageRefreshButton" Content="Refresh" Click="StorageRefresh_Click"
                         Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"
@@ -691,13 +693,13 @@
             <!-- Reference, not preferences: the bundled copy of the site's rules
                  page (ServerRules), pack limits first because "can we run five
                  Ceratos?" is the in-game question; your species is highlighted. -->
-            <StackPanel Tag="Rules" Visibility="Hidden">
+            <StackPanel Tag="Rules" Visibility="Collapsed">
             <DockPanel Margin="0,4,0,6">
                 <TextBlock x:Name="RulesStamp" DockPanel.Dock="Right"
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" VerticalAlignment="Center"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" VerticalAlignment="Center"/>
                 <TextBlock Style="{StaticResource PageTitle}" Text="SERVER RULES" Margin="0"/>
             </DockPanel>
-            <TextBlock x:Name="RulesNote" Foreground="{DynamicResource Theme.Text.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <TextBlock x:Name="RulesNote" Foreground="{DynamicResource Theme.Text.Label}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,0,0,8"/>
             <ScrollViewer x:Name="RulesList" Height="340" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
                 <ScrollViewer.Resources>
                     <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
@@ -712,19 +714,19 @@
                             Style="{StaticResource NeutralButtonStyle}"/>
                 </StackPanel>
                 <TextBlock Text="A copy of the website's rules page, kept with the app. When in doubt, the Discord rules win."
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
             </StackPanel>
 
             <!-- ============================ About ========================= -->
             <!-- This copy of the overlay: version and flavour, updates, where the
                  settings live, the links (SettingsWindow.About.cs). -->
-            <StackPanel Tag="About" Visibility="Hidden">
+            <StackPanel Tag="About" Visibility="Collapsed">
             <TextBlock Style="{StaticResource PageTitle}" Text="ABOUT"/>
 
-            <TextBlock x:Name="AboutVersion" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="13" FontWeight="SemiBold"/>
+            <TextBlock x:Name="AboutVersion" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.13}" FontWeight="SemiBold"/>
             <TextBlock Text="A fully external overlay for The Isle: Evrima on Isla Pandora. Everything it shows comes from the islapandora.eu website's own requests; it never touches the game."
-                       Foreground="{DynamicResource Theme.Text.Label}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Label}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="UPDATES" Margin="0,16,0,4"/>
             <!-- The launch check is one request to GitHub; installing is always a click. -->
@@ -739,12 +741,12 @@
                     <Button x:Name="WhatsNewButton" Content="What's new" Click="WhatsNew_Click"
                             Style="{StaticResource NeutralButtonStyle}"/>
                 </StackPanel>
-                <TextBlock x:Name="UpdateText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"
+                <TextBlock x:Name="UpdateText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"
                            Text="Installing an update is always your click: the overlay downloads it, closes and comes back on the new version."/>
             </DockPanel>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="YOUR SETTINGS" Margin="0,16,0,4"/>
-            <TextBlock x:Name="DataFolderText" Foreground="{DynamicResource Theme.Text.Text}" FontSize="11" TextWrapping="Wrap" FontFamily="Consolas"/>
+            <TextBlock x:Name="DataFolderText" Foreground="{DynamicResource Theme.Text.Text}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" FontFamily="Consolas"/>
             <!-- "Import from an older copy…" was here (1.30–1.37), for the move
                  to %AppData%; cut in 1.38 (owner, Oct 24 2026): copies older than
                  1.30 can't connect since Oct 12, the first start still moves an
@@ -753,7 +755,7 @@
                 <Button DockPanel.Dock="Left" Content="Open folder" Click="OpenDataFolder_Click"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="Settings with the encrypted cookie, waypoints, friends and the skin pictures."
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
 
             <!-- The log (1.36, AppLog): always written at quiet levels, kept on the PC.
@@ -761,7 +763,7 @@
                  levels are config.json's LogLevels only (owner, Oct 21 2026). -->
             <TextBlock Style="{StaticResource SectionCaption}" Text="LOG" Margin="0,16,0,4"/>
             <!-- One row and one line of words: the page must stay within the
-                 tallest page's height, or the dialog grows on every page. -->
+                 dialog's frame (SettingsFrame), or it scrolls. -->
             <DockPanel>
                 <Button DockPanel.Dock="Left" Content="Open log folder" Click="OpenLogFolder_Click"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
@@ -769,7 +771,7 @@
                           Content="Detailed log, for a problem report"/>
             </DockPanel>
             <TextBlock Text="Never sent anywhere; no cookie, names or positions. Attach the newest file to a report."
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,6,0,0"/>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="LINKS" Margin="0,16,0,4"/>
             <DockPanel>
@@ -782,7 +784,7 @@
                             Style="{StaticResource NeutralButtonStyle}"/>
                 </StackPanel>
                 <TextBlock Text="Free and open source. Questions, bugs and ideas go to the GitHub issues."
-                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
             <!-- The bundled fonts' credit (1.39; Rajdhani and Orbitron with the
                  Pandora theme): the SIL Open Font Licence asks for its licence to
@@ -793,7 +795,7 @@
                  program" no longer fit once it named three fonts (Montserrat,
                  the widest, measured 413 of the 459 px; the README says where). -->
             <TextBlock Text="Fonts: Montserrat, Rajdhani, Orbitron (SIL Open Font Licence, see OFL.txt)."
-                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 
                     </Grid>
