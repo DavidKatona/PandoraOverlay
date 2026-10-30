@@ -67,7 +67,7 @@ public class DialogLayoutTests
         Assert.Empty(FrameProblems("About", LaidOut(dialog)));
         about.MinHeight = SettingsFrame.Height; // taller than the column can show
         var spill = Assert.Single(FitProbe.Spills(LaidOut(dialog)));
-        Assert.True(spill.Extent > spill.Viewport + FitProbe.Slack);
+        Assert.True(spill.Extent > spill.Viewport);
         dialog.Close();
     });
 

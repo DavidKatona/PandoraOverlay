@@ -9,7 +9,8 @@ namespace PandoraOverlay.Tests;
 /// implementation), on layouts built here: a line past its room is found,
 /// cut off unless it trims inside its box; a line within half a pixel of it
 /// is drawn whole; a hidden part is not on screen; a marked scroll area that
-/// can't hold its content spills, an unmarked one scrolls by design. The
+/// can't hold its content spills, by any amount (no slack: WPF shows its bar),
+/// and an unmarked one scrolls by design. The
 /// dialogs it walks for every theme are DialogLayoutTests' and FitFactorTests'.
 /// </summary>
 public class FitProbeTests
@@ -95,5 +96,43 @@ public class FitProbeTests
         var spill = Assert.Single(FitProbe.Spills(Viewer(marked: true)));
         Assert.Equal(200, spill.Extent, 3);
         Assert.Equal(50, spill.Viewport, 3);
+    });
+
+    /// <summary>
+    /// A scroll area has no slack: content taller than its viewport by less
+    /// than the half pixel a line gets already spills, because WPF shows the
+    /// bar for it (a page 0.46 px over its column showed one, Oct 30 2026).
+    /// Content taller only by floating-point noise does not: the walk uses the
+    /// ScrollViewer's own comparison, and WPF shows no bar for it either. At a
+    /// column of the Settings dialog's size (456 px) WPF's epsilon is about
+    /// 2.0e-13 px, so 1e-13 over is noise (Default's Skins page is 5.7e-14 over).
+    /// </summary>
+    [Fact]
+    public void AScrollAreaSpillsAtAnyOverflowWpfWouldShow() => TheThemeOnScreen.OnSta(() =>
+    {
+        const double Column = 456;
+        ScrollViewer Marked(double content)
+        {
+            var viewer = new ScrollViewer { Height = Column, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = new Border { Height = content } };
+            FitProbe.SetHoldsWhole(viewer, true);
+            viewer.Measure(new Size(100, Column));
+            viewer.Arrange(new Rect(0, 0, 100, Column));
+            viewer.UpdateLayout();
+            return viewer;
+        }
+        var over = Marked(Column + 0.2); // inside the slack a line would get
+        Assert.True(0.2 < FitProbe.Slack);
+        Assert.Equal(Visibility.Visible, over.ComputedVerticalScrollBarVisibility); // WPF shows the bar
+        var spill = Assert.Single(FitProbe.Spills(over));
+        Assert.Equal(Column + 0.2, spill.Extent, 3);
+
+        var noise = Marked(Column + 1e-13);
+        Assert.True(noise.ExtentHeight > noise.ViewportHeight); // taller, as a double
+        Assert.Equal(Visibility.Collapsed, noise.ComputedVerticalScrollBarVisibility); // but WPF shows no bar
+        Assert.Empty(FitProbe.Spills(noise));
+
+        var level = Marked(Column);
+        Assert.Equal(Visibility.Collapsed, level.ComputedVerticalScrollBarVisibility);
+        Assert.Empty(FitProbe.Spills(level));
     });
 }

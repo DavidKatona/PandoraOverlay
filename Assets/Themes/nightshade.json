@@ -23,7 +23,7 @@
 {
   "Name": "Nightshade",
   "Order": 3,
-  "Fit": 0.98, // the fit factor: FitFactorTests' computed value (Nunito's line box runs taller than Segoe UI's; at 0.99 the Settings Skins page is 457.0 px in its 455.6 px column, Oct 30 2026)
+  "Fit": 0.97, // the fit factor: FitFactorTests' computed value (Nunito's line box runs taller than Segoe UI's; at 0.98 the Settings Skins page is 456.2 px in its 455.7 px column, Oct 30 2026)
   "Tokens": {
     "Bars": {
       // Isle's and Pandora's rule: every bar the accent in every state; health,

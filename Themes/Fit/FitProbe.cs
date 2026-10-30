@@ -32,7 +32,12 @@ namespace PandoraOverlay;
 /// </summary>
 public static class FitProbe
 {
-    /// <summary>Layout rounding's room: a line within half a pixel of its box is drawn whole.</summary>
+    /// <summary>
+    /// Layout rounding's room for a one-line text inside its box: a line
+    /// within half a pixel of its box is drawn whole. Only the lines have it:
+    /// a scroll area has none, since WPF's ScrollViewer shows its bar at any
+    /// overflow (<see cref="Spills"/>).
+    /// </summary>
     public const double Slack = 0.5;
 
     #region The scroll areas a frame holds whole
@@ -154,11 +159,34 @@ public static class FitProbe
 
     #region The scroll areas
 
-    /// <summary>Every marked scroll area on screen whose content is taller than its viewport by more than the slack.</summary>
+    /// <summary>
+    /// Every marked scroll area on screen whose content is taller than its
+    /// viewport by WPF's own test (<see cref="Taller"/>), with no
+    /// <see cref="Slack"/>: the ScrollViewer shows its bar at any overflow, so
+    /// a page a fraction of a pixel taller than its column already scrolls
+    /// (a theme's Skins page, 0.46 px over, showed the bar the half pixel had
+    /// let through; Oct 30 2026).
+    /// </summary>
     public static IEnumerable<Spill> Spills(FrameworkElement root) =>
         Descendants(root).OfType<ScrollViewer>()
-                         .Where(v => GetHoldsWhole(v) && Shown(v, root) && v.ExtentHeight > v.ViewportHeight + Slack)
+                         .Where(v => GetHoldsWhole(v) && Shown(v, root) && Taller(v.ExtentHeight, v.ViewportHeight))
                          .Select(v => new Spill(v.ExtentHeight, v.ViewportHeight));
+
+    /// <summary>
+    /// The ScrollViewer's own test for showing its bar, so the walk says
+    /// exactly what WPF draws: WPF's DoubleUtil.GreaterThan (internal to WPF),
+    /// greater and not close, close being within a relative epsilon,
+    /// (|a| + |b| + 10) × DBL_EPSILON (equal values are close). A content
+    /// height that differs from its column's only by floating-point noise
+    /// (5.7e-14 px, Default's Skins page) shows no bar, and spills nothing.
+    /// </summary>
+    private static bool Taller(double extent, double viewport)
+    {
+        const double DblEpsilon = 2.2204460492503131e-16;
+        if (extent <= viewport) return false;
+        var epsilon = (Math.Abs(extent) + Math.Abs(viewport) + 10.0) * DblEpsilon;
+        return extent - viewport >= epsilon;
+    }
 
     #endregion
 

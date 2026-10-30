@@ -42,7 +42,9 @@ summary.
   With a factor of 1.00 (Default's, and every bundled theme's so far) `Theme.Size.11` is 11.
 - **The walk is the app's** (`FitProbe`): a one-line text past its room (cut off unless it
   trims inside its box, half a pixel of slack), a scroll area marked `FitProbe.HoldsWhole`
-  (the Settings page column) that would scroll. The tests hold every theme to it; after a
+  (the Settings page column) that would scroll, with NO slack: it spills wherever WPF
+  would draw a bar, by the ScrollViewer's own comparison (Oct 30 2026: a page 0.46 px
+  over its column showed one). The tests hold every theme to it; after a
   switch the overlay walks its own windows and logs ONE line, the theme's id, its factor and
   a count of overflows (`Theme.LogFit`, facts only). The frame contract is the one hand-kept
   list: what the walk can't reach yet (the widgets, the control panel), each string with its
