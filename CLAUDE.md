@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.40.1 is released, working, and endorsed
+tray icon and a settings dialog. **v1.41.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -419,32 +419,43 @@ all) — say so when it matters:
   measurement of Discord's page only). The QR login itself works in the
   window: a player signed in with it on 1.40 after zooming the page out
   (Oct 29).
-- From Nightshade (built Oct 30, not released): other PCs and display
-  scales (1.25× rendered only); the update cards in Nightshade (drawn by
-  the copy that runs: first by a copy that has it); Skins' tiles and Dino
-  storage's cards in it (the harness is signed out). The owner checked the
-  switch, Skins and the log's fit line in game (Oct 30).
+- From 1.41.0 (no pre-release, the owner's call): Nightshade on other PCs
+  and display scales (1.25× rendered only); the update cards in Nightshade
+  (drawn by the copy that runs: a 1.41 copy first shows them at the next
+  release); Skins' tiles and Dino storage's cards in Nightshade (the
+  harness is signed out); the carry-over of the one Names tick into the
+  map's three on a `config.json` from 1.40 (tests only). The rest was
+  checked by the owner in game on the Release build (Oct 30): Nightshade's
+  look, the switch between all four themes with every window up and
+  Settings open (nothing moved), the map's three name ticks, the waypoint
+  dots staying put when a names tick flips, About's credit line in each
+  theme, Skins in Nightshade without a scrollbar, and the log's fit line.
 
-BUILT Oct 30 2026, not released (1.41.0 later, with other fixes, the
-owner's call): **the fit factor** (`pandora-themes\FIT.md`) and
-**Nightshade**, the fourth theme, which it was built for. Nightshade and
-Calico are both designed in Nunito, whose line box runs taller than Segoe
-UI's, so a theme's body font is drawn at one factor, `"Fit"` in its file
-(0.85 to 1.00), computed by `FitFactorTests` from the frame contract and the
-walk over the dialogs; below 0.85 a font is refused. Every body text size is
-a `Theme.Size.N` key now, the Settings pages not shown are Collapsed (each
-measured on its own), and a theme switch logs one line with the theme's
-factor and a count of overflows. The walk gives a scroll area no slack: it
-spills where WPF would draw its bar, by WPF's own comparison (Nightshade's
-Skins page showed a bar 0.46 px over its column at 0.98, which a half
-pixel had let through). Default, Isle and Pandora compute 1.00.
-Nightshade (`nightshade.json`, from `pandora-themes\NIGHTSHADE.md`: Cinzel
-titles over Nunito, the violet `#A879FF`, a pink `#F38BD9` lighting two
-corners of every rounded frame and "Prime Elder", red only under 25%)
-computes 0.97, its text 3% smaller. Checked by the owner in game on the
-Release build (Oct 30, no tweaks): the switch between the themes, Skins,
-and the log's fit line ("Theme fit: nightshade at 0.97"); its baselines
-after that look.
+SHIPPED in 1.41.0 (Oct 30 2026, no pre-release, the owner's call): **the
+fit factor** (`pandora-themes\FIT.md`), **Nightshade**, the fourth theme,
+which it was built for, and two map changes from other sessions. Nightshade
+and Calico are both designed in Nunito, whose line box runs taller than
+Segoe UI's, so a theme's body font is drawn at one factor, `"Fit"` in its
+file (0.85 to 1.00), computed by `FitFactorTests` from the frame contract
+and the walk over the dialogs; below 0.85 a font is refused. Every body
+text size is a `Theme.Size.N` key now, the Settings pages not shown are
+Collapsed (each measured on its own), and a theme switch logs one line with
+the theme's factor and a count of overflows. The walk gives a scroll area
+no slack: it spills where WPF would draw its bar, by WPF's own comparison
+(Nightshade's Skins page showed a bar 0.46 px over its column at 0.98,
+which a half pixel had let through). Default, Isle and Pandora compute
+1.00. Nightshade (`nightshade.json`, from `pandora-themes\NIGHTSHADE.md`:
+Cinzel titles over Nunito, the violet `#A879FF`, a pink `#F38BD9` lighting
+two corners of every rounded frame and "Prime Elder", red only under 25%)
+computes 0.97, its text 3% smaller; its baselines were recorded after the
+owner's look. The map's one Names tick became three, Area names, Waypoint
+names and Friend names, in a section of the Layers menu under the layers
+(a player's ask; `BigMapNames` keeps its key as the area names, and the
+two new keys read as it until a file holds their own, so an update opens
+the map as it was), and the waypoint dots no longer shift by a pixel when
+a names tick flips (the markers' cached picture now has a frame on whole
+device pixels round the map, `MapCanvas.PlaceCacheFrame`). Guards: 963
+tests; every theme's renders identical to its baseline in both modes.
 
 SHIPPED in 1.40.1 (Oct 29 2026, no pre-release, the owner's call): **the
 sign-in window shows Discord's QR code**. Discord's login leaves the code
@@ -755,7 +766,7 @@ Themes (Oct 24–25 2026)
 
 ## Releases
 
-- Current: 1.40.1. The csproj `<Version>` is the single source of truth
+- Current: 1.41.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
