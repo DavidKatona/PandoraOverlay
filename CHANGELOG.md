@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Orbitron, Nunito and Cinzel, under the SIL Open Font Licence, whose text
   comes with the program (an OFL.txt for each).
 
+### Fixed
+
+- On the map, the waypoint dots no longer shift by a pixel when names
+  are switched on or off.
+
 ## [1.40.1] - 2026-10-29
 
 ### Fixed

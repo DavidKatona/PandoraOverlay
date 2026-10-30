@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using Path = System.Windows.Shapes.Path;
 
 namespace PandoraOverlay;
@@ -47,6 +48,9 @@ public partial class MapCanvas : UserControl
     private const double SanctuaryTint = 0.35;
     private const byte ZoneEdgeAlpha = 0xCC;
 
+    /// <summary>How far the still layer's cache frame reaches past the map on every side: room for a name hanging off its edge.</summary>
+    private const double CacheFrameMargin = 128;
+
     /// <summary>
     /// The bundled copy of the site's island map (Assets/map.png), decoded
     /// once at native resolution — so a zoomed view stays sharp — and shared
@@ -69,6 +73,7 @@ public partial class MapCanvas : UserControl
     private int _hoverOutline = AreaMap.None;
     private bool _mapSpace;   // markers, names, friends and arrow ride the map's translate (the big map)
     private int? _glideFps;   // a cap on every glide's frame rate (the big map: 30)
+    private Rectangle? _cacheFrame; // fixes the still layer's cached picture to whole pixels (UseMapSpace)
 
     public MapCanvas()
     {
@@ -136,6 +141,19 @@ public partial class MapCanvas : UserControl
     /// spike's choice (Oct 9 2026), about 5% of one core while panning. The
     /// caches snap to device pixels, so a cached name is never resampled
     /// between pixels; the names' text is pixel-snapped too.
+    /// <para>
+    /// A cached picture is cut to its content's bounds, and the content is
+    /// drawn into it relative to those bounds, fractions of a pixel and all:
+    /// so when the outermost content changes, everything in the picture
+    /// moves by up to a pixel. The map layer never showed it (the picture
+    /// itself is its bounds, from 0,0), but the markers' layer did: ticking
+    /// a names tick moved every waypoint dot up or down (the owner, Oct 30
+    /// 2026; off-screen, a dot moved for any other content added or taken
+    /// away, above-left or below-right). So the markers' layer holds a
+    /// transparent frame on whole device pixels round the map (SetMapSize),
+    /// which is its bounds whatever is drawn; a name hanging further off
+    /// the map than the margin would move the picture again.
+    /// </para>
     /// </summary>
     public void UseMapSpace(int glideFrameRate)
     {
@@ -146,8 +164,22 @@ public partial class MapCanvas : UserControl
         SetArrowTransform(new TransformGroup { Children = { _arrowRotate, _arrowTranslate, _mapTranslate } });
         MapLayer.CacheMode = new BitmapCache { SnapsToDevicePixels = true };
         StillMarks.CacheMode = new BitmapCache { SnapsToDevicePixels = true };
+        _cacheFrame = new Rectangle { Fill = Brushes.Transparent, IsHitTestVisible = false }; // a fill, or it has no bounds
+        StillMarks.Children.Insert(0, _cacheFrame);
+        PlaceCacheFrame();
         TextOptions.SetTextFormattingMode(LabelLayer, TextFormattingMode.Display);
         TextOptions.SetTextFormattingMode(FriendLayer, TextFormattingMode.Display);
+    }
+
+    /// <summary>The cache frame round the map at its current size, its corners on whole device pixels.</summary>
+    private void PlaceCacheFrame()
+    {
+        if (_cacheFrame is null) return;
+        var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        var margin = Math.Round(CacheFrameMargin * dpi) / dpi;
+        Canvas.SetLeft(_cacheFrame, -margin);
+        Canvas.SetTop(_cacheFrame, -margin);
+        _cacheFrame.Width = _cacheFrame.Height = Math.Ceiling((MapSize + 2 * margin) * dpi) / dpi;
     }
 
     // ---- The map ------------------------------------------------------------
@@ -167,11 +199,12 @@ public partial class MapCanvas : UserControl
     /// </remarks>
     public Point MapOffset => new(_mapTranslate.X, _mapTranslate.Y);
 
-    /// <summary>The map picture's rendered side, the heatmap's with it. The borders, outlines and trail follow through their own calls.</summary>
+    /// <summary>The map picture's rendered side, the heatmap's and the cache frame's with it. The borders, outlines and trail follow through their own calls.</summary>
     public void SetMapSize(double size)
     {
         MapImage.Width = MapImage.Height = size;
         HeatmapImage.Width = HeatmapImage.Height = size;
+        PlaceCacheFrame();
     }
 
     /// <summary>Moves the map and everything in map space to an offset: gliding over the given time, or at once.</summary>
