@@ -787,14 +787,16 @@
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
             <!-- The bundled fonts' credit (1.39; Rajdhani and Orbitron with the
-                 Pandora theme): the SIL Open Font Licence asks for its licence to
-                 travel with the font, and it does (the build copies each
-                 Assets\Fonts\<family>\OFL.txt beside the program); this line says
-                 so in every theme. ONE line in every theme's font: a second would
-                 make About taller than the dialog's frame. "OFL.txt beside the
-                 program" no longer fit once it named three fonts (Montserrat,
-                 the widest, measured 413 of the 459 px; the README says where). -->
-            <TextBlock Text="Fonts: Montserrat, Rajdhani, Orbitron (SIL Open Font Licence, see OFL.txt)."
+                 Pandora theme, Nunito and Cinzel with Nightshade): the SIL Open
+                 Font Licence asks for its licence to travel with the font, and it
+                 does (the build copies each Assets\Fonts\<family>\OFL.txt beside
+                 the program); this line says so in every theme. ONE line in every
+                 theme's font at its fit factor: a second would make About taller
+                 than the dialog's frame. "OFL.txt beside the program" no longer fit
+                 once it named three fonts, nor "SIL Open Font Licence" once it
+                 named five (488 px in Montserrat, the widest); this one measured
+                 at most 407 of the 459 px (the README names the licence in full). -->
+            <TextBlock Text="Fonts: Montserrat, Rajdhani, Orbitron, Nunito, Cinzel (SIL OFL, see OFL.txt)."
                        Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 

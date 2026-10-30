@@ -208,8 +208,9 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   baseline. `-Theme <id>` renders another theme at 1×, 1.25× and 2× (93
   and 156 renders), fails if a render is not its Default twin's pixel
   size, and compares it with that theme's own baseline (`baseline-isle`,
-  recorded Oct 26 2026, and `baseline-pandora`, Oct 27, each after the
-  owner's check in game; a new theme gets one only after that check). See the `release-pass` skill. The map's
+  recorded Oct 26 2026, `baseline-pandora`, Oct 27, and
+  `baseline-nightshade`, Oct 30, each after the owner's check in game; a
+  new theme gets one only after that check). See the `release-pass` skill. The map's
   plan and decisions (D1–D12) live beside it: `ACTION-PLAN.md`, Fable's
   `PLAN.md` and the perf spike's `perf-spike\RESULTS.md` (code comments cite
   the D-numbers).
@@ -261,12 +262,13 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   (`rules.json`, `calibration.json`, `areas.png` + `areas.json`, `zones.json`;
   the CHANGELOG is embedded too, for the update card).
 - `Assets/Themes/` — one sparse file per theme but Default (`isle.json`,
-  `pandora.json`): only what differs from Default, by token path. A new
-  theme is one more file there and no other change (Pandora, the third,
-  was).
+  `pandora.json`, `nightshade.json`): only what differs from Default, by
+  token path, and its fit factor. A new theme is one more file there and no
+  other change (Pandora, the third, was, and Nightshade, the fourth).
 - `Assets/Fonts/` — one folder per bundled family, its files and its own
   licence as shipped (`Montserrat/`: four weights; `Rajdhani/`: three;
-  `Orbitron/`: one; each with its `OFL.txt`).
+  `Orbitron/`: one; `Nunito/`: four; `Cinzel/`: one; each with its
+  `OFL.txt`).
 - `App.xaml(.cs)` (single-instance mutex, the settings move) and `Program.cs`
   (the entry point: Velopack's start-up call first, then WPF).
 - `PandoraOverlay.Tests/` mirrors the folders.
@@ -417,18 +419,32 @@ all) — say so when it matters:
   measurement of Discord's page only). The QR login itself works in the
   window: a player signed in with it on 1.40 after zooming the page out
   (Oct 29).
+- From Nightshade (built Oct 30, not released): other PCs and display
+  scales (1.25× rendered only); the update cards in Nightshade (drawn by
+  the copy that runs: first by a copy that has it); Skins' tiles and Dino
+  storage's cards in it (the harness is signed out). The owner checked the
+  switch, Skins and the log's fit line in game (Oct 30).
 
-BUILT Oct 30 2026, not released (the owner's look in game next; no
-CHANGELOG line while every bundled theme is at 1.00): **the fit factor**
-(`pandora-themes\FIT.md`), so that Nightshade and Calico, both designed in
-Nunito, fit the frames that never move. A theme's body font is drawn at one
-factor, `"Fit"` in its file (0.85 to 1.00), computed by `FitFactorTests`
-from the frame contract and the walk over the dialogs; below 0.85 a font is
-refused. Every body text size is a `Theme.Size.N` key now, the Settings
-pages not shown are Collapsed (each measured on its own), and a theme switch
-logs one line with the theme's factor and a count of overflows. Default,
-Isle and Pandora compute 1.00; the Nightshade draft, tried and taken out
-again, 0.98.
+BUILT Oct 30 2026, not released (1.41.0 later, with other fixes, the
+owner's call): **the fit factor** (`pandora-themes\FIT.md`) and
+**Nightshade**, the fourth theme, which it was built for. Nightshade and
+Calico are both designed in Nunito, whose line box runs taller than Segoe
+UI's, so a theme's body font is drawn at one factor, `"Fit"` in its file
+(0.85 to 1.00), computed by `FitFactorTests` from the frame contract and the
+walk over the dialogs; below 0.85 a font is refused. Every body text size is
+a `Theme.Size.N` key now, the Settings pages not shown are Collapsed (each
+measured on its own), and a theme switch logs one line with the theme's
+factor and a count of overflows. The walk gives a scroll area no slack: it
+spills where WPF would draw its bar, by WPF's own comparison (Nightshade's
+Skins page showed a bar 0.46 px over its column at 0.98, which a half
+pixel had let through). Default, Isle and Pandora compute 1.00.
+Nightshade (`nightshade.json`, from `pandora-themes\NIGHTSHADE.md`: Cinzel
+titles over Nunito, the violet `#A879FF`, a pink `#F38BD9` lighting two
+corners of every rounded frame and "Prime Elder", red only under 25%)
+computes 0.97, its text 3% smaller. Checked by the owner in game on the
+Release build (Oct 30, no tweaks): the switch between the themes, Skins,
+and the log's fit line ("Theme fit: nightshade at 0.97"); its baselines
+after that look.
 
 SHIPPED in 1.40.1 (Oct 29 2026, no pre-release, the owner's call): **the
 sign-in window shows Discord's QR code**. Discord's login leaves the code

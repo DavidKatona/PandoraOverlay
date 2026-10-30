@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- A fourth theme, **Nightshade**: a moody violet and black look. Classical
+  Cinzel titles over the rounded Nunito font, soft frames with a pink light
+  on two corners, and round controls. Every bar is violet, and health,
+  hunger and thirst turn red under 25%; "Prime Elder" is pink. Its text is
+  drawn 3% smaller than in the other themes, so it fits the widgets, which
+  never change size. Pick it on Settings › Themes.
+
+### Changed
+
+- Settings › About names every theme's font: Montserrat, Rajdhani,
+  Orbitron, Nunito and Cinzel, under the SIL Open Font Licence, whose text
+  comes with the program (an OFL.txt for each).
+
 ## [1.40.1] - 2026-10-29
 
 ### Fixed
