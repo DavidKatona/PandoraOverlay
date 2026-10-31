@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Settings › Waypoints and Settings › Friends show more rows at once: each
+  list now runs to the bottom of the window, about three more waypoints
+  and four more friends than before.
+
 ## [1.41.0] - 2026-10-30
 
 ### Added

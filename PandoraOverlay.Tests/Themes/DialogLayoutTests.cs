@@ -145,10 +145,25 @@ public class DialogLayoutTests
         ] }
         """;
 
-    /// <summary>Every page on screen in turn, laid out at the dialog's own size; the caller closes the dialog.</summary>
+    /// <summary>
+    /// Every page on screen in turn, laid out at the dialog's own size, and the
+    /// Waypoints page once more with an import's result shown under its list:
+    /// the list takes the frame's room but the two lines the status keeps (Oct
+    /// 31 2026), and a page that fitted only while its status was hidden would
+    /// scroll on an import. The caller closes the dialog.
+    /// </summary>
     internal static IEnumerable<(string Page, FrameworkElement Root)> EveryPage(SettingsWindow dialog)
     {
-        foreach (var page in Pages) yield return (page, ShowPage(dialog, page));
+        foreach (var page in Pages)
+        {
+            yield return (page, ShowPage(dialog, page));
+            if (page != "Waypoints") continue;
+            var status = (TextBlock)dialog.FindName("WaypointStatus"); // the longest line the page writes: every clause, a 32-letter pack name
+            status.Text = "Imported 122 from \"A pack with a thirty-two letters\" · 134 already here · 122 didn't fit (256 max). They start hidden: Show all on the pack, or tick Show per waypoint.";
+            status.Visibility = Visibility.Visible;
+            yield return ("Waypoints, after an import", LaidOut(dialog));
+            status.Visibility = Visibility.Collapsed;
+        }
     }
 
     /// <summary>One page on screen, laid out at the dialog's own size (as WPF lays the shown window out).</summary>

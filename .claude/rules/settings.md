@@ -49,8 +49,12 @@ paths:
   from the days the tallest page set the dialog's height): each page is measured on its
   own, and only a page that overflows ever scrolls. The page column is marked
   `FitProbe.HoldsWhole`, the scroll area the walk holds whole. Lists live in fixed-height
-  ScrollViewers. Every body text size is a `Theme.Size.N` key or `Theme.Current.Size(n)`,
-  never a number (`.claude/rules/themes.md`).
+  ScrollViewers, and a list page's list takes the frame's room (the owner, Oct 31 2026: the
+  page column is 455.81 tall in Default; the Waypoints and Friends lists had kept the heights
+  of the days their pages set the dialog's, over 114 and 130 px of nothing), less the room
+  for what the page shows only sometimes (Waypoints' import status, two lines at most, which
+  `DialogLayoutTests` lays out shown). Every body text size is a `Theme.Size.N` key or
+  `Theme.Current.Size(n)`, never a number (`.claude/rules/themes.md`).
 - Actions inside a list change it **in place** (rows ticked, removed, re-striped); only
   structural changes (Import, Delete all) rebuild — a rebuild loses the reader's place.
 - **Everything applies at once** (1.38, no Save or Cancel): a new setting writes its config
