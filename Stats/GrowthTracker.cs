@@ -1,14 +1,20 @@
 namespace PandoraOverlay;
 
 /// <summary>
-/// Estimates the growth rate and time-to-full-grown from the poll stream.
+/// Estimates the growth rate from the poll stream and the time to the NEXT
+/// growth stage at that rate (the owner, Nov 2 2026: the stats header reads
+/// "64% · ~1h 20m to Adult"; it counted to full growth before). The stage
+/// lines are GrowthMilestones' (25%, 50%, 75%, the full-grown line): the
+/// target is the first one above the current growth, so crossing 75%
+/// re-targets the full-grown line with the same measured rate.
 /// Keeps a sliding window of (time, growth) samples taken while in-game and
 /// reads the slope off its endpoints, so it adapts within minutes to rate
 /// changes (server growth events, diet buffs — Isla Pandora's 1.3× multiplier
 /// is simply part of the measured slope). Session-only by design: growth only
 /// advances while spawned, so persisted history would add nothing. Resets on
 /// death/dino swap (growth decreased or identity changed) and on leaving the
-/// game, where a wall-clock gap would flatten the slope.
+/// game, where a wall-clock gap would flatten the slope. The header's words
+/// are GrowthReadout's.
 /// </summary>
 public sealed class GrowthTracker
 {
@@ -17,30 +23,33 @@ public sealed class GrowthTracker
         /// <summary>Not enough baseline yet — the UI shows nothing extra.</summary>
         Estimating,
 
-        /// <summary>Rate measured; Eta is valid.</summary>
+        /// <summary>Rate measured; Eta and NextStage are valid.</summary>
         Growing,
 
         /// <summary>A full baseline with no measurable growth — worth an amber warning.</summary>
         Paused,
 
-        /// <summary>Fully grown — the feature retires itself.</summary>
+        /// <summary>Fully grown, an elder — the estimate retires itself.</summary>
         Full
     }
 
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan MinBaseline = TimeSpan.FromMinutes(5);
     private const double MinDelta = 0.0005;     // real growth over MinBaseline sits well above this
-    // The same full-grown line as GrowthMilestones.FullyGrown (the server reports
-    // a grown dino a hair under 1): keep the two equal.
-    private const double FullThreshold = 0.9995;
+    // GrowthMilestones' full-grown line (the server reports a grown dino a hair
+    // under 1), the last stage the tracker counts to.
+    private const double FullThreshold = GrowthMilestones.FullyGrown;
 
     private readonly List<(DateTime At, double Growth)> _samples = new();
     private string? _identity;
 
     public GrowthStatus Status { get; private set; } = GrowthStatus.Estimating;
 
-    /// <summary>In-game time remaining to full growth; null unless Status is Growing.</summary>
+    /// <summary>In-game time remaining to the next stage line (<see cref="NextStage"/>); null unless Status is Growing.</summary>
     public TimeSpan? Eta { get; private set; }
+
+    /// <summary>The milestone Eta counts to (25, 50, 75 or 100, GrowthMilestones' percents); null unless Status is Growing.</summary>
+    public int? NextStage { get; private set; }
 
     /// <summary>Call when leaving the game (or on credential swap): re-baseline on the next spawn.</summary>
     public void Reset()
@@ -49,6 +58,7 @@ public sealed class GrowthTracker
         _identity = null;
         Status = GrowthStatus.Estimating;
         Eta = null;
+        NextStage = null;
     }
 
     public void Add(PlayerState p) => Add(p, DateTime.UtcNow);
@@ -56,10 +66,11 @@ public sealed class GrowthTracker
     /// <summary>Timestamped overload so tests can simulate 15 minutes in microseconds.</summary>
     internal void Add(PlayerState p, DateTime now)
     {
+        Eta = null;       // set again only when Growing
+        NextStage = null;
         if (p.Growth >= FullThreshold)
         {
             Status = GrowthStatus.Full;
-            Eta = null;
             return;
         }
 
@@ -81,7 +92,6 @@ public sealed class GrowthTracker
         if (span < MinBaseline)
         {
             Status = GrowthStatus.Estimating;
-            Eta = null;
             return;
         }
 
@@ -89,12 +99,14 @@ public sealed class GrowthTracker
         if (delta < MinDelta)
         {
             Status = GrowthStatus.Paused;
-            Eta = null;
             return;
         }
 
+        // Under the full-grown line there is always a next line (it is the last one).
+        var (line, stage) = GrowthMilestones.NextLine(p.Growth) ?? (FullThreshold, 100);
         var perHour = delta / span.TotalHours;
         Status = GrowthStatus.Growing;
-        Eta = TimeSpan.FromHours((1 - p.Growth) / perHour);
+        Eta = TimeSpan.FromHours((line - p.Growth) / perHour);
+        NextStage = stage;
     }
 }

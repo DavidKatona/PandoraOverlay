@@ -137,20 +137,24 @@ public static class FrameContract
         // in an ellipsis where it runs long, so there the readout must still
         // leave the name its first letter and the ellipsis; Prime's and
         // Activity's titles don't trim, so their headers fit whole.
-        // "Deinosuchus ♂" and a growth line (the longest, and a common one), the
-        // combat view's corner, the longest species on Server rules, and the
-        // words that stand there out of game.
+        // "Deinosuchus ♂" and a growth line (GrowthReadout's: the most
+        // characters, the widest drawn, and a common one; measured Nov 2 2026,
+        // "Subadult" runs wider than "Juvenile" in every bundled font and the
+        // digits differ in Montserrat and Rajdhani), the combat view's corner,
+        // the longest species on Server rules with "Elder" and a common line,
+        // and the words that stand there out of game.
         static double Glyph(ThemeTokens t) =>
             ShapeCatalogue.NaturalSize(ShapeSlot.TitleGlyph, t.Shapes.TitleGlyph) is { Width: > 0 } g ? g.Width + TitleGlyphGap : 0;
         static Piece Title(string s) => new(s, _ => 14, t => t.Font.TitleWeight, Title: true);
         static Piece Corner(string s) => new(s, _ => 12, t => t.Font.BodyWeight);
         foreach (var (name, corner) in new[]
                  {
-                     ("Deinosuchus ♂", "Growth 99.9% · ~23h 59m"),
-                     ("Deinosuchus ♂", "Growth 62.5% · ~2h 18m"),
+                     ("Deinosuchus ♂", "12% · ~23h 59m to Juvenile"),
+                     ("Deinosuchus ♂", "40% · ~20h 44m to Subadult"),
+                     ("Deinosuchus ♂", "62% · ~2h 18m to Adult"),
                      ("Deinosuchus ♂", "Wounded"),
-                     ("Pachycephalosaurus ♀", "Fully grown"),
-                     ("Pachycephalosaurus ♀", "Growth 62.5% · ~2h 18m"),
+                     ("Pachycephalosaurus ♀", "Elder"),
+                     ("Pachycephalosaurus ♀", "62% · ~2h 18m to Adult"),
                      ("Pachycephalosaurus ♀", "Wounded"),
                      ("Not in-game", ""),
                      ("Not signed in", ""),

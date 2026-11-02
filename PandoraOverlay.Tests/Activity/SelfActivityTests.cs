@@ -90,6 +90,7 @@ public class SelfActivityTests
     public void BuildersWordTheOtherEvents()
     {
         Assert.Equal("You are now a subadult", SelfActivity.GrowthLine(50, T0).Text);
+        Assert.Equal("You are now an elder", SelfActivity.GrowthLine(100, T0).Text);
         Assert.Equal(FeedKind.Growth, SelfActivity.GrowthLine(50, T0).Kind);
         Assert.Equal("Hunger under 20% · ~40m left", SelfActivity.LowStatLine("Hunger", "~40m", T0).Text);
         Assert.Equal("Thirst under 20%", SelfActivity.LowStatLine("Thirst", null, T0).Text);

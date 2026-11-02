@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings › Waypoints and Settings › Friends show more rows at once: each
   list now runs to the bottom of the window, about three more waypoints
   and four more friends than before.
+- The stats panel's header now counts to your next growth stage:
+  "64% · ~1h 20m to Adult" instead of the time to full growth. The
+  percent lost its decimal.
+- A fully grown dino is an elder: "Elder" in the header, "You are now an
+  elder" in the Activity feed, "100% · elder" on Dino storage.
 
 ## [1.41.0] - 2026-10-30
 

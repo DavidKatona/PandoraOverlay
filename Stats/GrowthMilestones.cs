@@ -2,7 +2,8 @@ namespace PandoraOverlay;
 
 /// <summary>
 /// Spots the moment growth crosses one of the game's stage lines — 25%
-/// juvenile, 50% subadult, 75% adult, 100% elder / fully grown — pure and
+/// juvenile, 50% subadult, 75% adult, 100% elder (the owner's word for the
+/// last stage, Nov 2 2026, everywhere a player reads it) — pure and
 /// tested. Only a crossing seen during this life counts: the first sample of
 /// a life sets the baseline and never alerts (spawning in at 60% is not
 /// "reaching subadult"). A poll gap that jumps over two lines reports the
@@ -17,6 +18,20 @@ public sealed class GrowthMilestones
     {
         (0.25, 25), (0.50, 50), (0.75, 75), (FullyGrown, 100)
     };
+
+    /// <summary>
+    /// The first stage line above this growth, with the milestone it marks:
+    /// 64% → (0.75, 75). A value on a line is past it (75% → the full-grown
+    /// line, 100); null from the full-grown line on. What GrowthTracker counts to.
+    /// </summary>
+    public static (double Threshold, int Percent)? NextLine(double growth)
+    {
+        foreach (var line in Lines)
+        {
+            if (growth < line.Threshold) return line;
+        }
+        return null;
+    }
 
     private string? _identity;
     private double? _last;
@@ -51,23 +66,32 @@ public sealed class GrowthMilestones
         return crossed;
     }
 
-    /// <summary>"a juvenile", "a subadult", "an adult", "fully grown" — the stage a milestone marks.</summary>
+    /// <summary>"a juvenile", "a subadult", "an adult", "an elder" — the stage a milestone marks, for the feed's sentences.</summary>
     public static string StageName(int percent) => percent switch
     {
         25 => "a juvenile",
         50 => "a subadult",
         75 => "an adult",
-        _ => "fully grown"
+        _ => "an elder"
+    };
+
+    /// <summary>"Juvenile", "Subadult", "Adult", "Elder" — the same stages as titles: the stats header's target ("to Adult") and its word at 100%.</summary>
+    public static string StageTitle(int percent) => percent switch
+    {
+        25 => "Juvenile",
+        50 => "Subadult",
+        75 => "Adult",
+        _ => "Elder"
     };
 
     /// <summary>
     /// The stage a growth value sits in, by the same lines: "hatchling" under
-    /// 25%, then "juvenile", "subadult", "adult", and "fully grown" from the
+    /// 25%, then "juvenile", "subadult", "adult", and "elder" from the
     /// full-grown line (the Dino storage page's cards).
     /// </summary>
     public static string StageAt(double growth) => growth switch
     {
-        >= FullyGrown => "fully grown",
+        >= FullyGrown => "elder",
         >= 0.75 => "adult",
         >= 0.50 => "subadult",
         >= 0.25 => "juvenile",

@@ -95,7 +95,7 @@ public class GrowthMilestonesTests
     }
 
     [Fact]
-    public void FullyGrownIsTheHundred()
+    public void ElderIsTheHundred()
     {
         var m = new GrowthMilestones();
         m.Update(Player(0.99));
@@ -156,8 +156,38 @@ public class GrowthStageTests
     [InlineData(0.5, "subadult")]
     [InlineData(0.75, "adult")]
     [InlineData(0.999, "adult")]       // a hair under the full-grown line is still growing
-    [InlineData(0.9995, "fully grown")]
-    [InlineData(1.0, "fully grown")]
+    [InlineData(0.9995, "elder")]
+    [InlineData(1.0, "elder")]
     public void StageFollowsTheMilestoneLines(double growth, string stage) =>
         Assert.Equal(stage, GrowthMilestones.StageAt(growth));
+
+    [Theory]
+    [InlineData(25, "a juvenile", "Juvenile")]
+    [InlineData(50, "a subadult", "Subadult")]
+    [InlineData(75, "an adult", "Adult")]
+    [InlineData(100, "an elder", "Elder")]
+    public void AMilestoneNamesItsStageInASentenceAndAsATitle(int percent, string name, string title)
+    {
+        Assert.Equal(name, GrowthMilestones.StageName(percent));
+        Assert.Equal(title, GrowthMilestones.StageTitle(percent));
+    }
+
+    /// <summary>The owner's examples (Nov 2 2026): 12% → Juvenile, 38% → Subadult, 64% → Adult, 87% → Elder; a value on a line is past it.</summary>
+    [Theory]
+    [InlineData(0.0, 0.25, 25)]
+    [InlineData(0.12, 0.25, 25)]
+    [InlineData(0.25, 0.50, 50)]
+    [InlineData(0.38, 0.50, 50)]
+    [InlineData(0.64, 0.75, 75)]
+    [InlineData(0.75, GrowthMilestones.FullyGrown, 100)]
+    [InlineData(0.87, GrowthMilestones.FullyGrown, 100)]
+    [InlineData(0.999, GrowthMilestones.FullyGrown, 100)]
+    public void TheNextLineIsTheFirstAboveTheGrowth(double growth, double threshold, int percent) =>
+        Assert.Equal((threshold, percent), GrowthMilestones.NextLine(growth));
+
+    [Theory]
+    [InlineData(GrowthMilestones.FullyGrown)]
+    [InlineData(1.0)]
+    public void AnElderHasNoNextLine(double growth) =>
+        Assert.Null(GrowthMilestones.NextLine(growth));
 }

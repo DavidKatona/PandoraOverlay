@@ -310,7 +310,8 @@ public class StoredDinosTests
     [InlineData(0.0, "0% · hatchling")]
     [InlineData(0.58, "58% · subadult")]
     [InlineData(0.996, "99% · adult")]
-    [InlineData(1.0, "100% · fully grown")]
+    [InlineData(0.9995, "100% · elder")]   // the full-grown line: the server reports a grown dino a hair under 1
+    [InlineData(1.0, "100% · elder")]
     public void GrowthReadsAsPercentAndStage(double growth, string text) =>
         Assert.Equal(text, StoredDinos.GrowthText(growth));
 

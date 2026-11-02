@@ -143,14 +143,8 @@ public partial class MainWindow
                    : "";
         DinoText.Text = $"{p.Dino} {symbol}".Trim();
 
-        GrowthText.Text = _growth.Status switch
-        {
-            GrowthTracker.GrowthStatus.Growing when _growth.Eta is { } eta =>
-                $"Growth {p.Growth * 100:0.#}% · ~{FormatEta(eta)}",
-            GrowthTracker.GrowthStatus.Paused => $"Growth {p.Growth * 100:0.#}% · paused",
-            GrowthTracker.GrowthStatus.Full => "Fully grown",
-            _ => $"Growth {p.Growth * 100:0.#}%"
-        };
+        // "64% · ~1h 20m to Adult", "64%", "64% · paused", "Elder": GrowthReadout's words.
+        GrowthText.Text = GrowthReadout.Text(_growth.Status, p.Growth, _growth.Eta, _growth.NextStage);
         var growth = Theme.Current.Growth;
         GrowthText.Foreground = (_growth.Status switch
         {
@@ -396,15 +390,6 @@ public partial class MainWindow
             fill.BeginAnimation(OpacityProperty, null);
             fill.Opacity = 1;
         }
-    }
-
-    /// <summary>"~"-worthy in-game time: "45m", "3h 10m", "1d 4h".</summary>
-    private static string FormatEta(TimeSpan eta)
-    {
-        if (eta.TotalMinutes < 1) return "1m";
-        if (eta.TotalHours < 1) return $"{eta.TotalMinutes:0}m";
-        if (eta.TotalDays < 1) return $"{(int)eta.TotalHours}h {eta.Minutes:00}m";
-        return $"{(int)eta.TotalDays}d {eta.Hours}h";
     }
 
     private static void SetBar(System.Windows.Controls.Border fill,

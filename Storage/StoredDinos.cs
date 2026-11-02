@@ -354,15 +354,11 @@ public static class StoredDinos
     // ---- Labels -------------------------------------------------------------------
 
     /// <summary>
-    /// "58% · subadult", "100% · fully grown": the percent rounded down, so
-    /// 99.6% never reads as full — with a hair of slack, because 0.58 × 100
-    /// is 57.999… in floating point.
+    /// "58% · subadult", "100% · elder": the percent rounded down, so 99.6%
+    /// never reads as full (GrowthReadout.Percent, the stats header's too).
     /// </summary>
-    public static string GrowthText(double growth)
-    {
-        var percent = growth >= GrowthMilestones.FullyGrown ? 100 : (int)Math.Floor(Math.Clamp(growth, 0, 1) * 100 + 1e-9);
-        return $"{percent}% · {GrowthMilestones.StageAt(growth)}";
-    }
+    public static string GrowthText(double growth) =>
+        $"{GrowthReadout.Percent(growth)}% · {GrowthMilestones.StageAt(growth)}";
 
     /// <summary>"23 Sep · 11:42" this year, "23 Sep 2025" before; English, whatever the PC's locale, like the rest of the overlay.</summary>
     public static string StoredText(DateTime local, int currentYear) =>
