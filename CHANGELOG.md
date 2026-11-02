@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and health, hunger and thirst turn red under 25%; "Prime Elder" is
   honey amber. As in Nightshade, its text is drawn 3% smaller, so it fits
   the widgets, which never change size. Pick it on Settings › Themes.
+- A new theme, **Carnivore**: blood and bone. A deep crimson on
+  near-black glass with bone-white text, in the Rajdhani font throughout,
+  with cut corners, hexagons and a crimson light on two corners of every
+  frame. Every bar is crimson, and health, hunger and thirst turn
+  bone-white under 25%, so trouble stands out by its brightness; "Prime
+  Elder" is old gold. Pick it on Settings › Themes.
 
 ### Changed
 

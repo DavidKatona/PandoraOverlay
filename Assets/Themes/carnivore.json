@@ -1,0 +1,329 @@
+// Carnivore: blood and bone (pandora-themes\CARNIVORE.md, the design of Nov 2
+// 2026 from the owner's brief of the same day; the owner's look at the canvas,
+// Nov 2: "Build it as drawn"). A SPARSE override of Default
+// (Themes/ThemeFile.cs): only what differs, by the token's path; a key Default
+// lacks is a test failure, never a silent inheritance.
+//
+// One accent, a deep crimson #C41E3A, and its derived alphas:
+//   crimson 55% #8CC41E3A   the painted glows
+//   crimson 35% #59C41E3A   the frames' line, the readout's line
+//   crimson 30% #4DC41E3A   the slider's track
+//   crimson 25% #40C41E3A   separators, the nav's divider
+//   crimson 22% #38C41E3A   the bar track's inset line
+//   crimson 16% #29C41E3A   the selected nav row, a menu row under the mouse
+//   crimson 10% #1AC41E3A   the bar track
+// The ground a near-black with a faint red tint, #0F0708; text a bone white
+// #E8DCC8, the bone lines at 14% #24E8DCC8 and 22% #38E8DCC8; the light blood
+// #E8707E for the time left and the page titles, the dried blood #B3636D for
+// captions. BONE MEANS TROUBLE: what a red does in the other themes, the
+// bone-white #FFF4E0 does here (a low bar, a fractured badge, a warning line, a
+// lost Prime row, the danger buttons), told from the crimson by brightness.
+// Old gold #CFA64E is the second colour ("Prime Elder", the highlights).
+// Rajdhani throughout; Isle's cut corners and hexagons; no logo, no pictures.
+//
+// M = taken from the mock (carnivore-mockup\*.dc.html); P = proposed for a
+// state the mock does not show, to be judged in game.
+{
+  "Name": "Carnivore",
+  "Order": 5,
+  "Fit": 1.00,
+  "Tokens": {
+    "Bars": {
+      // Every bar the crimson in every state; health, hunger and thirst
+      // BONE-WHITE under a quarter (Below25: fill, percent and time left), where
+      // the pulse and the halo run (the owner's one exception to the red low
+      // state, Nov 2 2026). The time left the light blood; on a long fill the
+      // bone-white (OnFill: a dark text sits at only 3 : 1 on this crimson). M
+      "Health": {
+        "Above75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From50To75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From25To50": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "Below25": { "Fill": "#FFF4E0", "Percent": "#FFF4E0", "TimeLeft": "#FFF4E0" },
+        "Track": "#1AC41E3A",
+        "TrackLine": "#38C41E3A",
+        "OnFill": "#FFF4E0",
+      },
+      // Stamina never takes the low state: it empties every sprint.
+      "Stamina": {
+        "Above75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From50To75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From25To50": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "Below25": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "Track": "#1AC41E3A",
+        "TrackLine": "#38C41E3A",
+        "OnFill": "#FFF4E0",
+      },
+      "Hunger": {
+        "Above75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From50To75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From25To50": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "Below25": { "Fill": "#FFF4E0", "Percent": "#FFF4E0", "TimeLeft": "#FFF4E0" },
+        "Track": "#1AC41E3A",
+        "TrackLine": "#38C41E3A",
+        "OnFill": "#FFF4E0",
+      },
+      "Thirst": {
+        "Above75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From50To75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From25To50": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "Below25": { "Fill": "#FFF4E0", "Percent": "#FFF4E0", "TimeLeft": "#FFF4E0" },
+        "Track": "#1AC41E3A",
+        "TrackLine": "#38C41E3A",
+        "OnFill": "#FFF4E0",
+      },
+      // Damage grows as you take it: not a stat running low, so the crimson in
+      // every state. No time label is ever drawn on it; the light blood all the same.
+      "Damage": {
+        "Above75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From50To75": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "From25To50": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "Below25": { "Fill": "#C41E3A", "Percent": "#E8DCC8", "TimeLeft": "#E8707E" },
+        "Track": "#1AC41E3A",
+        "TrackLine": "#38C41E3A",
+        "OnFill": "#FFF4E0",
+      },
+      // "Wounded" is plain text, the label colour: no amber. M
+      "HealthReadout": { "Above75": "#ADA08C", "From50To75": "#ADA08C", "From25To50": "#ADA08C", "Below25": "#ADA08C" },
+      "Label": "#ADA08C",
+      "Height": 8,
+      "TrackLineWidth": 1,
+      "Below25Halo": 4, // the mock's bone-white glow round a low bar (painted in the fill's colour)
+    },
+    "Prime": {
+      "Met": { "Icon": "#C41E3A", "Text": "#E8DCC8", "Weight": "SemiBold" }, // M
+      "Unmet": { "Icon": "#8A4A52", "Text": "#74685A", "Weight": "Medium" }, // M: the ✗ a dried blood, the text off
+      "Fresh": { "Icon": "#C41E3A", "Text": "#CFA64E", "Weight": "Bold" }, // M: a newly met row in old gold
+      "Lost": { "Icon": "#FFF4E0", "Text": "#FFF4E0", "Weight": "SemiBold" }, // M: a loss in bone
+      "Unchecked": { "Icon": "#625649", "Text": "#74685A", "Weight": "Medium" }, // P
+      // Old gold for the top rank. PrimeElder and NotReady M, the others P.
+      "Status": { "PrimeElder": "#CFA64E", "Ready": "#E8707E", "NotReady": "#ADA08C", "Unknown": "#8E8171" },
+      // Checked and Cooldown M; a stale check a state (the label), a failure in bone: P.
+      "Footer": { "Checked": "#8E8171", "Stale": "#ADA08C", "Failed": "#FFF4E0", "Cooldown": "#8E8171" },
+    },
+    // Your bullet in the crimson; a fracture, a low stat or damage in bone. M (Quiet P)
+    "Activity": { "Mine": "#C41E3A", "Line": "#D6C9B3", "Warning": "#FFF4E0", "Quiet": "#8E8171", "Count": "#ADA08C" },
+    // The red-tinted near-black (a widget's alpha is the player's slider). M (SignIn P)
+    "Glass": {
+      "Widget": "#0F0708",
+      "Dialog": "#F20F0708",
+      "Menu": "#F70F0708",
+      "Pill": "#C20F0708",
+      "MapPill": "#C20F0708",
+      "MapWindow": "#0F0708",
+      "SignIn": "#0F0708", // opaque, as it must be (WebView2)
+    },
+    // The frames: the crimson at 35%, two corners lit in the crimson with its
+    // glow, following the cuts (Lit, below); edit mode and the control panel
+    // the whole crimson line with its glow. M
+    "Frame": {
+      "Locked": { "Line": "#59C41E3A", "Lit": "#C41E3A", "Glow": "#8CC41E3A" },
+      "Edit": { "Line": "#C41E3A", "Glow": "#8CC41E3A" },
+      "ControlPanel": { "Line": "#C41E3A", "Glow": "#8CC41E3A" },
+    },
+    // The fracture badges, hexagons without an outline: a broken bone is bone. M
+    "Badge": {
+      "Intact": { "Fill": "#0FE8DCC8", "Text": "#625649" },
+      "Fractured": { "Fill": "#38FFF4E0", "Text": "#FFF4E0" }, // bone-white at 22%
+    },
+    // Paused is a state, not a warning: the dim colour, no amber. Growing and FullyGrown M, Paused P.
+    "Growth": { "Growing": "#ADA08C", "Paused": "#8E8171", "FullyGrown": "#ADA08C" },
+    "Text": {
+      "Title": "#F0E4CF", // a brighter bone, in Rajdhani (Font.TitleFamily); no title glow
+      "Glyph": "#C41E3A", // the hexagon before a title, stroked in the crimson
+      "PageTitle": "#E8707E",
+      "Bright": "#FFF8EE",
+      "Text": "#E8DCC8",
+      "Text2": "#D6C9B3",
+      "Label": "#ADA08C",
+      "Dim": "#8E8171",
+      "Off": "#74685A",
+      "Caption": "#B3636D",
+      "Link": "#E8707E", // P
+      "Caution": "#CFA64E", // P: the old gold, as Default's is its gold
+      // The bone reading of the danger family (the owner's pick, Nov 2): an
+      // error hint, the sign-in's Bad, in bone-white, apart from the crimson. M
+      "Danger": "#FFF4E0",
+      // Good stays Default's green: a hint that is good, a ✓ on the update card.
+      // P: what stands out in a list (your species on Server rules, a stored
+      // dino's name, the ★ and the A–F row on Skins) and the sign-in's step
+      // numbers: the old gold, the theme's second colour.
+      "Highlight": "#CFA64E",
+      "Marker": "#CFA64E",
+    },
+    // Settings → Dino storage, P throughout (no board shows it): the growth bar
+    // the crimson on a dark track, the Prime badge the old gold, the Elder badge
+    // neutral; your arrow's rim there the maps' dark rim. The website's own
+    // meanings stay its own (SiteBrushes).
+    "Storage": {
+      "BarTrack": "#2A181B",
+      "Growth": "#C41E3A",
+      "Slots": "#99C41E3A", // the "3 of 10 slots" bar: the crimson at 60% on the track
+      "SlotsTrack": "#2A181B",
+      "NoPosition": "#B00F0708",
+      "YouLine": "#C8120506",
+      "Prime": { "Fill": "#33CFA64E", "Text": "#CFA64E" }, // the old gold at 20%
+      "Elder": { "Fill": "#2A181B", "Text": "#D6C9B3" },
+    },
+    // The three families: dark buttons with a thin bone outline, a solid
+    // crimson one with bone-white text (the control panel's Lock), and the
+    // danger family in BONE (the owner's pick of the canvas's two readings,
+    // Nov 2): dark with a bone-white outline at 60% and bone-white text (Exit,
+    // ✕), apart from the crimson by brightness. Idle M, every other state P: a
+    // step lighter under the mouse and more when pressed; disabled the fill
+    // and outline faint, the text dim. The control panel lays its glow over the
+    // idle fill. One row's ✕ the bone of Text.Danger.
+    "Button": {
+      "Neutral": {
+        "Idle": { "Fill": "#1C1012", "Text": "#E2D6C2", "Line": "#24E8DCC8" },
+        "Hover": { "Fill": "#26171A", "Text": "#E8DCC8", "Line": "#3DE8DCC8" },
+        "Pressed": { "Fill": "#301D21", "Text": "#E8DCC8", "Line": "#3DE8DCC8" },
+        "Disabled": { "Fill": "#140B0D", "Text": "#625649", "Line": "#14E8DCC8" },
+      },
+      "Primary": {
+        "Idle": { "Fill": "#C41E3A", "Text": "#FFF4E0", "Line": "#C41E3A" },
+        "Hover": { "Fill": "#D3344E", "Text": "#FFF4E0", "Line": "#D3344E" },
+        "Pressed": { "Fill": "#A8182F", "Text": "#FFF4E0", "Line": "#A8182F" },
+        "Disabled": { "Fill": "#2E1A1D", "Text": "#8E8171", "Line": "#2E1A1D" },
+      },
+      "Danger": {
+        "Idle": { "Fill": "#0FFFF4E0", "Text": "#FFF4E0", "Line": "#99FFF4E0" },
+        "Hover": { "Fill": "#1FFFF4E0", "Text": "#FFFFFF", "Line": "#CCFFF4E0" },
+        "Pressed": { "Fill": "#33FFF4E0", "Text": "#FFFFFF", "Line": "#FFF4E0" },
+        "Disabled": { "Fill": "#08FFF4E0", "Text": "#625649", "Line": "#33FFF4E0" },
+      },
+      "HoverGlow": "#14C41E3A",
+      "PressedGlow": "#26C41E3A",
+      "RowDelete": "#FFF4E0",
+    },
+    // The check and the radio, ONE look: unticked a dark box or hexagon with
+    // the bone line; ticked or chosen a solid crimson one with a BONE-WHITE
+    // mark (a tick, an inner hexagon) and the crimson glow. M
+    // Hover is P: the template paints the hover box over a TICKED box too and
+    // keeps the ticked mark, so it stays a crimson (at 70%) that the bone mark
+    // reads on, about 8 : 1 on the dialog's ground
+    // (ThemeFileTests.EveryThemesMarkShowsUnderTheMouse), dimmer than a ticked box.
+    "Check": {
+      "Unticked": { "Box": "#1C1012", "Line": "#38E8DCC8", "Mark": "#00000000", "Glow": "#00000000" },
+      "Ticked": { "Box": "#C41E3A", "Line": "#C41E3A", "Mark": "#FFF4E0", "Glow": "#8CC41E3A" },
+      "Hover": { "Box": "#B3C41E3A", "Line": "#B3C41E3A", "Mark": "#00000000", "Glow": "#00000000" },
+      "Disabled": { "Box": "#140B0D", "Line": "#1FE8DCC8", "Mark": "#625649", "Glow": "#00000000" },
+    },
+    // The drawn slider (Shapes.SliderThumb, below): a 2 px crimson-line track,
+    // the crimson left of the thumb, a dark hexagon thumb in a crimson outline
+    // with the crimson's glow. M
+    "Slider": { "Track": "#4DC41E3A", "Fill": "#C41E3A", "Thumb": "#1A0A0C", "ThumbLine": "#C41E3A", "Glow": "#8CC41E3A" },
+    // P: square (Corner.Well), the button's dark fill, the bone line, lighter
+    // under the mouse, the crimson with the caret in it; a bone caret, a crimson selection.
+    "TextBox": {
+      "Idle": { "Fill": "#1C1012", "Line": "#24E8DCC8", "Text": "#F0E4CF", "Caret": "#FFF4E0", "Selection": "#59C41E3A" },
+      "Hover": { "Fill": "#1C1012", "Line": "#3DE8DCC8", "Text": "#F0E4CF", "Caret": "#FFF4E0", "Selection": "#59C41E3A" },
+      "Focus": { "Fill": "#1C1012", "Line": "#C41E3A", "Text": "#F0E4CF", "Caret": "#FFF4E0", "Selection": "#59C41E3A" },
+    },
+    "ScrollBar": { "Track": "#1C1012", "Thumb": "#3A2428" }, // P; app-wide
+    // The nav: rows in the nav colour; the selected one the crimson at 16%
+    // with a 2 px crimson bar on its left and bright Bold text (M); under the
+    // mouse a faint bone fill and the crimson bar at 35% (P).
+    "Nav": {
+      "Idle": { "Fill": "#00000000", "Text": "#CBBDA7", "Bar": "#00000000" },
+      "Hover": { "Fill": "#0FE8DCC8", "Text": "#E8DCC8", "Bar": "#59C41E3A" },
+      "Selected": { "Fill": "#29C41E3A", "Text": "#FFF8EE", "Bar": "#C41E3A" },
+      "Caption": "#B3636D",
+      "Divider": "#40C41E3A",
+      "BarWidth": 2,
+      "SelectedWeight": "Bold",
+    },
+    // The maps' menus: a row in text 2, ticked in the text colour, disabled in
+    // the intact grey; under the mouse the crimson at 16% with a bright text,
+    // no outline. Pressed P, the others M.
+    "MenuRow": {
+      "Idle": { "Fill": "#00000000", "Text": "#D6C9B3" },
+      "Hover": { "Fill": "#29C41E3A", "Text": "#FFF8EE" },
+      "Pressed": { "Fill": "#40C41E3A", "Text": "#FFF8EE" },
+      "Disabled": { "Fill": "#00000000", "Text": "#625649" },
+      "Ticked": { "Fill": "#00000000", "Text": "#E8DCC8" },
+    },
+    "Separator": "#40C41E3A", // M
+    // The surfaces, SOLID, a step above the ground (Isle's lesson: a tint is
+    // invisible on the dialog's glass), with a dark blood line and zebra rows at
+    // the text colour's 3%; a clickable card's outline under the mouse the
+    // crimson at 60%. P
+    "Card": { "Surface": "#160D0F", "Line": "#3A2226", "Band": "#1E1214", "Stripe": "#08E8DCC8", "HoverLine": "#99C41E3A" },
+    // Account's cards, What's new's notes, the sign-in's result; a box inside
+    // one the ground, a step darker than the card. P
+    "InfoCard": { "Surface": "#170E10", "Line": "#3A2226", "Inner": "#0F0708" },
+    // A colour well, a skin's picture well, the stored dino's map well: a step
+    // above the card; the rim round a skin's colour dots the bone at Default's 33%. P
+    "Well": { "Surface": "#1E1214", "Line": "#38E8DCC8", "DotLine": "#55E8DCC8" },
+    "Map": {
+      // Your arrow in the crimson with a near-black rim and the crimson glow
+      // (painted); the trail in the crimson with no casing. M
+      "You": { "Arrow": "#C41E3A", "Outline": "#120506", "Trail": "#C41E3A", "Glow": "#8CC41E3A" },
+      "Hover": "#C41E3A",
+      "OwnArea": "#F0E4CF", // P: your area's outline the title's bone
+      // The names: a bone white over the ground's dark, the area names in
+      // capitals (Default's MapAreaNameCaps) at Default's 13 / 12. M
+      "AreaName": "#F3EADB",
+      "Name": "#E8DCC8",
+      "NameOutline": "#F20F0708",
+      "MarkerOutline": "#120506",
+      // The cursor readout (and the header's "you are in"). M
+      "Readout": { "Glass": "#EB0F0708", "Line": "#59C41E3A", "Name": "#FFF8EE", "Rest": "#8E8171" },
+      "ScaleBar": "#E8DCC8",
+      "PillText": "#E8DCC8",
+      // The Layers button: square, dark with the bone line (P); the crimson
+      // outline and a bright text on the crimson at 16% while its menu is open (M).
+      "LayerButton": {
+        "Idle": { "Fill": "#1C1012", "Line": "#24E8DCC8", "Text": "#CBBDA7" },
+        "Open": { "Fill": "#29C41E3A", "Line": "#C41E3A", "Text": "#FFF8EE" },
+        "HoverGlow": "#14C41E3A",
+      },
+      // P: to the screen the crimson, to another panel the old gold, two colours apart.
+      "SnapGuide": { "Screen": "#E6C41E3A", "Peer": "#E6CFA64E" },
+      // Square frames: Windows 11 must not round the map window (as Isle). M
+      "WindowRounded": false,
+    },
+    // The update cards and What's new: the bullets and the download in the
+    // crimson on the dark track (P); the ✓ after an update stays Default's green.
+    "UpdateCard": { "Bullet": "#C41E3A", "Progress": "#C41E3A", "ProgressTrack": "#2A181B" },
+    // Isle's catalogue picks (M): a hexagon radio, slider thumb, fracture
+    // badge and title glyph; your own Activity lines start with "◆". Rajdhani
+    // has no "◆": Windows' symbol font draws it (judged in the renders).
+    "Shapes": {
+      "Radio": "hexagon",
+      "SliderThumb": "hexagon", // the drawn slider (Controls.xaml's ThemedSlider), not WPF's own
+      "Badge": "hexagon",
+      "TitleGlyph": "hexagon",
+      "ActivityBullet": "◆ ",
+    },
+    // Isle's cuts: the widgets', the minimap's map square, the dialogs'. M
+    "Cut": { "Widget": 10, "MapSquare": 6, "Dialog": 14 },
+    // Two corners lit in the crimson, a 1.5 px line about 26 px along the edge
+    // and 20 px down the side, past each cut (Isle's numbers). M
+    "Lit": { "Edge": 26, "Side": 20, "Width": 1.5 },
+    // The lit corners' glow, edit mode's whole outline, the control panel's
+    // inner glow (within its 10 × 8 padding), your arrow on the maps; the
+    // chosen radio and the slider's thumb (Isle's radii). M
+    "Glow": { "Corners": 3, "Edit": 5, "ControlPanel": 8, "You": 3, "Radio": 2, "Thumb": 2 },
+    // Square everywhere, as Isle. M
+    "Corner": {
+      "Widget": 0, "Dialog": 0, "Menu": 0, "Pill": 0, "Button": 0, "Card": 0, "Well": 0,
+      "Bar": 0, "Check": 0, "ScrollThumb": 0, "Badge": 0, "Nav": 0, "LayerButton": 0,
+      "Band": 0, "LargeButton": 0, "Progress": 0, "Tag": 0,
+    },
+    // Rajdhani for everything, body and titles (the owner's brief, Nov 2: the
+    // resemblance to Pandora's body is accepted), at today's sizes: Rajdhani
+    // reads small, so it is answered with heavier weights, as Pandora's. The
+    // badges a little smaller; the map's names Default's 13 / 12 in capitals. M
+    "Font": {
+      "Family": "Assets/Fonts/Rajdhani/#Rajdhani",
+      "TitleFamily": "Assets/Fonts/Rajdhani/#Rajdhani",
+      "TitleWeight": "Bold",
+      "MapTitleWeight": "Bold",
+      "ValueWeight": "Bold",
+      "BodyWeight": "SemiBold",
+      "CaptionWeight": "Bold",
+      "BadgeSize": 9.5,
+      "SpacedCaptions": true, // read by nothing yet (WPF has no tracking)
+    },
+  },
+}
