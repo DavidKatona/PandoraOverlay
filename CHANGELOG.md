@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   while your health climbs, and "~3m" while it falls steadily. It follows
   the same "time left" tick as the other bars and stays out of the way
   during a fight's sudden hits.
+- A fifth theme, **Herbivore**: a calm forest look. Moss green and cream
+  on dark glass, the rounded Nunito font throughout, soft frames that
+  glow only in edit mode, and round controls. Every bar is moss green,
+  and health, hunger and thirst turn red under 25%; "Prime Elder" is
+  honey amber. As in Nightshade, its text is drawn 3% smaller, so it fits
+  the widgets, which never change size. Pick it on Settings › Themes.
 
 ### Changed
 

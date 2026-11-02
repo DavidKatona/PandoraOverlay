@@ -1,0 +1,325 @@
+// Herbivore: "Forest", moss green and cream on dark glass (pandora-themes\HERBIVORE.md,
+// the design of Nov 2 2026 from the owner's brief of the same day; the owner's
+// look at the canvas, the same evening: "build it as mocked"). A SPARSE override
+// of Default (Themes/ThemeFile.cs): only what differs, by the token's path; a key
+// Default lacks is a test failure, never a silent inheritance.
+//
+// One accent, the moss #94B85E (a muted, yellow-leaning green that reads on the
+// glass without glowing; lighter #A6C873 under the mouse, deeper #82A64D
+// pressed), and its derived alphas:
+//   moss 70% #B394B85E   a check under the mouse
+//   moss 60% #9994B85E   a card under the mouse, the storage slots
+//   moss 55% #8C94B85E   the edit and control-panel glow
+//   moss 35% #5994B85E   a text selection
+//   moss 28% #4794B85E   the frames' line, separators, the nav's divider
+//   moss 25% #4094B85E   a menu row pressed
+//   moss 20% #3394B85E   the bar track's inset line
+//   moss 16% #2994B85E   the selected nav row, a menu row under the mouse
+//   moss 15% #2694B85E   a button pressed
+//   moss 10% #1A94B85E   the bar track
+//   moss 8%  #1494B85E   a button under the mouse
+// A light moss #C4D99E for the page titles, the time left and the links. A warm
+// honey amber #E8AA48 is the second colour: "Prime Elder", the highlights, Caution
+// and the sign-in's step numbers, wherever Default has its gold. The ground is a
+// near-black with a faint green tint, #0B100C; text a cream #ECE6D2, the cream
+// lines at 14% #24ECE6D2 and 22% #38ECE6D2; the dark mark on moss #0F1A0B. Red
+// #FF5544 only when a stat is low, its text #FF9A8F. Nunito throughout, titles
+// too; soft corners; a quiet frame (the moss line, nothing lit, a glow only in
+// edit mode and round the control panel); no title glyph, no logo, no pictures.
+//
+// M = taken from the mock (herbivore-mockup\*.dc.html); P = proposed for a
+// state the mock does not show, to be judged in game.
+{
+  "Name": "Herbivore",
+  "Order": 4,
+  "Fit": 0.97, // the fit factor: FitFactorTests' computed value (Nunito's line box runs taller than Segoe UI's; at 0.98 the Settings Friends page is 456.2 px in its 455.7 px column, Nov 2 2026)
+  "Tokens": {
+    "Bars": {
+      // Every theme's rule: every bar the accent in every state; health, hunger
+      // and thirst red with red text only under a quarter (Below25), where the
+      // pulse and the halo run. The time left the light moss #C4D99E. M
+      "Health": {
+        "Above75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From50To75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From25To50": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "Below25": { "Fill": "#FF5544", "Percent": "#FF9A8F", "TimeLeft": "#FF9A8F" },
+        "Track": "#1A94B85E",
+        "TrackLine": "#3394B85E",
+        "OnFill": "#0F1A0B", // the dark text on moss
+      },
+      // Stamina never turns red: it empties every sprint.
+      "Stamina": {
+        "Above75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From50To75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From25To50": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "Below25": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "Track": "#1A94B85E",
+        "TrackLine": "#3394B85E",
+        "OnFill": "#0F1A0B",
+      },
+      "Hunger": {
+        "Above75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From50To75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From25To50": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "Below25": { "Fill": "#FF5544", "Percent": "#FF9A8F", "TimeLeft": "#FF9A8F" },
+        "Track": "#1A94B85E",
+        "TrackLine": "#3394B85E",
+        "OnFill": "#0F1A0B",
+      },
+      "Thirst": {
+        "Above75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From50To75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From25To50": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "Below25": { "Fill": "#FF5544", "Percent": "#FF9A8F", "TimeLeft": "#FF9A8F" },
+        "Track": "#1A94B85E",
+        "TrackLine": "#3394B85E",
+        "OnFill": "#0F1A0B",
+      },
+      // Damage grows as you take it: not a stat running low, so never red. No
+      // time label is ever drawn on it; the light moss all the same.
+      "Damage": {
+        "Above75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From50To75": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "From25To50": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "Below25": { "Fill": "#94B85E", "Percent": "#ECE6D2", "TimeLeft": "#C4D99E" },
+        "Track": "#1A94B85E",
+        "TrackLine": "#3394B85E",
+        "OnFill": "#0F1A0B",
+      },
+      // "Wounded" is plain text, the label colour: no amber. M
+      "HealthReadout": { "Above75": "#A8A991", "From50To75": "#A8A991", "From25To50": "#A8A991", "Below25": "#A8A991" },
+      "Label": "#A8A991",
+      "Height": 8,
+      "TrackLineWidth": 1,
+      // The red glow round a low bar (M; the owner kept it, Nov 2): the low
+      // state's, not the frame's, and it helps tell red from moss.
+      "Below25Halo": 3,
+    },
+    "Prime": {
+      "Met": { "Icon": "#94B85E", "Text": "#ECE6D2", "Weight": "Bold" }, // M
+      "Unmet": { "Icon": "#A6FF5544", "Text": "#6D725F", "Weight": "Medium" }, // M: the ✗ red at 65%, the text off
+      "Fresh": { "Icon": "#94B85E", "Text": "#FFFCF0", "Weight": "ExtraBold" }, // M
+      "Lost": { "Icon": "#FF5544", "Text": "#FF9A8F", "Weight": "SemiBold" }, // P: a loss in red text, as Isle's
+      "Unchecked": { "Icon": "#5F6453", "Text": "#6D725F", "Weight": "Medium" }, // P
+      // The honey for the top rank. PrimeElder and NotReady M, the others P.
+      "Status": { "PrimeElder": "#E8AA48", "Ready": "#94B85E", "NotReady": "#A8A991", "Unknown": "#868A73" },
+      // Checked and Cooldown M; a stale check in the light moss, a failure in red text: P.
+      "Footer": { "Checked": "#868A73", "Stale": "#C4D99E", "Failed": "#FF9A8F", "Cooldown": "#868A73" },
+    },
+    // Your "❧" in the accent (a friend's in its own colour, the code's); a
+    // fracture, a low stat or damage in the warn line. M (Quiet P)
+    "Activity": { "Mine": "#94B85E", "Line": "#D6D0BC", "Warning": "#FF6F61", "Quiet": "#868A73", "Count": "#A8A991" },
+    // The green-tinted ground at the mock's alphas (a widget's alpha is the player's slider). M
+    "Glass": {
+      "Widget": "#DB0B100C",
+      "Dialog": "#F50B100C",
+      "Menu": "#F70B100C",
+      "Pill": "#CC0B100C",
+      "MapPill": "#D10B100C",
+      "MapWindow": "#FF0B100C",
+      "SignIn": "#0B100C", // P: opaque, as it must be (WebView2): the ground without its alpha
+    },
+    // The quiet frame: the moss at 28%, nothing lit (Lit stays Default's 0);
+    // edit mode and the control panel the whole moss line with a soft moss glow. M
+    "Frame": {
+      "Locked": { "Line": "#4794B85E" },
+      "Edit": { "Line": "#94B85E", "Glow": "#8C94B85E" },
+      "ControlPanel": { "Line": "#94B85E", "Glow": "#8C94B85E" },
+    },
+    // The fracture badges, pills without an outline (Corner.Badge, below). M
+    "Badge": {
+      "Intact": { "Fill": "#0DECE6D2", "Text": "#5F6453" },
+      "Fractured": { "Fill": "#38FF5544", "Text": "#FF9A8F" }, // red at 22%
+    },
+    // Paused is a state, not a warning: the dim colour, no amber. FullyGrown M, the others P.
+    "Growth": { "Growing": "#A8A991", "Paused": "#868A73", "FullyGrown": "#A8A991" },
+    "Text": {
+      "Title": "#F3ECD6", // a brighter cream, in Nunito ExtraBold (Font.TitleWeight); no title glow
+      "Glyph": "#94B85E", // drawn by no shape: the title glyph is none
+      "PageTitle": "#C4D99E",
+      "Bright": "#FFFCF0", // a warm white
+      "Text": "#ECE6D2",
+      "Text2": "#D6D0BC",
+      "Label": "#A8A991",
+      "Dim": "#868A73",
+      "Off": "#6D725F",
+      "Caption": "#979B84",
+      "Link": "#C4D99E", // P
+      "Caution": "#E8AA48", // P: the honey, where Default has its gold
+      "Danger": "#FF6F61", // P
+      // Good stays Default's mint green: a hint that is good, a ✓ on the update
+      // card (bluer and lighter than the moss, never beside a bar).
+      // P: what stands out in a list (your species on Server rules, a stored
+      // dino's name, the ★ and the A–F row on Skins) and the sign-in's step
+      // numbers: the honey.
+      "Highlight": "#E8AA48",
+      "Marker": "#E8AA48",
+    },
+    // Settings → Dino storage, P throughout (no board shows it): the growth bar
+    // the accent on the slider's dark track, the Prime badge the honey, the Elder
+    // badge neutral. The website's own meanings stay its own (SiteBrushes).
+    "Storage": {
+      "BarTrack": "#1F2B1E",
+      "Growth": "#94B85E",
+      "Slots": "#9994B85E", // the "3 of 10 slots" bar: the accent at 60% on the track
+      "SlotsTrack": "#1F2B1E",
+      "NoPosition": "#B00B100C",
+      "Prime": { "Fill": "#33E8AA48", "Text": "#E8AA48" }, // the honey at 20%
+      "Elder": { "Fill": "#1F2B1E", "Text": "#D6D0BC" },
+    },
+    // The three families: dark green buttons with a thin cream outline, a solid
+    // moss one (the control panel's Lock), the danger button red at 12% with a
+    // red-at-50% outline (Exit, ✕). Idle M, every other state P: a step lighter
+    // under the mouse and more when pressed; disabled the fill and outline
+    // faint, the text dim. The control panel lays its glow over the idle fill.
+    "Button": {
+      "Neutral": {
+        "Idle": { "Fill": "#151D15", "Text": "#E4DECA", "Line": "#24ECE6D2" },
+        "Hover": { "Fill": "#1C261B", "Text": "#ECE6D2", "Line": "#3DECE6D2" },
+        "Pressed": { "Fill": "#243023", "Text": "#ECE6D2", "Line": "#3DECE6D2" },
+        "Disabled": { "Fill": "#101610", "Text": "#5F6453", "Line": "#14ECE6D2" },
+      },
+      "Primary": {
+        "Idle": { "Fill": "#94B85E", "Text": "#0F1A0B", "Line": "#94B85E" },
+        "Hover": { "Fill": "#A6C873", "Text": "#0F1A0B", "Line": "#A6C873" },
+        "Pressed": { "Fill": "#82A64D", "Text": "#0F1A0B", "Line": "#82A64D" },
+        "Disabled": { "Fill": "#243023", "Text": "#868A73", "Line": "#243023" },
+      },
+      "Danger": {
+        "Idle": { "Fill": "#1FFF5544", "Text": "#FFB8B0", "Line": "#80FF5544" },
+        "Hover": { "Fill": "#33FF5544", "Text": "#FFCCC6", "Line": "#A6FF5544" },
+        "Pressed": { "Fill": "#4DFF5544", "Text": "#FFCCC6", "Line": "#A6FF5544" },
+        "Disabled": { "Fill": "#0FFF5544", "Text": "#5F6453", "Line": "#33FF5544" },
+      },
+      "HoverGlow": "#1494B85E",
+      "PressedGlow": "#2694B85E",
+    },
+    // The check and the radio, ONE look: unticked a dark box or ring with the
+    // cream line; ticked or chosen a solid moss box or circle with a dark mark,
+    // and NO glow (the quiet theme: Glow.Radio stays Default's 0). M
+    // Hover is P: the template paints the hover box over a TICKED box too and
+    // keeps the ticked mark, so a dark hover box would hide the dark tick under
+    // the mouse (Pandora's lesson). The moss at 70% keeps the mark readable on
+    // the dialog's ground (ThemeFileTests.EveryThemesMarkShowsUnderTheMouse) and
+    // still reads dimmer than a ticked box.
+    "Check": {
+      "Unticked": { "Box": "#151D15", "Line": "#38ECE6D2", "Mark": "#00000000" },
+      "Ticked": { "Box": "#94B85E", "Line": "#94B85E", "Mark": "#0F1A0B" },
+      "Hover": { "Box": "#B394B85E", "Line": "#B394B85E", "Mark": "#00000000" },
+      "Disabled": { "Box": "#101610", "Line": "#1FECE6D2", "Mark": "#5F6453" },
+    },
+    // The drawn slider (Shapes.SliderThumb, below): the dark track, the accent
+    // left of a solid moss round thumb with a dark rim, no glow (Glow.Thumb 0). M
+    "Slider": { "Track": "#1F2B1E", "Fill": "#94B85E", "Thumb": "#94B85E", "ThumbLine": "#0F1A0B" },
+    // P: the button's dark fill, the cream line, lighter under the mouse, the
+    // moss with the caret in it; a moss caret and selection.
+    "TextBox": {
+      "Idle": { "Fill": "#151D15", "Line": "#24ECE6D2", "Text": "#ECE6D2", "Caret": "#94B85E", "Selection": "#5994B85E" },
+      "Hover": { "Fill": "#151D15", "Line": "#3DECE6D2", "Text": "#ECE6D2", "Caret": "#94B85E", "Selection": "#5994B85E" },
+      "Focus": { "Fill": "#151D15", "Line": "#94B85E", "Text": "#ECE6D2", "Caret": "#94B85E", "Selection": "#5994B85E" },
+    },
+    "ScrollBar": { "Track": "#151D15", "Thumb": "#34422F" }, // P; app-wide
+    // The nav: rows in the nav colour; the selected one the moss at 16% with a
+    // 2 px moss bar on its left and warm-white ExtraBold text (Default's Normal is
+    // no face Nunito bundles); under the mouse a faint cream fill. M
+    "Nav": {
+      "Idle": { "Fill": "#00000000", "Text": "#C7C5B1", "Bar": "#00000000" },
+      "Hover": { "Fill": "#0FECE6D2", "Text": "#ECE6D2", "Bar": "#00000000" },
+      "Selected": { "Fill": "#2994B85E", "Text": "#FFFCF0", "Bar": "#94B85E" },
+      "Caption": "#979B84",
+      "Divider": "#4794B85E",
+      "BarWidth": 2,
+      "SelectedWeight": "ExtraBold",
+    },
+    // The maps' menus: a row in text 2, ticked in the text colour; under the
+    // mouse the moss at 16% with a near-white text, no outline. Idle, Hover,
+    // Disabled, Ticked M; Pressed P.
+    "MenuRow": {
+      "Idle": { "Fill": "#00000000", "Text": "#D6D0BC" },
+      "Hover": { "Fill": "#2994B85E", "Text": "#F7F2E2" },
+      "Pressed": { "Fill": "#4094B85E", "Text": "#F7F2E2" },
+      "Disabled": { "Fill": "#00000000", "Text": "#5F6453" },
+      "Ticked": { "Fill": "#00000000", "Text": "#ECE6D2" },
+    },
+    "Separator": "#4794B85E", // M
+    // The surfaces, SOLID, a step above the ground (Isle's lesson: a tint is
+    // invisible on the dialog's glass), dark green, with zebra rows at the text
+    // colour's 3%. P. A clickable card's outline under the mouse the moss at 60% (P).
+    "Card": { "Surface": "#111811", "Line": "#233023", "Band": "#151D15", "Stripe": "#08ECE6D2", "HoverLine": "#9994B85E" },
+    // Account's cards, What's new's notes, the sign-in's result; a box inside one
+    // the ground, a step darker than the card (P), as Default's is.
+    "InfoCard": { "Surface": "#111811", "Line": "#233023", "Inner": "#0B100C" },
+    // A colour well, a skin's picture well, the stored dino's map well: a step
+    // above the card; the rim round a skin's colour dots the text colour at
+    // Default's 33% (P).
+    "Well": { "Surface": "#151D15", "Line": "#38ECE6D2", "DotLine": "#55ECE6D2" },
+    "Map": {
+      // Your arrow in the accent with a dark green outline, no glow (Glow.You
+      // stays Default's 0: the quiet theme); the trail in the accent, no casing. M
+      "You": { "Arrow": "#94B85E", "Outline": "#0C140A", "Trail": "#94B85E" },
+      "Hover": "#94B85E",
+      // Your area's outline and the plain names: Default's near-whites. The area
+      // names a cream white over black, in mixed case (Font.MapAreaNameCaps). M
+      "AreaName": "#F6F0DE",
+      "NameOutline": "#000000",
+      "MarkerOutline": "#0C140A",
+      // The cursor readout (and the header's "you are in"). M
+      "Readout": { "Glass": "#F00B100C", "Line": "#4794B85E", "Name": "#FFFCF0", "Rest": "#868A73" },
+      "ScaleBar": "#ECE6D2",
+      "PillText": "#ECE6D2",
+      // The Layers button: dark with the cream line (P); the moss outline and
+      // warm-white text on the moss at 16% while its menu is open (M).
+      "LayerButton": {
+        "Idle": { "Fill": "#151D15", "Line": "#24ECE6D2", "Text": "#C7C5B1" },
+        "Open": { "Fill": "#2994B85E", "Line": "#94B85E", "Text": "#FFFCF0" },
+        "HoverGlow": "#1494B85E",
+      },
+      // P: to the screen the moss, to another panel the honey, two colours apart.
+      "SnapGuide": { "Screen": "#94B85E", "Peer": "#E8AA48" },
+      // The map window keeps Windows 11's rounded corners (Default's): Herbivore's frames are rounded.
+    },
+    // The update cards and What's new: the bullets and the download in the
+    // accent on the dark track (P); the ✓ after an update stays Default's green.
+    "UpdateCard": { "Bullet": "#94B85E", "Progress": "#94B85E", "ProgressTrack": "#1F2B1E" },
+    // Round controls and your own Activity lines starting with "❧" (M). Nunito
+    // has no "❧": Windows' symbol font draws it (judged in the renders). The
+    // radio's circle, the fracture badge's box and no title glyph are Default's
+    // picks too, so not here.
+    "Shapes": {
+      "SliderThumb": "circle", // the drawn slider (Controls.xaml's ThemedSlider), not WPF's own
+      "ActivityBullet": "❧ ",
+    },
+    // No cut and nothing lit (Cut and Lit stay Default's 0): the quiet frame.
+    // A glow only in edit mode (the whole outline) and round the control panel
+    // (inside its 10 × 8 padding); the corners, the chosen radio, the slider's
+    // thumb and your arrow keep Default's 0. M (the radii P)
+    "Glow": { "Edit": 5, "ControlPanel": 8 },
+    // Soft corners (M): 8 on a widget, Default's 10 on a dialog and the map,
+    // pills for the bars and the badges. The ones the mock did not draw (a
+    // card's band, the big Discord button) the card's 6 (P); a filling bar and
+    // the website's tags Default's already. ScrollThumb is Default's 4.
+    "Corner": {
+      "Widget": 8, "Menu": 8, "Pill": 6, "Button": 6, "Card": 6, "Well": 6,
+      "Bar": 4, "Check": 4, "Badge": 8, "Nav": 6, "LayerButton": 6,
+      "Band": 6, "LargeButton": 6,
+    },
+    // Nunito throughout, rounded and friendly (the owner's "Nunito throughout",
+    // Nov 2): the titles too, in ExtraBold so a title still reads as one without
+    // a second font; the values Bold, the body SemiBold, the captions ExtraBold.
+    // Only Nunito's four bundled faces (500–800) are named. The badges a little
+    // smaller, as Pandora's and Nightshade's. M
+    "Font": {
+      "Family": "Assets/Fonts/Nunito/#Nunito",
+      "TitleFamily": "Assets/Fonts/Nunito/#Nunito",
+      "TitleWeight": "ExtraBold",
+      "MapTitleWeight": "ExtraBold",
+      "ValueWeight": "Bold",
+      "BodyWeight": "SemiBold",
+      "CaptionWeight": "ExtraBold",
+      "BadgeSize": 9.5,
+      // The map's names at Default's sizes (13 / 12), in mixed case (the mock): M
+      "MapAreaNameCaps": false,
+      "SpacedCaptions": true, // read by nothing yet (WPF has no tracking)
+    },
+  },
+}
