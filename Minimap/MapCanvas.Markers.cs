@@ -34,6 +34,7 @@ public partial class MapCanvas
         public Ellipse? Ring { get; init; }
         public TranslateTransform Translate { get; } = new();
         public bool Tracked { get; init; }
+        public bool Fresh { get; set; } = true; // first placement snaps, later ones glide (as a friend's)
     }
 
     /// <summary>One drawn friend: the arrow (+ ring when tracked) and the transforms that move and turn it.</summary>
@@ -61,10 +62,16 @@ public partial class MapCanvas
     /// <summary>
     /// Recreates the waypoint shapes: a small dot per waypoint in its colour,
     /// the tracked one a diamond with a ring. Each gets its own translate so
-    /// it can glide with the map. Place them after (PlaceWaypoints).
+    /// it can glide with the map. Place them after (PlaceWaypoints). A
+    /// waypoint drawn before keeps its marker's place (and its glide state),
+    /// as a friend does: the "nearest" policy rebuilds the set as the player
+    /// moves, and until Nov 2 2026 every marker then restarted at the panel's
+    /// corner and glided in from there with the next poll (the tracking-line
+    /// session's find); a marker never drawn before snaps into place first.
     /// </summary>
     public void ShowWaypoints(IEnumerable<Waypoint> shown, Guid? trackedId)
     {
+        var old = new Dictionary<Guid, Marker>(_markers);
         MarkerLayer.Children.Clear();
         _markers.Clear();
         foreach (var w in shown)
@@ -104,6 +111,15 @@ public partial class MapCanvas
                 dot.RenderTransform = marker.Translate;
                 MarkerLayer.Children.Add(dot);
             }
+            if (old.TryGetValue(w.Id, out var was))
+            {
+                // Same waypoint, new shapes: start where the old marker stands
+                // (mid-glide, its current point), so the rebuild moves nothing
+                // by itself and the next placement carries on from there.
+                marker.Translate.X = was.Translate.X;
+                marker.Translate.Y = was.Translate.Y;
+                marker.Fresh = was.Fresh;
+            }
             _markers[w.Id] = marker;
         }
         ShowTrackLines();
@@ -140,7 +156,7 @@ public partial class MapCanvas
             m.Shape.Visibility = visibility;
             if (m.Ring is not null) m.Ring.Visibility = visibility;
 
-            if (glide is { } d)
+            if (glide is { } d && !m.Fresh)
             {
                 Animate(m.Translate, TranslateTransform.XProperty, x, d);
                 Animate(m.Translate, TranslateTransform.YProperty, y, d);
@@ -152,7 +168,8 @@ public partial class MapCanvas
                 m.Translate.X = x;
                 m.Translate.Y = y;
             }
-            if (m.Tracked) MoveLineEnd(WaypointLine, Line.X2Property, Line.Y2Property, at, glide);
+            if (m.Tracked) MoveLineEnd(WaypointLine, Line.X2Property, Line.Y2Property, at, m.Fresh ? null : glide);
+            m.Fresh = false;
         }
         ShowTrackLines();
     }
