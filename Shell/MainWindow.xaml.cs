@@ -579,7 +579,7 @@ public partial class MainWindow : OverlayWindowBase
                                _config.ActivityAreaLines ? _areaJournal.Current : null));
         UpdateAutoHide(result.InGame && result.Player is not null);
         _tray.SetStatus(result.InGame && result.Player is { } p
-            ? $"Pandora Overlay — {p.Dino} · HP {p.Health * 100:0}% · Growth {p.Growth * 100:0.#}%"
+            ? $"Pandora Overlay — {p.Dino} · HP {p.Health * 100:0}% · {(GrowthReadout.Percent(p.Growth) == 100 ? "Elder" : $"Growth {GrowthReadout.Percent(p.Growth)}%")}" // the header's percent and its last stage's word (GrowthReadout)
             : _autoHidden ? "Pandora Overlay — hidden until you spawn"
             : "Pandora Overlay — not in-game");
 

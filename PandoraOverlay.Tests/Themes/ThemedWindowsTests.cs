@@ -140,7 +140,7 @@ public class ThemedWindowsTests
         var root = ThemeFileTests.RepoRoot();
         return Directory.EnumerateFiles(root, "*" + extension, SearchOption.AllDirectories)
             .Select(f => Path.GetRelativePath(root, f).Replace('\\', '/'))
-            .Where(f => f.Split('/')[0] is not ("bin" or "obj" or "PandoraOverlay.Tests" or "publish" or "Releases" or ".git" or ".vs" or "tools"));
+            .Where(f => f.Split('/')[0] is not ("bin" or "obj" or "PandoraOverlay.Tests" or "publish" or "Releases" or ".git" or ".vs" or "tools" or ".claude")); // .claude: the rules, and the app's worktrees (whole checkouts)
     }
 
     /// <summary>

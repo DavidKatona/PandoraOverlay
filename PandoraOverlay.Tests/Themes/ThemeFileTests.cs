@@ -663,7 +663,9 @@ public class ThemeFileTests
     private static bool IsBuildOrTests(string relative)
     {
         var first = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
-        return first is "bin" or "obj" or "PandoraOverlay.Tests" or "publish" or "Releases" or ".git" or ".vs";
+        // ".claude": the rules and skills, and the app's worktrees under .claude/worktrees,
+        // each a whole checkout of its own branch (five of them, Nov 2 2026, failed this scan).
+        return first is "bin" or "obj" or "PandoraOverlay.Tests" or "publish" or "Releases" or ".git" or ".vs" or ".claude";
     }
 
     /// <summary>The repo's root: up from the test's bin folder to the folder holding PandoraOverlay.csproj.</summary>

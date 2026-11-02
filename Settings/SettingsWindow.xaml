@@ -380,7 +380,7 @@
                              GroupName="StatsView" Margin="14,0,0,0"/>
             </StackPanel>
             <CheckBox x:Name="TimeLeftCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
-                      Content="Show time left on the hunger, thirst and stamina bars"/>
+                      Content="Show time left on the health, hunger, thirst and stamina bars"/>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="PRIME TRACKER"/>
             <DockPanel>
