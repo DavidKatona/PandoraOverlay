@@ -17,7 +17,7 @@ public readonly record struct MapLabel(string Text, Point At, bool IsArea, bool 
 /// The map drawing every map shares (big map plan, phase 2): the island
 /// picture with what moves with it — the heatmap, the zones (the big map's
 /// only), the area borders and the two outlines, the breadcrumb trail — and
-/// above it the waypoint markers,
+/// above it the tracking lines, the waypoint markers,
 /// the names, the friends' arrows and yours. It draws and glides; it decides
 /// nothing: which waypoints and friends, which view, when to glide and for
 /// how long are its map's business (MinimapWindow, BigMapWindow). It knows
@@ -54,13 +54,15 @@ public partial class MapCanvas : UserControl
     /// <summary>
     /// The bundled copy of the site's island map (Assets/map.png), decoded
     /// once at native resolution — so a zoomed view stays sharp — and shared
-    /// by every map.
+    /// by every map. Addressed by the overlay's own assembly, as the themes'
+    /// fonts are (Theme.FontFamilyOf): the plain pack://application:,,,/
+    /// resolves against the ENTRY assembly, which is another in the tests.
     /// </summary>
     private static readonly Lazy<BitmapImage> Island = new(() =>
     {
         var bmp = new BitmapImage();
         bmp.BeginInit();
-        bmp.UriSource = new Uri("pack://application:,,,/Assets/map.png");
+        bmp.UriSource = new Uri("pack://application:,,,/PandoraOverlay;component/Assets/map.png");
         bmp.EndInit();
         bmp.Freeze();
         return bmp;
@@ -105,9 +107,11 @@ public partial class MapCanvas : UserControl
     /// what was painted in code is painted again here, in place: the markers'
     /// and the friends' outline, and whether the trail has a casing. Nothing
     /// moves, nothing is re-placed, so a switch mid-glide shows no jump. The
-    /// names need nothing: only the big map draws them, and it is never open
-    /// while Settings is (it closes first), so it draws them in the new theme
-    /// the next time it opens. The map menus' entries follow by themselves too.
+    /// tracking lines are left alone: they wear their targets' colours, data
+    /// the same in every theme. The names need nothing: only the big map
+    /// draws them, and it is never open while Settings is (it closes first),
+    /// so it draws them in the new theme the next time it opens. The map
+    /// menus' entries follow by themselves too.
     /// </summary>
     public void ApplyTheme()
     {
@@ -160,6 +164,7 @@ public partial class MapCanvas : UserControl
         _mapSpace = true;
         _glideFps = glideFrameRate;
         StillMarks.RenderTransform = _mapTranslate;
+        TrackLines.RenderTransform = _mapTranslate;
         FriendLayer.RenderTransform = _mapTranslate;
         SetArrowTransform(new TransformGroup { Children = { _arrowRotate, _arrowTranslate, _mapTranslate } });
         MapLayer.CacheMode = new BitmapCache { SnapsToDevicePixels = true };
@@ -214,11 +219,25 @@ public partial class MapCanvas : UserControl
 
     public bool ArrowVisible
     {
-        set => PlayerArrow.Visibility = PlayerGlow.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+        set
+        {
+            PlayerArrow.Visibility = PlayerGlow.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            _arrowShown = value;
+            ShowTrackLines(); // a line needs both its ends
+        }
     }
 
-    /// <summary>Moves your arrow to a point (panel space; map space with UseMapSpace): gliding, or at once.</summary>
-    public void MoveArrow(Point at, TimeSpan? glide) => Move(_arrowTranslate, at, glide);
+    /// <summary>
+    /// Moves your arrow to a point (panel space; map space with UseMapSpace):
+    /// gliding, or at once. The tracking lines' start goes with it, over the
+    /// same time, so a line never lags the arrow.
+    /// </summary>
+    public void MoveArrow(Point at, TimeSpan? glide)
+    {
+        Move(_arrowTranslate, at, glide);
+        MoveLineEnd(WaypointLine, Line.X1Property, Line.Y1Property, at, glide);
+        MoveLineEnd(FriendLine, Line.X1Property, Line.Y1Property, at, glide);
+    }
 
     /// <summary>Turns your arrow to a screen heading; a glide takes the shortest way round.</summary>
     public void TurnArrow(double degrees, TimeSpan? glide)
@@ -233,9 +252,12 @@ public partial class MapCanvas : UserControl
         _arrowRotate.Angle = degrees;
     }
 
-    /// <summary>Stops every glide where it stands: the map, your arrow, the markers and the friends.</summary>
+    /// <summary>Stops every glide where it stands: the map, your arrow, the markers, the friends and the tracking lines.</summary>
     public void ClearAnimations()
     {
+        foreach (var line in new[] { WaypointLine, FriendLine })
+            foreach (var end in new[] { Line.X1Property, Line.Y1Property, Line.X2Property, Line.Y2Property })
+                line.BeginAnimation(end, null);
         _arrowTranslate.BeginAnimation(TranslateTransform.XProperty, null);
         _arrowTranslate.BeginAnimation(TranslateTransform.YProperty, null);
         _mapTranslate.BeginAnimation(TranslateTransform.XProperty, null);
@@ -477,7 +499,22 @@ public partial class MapCanvas : UserControl
         transform.Y = to.Y;
     }
 
-    private void Animate(Animatable target, DependencyProperty property, double to, TimeSpan duration)
+    /// <summary>Moves one end of a tracking line as Move moves a translate: gliding over the given time, or at once.</summary>
+    private void MoveLineEnd(Line line, DependencyProperty x, DependencyProperty y, Point to, TimeSpan? glide)
+    {
+        if (glide is { } d)
+        {
+            Animate(line, x, to.X, d);
+            Animate(line, y, to.Y, d);
+            return;
+        }
+        line.BeginAnimation(x, null);
+        line.BeginAnimation(y, null);
+        line.SetValue(x, to.X);
+        line.SetValue(y, to.Y);
+    }
+
+    private void Animate(IAnimatable target, DependencyProperty property, double to, TimeSpan duration)
     {
         var animation = new DoubleAnimation(to, duration);
         if (_glideFps is { } fps) Timeline.SetDesiredFrameRate(animation, fps);

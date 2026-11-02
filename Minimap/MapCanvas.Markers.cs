@@ -11,9 +11,9 @@ namespace PandoraOverlay;
 /// MapCanvas, markers part: the waypoint markers (dots in their colours,
 /// the tracked one a ringed diamond), the friends' arrows (your arrow at
 /// three quarters, turned by their yaw, the tracked one ringed), their
-/// placing and gliding, and hit testing. Which waypoints and friends are
-/// drawn is the map's call; it passes the drawn set. Same class as
-/// MapCanvas.xaml.cs, split for reading.
+/// placing and gliding, the tracking lines' far ends, and hit testing.
+/// Which waypoints and friends are drawn is the map's call; it passes the
+/// drawn set. Same class as MapCanvas.xaml.cs, split for reading.
 /// </summary>
 public partial class MapCanvas
 {
@@ -51,6 +51,7 @@ public partial class MapCanvas
 
     private readonly Dictionary<Guid, Marker> _markers = new();
     private readonly Dictionary<string, FriendMarker> _friendMarkers = new();
+    private bool _arrowShown; // your arrow is drawn (ArrowVisible): a tracking line's other end
 
     /// <summary>A panel point in the markers' own space: in map space (UseMapSpace) the pan is taken off.</summary>
     private Point ToMarkerSpace(Point pos) => _mapSpace ? new Point(pos.X - _mapTranslate.X, pos.Y - _mapTranslate.Y) : pos;
@@ -105,6 +106,7 @@ public partial class MapCanvas
             }
             _markers[w.Id] = marker;
         }
+        ShowTrackLines();
     }
 
     /// <summary>Whether exactly these waypoints are drawn: a policy whose set follows the player rebuilds only on a change.</summary>
@@ -116,6 +118,9 @@ public partial class MapCanvas
     /// a glide, the current one otherwise). With an edge indicator, the
     /// tracked marker clamps to the panel's edge as a direction indicator and
     /// the others simply leave the panel; without, every marker sits where it is.
+    /// The waypoint line's far end goes with the tracked marker, clamped
+    /// point and glide alike: in the centered view, a far waypoint's line is
+    /// a stub from your arrow to the panel's edge, pointing the way.
     /// </summary>
     public void PlaceWaypoints(MapCalibration cal, MapViewport view, bool edgeIndicator, TimeSpan? glide)
     {
@@ -147,7 +152,9 @@ public partial class MapCanvas
                 m.Translate.X = x;
                 m.Translate.Y = y;
             }
+            if (m.Tracked) MoveLineEnd(WaypointLine, Line.X2Property, Line.Y2Property, at, glide);
         }
+        ShowTrackLines();
     }
 
     /// <summary>The drawn waypoint within a radius of a panel point, nearest first; the tracked one wins ties.</summary>
@@ -230,13 +237,15 @@ public partial class MapCanvas
             }
             _friendMarkers[f.SteamId] = marker;
         }
+        ShowTrackLines();
     }
 
     /// <summary>
     /// Places and turns every friend's arrow for a view, exactly as the
     /// waypoints are placed (same offset, same glide), turned by their yaw
     /// plus the yaw offset your own arrow uses. A tracked friend clamps to the
-    /// panel's edge with an edge indicator.
+    /// panel's edge with an edge indicator, and the friend line's far end goes
+    /// with them, as the waypoint line's does.
     /// </summary>
     public void PlaceFriends(MapCalibration cal, MapViewport view, bool edgeIndicator, TimeSpan? glide, double yawOffset)
     {
@@ -275,8 +284,10 @@ public partial class MapCanvas
                 m.Translate.Y = y;
                 m.Rotate.Angle = angle;
             }
+            if (m.Tracked) MoveLineEnd(FriendLine, Line.X2Property, Line.Y2Property, at, m.Fresh ? null : glide);
             m.Fresh = false;
         }
+        ShowTrackLines();
     }
 
     /// <summary>The drawn friend within a radius of a panel point, nearest first; the tracked one wins ties. Friends sit above waypoints, so a map tests them first.</summary>
@@ -297,5 +308,36 @@ public partial class MapCanvas
             }
         }
         return best?.Friend;
+    }
+
+    // ---- Tracking lines -----------------------------------------------------------
+
+    /// <summary>
+    /// Shows each tracking line while its target is drawn and visible and so
+    /// is your arrow, in the brush its target's ring wears (the waypoint's
+    /// palette colour, the friend's colour: data, which a theme switch leaves
+    /// alone); collapses it otherwise. Tracking is the only switch (no
+    /// setting): the map passes the tracked id with the drawn set, and a set
+    /// without it, an untrack, leaves no ringed marker and so no line. Where
+    /// the ends are is MoveArrow's and the Place calls' business; the dashes
+    /// count from your arrow's end, so they stay put round you as you move.
+    /// </summary>
+    private void ShowTrackLines()
+    {
+        var waypoint = _markers.Values.FirstOrDefault(m => m.Tracked);
+        ShowTrackLine(WaypointLine, waypoint?.Ring, waypoint?.Shape.Visibility == Visibility.Visible);
+        var friend = _friendMarkers.Values.FirstOrDefault(m => m.Tracked);
+        ShowTrackLine(FriendLine, friend?.Ring, friend?.Arrow.Visibility == Visibility.Visible);
+    }
+
+    private void ShowTrackLine(Line line, Ellipse? ring, bool targetVisible)
+    {
+        if (ring is null || !targetVisible || !_arrowShown)
+        {
+            line.Visibility = Visibility.Collapsed;
+            return;
+        }
+        line.Stroke = ring.Stroke;
+        line.Visibility = Visibility.Visible;
     }
 }

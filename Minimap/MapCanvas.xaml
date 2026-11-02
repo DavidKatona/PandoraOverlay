@@ -89,6 +89,20 @@
                       StrokeLineJoin="Round" Opacity="0.85"/>
         </Canvas>
         <Canvas>
+            <!-- The tracking lines (the owner's decisions, Nov 2 2026): a thin
+                 dashed line from your arrow to the waypoint you track, and one
+                 to the friend you track, each in its target's colour (the
+                 brush its ring wears: data, never a theme's), no casing. In
+                 the markers' space, under them, the names and the arrows and
+                 over the trail; outside the still layer, whose cached picture
+                 they would redraw at every glide. The dashes count in stroke
+                 widths, as the mass migrations' do. -->
+            <Canvas x:Name="TrackLines" x:FieldModifier="private" IsHitTestVisible="False">
+                <Line x:Name="WaypointLine" x:FieldModifier="private"
+                      StrokeThickness="1.5" StrokeDashArray="4 3" Visibility="Collapsed"/>
+                <Line x:Name="FriendLine" x:FieldModifier="private"
+                      StrokeThickness="1.5" StrokeDashArray="4 3" Visibility="Collapsed"/>
+            </Canvas>
             <!-- What stays still between zooms: the markers and the names. One
                  element, so the big map can cache it as one picture. -->
             <Canvas x:Name="StillMarks" x:FieldModifier="private">

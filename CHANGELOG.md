@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A dashed line on the minimap and the map from your arrow to the waypoint
+  you track, and another to the friend you track, each in its colour. It
+  shows while something is tracked and goes when you untrack.
+
 ### Changed
 
 - Settings › Waypoints and Settings › Friends show more rows at once: each
