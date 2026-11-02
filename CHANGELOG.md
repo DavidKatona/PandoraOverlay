@@ -40,6 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A fully grown dino is an elder: "Elder" in the header, "You are now an
   elder" in the Activity feed, "100% · elder" on Dino storage.
 
+### Fixed
+
+- On the minimap with "nearest" waypoints, the dots no longer slide in
+  from the top-left corner when the set of ten changes as you move.
+
 ## [1.41.0] - 2026-10-30
 
 ### Added
