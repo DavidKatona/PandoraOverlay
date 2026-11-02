@@ -117,6 +117,10 @@
                             Background="{DynamicResource Theme.Bars.Health.Above75.Fill}"
                             HorizontalAlignment="Left" Width="0"/>
                 </local:BarTrack>
+                <!-- "full ~14m" while climbing, "~3m" while falling steadily (HealthTracker). -->
+                <TextBlock x:Name="HealthLeft" Grid.Column="1" FontSize="{DynamicResource Theme.Size.10}" FontWeight="{DynamicResource Theme.Font.ValueWeight}"
+                           HorizontalAlignment="Left" VerticalAlignment="Center"
+                           Visibility="Collapsed"/>
                 <TextBlock x:Name="HealthPct" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Text}" FontSize="{DynamicResource Theme.Size.11}"
                            FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                            TextAlignment="Right" VerticalAlignment="Center"/>
@@ -223,6 +227,9 @@
                             Background="{DynamicResource Theme.Bars.Health.Above75.Fill}"
                             HorizontalAlignment="Left" Width="0"/>
                 </local:BarTrack>
+                <TextBlock x:Name="CombatHealthLeft" Grid.Column="1" FontSize="{DynamicResource Theme.Size.10}" FontWeight="{DynamicResource Theme.Font.ValueWeight}"
+                           HorizontalAlignment="Left" VerticalAlignment="Center"
+                           Visibility="Collapsed"/>
                 <TextBlock x:Name="CombatHealthPct" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Text}" FontSize="{DynamicResource Theme.Size.11}"
                            FontWeight="{DynamicResource Theme.Font.ValueWeight}"
                            TextAlignment="Right" VerticalAlignment="Center"/>

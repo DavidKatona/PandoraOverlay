@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A dashed line on the minimap and the map from your arrow to the waypoint
   you track, and another to the friend you track, each in its colour. It
   shows while something is tracked and goes when you untrack.
+- Time on the health bar, both ways, like the stamina bar: "full ~14m"
+  while your health climbs, and "~3m" while it falls steadily. It follows
+  the same "time left" tick as the other bars and stays out of the way
+  during a fight's sudden hits.
 
 ### Changed
 

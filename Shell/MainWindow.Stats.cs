@@ -52,10 +52,10 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Once per poll: the answer into the growth, drain, stamina, damage and
-    /// speed trackers, the alert rules (a growth stage, a low stat: a blink,
-    /// a chime if wanted, a feed line) and the fade's verdict. Draws nothing
-    /// but the growth header's blink; PaintStats draws.
+    /// Once per poll: the answer into the growth, drain, stamina, health,
+    /// damage and speed trackers, the alert rules (a growth stage, a low
+    /// stat: a blink, a chime if wanted, a feed line) and the fade's verdict.
+    /// Draws nothing but the growth header's blink; PaintStats draws.
     /// </summary>
     private void IngestStats(MyLocationResponse result)
     {
@@ -66,6 +66,7 @@ public partial class MainWindow
             _hungerDrain.Reset();
             _thirstDrain.Reset();
             _stamina.Reset();
+            _health.Reset();
             _damage.Reset();
             _combatSpeed.Reset();
             _attention.Reset();
@@ -80,6 +81,7 @@ public partial class MainWindow
         _hungerDrain.Add(p);
         _thirstDrain.Add(p);
         _stamina.Add(p);
+        _health.Add(p);
         _damage.Add(p); // the combat view's damage taken in this fight
         _combatSpeed.Add(p.X, p.Y);
 
@@ -310,6 +312,10 @@ public partial class MainWindow
         // Stamina reads both ways: "~25s" until empty, "full ~40s" until recovered.
         SetBarLabel(StaminaLeft, on ? _stamina.Label : null, StaminaFill.Width, BarKind.Stamina, p?.Stamina ?? 1);
         SetBarLabel(CombatStaminaLeft, on ? _stamina.Label : null, CombatStaminaFill.Width, BarKind.Stamina, p?.Stamina ?? 1);
+        // Health too: "full ~14m" while it climbs, "~3m" only while it falls
+        // steadily — never during a fight's hits (HealthTracker). No cue rides on it.
+        SetBarLabel(HealthLeft, on ? _health.Label : null, HealthFill.Width, BarKind.Health, p?.Health ?? 1);
+        SetBarLabel(CombatHealthLeft, on ? _health.Label : null, CombatHealthFill.Width, BarKind.Health, p?.Health ?? 1);
     }
 
     /// <summary>

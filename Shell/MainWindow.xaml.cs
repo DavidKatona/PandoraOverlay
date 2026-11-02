@@ -27,6 +27,7 @@ public partial class MainWindow : OverlayWindowBase
     private readonly DrainTracker _hungerDrain = new(p => p.Hunger);
     private readonly DrainTracker _thirstDrain = new(p => p.Thirst);
     private readonly StaminaTracker _stamina = new();
+    private readonly HealthTracker _health = new();
     private readonly DamageTracker _damage = new();
     private readonly SpeedTracker _combatSpeed; // a short window: the combat row should follow a sprint or a stop within a couple of polls
     private readonly StatsAttention _attention = new();

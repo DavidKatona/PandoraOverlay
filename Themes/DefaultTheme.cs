@@ -47,7 +47,8 @@ public static class DefaultTheme
         Bars = new()
         {
             // Health: green, then amber under half, red under a quarter (the old HealthGood/Warn/Crit).
-            // No time label is ever drawn on health or damage: their TimeLeft is the percent's grey.
+            // Health's and damage's TimeLeft is the percent's grey: no time label was drawn on
+            // either before health's (HealthTracker), which takes that grey in every state.
             Health = Bar(fill75: C("#4CAF50"), fill50: C("#4CAF50"), fill25: Amber, fill0: Red, tint: Text),
             Stamina = Bar(C("#FFD54F"), tint: C("#FFE082")),
             Hunger = Bar(C("#FF9800"), tint: C("#FFB74D")),

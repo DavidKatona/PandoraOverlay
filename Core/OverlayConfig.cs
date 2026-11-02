@@ -552,7 +552,8 @@ public sealed class OverlayConfig
     /// Show the estimated time left on the hunger and thirst bars (once
     /// under ~1 h). A checkbox in Settings — not everyone wants more on the
     /// stats panel. It also gates the stamina bar's "~25s" / "full ~40s"
-    /// (StaminaTracker); the trackers run either way, so ticking it shows
+    /// (StaminaTracker) and the health bar's "~3m" / "full ~14m"
+    /// (HealthTracker); the trackers run either way, so ticking it shows
     /// the labels at once.
     /// </summary>
     public bool StatTimeLeftEnabled { get; set; } = true;
