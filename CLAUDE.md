@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.41.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.42.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -262,9 +262,11 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   (`rules.json`, `calibration.json`, `areas.png` + `areas.json`, `zones.json`;
   the CHANGELOG is embedded too, for the update card).
 - `Assets/Themes/` — one sparse file per theme but Default (`isle.json`,
-  `pandora.json`, `nightshade.json`): only what differs from Default, by
-  token path, and its fit factor. A new theme is one more file there and no
-  other change (Pandora, the third, was, and Nightshade, the fourth).
+  `pandora.json`, `nightshade.json`, `herbivore.json`, `carnivore.json`):
+  only what differs from Default, by token path, and its fit factor. A new
+  theme is one more file there and no other change (Pandora, the third,
+  was, and Nightshade, the fourth; Herbivore and Carnivore, the fifth and
+  sixth, were each designed and built by one session in an evening).
 - `Assets/Fonts/` — one folder per bundled family, its files and its own
   licence as shipped (`Montserrat/`: four weights; `Rajdhani/`: three;
   `Orbitron/`: one; `Nunito/`: four; `Cinzel/`: one; each with its
@@ -430,6 +432,54 @@ all) — say so when it matters:
   Settings open (nothing moved), the map's three name ticks, the waypoint
   dots staying put when a names tick flips, About's credit line in each
   theme, Skins in Nightshade without a scrollbar, and the log's fit line.
+- From 1.42.0 (no pre-release, the owner's call): the tracking line's glide
+  on a weaker PC, and the map's line on other display scales (the minimap's
+  renders only); whether a slow heal, under about 25 minutes per full bar
+  at 3 s polls, ever shows the health label (tests only); Herbivore and
+  Carnivore on other PCs and display scales (1.25× rendered only), their
+  update cards (a 1.42 copy first shows them at the next release), their
+  Skins tiles and Dino storage cards (the harness is signed out); the
+  "nearest" markers fix as a deliberate check (a test, and a day's play);
+  the Themes page's six rows on a small screen (a probe only). The owner
+  played a day on the merged build (Nov 2–3) and reported no glaring
+  issue, without a checklist: what was tried is not itemised.
+
+SHIPPED in 1.42.0 (Nov 3 2026, no pre-release, the owner's call; the five
+features built in one evening by five parallel Opus 5.5 sessions from the
+briefs in `Desktop\Pandora Overlay Files\pandora-four-features\`, merged
+the same night, the release pass run alone on the owner's word): **the
+growth header counts to the next stage** (`Stats/GrowthReadout.cs`: "64% ·
+~1h 20m to Adult", no "Growth", no decimal, the percent floored; "64%"
+while measuring, "64% · paused", "Elder" at 100%; the last stage is
+"elder" everywhere, the theme token `Growth.FullyGrown` keeping its name;
+the frame contract's header strings are the longest new forms); **the
+tracking lines** (`MapCanvas`: a dashed line from your arrow to the tracked
+waypoint and another to the tracked friend, in the target's own data
+colour, no casing, the ends moved with the arrow's and the marker's glides,
+a stub to the clamped marker in the centered view; no setting); **the
+health bar's time label** (`Stats/HealthTracker.cs`: "full ~14m" after two
+rising steps, "~3m" after four similar small drops and no spike of about
+2% within 30 s, shown under 60 min and kept to 65, stamina's format, both
+views, under the time-left tick, no cue); **Herbivore** (`herbivore.json`,
+"Forest": moss green and cream in Nunito, rounded, a quiet frame, honey
+amber for Prime Elder and the highlights, the bullet ❧, Fit 0.97) and
+**Carnivore** (`carnivore.json`, "Blood and bone": crimson in Rajdhani, cut
+corners and hexagons, two lit corners, the under-25% state bone-white with
+its halo, old gold, the bullet ◆, Fit 1.00), each designed on a canvas the
+owner approved inside the session that built it (`pandora-themes\
+HERBIVORE.md`, `CARNIVORE.md`); the Waypoints and Friends lists taking the
+frame's room; and a fix found on the way: under the "nearest" policy a
+rebuilt set of markers glided in from the panel's corner (`Marker.Fresh`
+and the carry-over, as friends had). Found and fixed at the merge: the two
+repo-wide theme scans walked into the app's worktrees under `.claude` (they
+skip it now), and the golden harness's project took main's build whatever
+`-Repo` said (both run scripts set `OverlayDir`/`OverlayRepo` now; the
+five sessions had worked round it). Clear, the colour-blind theme, stays
+designed and unbuilt (the owner, Nov 2: not now). Guards: 1051 tests;
+Default re-recorded in both modes after the owner's day of play (the
+header text, the 13 tracking scenarios, the Themes page's rows, the
+reworded time-left tick), Herbivore's and Carnivore's baselines recorded
+then too.
 
 SHIPPED in 1.41.0 (Oct 30 2026, no pre-release, the owner's call): **the
 fit factor** (`pandora-themes\FIT.md`), **Nightshade**, the fourth theme,
@@ -682,6 +732,14 @@ Themes (Oct 24–25 2026)
 - An `Effect` for a glow (measured: a live DropShadowEffect halves WPF's
   frame rate); a theme's own XAML (a theme picks from the shape catalogue).
 
+The four-features brainstorm (Nov 2–3 2026)
+- A "Waypoint here" hotkey and a "Copy my spot" hotkey: "there's already
+  enough" hotkeys.
+- A fight summary line in Activity: the tracker sees health drop, not why,
+  so starvation or a fall would be summed up as a fight.
+- Player theme files loaded from a folder before the theme editor exists:
+  it waits for the editor.
+
 ## Conventions
 
 - Code-behind over MVVM — deliberate at this size; don't introduce frameworks.
@@ -766,7 +824,7 @@ Themes (Oct 24–25 2026)
 
 ## Releases
 
-- Current: 1.41.0. The csproj `<Version>` is the single source of truth
+- Current: 1.42.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do

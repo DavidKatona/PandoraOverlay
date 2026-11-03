@@ -9,7 +9,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
 [![Downloads](https://img.shields.io/github/downloads/DavidKatona/PandoraOverlay/total)](https://github.com/DavidKatona/PandoraOverlay/releases)
 [![License: MIT](https://img.shields.io/github/license/DavidKatona/PandoraOverlay)](LICENSE)
 
-![The overlay in-game in the Nightshade theme (violet and black, Cinzel titles over the rounded Nunito font, a pink light on two corners of every frame, round controls), in edit mode in the default two-column layout over a roaring Tyrannosaurus in a moonlit swamp forest: the Prime tracker ("Not ready · 3/10", the ten conditions as a ✓/✗ list) and the Activity feed (a skin applied, a Prime check, the spawn in the Swamps, "Hunger under 20%" in red) top-left, the player-centred minimap with its pill naming the area, "Swamps", and the stats panel in its Survival view (growth 40%, health, stamina and thirst as violet bars, hunger at 13% in red, the three fracture badges) top-right, and the control panel at the bottom. A caption box in the same look names version 1.41.0 and what is new: the Nightshade theme, violet and black; the map, a tick each for area, waypoint and friend names](docs/screenshot.png)
+![The overlay in-game, in edit mode, in the default two-column layout: the Prime tracker and the Activity feed top-left, the player-centred minimap and the stats panel in its Combat view top-right, and the control panel bottom-centre, over a Deinosuchus resting on a beach at sunset; the minimap's pill names the area, "South Plains", with the heatmap and the area borders on, and the Activity feed reads "You spawned as Deinosuchus 100% · South Plains". A caption box names version 1.42.0 and what is new: the Herbivore and Carnivore themes, a line to what you track, a health timer, and a header that counts to your next growth stage](docs/screenshot.png)
 
 
 ## Contents
@@ -97,7 +97,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 
 ### Stats panel
 
-![The stats panel in edit mode: a fully grown male Deinosuchus, the four stat bars — health 87%, stamina 76%, hunger 20%, thirst 18% — the three dim fracture badges, and the live status line](docs/stats-panel.png)
+![The stats panel in edit mode: a male Deinosuchus at 62% growth with "~47m to Adult" in the header, the four stat bars — health 92%, stamina 64% with "~64s", hunger 30% with "~50m", thirst 88% with "~58m" — the three dim fracture badges, and the live status line](docs/stats-panel.png)
 
 - The stats panel can be **hidden** entirely (control panel → Stats → Show/hide) — the app keeps running from the tray, and hotkeys and the minimap stay live. Its size is adjustable with the Scale slider in Settings → Widgets.
 
