@@ -90,6 +90,16 @@ public sealed class MapGateTests
         Assert.False(PollService.HeatmapFresh(DateTime.MinValue, Now));               // never fetched
     }
 
+    /// <summary>A failed fetch keeps the last picture while it is under ten minutes old (about one of the site's redraws); an older one goes.</summary>
+    [Fact]
+    public void AFailedFetchKeepsAPictureUnderTenMinutesOld()
+    {
+        Assert.True(PollService.HeatmapKeptThroughFailure(Now - TimeSpan.FromMinutes(1), Now));  // the first failure after a good fetch
+        Assert.True(PollService.HeatmapKeptThroughFailure(Now - TimeSpan.FromMinutes(9.9), Now));
+        Assert.False(PollService.HeatmapKeptThroughFailure(Now - TimeSpan.FromMinutes(10), Now));
+        Assert.False(PollService.HeatmapKeptThroughFailure(DateTime.MinValue, Now));
+    }
+
     [Fact]
     public void AFreshConfigOpensTheBigMapWithEverythingButTheHeatmapAndTheZones()
     {

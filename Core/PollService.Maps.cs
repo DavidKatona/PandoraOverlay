@@ -13,8 +13,28 @@ public sealed partial class PollService
     /// <summary>A second of slack in the heatmap's minute, so the timer's own tick, re-armed at the last fetch, is never turned away as too early.</summary>
     private static readonly TimeSpan HeatmapSlack = TimeSpan.FromSeconds(1);
 
+    /// <summary>
+    /// How long the kept picture outlives failed fetches (the owner, Nov 4
+    /// 2026). A failed fetch keeps the last picture on the maps while it is
+    /// younger than this, and the timer tries again a minute later, as before;
+    /// an older one is dropped at the failure rather than passed off as live.
+    /// Before, any failure dropped the picture at once, and since a failed
+    /// attempt counts toward the minute, everything that asked within that
+    /// minute (a layer switched on, the map opened) got nothing: one failure
+    /// blanked both maps for a minute, a run of them for minutes (the owner
+    /// saw it before Oct 31). Ten minutes is about how often the site redraws
+    /// the picture (an admin's word, not confirmed by the dev), so a kept one
+    /// is about one redraw behind at most. No request is added: the minute
+    /// still counts from every attempt. The website's own off switch
+    /// (`enabled:false`) still clears the picture at once.
+    /// </summary>
+    private static readonly TimeSpan HeatmapKeptThroughFailures = TimeSpan.FromMinutes(10);
+
     /// <summary>When the last heatmap fetch began, whatever came of it.</summary>
     private DateTime _heatmapUtc = DateTime.MinValue;
+
+    /// <summary>When the fetch that brought the kept picture began (its age decides whether a failure keeps it).</summary>
+    private DateTime _heatmapPictureUtc = DateTime.MinValue;
 
     /// <summary>True while the big map is on screen (MainWindow sets it): it widens the heatmap and friends gates.</summary>
     public bool BigMapOpen { get; set; }
@@ -31,8 +51,10 @@ public sealed partial class PollService
 
     /// <summary>
     /// The last heatmap picture fetched, kept so a map that turns its layer
-    /// on shows it without a request (null: none yet, or the last fetch
-    /// failed or the site switched the heatmap off). About a megabyte.
+    /// on shows it without a request, and kept through failed fetches while
+    /// it is under ten minutes old (HeatmapKeptThroughFailures). Null: none
+    /// yet, the site switched the heatmap off, or the fetches failed until the
+    /// picture was ten minutes old. About a megabyte, in memory only.
     /// </summary>
     public byte[]? Heatmap { get; private set; }
 
@@ -48,6 +70,10 @@ public sealed partial class PollService
     internal static bool HeatmapFresh(DateTime fetchedUtc, DateTime nowUtc) =>
         nowUtc - fetchedUtc < TimeSpan.FromSeconds(HeatmapIntervalSeconds) - HeatmapSlack;
 
+    /// <summary>A failed fetch keeps the picture fetched at <paramref name="pictureUtc"/> while it is under ten minutes old; an older one is dropped.</summary>
+    internal static bool HeatmapKeptThroughFailure(DateTime pictureUtc, DateTime nowUtc) =>
+        nowUtc - pictureUtc < HeatmapKeptThroughFailures;
+
     /// <summary>
     /// THE heatmap rule, for every caller alike — the minute timer, a map
     /// turning its layer on, the big map opening, the minimap shown again,
@@ -55,7 +81,8 @@ public sealed partial class PollService
     /// heatmap (a minimap hidden with the overlay shows nothing), nothing is
     /// fetched and the maps are told to hide it (the kept picture stays);
     /// within a minute of the last fetch, the kept picture is handed out
-    /// again (none, after a failed fetch: the next tick retries); otherwise
+    /// again (a failed fetch keeps it while it is under ten minutes old, and
+    /// the next tick retries); otherwise
     /// one fetch, and the minute starts over, so the timer's next tick
     /// comes a full minute after it. Two heatmap fetches are therefore never
     /// less than a minute apart, whatever is pressed (before, an extra fetch
@@ -96,14 +123,27 @@ public sealed partial class PollService
         try
         {
             Heatmap = await _client.FetchHeatmapAsync();
+            _heatmapPictureUtc = now;
             AppLog.Maps.Verbose(Heatmap is { } picture ? $"Heatmap picture ({why}): {picture.Length / 1024} KB" : $"Heatmap ({why}): switched off on the website");
             HeatmapChanged?.Invoke(Heatmap);
         }
         catch (Exception ex)
         {
-            AppLog.Maps.Warning($"Heatmap fetch failed ({why}): {AppLog.Short(ex)}");
-            Heatmap = null;
-            HeatmapChanged?.Invoke(null);
+            var failedUtc = DateTime.UtcNow;
+            if (Heatmap is null)
+            {
+                AppLog.Maps.Warning($"Heatmap fetch failed ({why}): {AppLog.Short(ex)}");
+            }
+            else if (HeatmapKeptThroughFailure(_heatmapPictureUtc, failedUtc))
+            {
+                AppLog.Maps.Warning($"Heatmap fetch failed ({why}): {AppLog.Short(ex)}; the last picture stays ({(int)(failedUtc - _heatmapPictureUtc).TotalMinutes} min old)");
+            }
+            else
+            {
+                AppLog.Maps.Warning($"Heatmap fetch failed ({why}): {AppLog.Short(ex)}; the last picture is over {HeatmapKeptThroughFailures.TotalMinutes:0} min old, dropped");
+                Heatmap = null;
+            }
+            HeatmapChanged?.Invoke(Heatmap); // the kept picture, or none: a map that asked now gets what there is
         }
         finally
         {

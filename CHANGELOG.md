@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The heatmap no longer vanishes from the minimap and the map for minutes
+  when the website misses an update: the last picture stays until a new
+  one arrives, for up to ten minutes.
+
 ## [1.42.0] - 2026-11-03
 
 ### Added

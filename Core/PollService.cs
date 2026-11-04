@@ -151,7 +151,7 @@ public sealed partial class PollService : IDisposable
     /// <summary>The rule behind HasNoSession, pure for the tests.</summary>
     internal static bool NoSession(bool signedOut, string? cookie) => signedOut || string.IsNullOrWhiteSpace(cookie);
 
-    /// <summary>Fresh heatmap PNG bytes, or null (disabled / off / fetch failed) → hide the layer.</summary>
+    /// <summary>Heatmap PNG bytes (fresh, or kept through a failed fetch while under ten minutes old), or null (no map shows it / switched off on the website / failed with no picture young enough) → hide the layer.</summary>
     public event Action<byte[]?>? HeatmapChanged;
 
     /// <summary>
