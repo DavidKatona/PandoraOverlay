@@ -5,14 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.42.1] - 2026-11-06
 
 ### Changed
 
 - The log now notes the reference number of a request the website refuses,
-  so a report can be traced. The number also shows which of the website's
-  data centres answered, which hints at your region. The log still stays on
-  your PC unless you attach it to a report.
+  so a report can be traced. The number also shows which data centre
+  answered, which hints at your region. The log still stays on your PC
+  unless you attach it to a report.
 
 ### Fixed
 

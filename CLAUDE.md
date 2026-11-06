@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.42.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.42.1 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -361,8 +361,9 @@ all) — say so when it matters:
 - Smart App Control; a PC without .NET 8 (the installer's runtime fetch) (1.30).
   Defender, Bitdefender and SentinelOne were tried: SmartScreen once on the
   installer, nothing on updates.
-- The calibration retry after a failed launch fetch, and the bundled seed
-  standing in (1.31.2; tests only — a real failure never seen in game).
+- The calibration retry after a failed launch fetch (1.31.2; tests only). A
+  real failed fetch with the bundled seed standing in was seen in a player's
+  log (Nov 6 2026), but no retry after a good poll.
 - From the areas (1.29): the crossing blink, "Uncharted", and the edit-mode
   hover outline (tests and renders only at release).
 - The map's zones (1.35): whether they match the game's own (the data covers
@@ -378,11 +379,12 @@ all) — say so when it matters:
   hide-all, edit mode, the map, a Prime check, Open log folder), and the
   requests in it matched the pacing rules; the hidden-surface fix (no
   roster request on a hide) was seen in the same evening's last log. Not
-  yet seen: an installed copy's log and the update to 1.36, a failed
-  request, a refused session, the 2 MB roll-over, a real crash.
+  yet seen: the update to 1.36, a refused session, the 2 MB roll-over, a
+  real crash. An installed copy's log with failed requests came from a
+  player (Nov 6 2026, 1.42.0).
 - The status line's words for a failed poll (1.36, `ConnectionProblem`):
-  tests only, no failure seen in game (the owner skipped the network-off
-  test). About's "Report a problem" opening GitHub's form chooser, and the
+  a player reported "blocked by the website" on a real block (Nov 6 2026);
+  the other words tests only (the owner skipped the network-off test). About's "Report a problem" opening GitHub's form chooser, and the
   bug-report form itself, were not tried (the chooser needs a login).
 - Updating to 1.37 with the stats panel at a size other than 100%: the
   control panel then starts at 100% (`ControlPanelScale`; tests only). The
@@ -446,6 +448,35 @@ all) — say so when it matters:
   the Themes page's six rows on a small screen (a probe only). The owner
   played a day on the merged build (Nov 2–3) and reported no glaring
   issue, without a checklist: what was tried is not itemised.
+- From 1.42.1 (no pre-release, the owner's call; the release pass's in-game
+  list was not reported as tried): the heatmap kept through a real failed
+  fetch (tests against a fake site only); the new failure words on the
+  sign-in window (off-screen renders and the layout test in every theme),
+  Settings → Account (no test or render reaches it), Skins, Dino storage
+  and Prime (tests through the real client against a fake site, Prime's
+  line measured in every theme); the log's Ray note in a shipped copy (a real
+  block went through the handler once, in a temporary test) and on a real
+  challenge (fake answers only); the update from 1.42.0 on Herbivore or
+  Carnivore, those themes' first update cards.
+
+SHIPPED in 1.42.1 (Nov 6 2026, no pre-release, the owner's call): a patch.
+**A failed heatmap fetch keeps the last picture** while it is under ten
+minutes old, instead of blanking both maps for a minute or more (no request
+added; `PollService.Maps.cs`). **A blocked request says so:** a player's
+sign-in succeeded and Cloudflare then refused the one `auth/me` that confirms
+it, and the window showed "HttpRequestException" and sent him to his browser,
+which can't help. The sign-in window, Settings → Account, Skins, Dino storage
+and Prime now use the status line's words (`ConnectionProblem`), and a block
+has advice of its own (`SignInPolicy.ConfirmFailure`). **The log's line for a
+website's 4xx or 5xx carries a note** (`RequestLogHandler`): Cloudflare's Ray
+ID and block or challenge, or "no Cloudflare ray"; the Ray is the one header
+value the log may hold, on the owner's okay (constraint 4). That player's case
+stays open with the site's dev: his home ethernet and WiFi are refused while
+his phone's hotspot and a VPN pass, with the same PC, copy and session, so it
+follows his home connection, and the overlay does nothing to get past it.
+Guards: 1079 tests; every theme's renders identical to its baseline in both
+modes (1,411); no baseline changed. Constraint review offered, not run: no
+network, timer, cookie or process change in the diff.
 
 SHIPPED in 1.42.0 (Nov 3 2026, no pre-release, the owner's call; the five
 features built in one evening by five parallel Opus 5.5 sessions from the
@@ -827,7 +858,7 @@ The four-features brainstorm (Nov 2–3 2026)
 
 ## Releases
 
-- Current: 1.42.0. The csproj `<Version>` is the single source of truth
+- Current: 1.42.1. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
