@@ -16,8 +16,8 @@ namespace PandoraOverlay;
 /// look, the sounds), Themes (the theme list, 1.39, SettingsWindow.Themes.cs),
 /// Hotkeys (capture + availability check), Widgets (the
 /// stats panel, Prime tracker, Activity feed and control panel, one group
-/// each), Maps (the minimap, and the trail both maps share), Waypoints and
-/// Friends (the two lists); then the website's pages, Skins, Dino storage and
+/// each), Maps (the minimap, and the trail both maps share), Waypoints, Route
+/// and Friends (the lists); then the website's pages, Skins, Dino storage and
 /// Server rules; then About. The grouping is the owner's (Oct 22 2026, 1.37).
 /// Since 1.38 every change applies at once and there is no Save or Cancel
 /// (SettingsWindow.Apply.cs); a click on the game, Esc, ✕ or Close closes
@@ -125,9 +125,10 @@ public partial class SettingsWindow : Window
     /// <param name="currentDino">The live dino when the dialog opened (null if not in game) — the Rules page highlights its pack limit.</param>
     /// <param name="page">A page to open on (the tray's "Server rules…" passes "Rules"); null = the page you were on last.</param>
     /// <param name="apply">MainWindow's re-apply for a batch of changes (SettingsWindow.Apply.cs); null in the preview harnesses.</param>
+    /// <param name="actions">MainWindow's map actions, which hold the route (SettingsWindow.Route.cs); null = an empty route of the dialog's own, in the preview harnesses.</param>
     public SettingsWindow(OverlayConfig config, WaypointLibrary library, FriendBook book, PollService poll,
                           string? currentDino = null, string? page = null, UpdateHooks? updates = null,
-                          Action<SettingsChange>? apply = null)
+                          Action<SettingsChange>? apply = null, MapActions? actions = null)
     {
         // The control templates are the app's (Themes/Controls.xaml), read
         // by StaticResource at parse time: a harness without the App gets
@@ -142,6 +143,7 @@ public partial class SettingsWindow : Window
         _library = library;
         _draft = library.Clone();
         _draftTracked = config.TrackedWaypointId;
+        _actions = actions ?? new MapActions(config, library, book, name => name);
         _book = book;
         _roster = poll.Friends;
         _friendDraft = book.Clone();
@@ -189,6 +191,7 @@ public partial class SettingsWindow : Window
         HideNotInGameCheck.IsChecked = config.HideWhenNotInGame;
         LowStatChimeCheck.IsChecked = config.LowStatChimeEnabled;
         GrowthChimeCheck.IsChecked = config.GrowthChimeEnabled;
+        RouteChimeCheck.IsChecked = config.RouteChimeEnabled;
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
         PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
         ControlPanelScaleSlider.Value = Math.Clamp(config.ControlPanelScale, ControlPanelScaleSlider.Minimum, ControlPanelScaleSlider.Maximum);
@@ -219,6 +222,9 @@ public partial class SettingsWindow : Window
         // made every opening of the dialog wait for a page nobody had asked for.
         WaypointList.ScrollChanged += (_, _) => AlignWaypointHeader(); // fires when the extent/viewport changes, i.e. when the bar comes or goes
         WaypointList.SizeChanged += (_, _) => AlignWaypointHeader();
+
+        // Route: the rows are built on the first look too (SettingsWindow.Route.cs)
+        InitRoutePage();
 
         // Activity
         ActivityScaleSlider.Value = Math.Clamp(config.ActivityScale, ActivityScaleSlider.Minimum, ActivityScaleSlider.Maximum);
@@ -285,6 +291,7 @@ public partial class SettingsWindow : Window
             case "Skins": OpenSkinsPage(); break; // talks to the site, like Dino storage
             case "Storage": OpenStoragePage(); break;
             case "Waypoints": OpenWaypointsPage(); break;
+            case "Route": OpenRoutePage(); break;
             case "Friends": OpenFriendsPage(); break;
             case "Rules": OpenRulesPage(); break;
         }

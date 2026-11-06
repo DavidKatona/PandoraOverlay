@@ -192,7 +192,7 @@ public partial class MainWindow : OverlayWindowBase
         var closedByFocus = false;
         try
         {
-            var dialog = new SettingsWindow(_config, _library, _book, _poll, _me?.Dino, page, UpdateHooksForSettings(), ApplySettingsChange) { Topmost = true };
+            var dialog = new SettingsWindow(_config, _library, _book, _poll, _me?.Dino, page, UpdateHooksForSettings(), ApplySettingsChange, MapActions) { Topmost = true };
             _settings = dialog;
             dialog.ShowDialog();
             _settings = null;

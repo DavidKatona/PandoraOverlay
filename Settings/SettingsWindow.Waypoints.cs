@@ -64,13 +64,14 @@ public partial class SettingsWindow
     /// The list, grouped: your own waypoints first, then one group per
     /// imported pack with its own band checkbox (show / hide all) and ✕. Each
     /// row: colour dot (click cycles the palette), name box, Show, Track,
-    /// delete.
+    /// a + for the route, delete.
     /// </summary>
     private void BuildWaypointRows()
     {
         WaypointRows.Children.Clear();
         Drawn("Waypoints");
         _rowShowChecks.Clear();
+        _rowTrackRadios.Clear();
         UpdateWaypointTotals();
 
         if (_draft.Count == 0)
@@ -127,6 +128,9 @@ public partial class SettingsWindow
 
     /// <summary>The Show box of every row built so far, so a pack's Show all can tick them where they stand.</summary>
     private readonly Dictionary<Guid, CheckBox> _rowShowChecks = new();
+
+    /// <summary>The Track radio of every row built so far, so the tracking can move where they stand when a route moves on (OnTrackingChanged).</summary>
+    private readonly Dictionary<Guid, RadioButton> _rowTrackRadios = new();
 
     /// <summary>The count and the three buttons under the list, after anything that changes how many waypoints there are.</summary>
     private void UpdateWaypointTotals()
@@ -291,7 +295,7 @@ public partial class SettingsWindow
                 caption.Foreground = HintWarn;
                 delete.ToolTip = "Click again to delete the pack";
             };
-            Grid.SetColumn(delete, 4);
+            Grid.SetColumn(delete, 5);
             row.Children.Add(delete);
         }
         var band = new Border
@@ -302,7 +306,7 @@ public partial class SettingsWindow
         return (band, all);
     }
 
-    /// <summary>The five-column grid every list row and caption shares: dot | name | Show | Track | delete.</summary>
+    /// <summary>The six-column grid every list row and caption shares: dot | name | Show | Track | Route | delete.</summary>
     private static Grid NewRowGrid(double topMargin = 0)
     {
         var row = new Grid { Margin = new Thickness(0, topMargin, 0, 4) };
@@ -310,6 +314,7 @@ public partial class SettingsWindow
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
         return row;
     }
@@ -336,7 +341,11 @@ public partial class SettingsWindow
     private void DeletePack(string pack, Border card)
     {
         if (_draft.Any(w => w.Pack == pack && w.Id == _draftTracked)) _draftTracked = null;
-        foreach (var w in _draft.Where(w => w.Pack == pack)) _rowShowChecks.Remove(w.Id);
+        foreach (var w in _draft.Where(w => w.Pack == pack))
+        {
+            _rowShowChecks.Remove(w.Id);
+            _rowTrackRadios.Remove(w.Id);
+        }
         _draft.RemoveAll(w => w.Pack == pack);
         WaypointsEdited();
         if (_draft.Count == 0)
@@ -354,6 +363,7 @@ public partial class SettingsWindow
         _draft.Remove(wp);
         group.Members.Remove(wp);
         _rowShowChecks.Remove(wp.Id);
+        _rowTrackRadios.Remove(wp.Id);
         if (_draftTracked == wp.Id) _draftTracked = null;
         WaypointsEdited();
         if (_draft.Count == 0)
@@ -445,8 +455,19 @@ public partial class SettingsWindow
             }
             WaypointsEdited();
         };
+        _rowTrackRadios[wp.Id] = track;
         Grid.SetColumn(track, 3);
         row.Children.Add(track);
+
+        var addStop = new Button
+        {
+            Content = "+", Width = 22, Height = 22, Padding = new Thickness(0), FontSize = Theme.Current.Size(12),
+            Style = (Style)FindResource("NeutralButtonStyle"),
+            HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Add to the route"
+        };
+        addStop.Click += (_, _) => AddWaypointToRoute(wp);
+        Grid.SetColumn(addStop, 4);
+        row.Children.Add(addStop);
 
         var delete = new Button
         {
@@ -457,7 +478,7 @@ public partial class SettingsWindow
             HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Delete this waypoint"
         };
         delete.Click += (_, _) => DeleteWaypointRow(wp, row, group);
-        Grid.SetColumn(delete, 4);
+        Grid.SetColumn(delete, 5);
         row.Children.Add(delete);
 
         return row;

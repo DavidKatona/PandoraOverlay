@@ -23,7 +23,7 @@ paths:
   along a topic of its own (CLAUDE.md, Conventions → File size).
 - The nav is grouped (owner, Oct 22 2026): the overlay's pages (Account, General,
   Themes (1.39, after General: the owner, Oct 25 2026), Hotkeys, Widgets, Maps,
-  Waypoints, Friends), then the website's under an
+  Waypoints, Route, Friends), then the website's under an
   ISLAPANDORA.EU caption (Skins, Dino storage, Server rules), then About. A page is a
   nav ToggleButton (Tag = the `SetPage` key; checked = shown, so the theme draws the
   selected row); captions and dividers in `Nav` are not pages.

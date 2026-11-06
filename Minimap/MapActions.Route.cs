@@ -22,6 +22,9 @@ public sealed partial class MapActions
     // sets the tracking directly.
     private bool _routeWasRunning;
 
+    // Where you were at the last in-game poll, for the Route page's distances.
+    private (double X, double Y)? _position;
+
     /// <summary>The player's route.</summary>
     public Route Route => _route;
 
@@ -58,6 +61,7 @@ public sealed partial class MapActions
     /// <summary>One in-game position: moves the route and the tracking on, and returns the stops it reached.</summary>
     public IReadOnlyList<RouteArrival> RouteAt(double x, double y)
     {
+        _position = (x, y);
         _routeWasRunning = RouteRunning;
         var arrivals = _tracker.Step(_route, Place, x, y, _routeWasRunning);
         if (arrivals.Count > 0) TrackRouteStop();
@@ -65,7 +69,29 @@ public sealed partial class MapActions
     }
 
     /// <summary>Not in game: the next position has no path from the last one.</summary>
-    public void RouteOutOfGame() => _tracker.Forget();
+    public void RouteOutOfGame()
+    {
+        _position = null;
+        _tracker.Forget();
+    }
+
+    /// <summary>Metres from where you are to the current stop, in a straight line; null without a position or a current stop.</summary>
+    public double? RouteMetersToStop() =>
+        _position is { } p && CurrentStopWaypoint is { } stop ? WaypointLibrary.Distance(p.X, p.Y, stop.X, stop.Y) / 100 : null;
+
+    /// <summary>Metres from where you are through every stop left, in straight lines, the same way; null without a position or a current stop.</summary>
+    public double? RouteMetersLeft()
+    {
+        if (_position is not { } from || !_route.HasCurrent) return null;
+        var cm = 0.0;
+        foreach (var id in _route.Upcoming)
+        {
+            if (_library.Find(id) is not { } stop) continue;
+            cm += WaypointLibrary.Distance(from.X, from.Y, stop.X, stop.Y);
+            from = (stop.X, stop.Y);
+        }
+        return cm / 100;
+    }
 
     /// <summary>The footer's words for the stops one position reached.</summary>
     public void SayReached(IReadOnlyList<RouteArrival> arrivals)
@@ -191,5 +217,8 @@ public sealed partial class MapActions
         var before = _route.CurrentStop;
         _route.KeepOnly(id => _library.Find(id) is not null);
         if (_routeWasRunning && _route.CurrentStop != before) TrackRouteStop();
+        // Settings writes the tracking directly, just before this: read it now, or a stop
+        // deleted after a Track click there (with no poll since, out of game) would take the line.
+        _routeWasRunning = RouteRunning;
     }
 }

@@ -36,7 +36,7 @@ public class DialogLayoutTests
 
     /// <summary>Every page by its SetPage key, in the nav's order.</summary>
     internal static readonly string[] Pages =
-        { "Account", "General", "Themes", "Hotkeys", "Widgets", "Maps", "Waypoints", "Friends", "Skins", "Storage", "Rules", "About" };
+        { "Account", "General", "Themes", "Hotkeys", "Widgets", "Maps", "Waypoints", "Route", "Friends", "Skins", "Storage", "Rules", "About" };
 
     public static IEnumerable<object[]> Themes() => Theme.All.Select(e => new object[] { e.Id });
 
@@ -55,6 +55,21 @@ public class DialogLayoutTests
         dialog.Close();
         Assert.True(problems.Count == 0, string.Join("; ", problems));
         Assert.Equal(0, site.Requests); // every page looked at, the website's three included: nothing asked
+    });
+
+    /// <summary>The page list fits the dialog in every theme: nothing would scroll it or say it ran out, its last row would just be cut off.</summary>
+    [Theory]
+    [MemberData(nameof(Themes))]
+    public void TheNavFitsTheDialog(string id) => OnScreen(id, () =>
+    {
+        var (dialog, _) = Dialog();
+        LaidOut(dialog);
+        var nav = (StackPanel)dialog.FindName("Nav");
+        var room = ((FrameworkElement)nav.Parent).ActualHeight; // the column's: a panel taller than its room still reports all of itself
+        var last = (FrameworkElement)nav.Children[^1];
+        var bottom = last.TranslatePoint(new Point(0, last.ActualHeight), nav).Y;
+        dialog.Close();
+        Assert.True(bottom <= room, FormattableString.Invariant($"{bottom:0.00} px of nav in {room:0.00}"));
     });
 
     /// <summary>The walk sees the page column it holds whole: a page made taller than the frame is caught, as a theme's font would make it.</summary>
@@ -129,7 +144,13 @@ public class DialogLayoutTests
         library.Add("Lake", 52000, -98000, 9);
         var poll = new PollService(config);
         var site = CountingSite.Install(poll);
-        var dialog = new SettingsWindow(config, library, new FriendBook(), poll);
+        var book = new FriendBook();
+        // A route on all three, and you somewhere: every state's words are the longest the page has.
+        var actions = new MapActions(config, library, book, name => name);
+        foreach (var waypoint in library.Items) actions.AddToRoute(waypoint);
+        actions.SkipStop();
+        actions.RouteAt(900_000, 900_000);
+        var dialog = new SettingsWindow(config, library, book, poll, actions: actions);
         // The frame is the test's, not this PC's: the work area's limit is a small screen's safety net.
         ((FrameworkElement)dialog.Content).MaxHeight = double.PositiveInfinity;
         return (dialog, site);
@@ -150,13 +171,28 @@ public class DialogLayoutTests
     /// Waypoints page once more with an import's result shown under its list:
     /// the list takes the frame's room but the two lines the status keeps (Oct
     /// 31 2026), and a page that fitted only while its status was hidden would
-    /// scroll on an import. The caller closes the dialog.
+    /// scroll on an import. The Route page in each state it has: walking (the
+    /// dialog's start), paused, finished and empty, in that order since clearing
+    /// it can't be undone. The caller closes the dialog.
     /// </summary>
     internal static IEnumerable<(string Page, FrameworkElement Root)> EveryPage(SettingsWindow dialog)
     {
         foreach (var page in Pages)
         {
             yield return (page, ShowPage(dialog, page));
+            if (page == "Route")
+            {
+                var actions = (MapActions)(typeof(SettingsWindow).GetField("_actions", Any)?.GetValue(dialog)
+                                           ?? throw new MissingFieldException(nameof(SettingsWindow), "_actions"));
+                actions.Track(null);
+                yield return ("Route, paused", LaidOut(dialog));
+                actions.ResumeRoute();
+                actions.SkipStop();
+                actions.SkipStop();
+                yield return ("Route, finished", LaidOut(dialog));
+                actions.ClearRoute();
+                yield return ("Route, empty", LaidOut(dialog));
+            }
             if (page != "Waypoints") continue;
             var status = (TextBlock)dialog.FindName("WaypointStatus"); // the longest line the page writes: every clause, a 32-letter pack name
             status.Text = "Imported 122 from \"A pack with a thirty-two letters\" · 134 already here · 122 didn't fit (256 max). They start hidden: Show all on the pack, or tick Show per waypoint.";

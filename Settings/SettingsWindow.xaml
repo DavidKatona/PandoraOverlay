@@ -93,12 +93,14 @@
                     <ToggleButton Content="Widgets" Tag="Widgets" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <ToggleButton Content="Maps" Tag="Maps" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <ToggleButton Content="Waypoints" Tag="Waypoints" Style="{StaticResource NavButton}" Click="Nav_Click"/>
+                    <ToggleButton Content="Route" Tag="Route" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <ToggleButton Content="Friends" Tag="Friends" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <TextBlock Style="{StaticResource NavCaption}" Text="ISLAPANDORA.EU"/>
                     <ToggleButton Content="Skins" Tag="Skins" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <ToggleButton Content="Dino storage" Tag="Storage" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                     <ToggleButton Content="Server rules" Tag="Rules" Style="{StaticResource NavButton}" Click="Nav_Click"/>
-                    <Border Height="1" Background="{DynamicResource Theme.Nav.Divider}" Margin="12,8,12,8"/>
+                    <!-- 6 px each side, 8 until Route's row (Nov 2026): the frame is fixed, and the list now fills it (DialogLayoutTests.TheNavFitsTheDialog). -->
+                    <Border Height="1" Background="{DynamicResource Theme.Nav.Divider}" Margin="12,6,12,6"/>
                     <ToggleButton Content="About" Tag="About" Style="{StaticResource NavButton}" Click="Nav_Click"/>
                 </StackPanel>
 
@@ -246,6 +248,8 @@
                       Content="Chime at growth milestones (25 / 50 / 75 / 100%)"/>
             <CheckBox x:Name="FriendsChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Chime when a friend spawns in"/>
+            <CheckBox x:Name="RouteChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
+                      Content="Chime when you reach a route stop"/>
             <TextBlock Text="Each one plays the Windows &quot;Exclamation&quot; sound."
                        Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
@@ -513,12 +517,14 @@
                     <ColumnDefinition Width="52"/>
                     <ColumnDefinition Width="52"/>
                     <ColumnDefinition Width="46"/>
+                    <ColumnDefinition Width="46"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="Colour" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
                 <TextBlock Grid.Column="1" Text="Name" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" Margin="8,0,0,0"/>
                 <TextBlock Grid.Column="2" Text="Show" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
                 <TextBlock Grid.Column="3" Text="Track" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="4" Text="Delete" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="4" Text="Route" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="5" Text="Delete" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
             </Grid>
             <!-- The bar's space is always reserved so the cards keep one width; the
                  bar itself fades out when there is nothing to scroll (DarkScrollBar).
@@ -555,6 +561,69 @@
                 </StackPanel>
                 <TextBlock Text="Right-click the map in edit mode to add one; click a dot to recolour."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            </DockPanel>
+            </StackPanel>
+
+            <!-- ============================ Route ========================== -->
+            <!-- The one route (SettingsWindow.Route.cs), laid out as Waypoints is
+                 and with the same room: the list's 338 and the status's two lines
+                 under it. The card is here rather than in code, its band outside
+                 the scrolling list: the band is the route's live state, and a long
+                 route must not scroll it away. The rows are drawn on the first look. -->
+            <StackPanel Tag="Route" Visibility="Collapsed">
+            <DockPanel Margin="0,4,0,8">
+                <TextBlock x:Name="RouteCount" DockPanel.Dock="Right"
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" VerticalAlignment="Center"/>
+                <TextBlock Style="{StaticResource PageTitle}" Text="ROUTE" Margin="0"/>
+            </DockPanel>
+            <!-- The rows' grid (BuildRouteRow): the side margins are set in code to match them. -->
+            <Grid x:Name="RouteHeader" Margin="7,0,7,4" Visibility="Hidden">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="18"/>
+                    <ColumnDefinition Width="18"/>
+                    <ColumnDefinition Width="24"/>
+                    <ColumnDefinition Width="21"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="60"/>
+                    <ColumnDefinition Width="46"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="1" Grid.ColumnSpan="3" Text="Stop" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center" Margin="0,0,3,0"/>
+                <TextBlock Grid.Column="4" Text="Name" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" Margin="7,0,0,0"/>
+                <TextBlock Grid.Column="6" Text="Remove" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+            </Grid>
+            <Grid Height="338">
+                <Border VerticalAlignment="Top" CornerRadius="{DynamicResource Theme.Corner.Card}" BorderThickness="1" Padding="6,6,6,4"
+                        BorderBrush="{DynamicResource Theme.Card.Line}" Background="{DynamicResource Theme.Card.Surface}">
+                    <DockPanel>
+                        <Border x:Name="RouteBand" DockPanel.Dock="Top" Visibility="Collapsed" Padding="8,3,8,3" Margin="0,0,0,4"
+                                Background="{DynamicResource Theme.Card.Band}" CornerRadius="{DynamicResource Theme.Corner.Band}">
+                            <TextBlock x:Name="RouteBandText" FontSize="{DynamicResource Theme.Size.10}" FontWeight="{DynamicResource Theme.Font.CaptionWeight}" TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                        <StackPanel x:Name="RouteEmpty" DockPanel.Dock="Top" Margin="8,8,8,10">
+                            <TextBlock Text="Start your first route" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.12}"/>
+                            <TextBlock Text="Click the + beside a waypoint on the Waypoints page, or right-click a map and choose Add to route or Add stop here. Your stops are joined in the order you add them."
+                                       Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        </StackPanel>
+                        <ScrollViewer x:Name="RouteList" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ScrollViewer.Resources>
+                                <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
+                            </ScrollViewer.Resources>
+                            <StackPanel x:Name="RouteRows"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+            <DockPanel Margin="0,8,0,0">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="RouteRestartButton" Content="Restart" Click="RouteRestart_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button x:Name="RouteClearButton" Content="Clear" Click="RouteClear_Click"
+                            Style="{StaticResource DangerButtonStyle}"/>
+                </StackPanel>
+                <!-- A paused route's way back takes the hint's place. -->
+                <Button x:Name="RouteResumeButton" DockPanel.Dock="Left" Content="Resume route" Click="RouteResume_Click" Visibility="Collapsed"
+                        Style="{StaticResource SaveButtonStyle}" VerticalAlignment="Center"/>
+                <TextBlock x:Name="RouteHint" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
             </StackPanel>
 

@@ -135,6 +135,34 @@
         </Setter>
     </Style>
 
+    <!-- A list row's text that is a click (a stop's name on the Route page):
+         no chrome at rest, so the row reads as a row, and the menu row's hover
+         across the whole column, since the empty part of it clicks too. -->
+    <Style x:Key="ListRowButton" TargetType="Button">
+        <Setter Property="Padding" Value="7,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent">
+                        <Border x:Name="HoverGlow" Background="{DynamicResource Theme.MenuRow.Hover.Fill}"
+                                CornerRadius="{DynamicResource Theme.Corner.Button}" Visibility="Collapsed"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Background" Value="{DynamicResource Theme.MenuRow.Pressed.Fill}"/>
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- A tick in a map menu (the map's Layers menu): the entry look with a
          ✓ column, the label lit while on (Theme.MenuRow.Ticked). It acts at
          once and leaves the menu open. Never focusable, so Space stays

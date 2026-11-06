@@ -68,6 +68,7 @@ public partial class SettingsWindow
         switch (page)
         {
             case "Waypoints" when _waypointRowsBuilt: BuildWaypointRows(); break;
+            case "Route" when _routeBuilt: RenderRoute(); break;
             case "Friends" when _friendRowsBuilt: BuildFriendRows(); break;
             case "Skins" when !_skinApplying: RenderSkins(); break;
             case "Storage" when !_storageLoading && !_storageBusy && _storageCards.All(c => c.Disarm is null): RenderStorage(); break;

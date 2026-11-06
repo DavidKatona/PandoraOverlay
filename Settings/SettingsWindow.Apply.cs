@@ -53,7 +53,9 @@ public enum SettingsChange
 /// into the library and the friend book with each batch; a name is copied
 /// when its box is left or Enter is pressed, and on closing. The dialog is
 /// still modal with the hotkeys suspended, so nothing else can change the
-/// lists while it is open: the working copy is always the truth.
+/// lists while it is open: the working copy is always the truth. The tracked
+/// waypoint is the one thing that can move under it, when a stop is reached
+/// behind the dialog, and the copy follows (OnTrackingChanged).
 /// </para>
 /// <para>
 /// What may keep it open when the focus goes (HoldsOpen): one of its own
@@ -144,6 +146,7 @@ public partial class SettingsWindow
         Live(LowStatChimeCheck, on => _config.LowStatChimeEnabled = on); // the chimes are read live by MainWindow
         Live(GrowthChimeCheck, on => _config.GrowthChimeEnabled = on);
         Live(FriendsChimeCheck, on => _config.FriendsChimeEnabled = on);
+        Live(RouteChimeCheck, on => _config.RouteChimeEnabled = on);
 
         // Themes (the rows: SettingsWindow.Themes.cs)
         foreach (var (radio, theme) in _themeRadios) Live(radio, () => _config.Theme = theme.Id, SettingsChange.Theme);
