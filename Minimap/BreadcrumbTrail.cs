@@ -26,6 +26,10 @@ public sealed class BreadcrumbTrail
     private const double MaxSpeedCmPerSec = 6000;  // 60 m/s — beyond any dino, so not travel
     private const double MaxGapJumpCm = 50_000;    // 500 m — across a poll gap the path is unknown anyway
 
+    /// <summary>Whether a move between two positions could be travel, not a respawn or a teleport. RouteTracker reads the same rule.</summary>
+    internal static bool CouldTravel(double distanceCm, double seconds) =>
+        distanceCm <= Math.Min(MaxSpeedCmPerSec * Math.Max(seconds, 0), MaxGapJumpCm);
+
     /// <summary>The longest trail Settings offers (its "60 min"): what is always recorded.</summary>
     private const int LongestOfferedMinutes = 60;
 
@@ -65,9 +69,7 @@ public sealed class BreadcrumbTrail
 
         if (_lastSeen is { } seen)
         {
-            var seconds = (now - seen.At).TotalSeconds;
-            var allowed = Math.Min(MaxSpeedCmPerSec * Math.Max(seconds, 0), MaxGapJumpCm);
-            if (Distance(seen.X, seen.Y, p.X, p.Y) > allowed) _points.Clear(); // respawned / teleported
+            if (!CouldTravel(Distance(seen.X, seen.Y, p.X, p.Y), (now - seen.At).TotalSeconds)) _points.Clear(); // respawned / teleported
         }
         _lastSeen = (now, p.X, p.Y);
 

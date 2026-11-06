@@ -13,7 +13,7 @@ namespace PandoraOverlay;
 /// </summary>
 public static class ShareCode
 {
-    private const string Prefix = "pandora:";
+    internal const string Prefix = "pandora:";
     private const double MaxMeters = 50_000; // the island spans ~12.5 km; anything wilder is not a position
 
     private static readonly Regex Pattern =
