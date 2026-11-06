@@ -115,6 +115,7 @@ public partial class BigMapWindow : Window
         _book.Changed += OnBookChanged;
         _actions.WaypointTracked += OnWaypointTracked;
         _actions.FriendTracked += OnFriendTracked;
+        _actions.Notice += ShowNotice;
         Closing += (_, _) => _closing = true;
         Closed += (_, _) =>
         {
@@ -126,6 +127,7 @@ public partial class BigMapWindow : Window
             _book.Changed -= OnBookChanged;
             _actions.WaypointTracked -= OnWaypointTracked;
             _actions.FriendTracked -= OnFriendTracked;
+            _actions.Notice -= ShowNotice;
             _noticeTimer.Stop();
             MapMenu.IsOpen = false;
             LayersMenu.IsOpen = false;

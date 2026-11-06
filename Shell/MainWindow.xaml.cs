@@ -70,6 +70,8 @@ public partial class MainWindow : OverlayWindowBase
         _library.Changed += () => _library.Save(); // user content: saved on every change, not just on exit
         _book = FriendBook.Load();
         _book.Changed += () => _book.Save(); // membership + preferences; the per-fetch last-seen facts are flushed on exit
+        LoadRoute();
+        _ = MapActions; // made now, not at the first map: it hears the library's Changed, so a deleted waypoint leaves the route with no map open
         if (_config.WindowX is { } wx && _config.WindowY is { } wy)
         {
             Left = wx;
@@ -571,6 +573,7 @@ public partial class MainWindow : OverlayWindowBase
         // The breadcrumb trail is fed here, before any map's own handler draws it,
         // and always: it is recorded for an hour and drawn for the chosen length (BreadcrumbTrail).
         if (_poll.Calibration is not null && _me is { } at) _trail.Add(at, BreadcrumbTrail.RecordFor(_config.MinimapTrailMinutes));
+        UpdateRoute(); // the same: the maps' own handlers then draw where the route is now
         UpdateUi(result);
         UpdateArea(); // before your own lines: a spawn line says where you spawned
         // Your own lines are always posted — the feed is yours; only friends'

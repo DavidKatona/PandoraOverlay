@@ -13,6 +13,17 @@ public class SelfActivityTests
     private static readonly MyLocationResponse Off = new(false, null);
 
     [Fact]
+    public void AStopReachedSaysWhichOneOrThatTheRouteIsFinished()
+    {
+        var stop = SelfActivity.RouteLine("Some place", 3, 7, last: false, T0);
+        Assert.Equal("You reached Some place · stop 3 of 7", stop.Text);
+        Assert.Equal(FeedKind.Route, stop.Kind);
+        Assert.True(stop.Mine);
+
+        Assert.Equal("You reached Some place · route finished", SelfActivity.RouteLine("Some place", 7, 7, last: true, T0).Text);
+    }
+
+    [Fact]
     public void BeingInGameAtLaunchIsABaselineNotASpawn()
     {
         var self = new SelfActivity();

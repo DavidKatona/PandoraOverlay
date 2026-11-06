@@ -503,6 +503,9 @@ public sealed class OverlayConfig
     /// <summary>Play the Windows "Exclamation" sound when a friend spawns in. Off by default. Settings → General → Sounds since 1.37 (the Friends page before).</summary>
     public bool FriendsChimeEnabled { get; set; }
 
+    /// <summary>Play the Windows "Exclamation" sound when you reach a route stop. Off by default. Settings → General → Sounds.</summary>
+    public bool RouteChimeEnabled { get; set; }
+
     /// <summary>
     /// The friend the minimap follows (ring on their arrow, edge-clamped in
     /// the centered view, first claim on the footer) — by steamId, null =

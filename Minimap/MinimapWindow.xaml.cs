@@ -103,6 +103,7 @@ public partial class MinimapWindow : OverlayWindowBase
         _actions = actions ?? new MapActions(config, library, book, Short);
         _actions.WaypointTracked += OnWaypointTracked;
         _actions.FriendTracked += OnFriendTracked;
+        _actions.Notice += ShowNotice;
         _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), () => Theme.Current.Separator.ToBrush(), _actions, FriendBrush,
                                           () => _lastWorld, () => MapMenu.IsOpen = false, ShowNotice);
 
@@ -127,6 +128,7 @@ public partial class MinimapWindow : OverlayWindowBase
             _book.Changed -= OnBookChanged;
             _actions.WaypointTracked -= OnWaypointTracked; // a shared instance outlives this window
             _actions.FriendTracked -= OnFriendTracked;
+            _actions.Notice -= ShowNotice;
         };
     }
 

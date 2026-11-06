@@ -11,7 +11,7 @@ namespace PandoraOverlay;
 /// next config Save, as before). The clipboard is a shared resource another
 /// app can hold, so every touch of it is guarded.
 /// </summary>
-public sealed class MapActions
+public sealed partial class MapActions
 {
     private readonly OverlayConfig _config;
     private readonly WaypointLibrary _library;
@@ -21,14 +21,18 @@ public sealed class MapActions
 
     /// <param name="shortName">How the map shortens a name for its notices ("Forks added").</param>
     /// <param name="areaAt">World cm → the named area there, or null (out at sea, or nothing to place it with yet). New waypoints are named after it; without it they are "Waypoint N".</param>
+    /// <param name="route">The player's route (MainWindow's); null = an empty one of its own, for a map built alone.</param>
     public MapActions(OverlayConfig config, WaypointLibrary library, FriendBook book, Func<string, string> shortName,
-                      Func<double, double, string?>? areaAt = null)
+                      Func<double, double, string?>? areaAt = null, Route? route = null)
     {
         _config = config;
         _library = library;
         _book = book;
         _short = shortName;
         _areaAt = areaAt;
+        _route = route ?? new Route();
+        _routeWasRunning = RouteRunning;
+        _library.Changed += OnLibraryChanged;
     }
 
     /// <summary>The tracked waypoint changed: the ring, the edge indicator and the footer follow it.</summary>
@@ -53,6 +57,7 @@ public sealed class MapActions
     public void Track(Guid? id)
     {
         _config.TrackedWaypointId = id;
+        _routeWasRunning = RouteRunning;
         WaypointTracked?.Invoke();
     }
 
@@ -72,6 +77,7 @@ public sealed class MapActions
 
     public string Remove(Waypoint waypoint)
     {
+        _routeWasRunning = RouteRunning; // asked now: the line below would make a running route look paused
         if (waypoint.Id == _config.TrackedWaypointId) _config.TrackedWaypointId = null;
         _library.Remove(waypoint.Id); // Changed → the maps redraw
         return $"{_short(waypoint.Name)} removed";
@@ -133,10 +139,11 @@ public sealed class MapActions
         }
     }
 
+    /// <summary>A new waypoint is tracked at once, unless a route is running: marking a spot you pass must not interrupt the route (the owner's call).</summary>
     private string Added(Waypoint? waypoint)
     {
         if (waypoint is null) return "library full";
-        Track(waypoint.Id);
+        if (!RouteRunning) Track(waypoint.Id);
         return $"{_short(waypoint.Name)} added";
     }
 }

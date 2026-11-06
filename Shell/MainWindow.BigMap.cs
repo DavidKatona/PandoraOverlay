@@ -26,7 +26,7 @@ public partial class MainWindow
     private readonly BreadcrumbTrail _trail = new();
 
     /// <summary>The map menu's actions, one instance for both maps, so tracking on one redraws the other; new waypoints are named after their area (AreaAt).</summary>
-    private MapActions MapActions => _mapActions ??= new MapActions(_config, _library, _book, MinimapWindow.Short, AreaAt);
+    private MapActions MapActions => _mapActions ??= new MapActions(_config, _library, _book, MinimapWindow.Short, AreaAt, _route);
 
     /// <summary>The big map hotkey: open, or close.</summary>
     private void ToggleBigMap()

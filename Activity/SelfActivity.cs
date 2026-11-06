@@ -76,6 +76,16 @@ public sealed class SelfActivity
     public static FeedLine AreaLine(string area, DateTime now) => Mine(now, $"Entered {area}", FeedKind.Area);
 
     /// <summary>
+    /// "You reached Delta · stop 3 of 7", or "… · route finished" for the last
+    /// stop. A skipped stop gets no line. A chore by the rule above, nearly: the
+    /// owner's call, for a moment you were walking towards (Nov 2026). It says
+    /// only that you got within reach of the place: nothing about arriving
+    /// anywhere the map can't show.
+    /// </summary>
+    public static FeedLine RouteLine(string stop, int number, int count, bool last, DateTime now) =>
+        Mine(now, last ? $"You reached {stop} · route finished" : $"You reached {stop} · stop {number} of {count}", FeedKind.Route);
+
+    /// <summary>
     /// A Prime check: the CHANGE, not the state — the widget shows the state.
     /// One line per condition that flipped since the previous result; with
     /// nothing to compare against, or nothing flipped, one summary line.
