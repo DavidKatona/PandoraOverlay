@@ -17,6 +17,7 @@ public class RequestLogHandlerTests
     private const string Cookie = "connect.sid=s%3ACOOKIESECRET";
     private const string AccessName = "x-test-access";
     private const string AccessValue = "ACCESSSECRET";
+    private const string Ray = "0123456789abcdef-VIE";
 
     /// <summary>Answers every request with what it was given, or throws it.</summary>
     private sealed class FakeSite : HttpMessageHandler
@@ -32,10 +33,12 @@ public class RequestLogHandlerTests
             _failure is not null ? Task.FromException<HttpResponseMessage>(_failure) : Task.FromResult(_answer!());
     }
 
-    private static HttpResponseMessage Answer(HttpStatusCode status, string body, string mediaType)
+    private static HttpResponseMessage Answer(HttpStatusCode status, string body, string mediaType, string? ray = null, string? mitigated = null)
     {
         var response = new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, mediaType) };
         response.Headers.TryAddWithoutValidation("Set-Cookie", "connect.sid=s%3AROLLEDSECRET; Path=/; HttpOnly");
+        if (ray is not null) response.Headers.TryAddWithoutValidation("CF-RAY", ray);
+        if (mitigated is not null) response.Headers.TryAddWithoutValidation("cf-mitigated", mitigated);
         return response;
     }
 
@@ -69,20 +72,80 @@ public class RequestLogHandlerTests
     [Fact]
     public async Task CloudflaresBlockPageReadsAs403Html_AndNothingSecretGetsIn()
     {
-        var lines = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.Forbidden, "<html>BLOCKEDSECRET</html>", "text/html")),
+        var lines = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.Forbidden, "<html>BLOCKEDSECRET</html>", "text/html", Ray)),
                                     "https://islapandora.eu/api/map/mylocation?_t=1&token=TOKENSECRET");
         var (level, line) = Assert.Single(lines);
         Assert.Equal(LogVerbosity.Warning, level);
-        Assert.Matches(new Regex(@"^POST /api/map/mylocation 403 html \d+ ms$"), line);
+        Assert.Matches(new Regex(@"^POST /api/map/mylocation 403 html \d+ ms \(Cloudflare block, ray 0123456789abcdef-VIE\)$"), line);
         AssertNoSecret(line);
     }
 
     [Fact]
     public async Task TheSitesOwnRefusalReadsAs403Json()
     {
-        var lines = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.Forbidden, "{\"error\":\"Forbidden\"}", "application/json")),
+        var lines = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.Forbidden, "{\"error\":\"Forbidden\"}", "application/json", Ray)),
                                     "https://islapandora.eu/api/map/friends");
-        Assert.Matches(new Regex(@"^POST /api/map/friends 403 json \d+ ms$"), Assert.Single(lines).Line);
+        Assert.Matches(new Regex(@"^POST /api/map/friends 403 json \d+ ms \(ray 0123456789abcdef-VIE\)$"), Assert.Single(lines).Line);
+    }
+
+    [Fact]
+    public async Task AChallengeIsToldFromABlock_AndItsHeaderIsOnlyCompared()
+    {
+        var challenge = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.Forbidden, "<html></html>", "text/html", Ray, "challenge")),
+                                        "https://islapandora.eu/api/auth/me");
+        Assert.Matches(new Regex(@"^POST /api/auth/me 403 html \d+ ms \(Cloudflare challenge, ray 0123456789abcdef-VIE\)$"), Assert.Single(challenge).Line);
+
+        var odd = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.Forbidden, "<html></html>", "text/html", Ray, "MESSAGESECRET")),
+                                  "https://islapandora.eu/api/auth/me");
+        var line = Assert.Single(odd).Line;
+        Assert.Contains("(Cloudflare block, ray 0123456789abcdef-VIE)", line);
+        AssertNoSecret(line);
+    }
+
+    [Fact]
+    public async Task AWebsiteErrorThroughCloudflareCarriesItsRay_WithoutCallingItABlock()
+    {
+        var lines = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.BadGateway, "<html></html>", "text/html", Ray)),
+                                    "https://islapandora.eu/api/map/mylocation");
+        Assert.Matches(new Regex(@"^POST /api/map/mylocation 502 html \d+ ms \(ray 0123456789abcdef-VIE\)$"), Assert.Single(lines).Line);
+    }
+
+    [Fact]
+    public async Task ARefusalWithoutARaySaysCloudflareDidNotSendIt()
+    {
+        var lines = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.Forbidden, "<html>BLOCKEDSECRET</html>", "text/html")),
+                                    "https://islapandora.eu/api/auth/me");
+        var line = Assert.Single(lines).Line;
+        Assert.Matches(new Regex(@"^POST /api/auth/me 403 html \d+ ms \(no Cloudflare ray\)$"), line);
+        AssertNoSecret(line);
+    }
+
+    [Theory]
+    [InlineData("connect.sid=s%3ACOOKIESECRET")]
+    [InlineData("<html>BLOCKEDSECRET</html>")]
+    [InlineData("0123456789ABCDEF-VIE")]       // Cloudflare's hex is lower case
+    [InlineData("0123456789abcdef")]            // no data centre
+    [InlineData("0123456789abcdef-VIE extra")]
+    [InlineData("0123456789abcdef-VIE\n")]
+    [InlineData("")]
+    public void OnlyARaysShapeIsEverWritten(string header)
+    {
+        var note = RequestLogHandler.CloudflareNote(403, "text/html", header, null);
+        Assert.Equal(" (no Cloudflare ray)", note);
+        AssertNoSecret(note);
+    }
+
+    [Fact]
+    public async Task AnAnswerThatWorkedOrCameFromElsewhereHasNoNote()
+    {
+        var ok = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.OK, "{}", "application/json", Ray)), "https://islapandora.eu/api/auth/me");
+        Assert.Matches(new Regex(@"^POST /api/auth/me 200 json \d+ ms$"), Assert.Single(ok).Line);
+
+        var redirect = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.Found, "", "text/html", Ray)), "https://islapandora.eu/auth/logout", HttpMethod.Get);
+        Assert.Matches(new Regex(@"^GET /auth/logout 302 html \d+ ms$"), Assert.Single(redirect).Line);
+
+        var discord = await SendAsync(new FakeSite(() => Answer(HttpStatusCode.Forbidden, "", "text/html", Ray)), "https://cdn.discordapp.com/avatars/1/a.png", HttpMethod.Get);
+        Assert.Matches(new Regex(@"^GET cdn\.discordapp\.com 403 html \d+ ms$"), Assert.Single(discord).Line);
     }
 
     [Fact]

@@ -115,7 +115,7 @@ public sealed partial class PollService
         catch (Exception ex)
         {
             AppLog.Skins.Warning($"Skins list failed: {AppLog.Short(ex)}");
-            return new SkinListResult(Skins, ex.GetType().Name);
+            return new SkinListResult(Skins, ConnectionProblem.Words(ex));
         }
         finally
         {
@@ -222,7 +222,7 @@ public sealed partial class PollService
         catch (Exception ex)
         {
             AppLog.Skins.Warning($"Apply failed: {AppLog.Short(ex)}");
-            return new SkinApplyResult(SkinApplyOutcome.Failed, skinName, pattern, ex.GetType().Name);
+            return new SkinApplyResult(SkinApplyOutcome.Failed, skinName, pattern, ConnectionProblem.Words(ex));
         }
         finally
         {

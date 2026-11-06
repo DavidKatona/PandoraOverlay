@@ -90,6 +90,22 @@ public static class SignInPolicy
     public static bool HasSession(string cookieHeader) =>
         System.Text.RegularExpressions.Regex.IsMatch(cookieHeader ?? "", @"(^|;\s*)connect\.sid=\S");
 
+    /// <summary>What a failed sign-in advises, unless the failure has better words of its own (<see cref="ConfirmFailure"/>).</summary>
+    public const string FailureAdvice = "Try again. If it keeps failing, log in to islapandora.eu once in your normal browser, then come back.";
+
+    /// <summary>
+    /// What the window says when the login worked but the one auth/me that
+    /// confirms it failed, in the status line's words (ConnectionProblem),
+    /// never an exception's message. A block gets its own advice: a player
+    /// on 1.42.0 was blocked here on Nov 6 2026 and was told to log in with
+    /// their browser, which shares nothing with the overlay's request.
+    /// </summary>
+    public static (string Reason, string Advice) ConfirmFailure(Exception ex) => (
+        $"Signed in, but the session could not be confirmed ({ConnectionProblem.Words(ex)}).",
+        ConnectionProblem.IsBlocked(ex)
+            ? "Your login itself worked. Try again in a while, and if you use a VPN or proxy, try without it."
+            : FailureAdvice);
+
     private static bool IsSite(string host) => host == SiteHost || host == "www." + SiteHost;
 
     private static bool IsLoginPath(string path) =>

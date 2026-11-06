@@ -74,8 +74,8 @@ public enum StorageEditOutcome { Ok, Refused, TooSoon, SignedOut, Failed }
 /// <summary>
 /// Outcome of one rename or delete click. TooSoon and SignedOut are answered
 /// locally with no request sent (or the site refused the session); Refused
-/// carries the website's own cleaned words, Failed a short reason — an
-/// exception type at most. A successful rename carries the renamed dino.
+/// carries the website's own cleaned words, Failed a short reason —
+/// ConnectionProblem's words at most. A successful rename carries the renamed dino.
 /// </summary>
 public sealed record StorageEditResult(StorageEditOutcome Outcome, string? Message = null, StoredDino? Dino = null);
 

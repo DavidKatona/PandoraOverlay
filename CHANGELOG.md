@@ -7,11 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The log now notes the reference number of a request the website refuses,
+  so a report can be traced. The number also shows which of the website's
+  data centres answered, which hints at your region. The log still stays on
+  your PC unless you attach it to a report.
+
 ### Fixed
 
 - The heatmap no longer vanishes from the minimap and the map for minutes
   when the website misses an update: the last picture stays until a new
   one arrives, for up to ten minutes.
+- If the website blocks the overlay just after you log in, the sign-in window
+  now says "blocked by the website" instead of an error code, and no longer
+  sends you to your browser, which can't help.
+- Settings › Account, Skins, Dino storage and the Prime tracker now name what
+  went wrong when a request fails ("no connection", "blocked by the website"),
+  as the status line does, instead of an error code.
 
 ## [1.42.0] - 2026-11-03
 

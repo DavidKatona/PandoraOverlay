@@ -634,9 +634,11 @@ public sealed partial class PollService : IDisposable
         {
             AppLog.Prime.Warning($"Check failed: {AppLog.Short(ex)}");
             PrimeCooldownUntilUtc = DateTime.UtcNow + PrimeRetryGuard;
-            // The type's name only, never the message: the reason reaches the
-            // widget, and error paths surface nothing that could carry request details.
-            PrimeChecked?.Invoke(new PrimeCheckResult(PrimeCheckOutcome.Failed, Reason: ex.GetType().Name));
+            // Our own words, never the message: the reason reaches the widget, and
+            // error paths surface nothing that could carry request details. The
+            // longest ("secure connection failed", with the retry countdown) is
+            // 260 of the footer's 272 px at its widest theme, measured Nov 6 2026.
+            PrimeChecked?.Invoke(new PrimeCheckResult(PrimeCheckOutcome.Failed, Reason: ConnectionProblem.Words(ex)));
         }
         finally
         {

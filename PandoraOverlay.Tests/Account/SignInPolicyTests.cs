@@ -1,9 +1,39 @@
+using System.Net;
+using System.Net.Http;
 using Xunit;
 
 namespace PandoraOverlay.Tests;
 
 public class SignInPolicyTests
 {
+    private const string Secret = "MESSAGESECRET connect.sid=s%3Aabc";
+
+    [Fact]
+    public void ABlockedConfirmationSaysSo_AndDoesNotSendThePlayerToTheirBrowser()
+    {
+        var (reason, advice) = SignInPolicy.ConfirmFailure(new HttpRequestException(Secret, null, HttpStatusCode.Forbidden));
+        Assert.Equal("Signed in, but the session could not be confirmed (blocked by the website).", reason);
+        Assert.DoesNotContain("browser", advice, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("VPN", advice);
+    }
+
+    [Fact]
+    public void AnyOtherFailedConfirmationNamesItsCause_AndKeepsTheUsualAdvice()
+    {
+        var (reason, advice) = SignInPolicy.ConfirmFailure(new HttpRequestException(HttpRequestError.ConnectionError, Secret));
+        Assert.Equal("Signed in, but the session could not be confirmed (no connection).", reason);
+        Assert.Equal(SignInPolicy.FailureAdvice, advice);
+    }
+
+    [Fact]
+    public void AFailedConfirmationNeverShowsAnExceptionsMessage()
+    {
+        var (reason, advice) = SignInPolicy.ConfirmFailure(new InvalidOperationException(Secret));
+        Assert.Contains("InvalidOperationException", reason);
+        Assert.DoesNotContain("SECRET", reason + advice);
+        Assert.DoesNotContain("connect.sid", reason + advice);
+    }
+
     [Theory]
     [InlineData("https://islapandora.eu/auth/discord")]
     [InlineData("https://islapandora.eu/auth/discord/callback?code=x&iss=y")]

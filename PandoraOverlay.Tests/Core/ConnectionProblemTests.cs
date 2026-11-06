@@ -21,6 +21,15 @@ public class ConnectionProblemTests
     }
 
     [Fact]
+    public void OnlyABlockPageCountsAsBlocked()
+    {
+        Assert.True(ConnectionProblem.IsBlocked(Status(HttpStatusCode.Forbidden)));
+        Assert.False(ConnectionProblem.IsBlocked(Status(HttpStatusCode.BadGateway)));
+        Assert.False(ConnectionProblem.IsBlocked(new HttpRequestException(HttpRequestError.ConnectionError, Secret)));
+        Assert.False(ConnectionProblem.IsBlocked(new SessionEndedException()));
+    }
+
+    [Fact]
     public void TheSitesRefusalIsASessionRefused()
     {
         Assert.Equal("session refused", ConnectionProblem.Words(new SessionEndedException()));

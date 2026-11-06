@@ -45,7 +45,7 @@ public enum SkinApplyOutcome { Ok, NotInGame, TooSoon, Refused, Failed }
 /// <summary>
 /// Outcome of one user-triggered apply. NotInGame and TooSoon are answered
 /// locally with no request sent; Refused carries the server's own (cleaned)
-/// words, Failed a short reason — an exception type at most.
+/// words, Failed a short reason — ConnectionProblem's words at most.
 /// </summary>
 public sealed record SkinApplyResult(SkinApplyOutcome Outcome, string SkinName, int Pattern, string? Message = null);
 

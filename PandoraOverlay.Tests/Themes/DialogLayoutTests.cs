@@ -243,7 +243,9 @@ public class DialogLayoutTests
         SignIn("checking", w => Call(w, "ShowChecking"));
         SignIn("done", w => Call(w, "ShowDone", new AccountInfo(true, "Dave", "76561190000000001", null, true, true)));
         SignIn("no Steam", w => Call(w, "ShowNoSteam", new AccountInfo(true, "Dave", null, "AB12CD", true, false)));
-        SignIn("failed", w => Call(w, "ShowFailed", "the website did not answer (HttpRequestException)"));
+        SignIn("failed", w => Call(w, "ShowFailed", "the website did not answer (HttpRequestException)", SignInPolicy.FailureAdvice));
+        var (blocked, blockedAdvice) = SignInPolicy.ConfirmFailure(new System.Net.Http.HttpRequestException("", null, System.Net.HttpStatusCode.Forbidden));
+        SignIn("blocked", w => Call(w, "ShowFailed", blocked, blockedAdvice));
 
         foreach (var (where, build, width, height) in windows)
         {

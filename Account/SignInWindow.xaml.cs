@@ -163,8 +163,8 @@ public partial class SignInWindow : Window
     /// The header and its renewed form are the session itself: they go only
     /// into <see cref="Outcome"/> and from there into the encrypted vault
     /// (OverlayConfig.ApplySignIn) — never into a log, an exception message
-    /// or this window's text; the failure reasons name an exception's type at
-    /// most. The WebView's user agent goes with them as the identity the
+    /// or this window's text; the failure reasons are our own words or an
+    /// exception's type at most. The WebView's user agent goes with them as the identity the
     /// session was issued to (the spike found the site takes the session
     /// with it and with the old configured one alike).
     /// </summary>
@@ -201,7 +201,8 @@ public partial class SignInWindow : Window
         }
         catch (Exception ex)
         {
-            ShowFailed($"Signed in, but the website could not be reached to confirm it ({ex.GetType().Name}).");
+            var (reason, advice) = SignInPolicy.ConfirmFailure(ex);
+            ShowFailed(reason, advice);
             return;
         }
         if (!account.Authenticated)
@@ -295,10 +296,10 @@ public partial class SignInWindow : Window
         FooterNote.Text = "You ARE signed in and the session is saved. Linking Steam is the website's job (the LinkID is checked in game), so this only explains it.";
     }
 
-    private void ShowFailed(string reason)
+    private void ShowFailed(string reason, string advice = SignInPolicy.FailureAdvice)
     {
         ShowResult(Bad, "", "That didn't work", reason, Warn);
-        AddLine("Try again. If it keeps failing, log in to islapandora.eu once in your normal browser, then come back.");
+        AddLine(advice);
         ResultBox.Visibility = Visibility.Visible;
         Buttons(retry: true, cancel: true);
         FooterNote.Text = "Nothing was saved.";

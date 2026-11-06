@@ -34,8 +34,9 @@ public enum LogVerbosity
 /// config.json's LogLevels and Settings → About's Detailed log). Every
 /// category is declared in AppLog.
 /// A line states a fact: what happened, an outcome, a count, an exception's
-/// type. It NEVER holds a credential, a header's value, a body, server text,
-/// a name, a Steam ID or a position (CLAUDE.md, hard constraint 4).
+/// type. It NEVER holds a credential, a header's value (but Cloudflare's Ray
+/// ID, RequestLogHandler's alone), a body, server text, a name, a Steam ID or
+/// a position (CLAUDE.md, hard constraint 4).
 /// </summary>
 public sealed class LogCategory
 {
@@ -107,7 +108,8 @@ public sealed class LogCategory
 /// ten files of 2 MB at most, kept on the PC; About's "Open log folder" to
 /// hand one over; an exception as its type and stack trace only.
 /// What never goes in (CLAUDE.md, hard constraint 4): the cookie, the access
-/// header, any header's value or body, server text, names, Steam IDs,
+/// header, any header's value but Cloudflare's Ray ID (RequestLogHandler), a
+/// body, server text, names, Steam IDs,
 /// positions. Nothing here sends anything anywhere. Fail soft: a log that
 /// can't be written goes quiet and the overlay runs on. Zero WPF.
 /// Until <see cref="Start"/> (App.OnStartup, after the single-instance check,

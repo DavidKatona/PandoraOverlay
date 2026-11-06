@@ -61,7 +61,7 @@ public sealed partial class PollService
         catch (Exception ex)
         {
             AppLog.Storage.Warning($"Storage list failed: {AppLog.Short(ex)}");
-            return new StorageListResult(Storage, ex.GetType().Name);
+            return new StorageListResult(Storage, ConnectionProblem.Words(ex));
         }
         finally
         {
@@ -124,7 +124,7 @@ public sealed partial class PollService
         catch (Exception ex)
         {
             AppLog.Storage.Warning($"{what} failed: {AppLog.Short(ex)}");
-            return new StorageEditResult(StorageEditOutcome.Failed, ex.GetType().Name);
+            return new StorageEditResult(StorageEditOutcome.Failed, ConnectionProblem.Words(ex));
         }
         finally
         {

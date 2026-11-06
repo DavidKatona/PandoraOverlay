@@ -17,7 +17,7 @@ paths:
   check — a failing answer may still carry the renewal), reads the body whatever the
   status where the site does, turns the site's refusal into `SessionEndedException`, and
   uses `ConfigureAwait(false)` inside. A write method is documented "NEVER on a timer or
-  without a click". Results carry a Problem that is an exception's type name or cleaned
+  without a click". Results carry a Problem in `ConnectionProblem`'s words or cleaned
   server words — never raw text; server strings are mapped, or go through
   `PatreonSkins.Clean`.
 - Every request gate is a pure `internal static` rule tested in `PandoraOverlay.Tests/Core`
@@ -25,13 +25,13 @@ paths:
   `FriendsWantedFor`, `HeatmapFresh` …). New gating follows suit.
 - A new feature adds no timer or request stream of its own: windows consume PollService's
   events, which it raises on the UI thread.
-- New network calls fail soft and surface an exception's type name at most.
+- New network calls fail soft and surface `ConnectionProblem`'s words at most.
 - **The log** (`AppLog`): a feature writes through its own category (a new one is declared
   in AppLog and listed in `Categories`), Unreal-style: `AppLog.Prime.Log("…")`,
   `.Warning(…)`, `.Verbose(…)`. State changes and outcomes at Log, anything every few
   seconds at Verbose, failures as Warnings with `AppLog.Short(ex)`, a crash with
   `Exception(LogVerbosity.Fatal, …)`. Facts and counts only (CLAUDE.md, constraint 4):
-  never a header's value, a body, server text (log "the website declined", not its
+  never a header's value (but `RequestLogHandler`'s Ray ID), a body, server text (log "the website declined", not its
   words), a name, a Steam ID or a position. A new HttpClient is built with
   `RequestLogHandler` outermost, so its requests get their LogNet line. A new trigger
   of a poll, a roster or the heatmap names itself (`Nudge("…")`, `PollNowAsync("…")`,

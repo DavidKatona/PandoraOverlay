@@ -78,7 +78,8 @@ a file in the folder is touched.
    A WRITE happens only for the player's own click or key press (the skin
    hotkey, 1.38), never on a timer.
 4. **The cookie is a credential.** Never log it, print it, put it in exceptions,
-   window text, or commit it. Error paths surface exception *type* only. It is
+   window text, or commit it. Error paths surface exception *type* only, or
+   `ConnectionProblem`'s own words for it. It is
    stored only as the DPAPI blob (the rolled cookie re-encrypted on edit-mode
    lock and on exit). Server text reaches a window only mapped, or through
    `PatreonSkins.Clean` (which drops whole any string mentioning `connect.sid` /
@@ -92,8 +93,10 @@ a file in the folder is touched.
    (`Core/OverlayAccess.cs`).
    **The log** (`AppLog`, 1.36) holds facts only: never the cookie, a header's
    value, a body, server text, a name, a Steam ID or a position; an exception
-   as its type, codes and stack trace, never its message. It never leaves the
-   PC unless the player sends it.
+   as its type, codes and stack trace, never its message. The one header value
+   it may hold is Cloudflare's Ray ID on a website's 4xx or 5xx (the owner's
+   okay, Nov 6 2026; `RequestLogHandler`). It never leaves the PC unless the
+   player sends it.
 5. `config.json` is runtime state (holds the DPAPI blob) — stays in `.gitignore`;
    so does `Assets/overlay-access.bin`.
 

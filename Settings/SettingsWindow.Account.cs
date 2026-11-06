@@ -61,7 +61,7 @@ public partial class SettingsWindow
         catch (Exception ex)
         {
             RenderAccount(null);
-            AccountHint.Text = $"Couldn't reach the website ({ex.GetType().Name}) — showing what is saved.";
+            AccountHint.Text = $"Couldn't check your account ({ConnectionProblem.Words(ex)}) — showing what is saved.";
         }
     }
 

@@ -24,8 +24,24 @@ namespace PandoraOverlay;
 /// requests (the poll, the roster, the heatmap's pair) are Verbose, so a
 /// normal session's log isn't one line every few seconds; everything else
 /// answered is Log; a 4xx, a 5xx or a failure is a Warning.
-/// NEVER read here: a header's value (the cookie and the access header ride
-/// the request), a body, an exception's message.
+/// A 4xx or 5xx from the website also gets a note in brackets (the owner's
+/// okay, Nov 6 2026, after a player's "403 html" could say no more):
+///   POST /api/auth/me 403 html 48 ms (Cloudflare block, ray 0123456789abcdef-VIE)
+///   POST /api/auth/me 403 html 48 ms (Cloudflare challenge, ray 0123456789abcdef-VIE)
+///   POST /api/auth/me 502 html 48 ms (ray 0123456789abcdef-VIE)
+///   POST /api/auth/me 403 html 48 ms (no Cloudflare ray)
+/// The Ray ID names that one answer in Cloudflare's security events, so the
+/// site's dev can see which rule fired. It holds a number and the code of the
+/// Cloudflare data centre that answered (a hint of the region, in a log only the
+/// player can send, which names its time zone anyway), and no credential.
+/// It is the ONE header value the log may hold (CLAUDE.md, constraint 4), and
+/// only in a Ray's shape: anything else in that header reads as no ray. A
+/// challenge says so in cf-mitigated, whose value is only compared, never
+/// written; a block is a 403 html with a ray and without that header (a real
+/// one checked Nov 6 2026). "No ray" means Cloudflare didn't send the page:
+/// something between the player and it did, such as a filter on their network.
+/// NEVER read here: any other header's value (the cookie and the access header
+/// ride the request), a body, an exception's message.
 /// It wraps every HttpClient of ours, outermost: the site client (around
 /// OverlayAccessHandler), the picture client, the sign-out client and the
 /// update check. Velopack's own requests go to its own log
@@ -41,6 +57,9 @@ internal sealed class RequestLogHandler : DelegatingHandler
     };
 
     private static readonly Regex PlainMediaType = new("^[a-z0-9.+-]{1,30}/[a-z0-9.+-]{1,40}$", RegexOptions.CultureInvariant);
+
+    /// <summary>A Ray ID as Cloudflare sends it (16 hex digits and the data centre's code, Oct–Nov 2026), with room to grow; nothing else is written.</summary>
+    private static readonly Regex RayShape = new(@"\A[0-9a-f]{8,32}-[A-Z0-9]{2,8}\z", RegexOptions.CultureInvariant);
 
     private readonly Action<LogVerbosity, string> _write;
 
@@ -88,8 +107,25 @@ internal sealed class RequestLogHandler : DelegatingHandler
     private void Answered(HttpRequestMessage request, HttpResponseMessage response, long started)
     {
         var status = (int)response.StatusCode;
+        var mediaType = response.Content.Headers.ContentType?.MediaType;
+        var note = status >= 400 && OverlayAccessHandler.IsSite(request.RequestUri)
+            ? CloudflareNote(status, mediaType, FirstValue(response, "CF-RAY"), FirstValue(response, "cf-mitigated"))
+            : "";
         _write(VerbosityFor(request.RequestUri, status),
-               AnswerLine(request.Method, request.RequestUri, status, response.Content.Headers.ContentType?.MediaType, Stopwatch.GetElapsedTime(started)));
+               AnswerLine(request.Method, request.RequestUri, status, mediaType, Stopwatch.GetElapsedTime(started)) + note);
+    }
+
+    private static string? FirstValue(HttpResponseMessage response, string header) =>
+        response.Headers.TryGetValues(header, out var values) ? values.FirstOrDefault() : null;
+
+    /// <summary>The bracketed note on a website's 4xx or 5xx, with its leading space (the class's summary shows each form).</summary>
+    internal static string CloudflareNote(int status, string? mediaType, string? ray, string? mitigated)
+    {
+        if (ray is null || !RayShape.IsMatch(ray)) return " (no Cloudflare ray)";
+        var what = string.Equals(mitigated, "challenge", StringComparison.OrdinalIgnoreCase) ? "Cloudflare challenge, "
+                 : status == 403 && Kind(mediaType) == "html" ? "Cloudflare block, "
+                 : "";
+        return $" ({what}ray {ray})";
     }
 
     /// <summary>A timed request answered 2xx is Verbose; any other 2xx or 3xx is Log (a redirect is never followed, and the caller decides whether it failed); 4xx and 5xx are Warnings.</summary>
