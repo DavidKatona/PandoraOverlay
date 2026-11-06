@@ -12,10 +12,11 @@ public sealed record MapMenuSpot((double X, double Y)? World, Waypoint? Waypoint
 /// Fills a map's right-click menu, the same on every map; the map owns the
 /// popup and says what is under the cursor. On a friend: track them, or
 /// drop a waypoint where they stand. On a waypoint: track, copy or remove
-/// it. Always: "Waypoint here" (auto-named and tracked), then share-a-spot:
-/// this spot ("meet here"), my position ("come to me") and Paste, which
-/// makes a waypoint named from the code. An entry closes the menu, then
-/// acts through MapActions; its notice goes back to the map.
+/// it, and put it on the route. Always: "Waypoint here" (auto-named and
+/// tracked) and "Add stop here", then with a route its own entries, then
+/// share-a-spot: this spot ("meet here"), my position ("come to me") and
+/// Paste, which makes a waypoint named from the code. An entry closes the
+/// menu, then acts through MapActions; its notice goes back to the map.
 /// No name box in the popup (owner's call): a new waypoint is auto-named,
 /// and names are typed on the Settings Waypoints page.
 /// </summary>
@@ -48,6 +49,7 @@ public sealed class MapMenuBuilder
     {
         _items.Children.Clear();
         var full = _actions.LibraryFull;
+        var route = _actions.Route;
 
         if (spot.Friend is { SteamId: { } friendId } friend)
         {
@@ -68,13 +70,32 @@ public sealed class MapMenuBuilder
             Item($"Copy {name}", brush, () => Say(_actions.Copy(ShareCode.Format(hit.X, hit.Y, hit.Name), "spot copied")));
             Item($"Remove {name}", brush, () => Say(_actions.Remove(hit)));
             Separator();
+
+            // The stop this waypoint means: "Go to" it unless it already is the current one
+            // (a paused route's current stop has Resume, below), "Remove from route" if it has one.
+            var stop = _actions.StopOf(hit.Id);
+            if (stop >= 0 && stop != route.Current) Item($"Go to {name}", brush, () => _actions.GoToStop(stop));
+            Item("Add to route", brush, () => Say(_actions.AddToRoute(hit)), enabled: !route.IsFull);
+            Item("Add as next stop", brush, () => Say(_actions.AddAsNextStop(hit)), enabled: !route.IsFull);
+            if (stop >= 0) Item("Remove from route", brush, () => Say(_actions.RemoveFromRoute(hit)));
+            Separator();
         }
 
         Item(full ? $"Library full ({WaypointLibrary.Capacity})" : "Waypoint here", null, () =>
         {
             if (spot.World is { } at) Say(_actions.AddWaypoint(at.X, at.Y));
         }, enabled: !full);
+        Item("Add stop here", null, () =>
+        {
+            if (spot.World is { } at) Say(_actions.AddStopHere(at.X, at.Y));
+        }, enabled: !full && !route.IsFull);
         Separator();
+        if (_actions.CurrentStopWaypoint is { } current)
+        {
+            if (_actions.RoutePaused) Item("Resume route", null, _actions.ResumeRoute);
+            Item($"Skip {_actions.Short(current.Name)}", null, () => Say(_actions.SkipStop()));
+            Separator();
+        }
         Item("Copy this spot", null, () =>
         {
             if (spot.World is { } at) Say(_actions.Copy(ShareCode.Format(at.X, at.Y), "spot copied"));
