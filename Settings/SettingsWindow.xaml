@@ -608,7 +608,13 @@
                             <ScrollViewer.Resources>
                                 <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
                             </ScrollViewer.Resources>
-                            <StackPanel x:Name="RouteRows"/>
+                            <Grid>
+                                <StackPanel x:Name="RouteRows"/>
+                                <!-- A drag's line and the row it carries (SettingsWindow.RouteDrag.cs): over the rows, scrolling with them, taking no clicks. -->
+                                <Canvas x:Name="RouteDragLayer" IsHitTestVisible="False">
+                                    <Border x:Name="RouteDropLine" Panel.ZIndex="1" Height="2" Background="{DynamicResource Theme.Text.Highlight}" Visibility="Collapsed"/>
+                                </Canvas>
+                            </Grid>
                         </ScrollViewer>
                     </DockPanel>
                 </Border>

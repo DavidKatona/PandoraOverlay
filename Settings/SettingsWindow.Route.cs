@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -42,7 +43,9 @@ public partial class SettingsWindow
     private int _routeRenderVersion; // a newer render stops an older one's batches
     private bool _routeClearArmed;
 
-    private sealed record RouteRow(Grid Grid, TextBlock Mark, TextBlock Number, Ellipse Disc, Button Name, TextBlock NameText, TextBlock Distance, Button Remove);
+    private const string RouteGrip = "≡";
+
+    private sealed record RouteRow(Grid Grid, Border GripCell, TextBlock Grip, TextBlock Mark, TextBlock Number, Ellipse Disc, Button Name, TextBlock NameText, TextBlock Distance, Button Remove);
 
     /// <summary>Follows the route and the tracking while the dialog is open. Called in the constructor; the page itself is drawn on its first look.</summary>
     private void InitRoutePage()
@@ -58,6 +61,7 @@ public partial class SettingsWindow
             _actions.WaypointTracked -= OnTrackingChanged;
             _poll.SnapshotReceived -= OnRoutePosition;
         };
+        InitRouteDrag();
     }
 
     /// <summary>
@@ -116,6 +120,9 @@ public partial class SettingsWindow
         var hasStops = !route.IsEmpty;
         var paused = _actions.RoutePaused;
 
+        // The stop being carried was passed behind the dialog: it can't move any more.
+        if (_routeDragFrom >= 0 && (_routeDragFrom < route.Current || _routeDragFrom >= route.Count)) EndRouteDrag();
+
         RouteCount.Text = RouteCountText();
         RouteHeader.Visibility = hasStops ? Visibility.Visible : Visibility.Hidden; // Hidden: the card and the buttons stay where they are
         RouteBand.Visibility = hasStops ? Visibility.Visible : Visibility.Collapsed;
@@ -125,7 +132,7 @@ public partial class SettingsWindow
         RouteHint.Visibility = hasStops && !paused ? Visibility.Visible : Visibility.Collapsed;
         RouteHint.Text = route.IsFinished
             ? "Restart walks it again. Click a stop to start from there."
-            : "Click a stop to go there next.";
+            : "Drag a stop to move it. Click a stop to go there next.";
         RouteRestartButton.IsEnabled = hasStops;
         RouteClearButton.IsEnabled = hasStops;
         if (!hasStops) DisarmRouteClear();
@@ -195,18 +202,25 @@ public partial class SettingsWindow
     /// <summary>As the minimap's footer says a distance.</summary>
     private static string RouteDistance(double meters) => meters >= 1000 ? $"{meters / 1000:0.0} km" : $"{meters:0} m";
 
-    /// <summary>
-    /// A row's controls, on the one grid the XAML header shares: grip | mark |
-    /// number | disc | name | distance | remove. What a row says and how it
-    /// looks is FillRouteRow's. The two clicks act on the row's index, which is
-    /// always its stop's (see the class's notes on slots).
-    /// </summary>
-    private RouteRow BuildRouteRow(int index)
+    /// <summary>The one grid the rows, the carried row and the XAML header share: grip | mark | number | disc | name | distance | remove.</summary>
+    private static Grid NewRouteRowGrid()
     {
-        var grid = new Grid { Margin = new Thickness(0, 1, 0, 1) };
+        var grid = new Grid();
         foreach (var width in new[] { 18.0, 18, 24, 21 }) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         foreach (var width in new[] { 60.0, 46 }) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
+        return grid;
+    }
+
+    /// <summary>
+    /// A row's controls. What a row says and how it looks is FillRouteRow's.
+    /// The clicks act on the row's index, which is always its stop's (see the
+    /// class's notes on slots).
+    /// </summary>
+    private RouteRow BuildRouteRow(int index)
+    {
+        var grid = NewRouteRowGrid();
+        grid.Margin = new Thickness(0, 1, 0, 1);
 
         TextBlock Cell(int column, HorizontalAlignment alignment)
         {
@@ -215,6 +229,11 @@ public partial class SettingsWindow
             grid.Children.Add(text);
             return text;
         }
+
+        // The grip's whole cell shows the cursor, not just its three lines.
+        var grip = new TextBlock { Text = RouteGrip, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
+        var gripCell = new Border { Child = grip, Background = Brushes.Transparent };
+        grid.Children.Add(gripCell);
 
         var mark = Cell(1, HorizontalAlignment.Center);
         var number = Cell(2, HorizontalAlignment.Center);
@@ -241,7 +260,9 @@ public partial class SettingsWindow
         Grid.SetColumn(remove, 6);
         grid.Children.Add(remove);
 
-        return new RouteRow(grid, mark, number, disc, name, nameText, distance, remove);
+        var row = new RouteRow(grid, gripCell, grip, mark, number, disc, name, nameText, distance, remove);
+        WireRouteDrag(row, index);
+        return row;
     }
 
     /// <summary>What a slot shows now, in the theme on screen: ✓ and dim for a passed stop, ▶ for the current one.</summary>
@@ -257,6 +278,10 @@ public partial class SettingsWindow
         var text = (passed ? Theme.Current.Text.Off : current ? Theme.Current.Text.Bright : Theme.Current.Text.Text2).ToBrush();
 
         row.Grid.Background = current ? Theme.Current.Nav.Selected.Fill.ToBrush() : index % 2 == 1 ? RowStripe : Brushes.Transparent;
+        row.Grip.Visibility = passed ? Visibility.Hidden : Visibility.Visible; // only upcoming stops move
+        row.GripCell.Cursor = passed ? null : Cursors.SizeNS;
+        row.Grip.Foreground = Theme.Current.Text.Dim.ToBrush();
+        row.Grip.FontSize = Theme.Current.Size(12);
         row.Mark.Text = passed ? "✓" : current ? "▶" : "";
         row.Mark.Foreground = passed ? text : colour;
         row.Mark.FontSize = Theme.Current.Size(10);
