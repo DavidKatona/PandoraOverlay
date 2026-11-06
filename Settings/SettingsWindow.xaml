@@ -609,10 +609,29 @@
                                 <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
                             </ScrollViewer.Resources>
                             <Grid>
-                                <StackPanel x:Name="RouteRows"/>
-                                <!-- A drag's line and the row it carries (SettingsWindow.RouteDrag.cs): over the rows, scrolling with them, taking no clicks. -->
+                                <!-- Transparent, not empty: the 2 px between the rows take a press and a capture too. -->
+                                <StackPanel x:Name="RouteRows" Background="Transparent"/>
+                                <!-- The copy a drag carries (SettingsWindow.RouteDrag.cs): over the rows, scrolling with
+                                     them, taking no clicks. One, here, so it can't pile up. Its first column is 1 px short
+                                     for its outline, and its surfaces are two so a theme's translucent selected fill
+                                     doesn't show the rows through it. -->
                                 <Canvas x:Name="RouteDragLayer" IsHitTestVisible="False">
-                                    <Border x:Name="RouteDropLine" Panel.ZIndex="1" Height="2" Background="{DynamicResource Theme.Text.Highlight}" Visibility="Collapsed"/>
+                                    <Border x:Name="RouteDragRow" Visibility="Collapsed" BorderThickness="1"
+                                            BorderBrush="{DynamicResource Theme.Text.Highlight}" Background="{DynamicResource Theme.Card.Surface}">
+                                        <Grid Background="{DynamicResource Theme.Nav.Selected.Fill}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="17"/>
+                                                <ColumnDefinition Width="18"/>
+                                                <ColumnDefinition Width="24"/>
+                                                <ColumnDefinition Width="21"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="≡" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.12}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="RouteDragNumber" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.11}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Ellipse x:Name="RouteDragDisc" Grid.Column="3" Width="9" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="RouteDragName" Grid.Column="4" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.12}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="7,0,7,0"/>
+                                        </Grid>
+                                    </Border>
                                 </Canvas>
                             </Grid>
                         </ScrollViewer>

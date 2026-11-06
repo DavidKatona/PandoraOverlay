@@ -411,34 +411,230 @@ public sealed class SettingsRouteTests
         return rows.ActualHeight / rows.Children.Count;
     }
 
-    /// <summary>A drag of one row to a gap, as the mouse would do it: lifted, moved over the gap, dropped.</summary>
-    private static void Drag(Page page, int from, int gap, double rowHeight)
+    /// <summary>A carried stop held over a row, past the capture a window never shown can't take.</summary>
+    private static void Carry(Page page, int from, int over, double rowHeight)
     {
-        page.Call("BeginRouteDrag", from);
-        page.Call("MoveRouteDrag", gap * rowHeight);
+        page.Call("StartRouteDrag", from);
+        page.Call("MoveRouteDrag", (over + 0.5) * rowHeight);
+    }
+
+    /// <summary>A drag of one stop over a row, dropped there.</summary>
+    private static void Drag(Page page, int from, int over, double rowHeight)
+    {
+        Carry(page, from, over, rowHeight);
         page.Call("DropRouteDrag");
     }
 
-    [Theory]
-    [InlineData(0, 0)]    // above the top: the first gap
-    [InlineData(-50, 0)]
-    [InlineData(35, 1)]   // nearer the gap below the first row
-    [InlineData(55, 2)]
-    [InlineData(999, 4)]  // below the last: the last gap
-    public void AHeightMeansTheNearestGap(double y, int gap) =>
-        Assert.Equal(gap, SettingsWindow.RouteDropSlot(y, rowHeight: 24, current: 0, count: 4));
+    /// <summary>The dialog really on screen, off to one side and never activated: the mouse's capture needs a live window. Moves no mouse and clicks nothing.</summary>
+    private static void ShowOffScreen(Page page)
+    {
+        page.Dialog.WindowStartupLocation = WindowStartupLocation.Manual;
+        page.Dialog.Left = -5000;
+        page.Dialog.Top = 0;
+        page.Dialog.ShowActivated = false;
+        page.Dialog.ShowInTaskbar = false;
+        page.Dialog.Show();
+        page.Dialog.UpdateLayout();
+    }
+
+    private static void RaiseCaptureLost(UIElement from) =>
+        from.RaiseEvent(new System.Windows.Input.MouseEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0) { RoutedEvent = System.Windows.Input.Mouse.LostMouseCaptureEvent });
+
+    /// <summary>
+    /// The owner's bug (Nov 6 2026), for real: a press on a name leaves its button
+    /// holding the capture, the drag takes it, and the button's loss must not end
+    /// the drag. It used to, half-way through the set-up, which left the carried
+    /// row and the cursor on screen with no drag to take them down.
+    /// </summary>
+    [Fact]
+    public void TakingTheCaptureFromTheNamesButtonDoesNotEndTheDrag() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        ShowOffScreen(page);
+        var rows = page.Named<StackPanel>("RouteRows");
+        var name = Page.NameButton(page.Rows[1]);
+        try
+        {
+            Assert.True(name.CaptureMouse()); // what the button does for itself on a press
+
+            Assert.True(rows.CaptureMouse()); // this raises the button's loss, routed up through the panel
+            page.Call("StartRouteDrag", 1);
+
+            Assert.False(name.IsMouseCaptured);
+            Assert.True(rows.IsMouseCaptured);
+            Assert.Equal(1, page.Field<int>("_routeDragFrom"));
+
+            page.Call("EndRouteDrag");
+
+            Assert.False(rows.IsMouseCaptured);
+            Assert.Equal(Visibility.Collapsed, page.Named<FrameworkElement>("RouteDragRow").Visibility);
+            Assert.Null(System.Windows.Input.Mouse.OverrideCursor);
+        }
+        finally
+        {
+            System.Windows.Input.Mouse.OverrideCursor = null;
+            System.Windows.Input.Mouse.Capture(null);
+            page.Dialog.Close();
+        }
+    });
 
     [Fact]
-    public void AGapAbovePassedStopsLandsUnderThem() =>
-        Assert.Equal(2, SettingsWindow.RouteDropSlot(0, rowHeight: 24, current: 2, count: 4));
+    public void OnlyThePanelsOwnLossOfTheCaptureEndsADrag() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        LaidOut(page);
+        page.Call("StartRouteDrag", 1);
+
+        RaiseCaptureLost(Page.NameButton(page.Rows[1])); // bubbles through the panel
+        Assert.Equal(1, page.Field<int>("_routeDragFrom"));
+
+        RaiseCaptureLost(page.Named<StackPanel>("RouteRows"));
+        Assert.Equal(-1, page.Field<int>("_routeDragFrom"));
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void ThereIsOnlyEverOneCarriedRow() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        var height = LaidOut(page);
+        var layer = page.Named<Canvas>("RouteDragLayer");
+        var carried = Assert.Single(layer.Children.OfType<UIElement>());
+
+        for (var i = 0; i < 3; i++)
+        {
+            Carry(page, 1, over: 3, height);
+            Assert.Same(carried, Assert.Single(layer.Children.OfType<UIElement>()));
+            page.Call("EndRouteDrag");
+            Assert.Equal(Visibility.Collapsed, carried.Visibility);
+        }
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void TheRowsMakeRoomForTheCarriedStopAndTheRouteWaitsForTheDrop() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        var height = LaidOut(page);
+        var order = page.Route.Stops.ToList();
+
+        Carry(page, 1, over: 2, height);
+
+        Assert.Equal(new[] { "A", "C", "B", "D" }, page.Rows.Select(Page.Name)); // as it would read if let go
+        Assert.Equal(new[] { "1", "2", "3", "4" }, page.Rows.Select(Page.Number)); // the numbers are the places
+        Assert.Equal(new[] { 1.0, 1, 0.4, 1 }, page.Rows.Select(r => r.Opacity)); // the place on offer
+        Assert.Equal(order, page.Route.Stops); // a picture until the drop
+        page.Call("EndRouteDrag");
+        page.Dialog.Close();
+    });
+
+    /// <summary>The owner's ask (Nov 6 2026): dropping at the end read oddly with nothing moving to say so.</summary>
+    [Fact]
+    public void CarriedToTheBottomTheLastStopMovesUp() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        var height = LaidOut(page);
+
+        Carry(page, 1, over: 3, height);
+
+        Assert.Equal(new[] { "A", "C", "D", "B" }, page.Rows.Select(Page.Name));
+        Assert.Equal(0.4, page.Rows[3].Opacity);
+        Assert.Equal("4", page.Named<TextBlock>("RouteDragNumber").Text); // the copy says the place it would take
+
+        page.Call("DropRouteDrag");
+
+        Assert.Equal(new[] { "A", "C", "D", "B" }, page.Rows.Select(Page.Name));
+        Assert.All(page.Rows, r => Assert.Equal(1, r.Opacity));
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void CarriedToTheTopTheCurrentMarkStaysOnThePlace() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        var height = LaidOut(page);
+
+        Carry(page, 3, over: 0, height);
+
+        Assert.Equal(new[] { "D", "A", "B", "C" }, page.Rows.Select(Page.Name));
+        Assert.Equal(new[] { "▶", "", "", "" }, page.Rows.Select(Page.Mark)); // what it would make it
+        page.Call("EndRouteDrag");
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void TheDistanceStaysOffTheCurrentPlaceDuringADrag() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        var height = LaidOut(page);
+        page.Actions.RouteAt(0, 0);
+        page.Call("RenderRoute");
+        Assert.NotEqual("", Page.Distance(page.Rows[0]));
+
+        Carry(page, 3, over: 0, height); // D shows in the current place, and that distance is A's
+
+        Assert.Equal("", Page.Distance(page.Rows[0]));
+        page.Call("EndRouteDrag");
+        Assert.NotEqual("", Page.Distance(page.Rows[0]));
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void TheDragAreaShowsTheMoveCursorButNotOnTheCrossOrAPassedStop() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 3);
+        page.Actions.SkipStop();
+        var rows = page.Rows;
+
+        Assert.Null(rows[0].Cursor);
+        Assert.Same(System.Windows.Input.Cursors.SizeAll, rows[1].Cursor);
+        Assert.Same(System.Windows.Input.Cursors.SizeAll, rows[2].Cursor);
+        Assert.Same(System.Windows.Input.Cursors.Arrow, Page.Remove(rows[1]).Cursor); // or it would take the row's
+        Assert.Same(System.Windows.Input.Cursors.Hand, Page.NameButton(rows[1]).Cursor); // a click
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void TheCarriedRowShowsTheStopBeingCarried() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        LaidOut(page);
+
+        page.Call("StartRouteDrag", 2);
+
+        Assert.Equal(Visibility.Visible, page.Named<FrameworkElement>("RouteDragRow").Visibility);
+        Assert.Equal("3", page.Named<TextBlock>("RouteDragNumber").Text);
+        Assert.Equal("C", page.Named<TextBlock>("RouteDragName").Text);
+        page.Call("EndRouteDrag");
+        page.Dialog.Close();
+    });
 
     [Theory]
-    [InlineData(1, 3, 2)] // down: the stop is lifted out first, so what's below moves up
-    [InlineData(3, 1, 1)] // up
-    [InlineData(2, 2, 2)] // the gap above itself
-    [InlineData(2, 3, 2)] // the gap below itself
-    public void AGapBecomesAMoveTarget(int from, int gap, int to) =>
-        Assert.Equal(to, SettingsWindow.RouteMoveTarget(from, gap));
+    [InlineData(0, 0)]
+    [InlineData(23, 0)]
+    [InlineData(24, 1)]
+    [InlineData(-5, 0)]    // above the first
+    [InlineData(999, 3)]   // below the last
+    public void AHeightIsOnOneRow(double y, int row) =>
+        Assert.Equal(row, SettingsWindow.RouteRowAt(y, rowHeight: 24, count: 4));
+
+    [Theory]
+    [InlineData(0, 2, 2)]    // above the passed stops: the current place
+    [InlineData(30, 2, 2)]   // over a passed stop
+    [InlineData(55, 2, 2)]
+    [InlineData(80, 2, 3)]
+    [InlineData(999, 2, 3)]  // below the last: the last place
+    [InlineData(999, 4, 3)]  // a finished route has no upcoming place, and no drag either: still a row
+    public void AHeightMeansThePlaceItIsOver(double y, int current, int place) =>
+        Assert.Equal(place, SettingsWindow.RouteDragTarget(y, rowHeight: 24, current, count: 4));
+
+    [Theory]
+    [InlineData(1, 3, new[] { 0, 2, 3, 1, 4 })] // down: those between move up
+    [InlineData(3, 1, new[] { 0, 3, 1, 2, 4 })] // up: those between move down
+    [InlineData(2, 2, new[] { 0, 1, 2, 3, 4 })] // where it was
+    [InlineData(3, 4, new[] { 0, 1, 2, 4, 3 })] // to the end: the last one moves up
+    public void ARowShowsTheStopItWouldHold(int from, int to, int[] stops) =>
+        Assert.Equal(stops, Enumerable.Range(0, 5).Select(row => SettingsWindow.RouteStopAt(row, from, to)));
 
     [Fact]
     public void DraggingAStopDownMovesIt() => TheThemeOnScreen.OnSta(() =>
@@ -446,7 +642,7 @@ public sealed class SettingsRouteTests
         var page = Open(AToD, 4);
         var height = LaidOut(page);
 
-        Drag(page, from: 1, gap: 3, height); // between C and D
+        Drag(page, from: 1, over: 2, height);
 
         Assert.Equal(new[] { "A", "C", "B", "D" }, page.Rows.Select(Page.Name));
         Assert.Equal(0, page.Route.Current);
@@ -460,7 +656,7 @@ public sealed class SettingsRouteTests
         var height = LaidOut(page);
         var d = page.Library.Items.Single(w => w.Name == "D");
 
-        Drag(page, from: 3, gap: 0, height);
+        Drag(page, from: 3, over: 0, height);
 
         Assert.Equal(new[] { "D", "A", "B", "C" }, page.Rows.Select(Page.Name));
         Assert.Equal(d.Id, page.Config.TrackedWaypointId);
@@ -474,7 +670,7 @@ public sealed class SettingsRouteTests
         var height = LaidOut(page);
         var b = page.Library.Items.Single(w => w.Name == "B");
 
-        Drag(page, from: 0, gap: 3, height);
+        Drag(page, from: 0, over: 2, height);
 
         Assert.Equal(new[] { "B", "C", "A" }, page.Rows.Select(Page.Name));
         Assert.Equal(b.Id, page.Config.TrackedWaypointId);
@@ -489,7 +685,7 @@ public sealed class SettingsRouteTests
         page.Actions.SkipStop(); // at C
         var height = LaidOut(page);
 
-        Drag(page, from: 3, gap: 0, height);
+        Drag(page, from: 3, over: 0, height);
 
         Assert.Equal(new[] { "A", "B", "D", "C" }, page.Rows.Select(Page.Name));
         page.Dialog.Close();
@@ -509,8 +705,8 @@ public sealed class SettingsRouteTests
         });
 
         Assert.Equal(-1, page.Field<int>("_routePressed"));
-        Assert.Equal(Visibility.Hidden, ((Border)first.Children[0]).Child.Visibility);
-        Assert.Equal(Visibility.Visible, ((Border)page.Rows[1].Children[0]).Child.Visibility);
+        Assert.Equal(Visibility.Hidden, Page.Cell(first, 0).Visibility);
+        Assert.Equal(Visibility.Visible, Page.Cell(page.Rows[1], 0).Visibility);
         page.Dialog.Close();
     });
 
@@ -519,21 +715,17 @@ public sealed class SettingsRouteTests
     {
         var page = Open(AToD, 4);
         var height = LaidOut(page);
-        var line = page.Named<FrameworkElement>("RouteDropLine");
-        var layer = page.Named<Canvas>("RouteDragLayer");
+        var carried = page.Named<FrameworkElement>("RouteDragRow");
 
-        page.Call("BeginRouteDrag", 1);
-        page.Call("MoveRouteDrag", 3 * height);
-        Assert.Equal(Visibility.Visible, line.Visibility);
-        Assert.Equal(2, layer.Children.Count); // the line and the carried row
-        Assert.Equal(0.4, page.Rows[1].Opacity);
+        Carry(page, 1, over: 3, height);
+        Assert.Equal(Visibility.Visible, carried.Visibility);
+        Assert.Equal(new[] { "A", "C", "D", "B" }, page.Rows.Select(Page.Name));
 
         page.Call("EndRouteDrag"); // Esc, Alt+Tab, the dialog closing
 
         Assert.Equal(new[] { "A", "B", "C", "D" }, page.Rows.Select(Page.Name));
-        Assert.Equal(Visibility.Collapsed, line.Visibility);
-        Assert.Single(layer.Children);
-        Assert.Equal(1, page.Rows[1].Opacity);
+        Assert.Equal(Visibility.Collapsed, carried.Visibility);
+        Assert.All(page.Rows, r => Assert.Equal(1, r.Opacity));
         Assert.Null(System.Windows.Input.Mouse.OverrideCursor);
         page.Dialog.Close();
     });
@@ -544,8 +736,7 @@ public sealed class SettingsRouteTests
         var page = Open(AToD, 4);
         var height = LaidOut(page);
 
-        page.Call("BeginRouteDrag", 0);
-        page.Call("MoveRouteDrag", 3 * height);
+        Carry(page, 0, over: 3, height);
         page.Actions.SkipStop(); // reached behind the dialog
 
         Assert.Equal(-1, page.Field<int>("_routeDragFrom"));
@@ -554,12 +745,51 @@ public sealed class SettingsRouteTests
     });
 
     [Fact]
+    public void AnotherStopPassedWhileCarryingPushesThePlaceDownBelowIt() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        var height = LaidOut(page);
+
+        Carry(page, 3, over: 0, height); // D offered A's place
+        page.Actions.SkipStop();         // A is reached behind the dialog
+
+        Assert.Equal(3, page.Field<int>("_routeDragFrom"));
+        Assert.Equal(new[] { "A", "D", "B", "C" }, page.Rows.Select(Page.Name));
+        Assert.Equal(new[] { "✓", "▶", "", "" }, page.Rows.Select(Page.Mark));
+
+        page.Call("DropRouteDrag");
+
+        Assert.Equal(new[] { "A", "D", "B", "C" }, page.Rows.Select(Page.Name));
+        Assert.Equal(1, page.Route.Current);
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void ARouteShorteningUnderADragDoesNotThrow() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        var height = LaidOut(page);
+
+        Carry(page, 3, over: 3, height);
+        page.Actions.RemoveStop(3); // the carried stop itself: nothing on the page can do this mid-drag, but the row must not outlive it
+
+        Assert.Equal(-1, page.Field<int>("_routeDragFrom"));
+        Assert.Equal(new[] { "A", "B", "C" }, page.Rows.Select(Page.Name));
+
+        Carry(page, 1, over: 2, height);
+        page.Actions.RemoveStop(2); // the place on offer is gone: it gives way
+
+        Assert.Equal(new[] { "A", "B" }, page.Rows.Select(Page.Name));
+        page.Call("EndRouteDrag");
+        page.Dialog.Close();
+    });
+
+    [Fact]
     public void ClosingTheDialogEndsADrag() => TheThemeOnScreen.OnSta(() =>
     {
         var page = Open(AToD, 4);
         var height = LaidOut(page);
-        page.Call("BeginRouteDrag", 1);
-        page.Call("MoveRouteDrag", 3 * height);
+        Carry(page, 1, over: 3, height);
 
         page.Dialog.Close();
 

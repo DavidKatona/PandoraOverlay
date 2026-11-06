@@ -1,8 +1,6 @@
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Shapes;
+using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace PandoraOverlay;
@@ -16,21 +14,43 @@ namespace PandoraOverlay;
 /// ones, the current stop's place included: landing there makes it current
 /// (Route.Move).
 /// <para>
+/// <b>The rows make room.</b> While a stop is carried the list reads as it would
+/// if you let go now: the stops it has passed have slid into their new places and
+/// the place it would take is dimmed under a copy that follows the cursor (the
+/// owner, Nov 6 2026: a drop line in a gap read oddly at the end of the list, with
+/// nothing moving to say where the stop would land, so the last stop now moves up
+/// to make room). So the target is simply the row under the cursor. It is only a
+/// picture until the drop: the route itself moves once, on the release. The rows
+/// are slots (SettingsWindow.Route.cs), so this is RouteStopAt in the one fill.
+/// </para>
+/// <para>
 /// By hand with the mouse's capture, not WPF's DragDrop: that runs a modal
 /// loop with stock cursors and would let a stop be dropped on other windows.
 /// The capture also means a drag can't read as a click on the game: the press
 /// was on the dialog, a release anywhere comes back here, and no other window
 /// was clicked, so the focus never moves. Whatever takes the capture away (Alt+Tab,
-/// the dialog closing) ends the drag where it stood, with nothing moved, and Esc
-/// does the same.
+/// the page or the dialog closing) ends the drag where it stood, with nothing
+/// moved, and Esc does the same.
 /// </para>
 /// <para>
-/// A drop line in the gap and a copy of the row just under the cursor, on a layer
-/// over the rows that takes no clicks. The rows themselves stay put until the
-/// drop, which rewrites their slots. Near the list's edges it scrolls, on a timer
-/// that lives only for the drag: the mouse may be held still there, and a 64-stop
-/// route is five screens long. The wheel works too, since the capture is inside
-/// the list.
+/// <b>The shape of it, after the first version fell apart in the owner's hands
+/// (Nov 6 2026: rows left stuck on the list, piling up with each drag).</b> A
+/// press on a name leaves the name's button holding the capture. Taking it from
+/// the button raises LostMouseCapture, a ROUTED event that bubbled up through
+/// the row, whose handler took it for the drag's own and ended the drag while it
+/// was still being set up; the set-up then carried on and showed its parts with
+/// nothing left to take them down. So now: one owner of the capture and of the
+/// mouse handlers, the rows' panel, which only listens to a loss that is its
+/// own; the capture taken FIRST, and nothing shown unless it was got; one carried
+/// copy, made once in the XAML, which a drag can at the very worst leave showing,
+/// never add to; and one way out, <see cref="EndRouteDrag"/>.
+/// </para>
+/// <para>
+/// Near the list's edges it scrolls, on a timer that runs only during a drag:
+/// the mouse may be held still there, and a 64-stop route is five screens long.
+/// The wheel works too, since the capture is inside the list. Windows' Move
+/// cursor throughout, on the row and on the carried stop: the up-and-down arrow it
+/// had first said "resize" (the owner, Nov 6 2026).
 /// </para>
 /// </summary>
 public partial class SettingsWindow
@@ -42,20 +62,36 @@ public partial class SettingsWindow
 
     private int _routePressed = -1;    // the row the left button went down on, until it moves or lifts
     private Point _routePressedAt;
-    private int _routeDragFrom = -1;   // the row being dragged; -1 = no drag
-    private int _routeDragSlot;        // the gap it would land in: N is above row N, the row count below the last
-    private Border? _routeDragGhost;
+    private int _routeDragFrom = -1;   // the stop being carried; -1 = no drag
+    private int _routeDragTo;          // the place it would take if let go now
     private DispatcherTimer? _routeDragScroll;
 
-    /// <summary>Which gap a height in the list means: the nearest, never above the current stop.</summary>
-    internal static int RouteDropSlot(double y, double rowHeight, int current, int count) =>
-        Math.Clamp((int)Math.Round(y / rowHeight), Math.Min(current, count), count);
+    /// <summary>Which row a height in the list is on. A list with rows: there is no answer for none.</summary>
+    internal static int RouteRowAt(double y, double rowHeight, int count) =>
+        Math.Clamp((int)Math.Floor(y / rowHeight), 0, count - 1);
 
-    /// <summary>The gap as Route.Move's target, which counts with the stop already lifted out. A gap beside the stop lands it where it was.</summary>
-    internal static int RouteMoveTarget(int from, int slot) => slot > from ? slot - 1 : slot;
+    /// <summary>The place a height means for a carried stop: the row it is over, never one of the passed stops'.</summary>
+    internal static int RouteDragTarget(double y, double rowHeight, int current, int count) =>
+        Math.Max(RouteRowAt(y, rowHeight, count), Math.Min(current, count - 1));
+
+    /// <summary>Which stop a row shows while one is carried from one place to another: the rows between have slid over by one to make room.</summary>
+    internal static int RouteStopAt(int row, int from, int to)
+    {
+        if (row == to) return from;
+        if (from < to && row >= from && row < to) return row + 1;
+        if (to < from && row > to && row <= from) return row - 1;
+        return row;
+    }
+
+    /// <summary>The rows are all of a height: what the 2 px between them belong to doesn't matter.</summary>
+    private double RouteRowHeight => RouteRows.ActualHeight / Math.Max(1, _routeRows.Count);
 
     private void InitRouteDrag()
     {
+        RouteRows.PreviewMouseLeftButtonDown += OnRoutePress;
+        RouteRows.PreviewMouseMove += OnRouteMouseMove;
+        RouteRows.PreviewMouseLeftButtonUp += OnRouteRelease;
+        RouteRows.LostMouseCapture += OnRouteCaptureLost;
         // Esc on a drag is the drag's: handled here, the dialog's own Esc never sees the press, so its release closes nothing.
         PreviewKeyDown += (_, e) =>
         {
@@ -66,74 +102,101 @@ public partial class SettingsWindow
         Closed += (_, _) => EndRouteDrag();
     }
 
-    private void WireRouteDrag(RouteRow row, int index)
+    /// <summary>
+    /// Routed: a child's loss comes through here too, and the name's button loses
+    /// the capture to the panel at the very start of a drag. Only the panel's own
+    /// loss ends one (see the class's notes).
+    /// </summary>
+    private void OnRouteCaptureLost(object sender, MouseEventArgs e)
     {
-        row.Grid.PreviewMouseLeftButtonDown += (_, e) =>
-        {
-            if (index < _actions.Route.Current || row.Remove.IsMouseOver) return;
-            _routePressed = index;
-            _routePressedAt = e.GetPosition(RouteRows);
-        };
-        row.Grid.PreviewMouseMove += (_, e) =>
-        {
-            var at = e.GetPosition(RouteRows);
-            if (_routeDragFrom >= 0)
-            {
-                if (e.LeftButton == MouseButtonState.Pressed) MoveRouteDrag(at.Y);
-                else EndRouteDrag(); // the release was missed: never leave a stop stuck to the mouse
-                return;
-            }
-            if (_routePressed != index) return;
-            if (e.LeftButton != MouseButtonState.Pressed)
-            {
-                _routePressed = -1;
-                return;
-            }
-            if (Math.Abs(at.Y - _routePressedAt.Y) < SystemParameters.MinimumVerticalDragDistance
-                && Math.Abs(at.X - _routePressedAt.X) < SystemParameters.MinimumHorizontalDragDistance) return;
-            BeginRouteDrag(index);
-            MoveRouteDrag(at.Y);
-        };
-        row.Grid.PreviewMouseLeftButtonUp += (_, e) =>
-        {
-            _routePressed = -1;
-            if (_routeDragFrom < 0) return; // a press that never moved: the name's click goes ahead
-            e.Handled = true;
-            DropRouteDrag();
-        };
-        row.Grid.LostMouseCapture += (_, _) => EndRouteDrag();
+        if (ReferenceEquals(e.OriginalSource, RouteRows)) EndRouteDrag();
     }
 
-    private void BeginRouteDrag(int index)
+    private void OnRoutePress(object sender, MouseButtonEventArgs e)
     {
         _routePressed = -1;
-        _routeDragFrom = index;
-        _routeDragSlot = index;
-        DisarmRouteClear();
+        if (_routeRows.Count == 0 || RouteRowHeight <= 0) return;
+        var at = e.GetPosition(RouteRows);
+        var row = RouteRowAt(at.Y, RouteRowHeight, _routeRows.Count);
+        if (row < _actions.Route.Current || _routeRows[row].Remove.IsMouseOver) return;
+        _routePressed = row;
+        _routePressedAt = at;
+    }
+
+    private void OnRouteMouseMove(object sender, MouseEventArgs e)
+    {
+        var at = e.GetPosition(RouteRows);
+        if (_routeDragFrom >= 0)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed) MoveRouteDrag(at.Y);
+            else EndRouteDrag(); // the release was missed: never leave a stop stuck to the mouse
+            return;
+        }
+        if (_routePressed < 0) return;
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            _routePressed = -1;
+            return;
+        }
+        if (Math.Abs(at.Y - _routePressedAt.Y) < SystemParameters.MinimumVerticalDragDistance
+            && Math.Abs(at.X - _routePressedAt.X) < SystemParameters.MinimumHorizontalDragDistance) return;
+        var row = _routePressed;
+        _routePressed = -1;
+        // First, and all or nothing. Taking the capture also tells the name's button this is no click.
+        if (!RouteRows.CaptureMouse()) return;
+        StartRouteDrag(row);
+        MoveRouteDrag(at.Y);
+    }
+
+    private void OnRouteRelease(object sender, MouseButtonEventArgs e)
+    {
+        _routePressed = -1;
+        if (_routeDragFrom < 0) return; // a press that never moved: the name's click goes ahead
+        e.Handled = true;
+        DropRouteDrag();
+    }
+
+    /// <summary>The capture is held: the drag's state and what shows of it.</summary>
+    private void StartRouteDrag(int index)
+    {
         var row = _routeRows[index];
-        row.Grid.Opacity = RouteDraggedOpacity;
-        row.Grid.CaptureMouse(); // takes it from the name's button, which then never clicks
-        Mouse.OverrideCursor = Cursors.SizeNS;
-        RouteDropLine.Width = RouteRows.ActualWidth;
-        RouteDropLine.Visibility = Visibility.Visible;
-        _routeDragGhost = BuildRouteGhost(index);
-        RouteDragLayer.Children.Add(_routeDragGhost);
-        _routeDragScroll = new DispatcherTimer { Interval = RouteDragScrollEvery };
-        _routeDragScroll.Tick += (_, _) => ScrollRouteDrag();
+        RouteDragDisc.Fill = row.Disc.Fill;
+        RouteDragName.Text = row.NameText.Text;
+        RouteDragNumber.Text = row.Number.Text;
+        RouteDragRow.Width = RouteRows.ActualWidth;
+        RouteDragRow.Height = RouteRowHeight;
+        RouteDragRow.Visibility = Visibility.Visible;
+        _routeDragFrom = index;
+        _routeDragTo = index;
+        DisarmRouteClear();
+        Mouse.OverrideCursor = Cursors.SizeAll;
+        FillRouteRows(); // its own place dims
+        if (_routeDragScroll is null)
+        {
+            _routeDragScroll = new DispatcherTimer { Interval = RouteDragScrollEvery };
+            _routeDragScroll.Tick += (_, _) => ScrollRouteDrag();
+        }
         _routeDragScroll.Start();
     }
 
-    /// <summary>A height in the list: the gap it means, the line there and the copy by the cursor.</summary>
+    /// <summary>A height in the list: the place it means, the rows making room for it, and the copy under the cursor.</summary>
     private void MoveRouteDrag(double y)
     {
-        var rowHeight = RouteRows.ActualHeight / Math.Max(1, _routeRows.Count);
+        var rowHeight = RouteRowHeight;
         if (rowHeight <= 0) return;
-        _routeDragSlot = RouteDropSlot(y, rowHeight, _actions.Route.Current, _routeRows.Count);
-        Canvas.SetTop(RouteDropLine, _routeDragSlot * rowHeight - RouteDropLine.Height / 2);
-        // Just under the cursor, not on it: the gap it means is never more than half a row
-        // away, so centred on the cursor it would always cover the line. (Round the list's
-        // end, where it has to stay on the rows, the line is drawn over it: XAML's ZIndex.)
-        if (_routeDragGhost is { } ghost) Canvas.SetTop(ghost, Math.Clamp(y + rowHeight / 2 + 1, 0, RouteRows.ActualHeight - rowHeight));
+        var to = RouteDragTarget(y, rowHeight, _actions.Route.Current, _routeRows.Count);
+        if (to != _routeDragTo)
+        {
+            _routeDragTo = to;
+            RouteDragNumber.Text = (to + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            FillRouteRows();
+        }
+        // Kept in the part of the list on screen, or it would vanish past the edge just as the
+        // list scrolls. Bottom never under top: Clamp throws on that, and a viewport can be
+        // shorter than a row on a small screen.
+        var top = RouteList.VerticalOffset;
+        var bottom = Math.Max(top, Math.Min(RouteRows.ActualHeight, top + RouteList.ViewportHeight) - rowHeight);
+        Canvas.SetTop(RouteDragRow, Math.Clamp(y - rowHeight / 2, top, bottom));
     }
 
     private void ScrollRouteDrag()
@@ -147,56 +210,20 @@ public partial class SettingsWindow
 
     private void DropRouteDrag()
     {
-        var (from, slot) = (_routeDragFrom, _routeDragSlot);
+        var (from, to) = (_routeDragFrom, _routeDragTo);
         EndRouteDrag();
-        _actions.MoveStop(from, RouteMoveTarget(from, slot)); // a gap beside the stop: Route.Move ignores it
+        _actions.MoveStop(from, to); // landed where it was: Route.Move ignores it
     }
 
-    /// <summary>The one way out of a drag, dropped or not. Safe to call with none: letting go of the capture below comes straight back here.</summary>
+    /// <summary>The one way out of a drag, dropped or not: the rows read the route as it is again. Safe with none: letting go of the capture below comes straight back here.</summary>
     private void EndRouteDrag()
     {
         if (_routeDragFrom < 0) return;
-        var from = _routeDragFrom;
         _routeDragFrom = -1;
         _routeDragScroll?.Stop();
-        _routeDragScroll = null;
         Mouse.OverrideCursor = null;
-        RouteDropLine.Visibility = Visibility.Collapsed;
-        if (_routeDragGhost is { } ghost) RouteDragLayer.Children.Remove(ghost);
-        _routeDragGhost = null;
-        if (from >= _routeRows.Count) return;
-        _routeRows[from].Grid.Opacity = 1;
-        _routeRows[from].Grid.ReleaseMouseCapture();
-    }
-
-    /// <summary>The row being carried: its grip, number, disc and name on the rows' own grid, lit as what stands out in a list. Two surfaces, so a theme's translucent selected fill doesn't show the rows through it.</summary>
-    private Border BuildRouteGhost(int index)
-    {
-        var source = _routeRows[index];
-        var grid = NewRouteRowGrid();
-        var bright = Theme.Current.Text.Bright.ToBrush();
-
-        void Add(UIElement element, int column)
-        {
-            Grid.SetColumn(element, column);
-            grid.Children.Add(element);
-        }
-
-        Add(new TextBlock { Text = RouteGrip, Foreground = bright, FontSize = Theme.Current.Size(12), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, 0);
-        Add(new TextBlock { Text = source.Number.Text, Foreground = bright, FontSize = Theme.Current.Size(11), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, 2);
-        Add(new Ellipse { Width = 9, Height = 9, Fill = source.Disc.Fill, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, 3);
-        Add(new TextBlock
-        {
-            Text = source.NameText.Text, Foreground = bright, FontSize = Theme.Current.Size(12), TextTrimming = TextTrimming.CharacterEllipsis,
-            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(7, 0, 7, 0)
-        }, 4);
-        grid.Background = Theme.Current.Nav.Selected.Fill.ToBrush();
-
-        var rowHeight = RouteRows.ActualHeight / Math.Max(1, _routeRows.Count);
-        return new Border
-        {
-            Child = grid, Width = RouteRows.ActualWidth, Height = rowHeight,
-            Background = CardSurface, BorderBrush = Theme.Current.Text.Highlight.ToBrush(), BorderThickness = new Thickness(1),
-        };
+        RouteDragRow.Visibility = Visibility.Collapsed;
+        FillRouteRows();
+        RouteRows.ReleaseMouseCapture();
     }
 }
