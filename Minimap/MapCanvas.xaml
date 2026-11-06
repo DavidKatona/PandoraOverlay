@@ -87,6 +87,9 @@
                       StrokeLineJoin="Round" Opacity="0.55"/>
             <Polyline x:Name="TrailNew" x:FieldModifier="private" Stroke="{DynamicResource Theme.Map.You.Trail}" StrokeThickness="2"
                       StrokeLineJoin="Round" Opacity="0.85"/>
+            <!-- The route's later legs (MapCanvas.Route.cs), over the trail and
+                 under the tracking lines: in map pixels, panned with the map. -->
+            <Canvas x:Name="RouteLegsLayer" x:FieldModifier="private" IsHitTestVisible="False"/>
         </Canvas>
         <Canvas>
             <!-- The tracking lines (the owner's decisions, Nov 2 2026): a thin

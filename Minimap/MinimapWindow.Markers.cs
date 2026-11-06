@@ -19,7 +19,8 @@ public partial class MinimapWindow
     /// Which library entries are drawn under the WaypointVisibility policy:
     /// every visible one, only the tracked one, or the NearestCount visible
     /// ones closest to the player. The tracked one is always drawn — you
-    /// asked to follow it.
+    /// asked to follow it — and so is every stop of your route you have not
+    /// passed, hidden waypoints included.
     /// </summary>
     private List<Waypoint> ShownWaypoints()
     {
@@ -43,6 +44,10 @@ public partial class MinimapWindow
                 break;
         }
         if (tracked is not null && !shown.Contains(tracked)) shown.Add(tracked);
+        foreach (var stop in RouteDrawing.UpcomingWaypoints(_actions.Route, id => _library.Find(id)))
+        {
+            if (!shown.Contains(stop)) shown.Add(stop);
+        }
         return shown;
     }
 
@@ -51,8 +56,24 @@ public partial class MinimapWindow
         if (TrackedWaypoint is null && _config.TrackedWaypointId is not null) _config.TrackedWaypointId = null; // deleted elsewhere
         RebuildMarkers();
         UpdateWaypointVisual(Map.MapOffset.X, Map.MapOffset.Y, glide: null);
+        RenderRouteLegs(); // a stop's colour or place may have changed
         UpdateFooter();
     }
+
+    /// <summary>The route changed: its stops are drawn whatever the policy says, and the legs and the footer's count follow.</summary>
+    private void OnRouteChanged()
+    {
+        RebuildMarkers();
+        UpdateWaypointVisual(Map.MapOffset.X, Map.MapOffset.Y, glide: null);
+        RenderRouteLegs();
+        UpdateFooter();
+    }
+
+    /// <summary>The route's later legs, in map pixels: whenever the route, a stop or the map's rendered size changes. They need no position of yours, so they stay drawn when you are not in game.</summary>
+    private void RenderRouteLegs() =>
+        Map.ShowRouteLegs(_poll.Calibration is { } cal
+            ? RouteDrawing.Legs(_actions.Route, id => _library.Find(id), cal, Map.MapSize)
+            : Array.Empty<RouteLeg>());
 
     /// <summary>The tracked waypoint changed (MapActions): the ring, the edge indicator and the footer follow it.</summary>
     private void OnWaypointTracked()
@@ -102,9 +123,10 @@ public partial class MinimapWindow
     /// <summary>
     /// View mode (+ zoom when centered), then the tracked (else nearest)
     /// waypoint in its colour with name, distance and, while actually
-    /// closing on it, the ETA at the current pace. Hovering a marker in
-    /// edit mode names that one instead; a notice (copied / pasted)
-    /// replaces the line briefly.
+    /// closing on it, the ETA at the current pace. While a route runs, its
+    /// current stop also says which stop of how many ("Delta · 3/7 · 1.2 km").
+    /// Hovering a marker in edit mode names that one instead; a notice
+    /// (copied / pasted) replaces the line briefly.
     /// </summary>
     private void UpdateFooter()
     {
@@ -153,6 +175,10 @@ public partial class MinimapWindow
         {
             Foreground = MapBrushes.Of(subject.Colour)
         });
+        if (_hover is null && _actions.RouteRunning && subject.Id == _actions.Route.CurrentStop)
+        {
+            ModeFooter.Inlines.Add($" · {_actions.Route.Current + 1}/{_actions.Route.Count}");
+        }
         if (meters is not { } m) return;
         AppendDistance(subject.X, subject.Y, m);
     }

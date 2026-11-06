@@ -116,6 +116,7 @@ public partial class BigMapWindow : Window
         _actions.WaypointTracked += OnWaypointTracked;
         _actions.FriendTracked += OnFriendTracked;
         _actions.Notice += ShowNotice;
+        _actions.Route.Changed += OnRouteChanged;
         Closing += (_, _) => _closing = true;
         Closed += (_, _) =>
         {
@@ -128,6 +129,7 @@ public partial class BigMapWindow : Window
             _actions.WaypointTracked -= OnWaypointTracked;
             _actions.FriendTracked -= OnFriendTracked;
             _actions.Notice -= ShowNotice;
+            _actions.Route.Changed -= OnRouteChanged;
             _noticeTimer.Stop();
             MapMenu.IsOpen = false;
             LayersMenu.IsOpen = false;

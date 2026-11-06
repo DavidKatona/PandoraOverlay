@@ -111,10 +111,14 @@ public partial class BigMapWindow
     {
         if (!_hasView) return;
         ShowWaypoints();
+        RenderRouteLegs(); // a stop's colour or place may have changed
         LayOutLabels();
     }
 
     private void OnWaypointTracked() => OnLibraryChanged();
+
+    /// <summary>The route changed: the same redraw, its stops, legs and numbers among it.</summary>
+    private void OnRouteChanged() => OnLibraryChanged();
 
     private void OnBookChanged()
     {
@@ -295,6 +299,7 @@ public partial class BigMapWindow
         Map.ShowBorders(_config.BigMapAreas, hostScale: 1);
         UpdateOutlines(force: true);
         RenderTrail();
+        RenderRouteLegs();
         ShowWaypoints();
         ShowFriends();
         PlaceFriends(glide: null);
@@ -316,17 +321,25 @@ public partial class BigMapWindow
         Map.ShowZones(shapes, shown, hostScale: 1);
     }
 
-    /// <summary>Every waypoint with its Show tick, and the tracked one — while the Waypoints layer is on.</summary>
-    private List<Waypoint> ShownWaypoints() =>
-        _config.BigMapWaypoints
-            ? _library.Items.Where(w => w.Visible || w.Id == _config.TrackedWaypointId).ToList()
-            : new List<Waypoint>();
+    /// <summary>Every waypoint with its Show tick, the tracked one, and every stop of your route not yet passed — while the Waypoints layer is on.</summary>
+    private List<Waypoint> ShownWaypoints()
+    {
+        if (!_config.BigMapWaypoints) return new List<Waypoint>();
+        var upcoming = _actions.Route.Upcoming.ToHashSet();
+        return _library.Items.Where(w => w.Visible || w.Id == _config.TrackedWaypointId || upcoming.Contains(w.Id)).ToList();
+    }
 
     private void ShowWaypoints()
     {
         Map.ShowWaypoints(ShownWaypoints(), _config.TrackedWaypointId);
         if (_poll.Calibration is { } cal) Map.PlaceWaypoints(cal, MarkerView, edgeIndicator: false, glide: null);
     }
+
+    /// <summary>The route's later legs, in map pixels, for the current zoom: part of the Waypoints layer, so its tick takes them away with the stops.</summary>
+    private void RenderRouteLegs() =>
+        Map.ShowRouteLegs(_hasView && _config.BigMapWaypoints && _poll.Calibration is { } cal
+            ? RouteDrawing.Legs(_actions.Route, id => _library.Find(id), cal, _view.MapSize)
+            : Array.Empty<RouteLeg>());
 
     private void ShowFriends()
     {
@@ -397,15 +410,19 @@ public partial class BigMapWindow
     /// names centred on the legend's label points, waypoint names beside
     /// their dots (right, else left, above, below). LabelLayout keeps them
     /// apart; what doesn't fit is left out and appears on zooming in.
-    /// Priorities: the tracked waypoint, then the areas (a bigger area's name
-    /// first), then the other waypoints. Friends' names ride their arrows
-    /// (MapCanvas.ShowFriends), outside the layout.
+    /// Priorities: the tracked waypoint, then your route's other stops, then
+    /// the areas (a bigger area's name first), then the other waypoints.
+    /// An upcoming stop's number is written whatever the Waypoint names tick
+    /// says ("3 · Delta" with it, "3" without), in the stronger weight: the
+    /// numbers belong to the route, the names to the tick. Friends' names ride
+    /// their arrows (MapCanvas.ShowFriends), outside the layout.
     /// </summary>
     private void LayOutLabels()
     {
         var areaNames = _config.BigMapNames;
         var waypointNames = _config.BigMapWaypointNames;
-        if (!_hasView || !(areaNames || waypointNames) || _poll.Calibration is not { } cal)
+        var numbers = RouteDrawing.Numbers(_actions.Route);
+        if (!_hasView || !(areaNames || waypointNames || numbers.Count > 0) || _poll.Calibration is not { } cal)
         {
             Map.ShowLabels(Array.Empty<MapLabel>());
             return;
@@ -431,21 +448,25 @@ public partial class BigMapWindow
             }
         }
 
-        foreach (var w in waypointNames ? ShownWaypoints() : new List<Waypoint>())
+        foreach (var w in ShownWaypoints())
         {
+            var number = numbers.GetValueOrDefault(w.Id);
+            if (number is null && !waypointNames) continue;
+            var text = RouteDrawing.Label(number, waypointNames ? w.Name : null);
             var tracked = w.Id == _config.TrackedWaypointId;
+            var strong = tracked || number is not null;
             var (fx, fy) = cal.ToFraction(w.X, w.Y);
             var p = new Point(fx * size, fy * size);
-            var box = MapCanvas.MeasureLabel(w.Name, isArea: false, strong: tracked, dpi);
+            var box = MapCanvas.MeasureLabel(text, isArea: false, strong, dpi);
             var r = tracked ? 10 : 6; // clear of the dot, or of the tracked one's ring
-            requests.Add(new LabelRequest(labels.Count, tracked ? 4 : 1, new[]
+            requests.Add(new LabelRequest(labels.Count, tracked ? 4 : number is not null ? 3.5 : 1, new[]
             {
                 new Rect(new Point(p.X + r, p.Y - box.Height / 2), box),
                 new Rect(new Point(p.X - r - box.Width, p.Y - box.Height / 2), box),
                 new Rect(new Point(p.X - box.Width / 2, p.Y - r - box.Height), box),
                 new Rect(new Point(p.X - box.Width / 2, p.Y + r), box),
             }));
-            labels.Add((w.Name, false, tracked));
+            labels.Add((text, false, strong));
         }
 
         var placed = LabelLayout.Place(requests, LabelGap);

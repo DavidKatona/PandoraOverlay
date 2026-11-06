@@ -16,8 +16,8 @@ public readonly record struct MapLabel(string Text, Point At, bool IsArea, bool 
 /// <summary>
 /// The map drawing every map shares (big map plan, phase 2): the island
 /// picture with what moves with it — the heatmap, the zones (the big map's
-/// only), the area borders and the two outlines, the breadcrumb trail — and
-/// above it the tracking lines, the waypoint markers,
+/// only), the area borders and the two outlines, the breadcrumb trail, the
+/// route's later legs — and above it the tracking lines, the waypoint markers,
 /// the names, the friends' arrows and yours. It draws and glides; it decides
 /// nothing: which waypoints and friends, which view, when to glide and for
 /// how long are its map's business (MinimapWindow, BigMapWindow). It knows
@@ -93,6 +93,7 @@ public partial class MapCanvas : UserControl
         AreaHoverPath.RenderTransform = _mapTranslate;
         TrailOld.RenderTransform = TrailMid.RenderTransform = TrailNew.RenderTransform = _mapTranslate; // so does the trail
         CasingOld.RenderTransform = CasingMid.RenderTransform = CasingNew.RenderTransform = _mapTranslate; // and its casing
+        RouteLegsLayer.RenderTransform = _mapTranslate; // and the route's later legs
         PlayerGlow.Data = PlayerArrow.Data; // the glow lights the arrow's own shape
         SetArrowTransform(new TransformGroup { Children = { _arrowRotate, _arrowTranslate } });
     }

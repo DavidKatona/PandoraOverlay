@@ -104,6 +104,7 @@ public partial class MinimapWindow : OverlayWindowBase
         _actions.WaypointTracked += OnWaypointTracked;
         _actions.FriendTracked += OnFriendTracked;
         _actions.Notice += ShowNotice;
+        _actions.Route.Changed += OnRouteChanged;
         _menuBuilder = new MapMenuBuilder(MapMenuItems, (Style)FindResource("MenuButton"), () => Theme.Current.Separator.ToBrush(), _actions, FriendBrush,
                                           () => _lastWorld, () => MapMenu.IsOpen = false, ShowNotice);
 
@@ -129,6 +130,7 @@ public partial class MinimapWindow : OverlayWindowBase
             _actions.WaypointTracked -= OnWaypointTracked; // a shared instance outlives this window
             _actions.FriendTracked -= OnFriendTracked;
             _actions.Notice -= ShowNotice;
+            _actions.Route.Changed -= OnRouteChanged;
         };
     }
 
@@ -225,6 +227,7 @@ public partial class MinimapWindow : OverlayWindowBase
         }
         UpdateScaleBar();
         RenderTrail();
+        RenderRouteLegs();
         UpdateWaypointVisual(Map.MapOffset.X, Map.MapOffset.Y, glide: null);
     }
 
@@ -264,6 +267,7 @@ public partial class MinimapWindow : OverlayWindowBase
         UpdateAreaBorders(); // scaled to the map's rendered size
         UpdateScaleBar();
         RenderTrail(); // map-pixel space: the rendered size just changed
+        RenderRouteLegs(); // and so are these
 
         _hasFix = false; // next render snaps into place
         RenderLastFix();
