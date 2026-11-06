@@ -120,11 +120,13 @@ public partial class SettingsWindow
         var hasStops = !route.IsEmpty;
         var paused = _actions.RoutePaused;
 
-        // The route moved under a drag, behind the dialog. The stop being carried was passed:
-        // it can't move any more. Another one was: the place it would take may have to give way.
+        // The route moved under a drag. The stop being carried was passed behind the dialog, or
+        // the list changed above it (a focused button and Space can do that with the mouse held):
+        // it can't be carried any more, or the index now means another stop. Another stop was
+        // passed: the place it would take may have to give way.
         if (_routeDragFrom >= 0)
         {
-            if (_routeDragFrom < route.Current || _routeDragFrom >= route.Count)
+            if (_routeDragFrom < route.Current || _routeDragFrom >= route.Count || route.Stops[_routeDragFrom] != _routeDragStop)
             {
                 EndRouteDrag();
             }

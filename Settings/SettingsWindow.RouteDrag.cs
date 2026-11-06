@@ -74,6 +74,7 @@ public partial class SettingsWindow
     private int _routePressed = -1;    // the row the left button went down on, until it moves or lifts
     private Point _routePressedAt;     // in the list's own view: see OnRoutePress
     private int _routeDragFrom = -1;   // the stop being carried; -1 = no drag
+    private Guid _routeDragStop;       // and its waypoint: the index alone would quietly mean another stop if the list changed above it
     private int _routeDragTo;          // the place it would take if let go now
     private DispatcherTimer? _routeDragScroll;
 
@@ -164,7 +165,7 @@ public partial class SettingsWindow
         if (_routeDragFrom >= 0)
         {
             if (e.LeftButton == MouseButtonState.Pressed) MoveRouteDrag(e.GetPosition(RouteRows).Y);
-            else EndRouteDrag(); // the release was missed: never leave a stop stuck to the mouse
+            else Dispatcher.BeginInvoke(DispatcherPriority.Input, EndRouteDragIfReleaseWasMissed);
             return;
         }
         if (_routePressed < 0) return;
@@ -182,6 +183,19 @@ public partial class SettingsWindow
         if (!CanCarryRouteStop(row) || !RouteRows.CaptureMouse()) return;
         StartRouteDrag(row);
         MoveRouteDrag(e.GetPosition(RouteRows).Y);
+    }
+
+    /// <summary>
+    /// A move with the button already up: never leave a stop stuck to the mouse. Not
+    /// decided on the spot, because it may BE the release: when a release arrives at another
+    /// position than the last move (the chaos driver saw it; remote desktop or a pen could do
+    /// it), WPF raises a move as the first part of it, with the button up, and the release
+    /// straight after. Ended there, the drop would be lost and the stop would jump back.
+    /// By this time a real release has dropped it, and this finds no drag.
+    /// </summary>
+    private void EndRouteDragIfReleaseWasMissed()
+    {
+        if (Mouse.LeftButton != MouseButtonState.Pressed) EndRouteDrag();
     }
 
     private void OnRouteRelease(object sender, MouseButtonEventArgs e)
@@ -203,6 +217,7 @@ public partial class SettingsWindow
         RouteDragRow.Height = RouteRowHeight;
         RouteDragRow.Visibility = Visibility.Visible;
         _routeDragFrom = index;
+        _routeDragStop = _actions.Route.Stops[index];
         _routeDragTo = index;
         DisarmRouteClear();
         Mouse.OverrideCursor = Cursors.SizeAll;

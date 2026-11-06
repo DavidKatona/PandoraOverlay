@@ -947,6 +947,72 @@ public sealed class SettingsRouteTests
         page.Dialog.Close();
     });
 
+    private static void RaiseMoveWithTheButtonUp(UIElement on) =>
+        on.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0) { RoutedEvent = UIElement.PreviewMouseMoveEvent });
+
+    /// <summary>Found by the chaos driver (Nov 6 2026): a release at another position than the last move arrives as a move with the button up, then the release. It used to cancel the drop.</summary>
+    [Fact]
+    public void AMoveThatIsPartOfTheReleaseDoesNotCancelTheDrop() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        var height = LaidOut(page);
+        Carry(page, 0, over: 2, height);
+
+        RaiseMoveWithTheButtonUp(page.Named<StackPanel>("RouteRows")); // no button is held in a test run
+        page.Call("DropRouteDrag"); // the release, straight after it
+        page.Idle();
+
+        Assert.Equal(new[] { "B", "C", "A", "D" }, page.Rows.Select(Page.Name));
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void AMoveWithTheButtonUpAndNoReleaseEndsTheDragWithNothingMoved() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 4);
+        var height = LaidOut(page);
+        Carry(page, 0, over: 2, height);
+
+        RaiseMoveWithTheButtonUp(page.Named<StackPanel>("RouteRows"));
+        page.Idle();
+
+        Assert.Equal(-1, page.Field<int>("_routeDragFrom"));
+        Assert.Equal(new[] { "A", "B", "C", "D" }, page.Rows.Select(Page.Name));
+        Assert.Null(Mouse.OverrideCursor);
+        page.Dialog.Close();
+    });
+
+    /// <summary>Found by the chaos driver (Nov 6 2026): the index alone would have gone on carrying whichever stop slid into it.</summary>
+    [Fact]
+    public void AStopInsertedAboveTheCarriedOneEndsTheDrag() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 3);
+        var height = LaidOut(page);
+
+        Carry(page, 2, over: 1, height);
+        page.Actions.AddAsNextStop(page.Library.Items[3]); // straight after the current stop, above the carried one
+
+        Assert.Equal(-1, page.Field<int>("_routeDragFrom"));
+        Assert.Equal(new[] { "A", "D", "B", "C" }, page.Rows.Select(Page.Name));
+        Assert.Equal(Visibility.Collapsed, page.Named<FrameworkElement>("RouteDragRow").Visibility);
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void AStopAddedAtTheEndKeepsTheDrag() => TheThemeOnScreen.OnSta(() =>
+    {
+        var page = Open(AToD, 3);
+        var height = LaidOut(page);
+
+        Carry(page, 1, over: 2, height);
+        page.Actions.AddToRoute(page.Library.Items[3]);
+
+        Assert.Equal(1, page.Field<int>("_routeDragFrom"));
+        Assert.Equal(new[] { "A", "C", "B", "D" }, page.Rows.Select(Page.Name));
+        page.Call("EndRouteDrag");
+        page.Dialog.Close();
+    });
+
     [Fact]
     public void ClosingTheDialogEndsADrag() => TheThemeOnScreen.OnSta(() =>
     {
