@@ -627,6 +627,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="≡" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.12}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="RouteDragMark" Grid.Column="1" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             <TextBlock x:Name="RouteDragNumber" Grid.Column="2" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.11}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             <Ellipse x:Name="RouteDragDisc" Grid.Column="3" Width="9" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             <TextBlock x:Name="RouteDragName" Grid.Column="4" Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.12}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="7,0,7,0"/>

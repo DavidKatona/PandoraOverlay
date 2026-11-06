@@ -1,6 +1,9 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 namespace PandoraOverlay;
@@ -14,14 +17,18 @@ namespace PandoraOverlay;
 /// ones, the current stop's place included: landing there makes it current
 /// (Route.Move).
 /// <para>
-/// <b>The rows make room.</b> While a stop is carried the list reads as it would
-/// if you let go now: the stops it has passed have slid into their new places and
-/// the place it would take is dimmed under a copy that follows the cursor (the
-/// owner, Nov 6 2026: a drop line in a gap read oddly at the end of the list, with
-/// nothing moving to say where the stop would land, so the last stop now moves up
-/// to make room). So the target is simply the row under the cursor. It is only a
-/// picture until the drop: the route itself moves once, on the release. The rows
-/// are slots (SettingsWindow.Route.cs), so this is RouteStopAt in the one fill.
+/// <b>What a drag looks like, and the two looks it replaced (the owner, Nov 6
+/// 2026).</b> While a stop is carried the list reads as it would if you let go,
+/// and the target is simply the row under the cursor. The carried stop sits ON
+/// that row, moving a row at a time, and each stop it passes glides into the place
+/// it left: you watch the pair trade places. First there was a drop line in a gap,
+/// which read oddly at the end of the list, where nothing moved to say where the
+/// stop would land. Then the rows made room, but by rewriting their text at once,
+/// under a copy centred on the cursor: at the very moment of a swap the copy hid
+/// half of both rows, and nothing moved, so "it's a bit hard to see which items are
+/// swapping". It stays a picture until the drop: the route moves once, on the
+/// release. The rows are slots (SettingsWindow.Route.cs), so a row that glides
+/// shows its new stop from the start and slides in from where that stop was.
 /// </para>
 /// <para>
 /// By hand with the mouse's capture, not WPF's DragDrop: that runs a modal
@@ -55,16 +62,28 @@ namespace PandoraOverlay;
 /// </summary>
 public partial class SettingsWindow
 {
-    private const double RouteDraggedOpacity = 0.4;
     private const double RouteDragEdge = 18;         // how near an edge of the list starts it scrolling
     private const double RouteDragScrollStep = 6;    // px per tick: about six rows a second
     private static readonly TimeSpan RouteDragScrollEvery = TimeSpan.FromMilliseconds(40);
 
+    /// <summary>Long enough to follow with the eye: most of an ease-out's travel is in its first third (150 ms was gone in about 60, on film). It can't lag behind a hand: a new swap glides on from wherever this one has got to.</summary>
+    private static readonly Duration RouteGlideTime = TimeSpan.FromMilliseconds(200);
+
+    private static readonly IEasingFunction RouteGlideEase = FrozenGlideEase();
+
     private int _routePressed = -1;    // the row the left button went down on, until it moves or lifts
-    private Point _routePressedAt;
+    private Point _routePressedAt;     // in the list's own view: see OnRoutePress
     private int _routeDragFrom = -1;   // the stop being carried; -1 = no drag
     private int _routeDragTo;          // the place it would take if let go now
     private DispatcherTimer? _routeDragScroll;
+
+    // Frozen: a dialog's thread is not the only one that reads a static, and the tests run several.
+    private static IEasingFunction FrozenGlideEase()
+    {
+        var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+        ease.Freeze();
+        return ease;
+    }
 
     /// <summary>Which row a height in the list is on. A list with rows: there is no answer for none.</summary>
     internal static int RouteRowAt(double y, double rowHeight, int count) =>
@@ -83,11 +102,24 @@ public partial class SettingsWindow
         return row;
     }
 
+    /// <summary>The other way round: which row shows a stop while one is carried. What a row glides in from.</summary>
+    internal static int RouteRowOf(int stop, int from, int to)
+    {
+        if (stop == from) return to;
+        if (from < to && stop > from && stop <= to) return stop - 1;
+        if (to < from && stop >= to && stop < from) return stop + 1;
+        return stop;
+    }
+
     /// <summary>The rows are all of a height: what the 2 px between them belong to doesn't matter.</summary>
     private double RouteRowHeight => RouteRows.ActualHeight / Math.Max(1, _routeRows.Count);
 
+    /// <summary>Only an upcoming stop moves, and one that is still there. Asked at the press and again at the lift: the route moves by itself in between, behind the dialog.</summary>
+    private bool CanCarryRouteStop(int row) => row >= _actions.Route.Current && row < Math.Min(_routeRows.Count, _actions.Route.Count);
+
     private void InitRouteDrag()
     {
+        RouteDragRow.RenderTransform = new TranslateTransform();
         RouteRows.PreviewMouseLeftButtonDown += OnRoutePress;
         RouteRows.PreviewMouseMove += OnRouteMouseMove;
         RouteRows.PreviewMouseLeftButtonUp += OnRouteRelease;
@@ -112,23 +144,26 @@ public partial class SettingsWindow
         if (ReferenceEquals(e.OriginalSource, RouteRows)) EndRouteDrag();
     }
 
+    /// <summary>
+    /// The press is kept in the list's view, not in its content: what counts as
+    /// the mouse moving must not count the list scrolling under a mouse held still
+    /// (the wheel during a press), which would start a drag by itself.
+    /// </summary>
     private void OnRoutePress(object sender, MouseButtonEventArgs e)
     {
         _routePressed = -1;
         if (_routeRows.Count == 0 || RouteRowHeight <= 0) return;
-        var at = e.GetPosition(RouteRows);
-        var row = RouteRowAt(at.Y, RouteRowHeight, _routeRows.Count);
-        if (row < _actions.Route.Current || _routeRows[row].Remove.IsMouseOver) return;
+        var row = RouteRowAt(e.GetPosition(RouteRows).Y, RouteRowHeight, _routeRows.Count);
+        if (!CanCarryRouteStop(row) || _routeRows[row].Remove.IsMouseOver) return;
         _routePressed = row;
-        _routePressedAt = at;
+        _routePressedAt = e.GetPosition(RouteList);
     }
 
     private void OnRouteMouseMove(object sender, MouseEventArgs e)
     {
-        var at = e.GetPosition(RouteRows);
         if (_routeDragFrom >= 0)
         {
-            if (e.LeftButton == MouseButtonState.Pressed) MoveRouteDrag(at.Y);
+            if (e.LeftButton == MouseButtonState.Pressed) MoveRouteDrag(e.GetPosition(RouteRows).Y);
             else EndRouteDrag(); // the release was missed: never leave a stop stuck to the mouse
             return;
         }
@@ -138,14 +173,15 @@ public partial class SettingsWindow
             _routePressed = -1;
             return;
         }
+        var at = e.GetPosition(RouteList);
         if (Math.Abs(at.Y - _routePressedAt.Y) < SystemParameters.MinimumVerticalDragDistance
             && Math.Abs(at.X - _routePressedAt.X) < SystemParameters.MinimumHorizontalDragDistance) return;
         var row = _routePressed;
         _routePressed = -1;
         // First, and all or nothing. Taking the capture also tells the name's button this is no click.
-        if (!RouteRows.CaptureMouse()) return;
+        if (!CanCarryRouteStop(row) || !RouteRows.CaptureMouse()) return;
         StartRouteDrag(row);
-        MoveRouteDrag(at.Y);
+        MoveRouteDrag(e.GetPosition(RouteRows).Y);
     }
 
     private void OnRouteRelease(object sender, MouseButtonEventArgs e)
@@ -161,8 +197,8 @@ public partial class SettingsWindow
     {
         var row = _routeRows[index];
         RouteDragDisc.Fill = row.Disc.Fill;
+        RouteDragMark.Foreground = row.Disc.Fill;
         RouteDragName.Text = row.NameText.Text;
-        RouteDragNumber.Text = row.Number.Text;
         RouteDragRow.Width = RouteRows.ActualWidth;
         RouteDragRow.Height = RouteRowHeight;
         RouteDragRow.Visibility = Visibility.Visible;
@@ -170,7 +206,8 @@ public partial class SettingsWindow
         _routeDragTo = index;
         DisarmRouteClear();
         Mouse.OverrideCursor = Cursors.SizeAll;
-        FillRouteRows(); // its own place dims
+        FillRouteRows(); // the place on offer empties, under the carried copy
+        PlaceRouteDragRow();
         if (_routeDragScroll is null)
         {
             _routeDragScroll = new DispatcherTimer { Interval = RouteDragScrollEvery };
@@ -179,25 +216,60 @@ public partial class SettingsWindow
         _routeDragScroll.Start();
     }
 
-    /// <summary>A height in the list: the place it means, the rows making room for it, and the copy under the cursor.</summary>
+    /// <summary>A height in the list: the place it means. Past the list's edge it means the row at that edge, or the stop would be carried out of sight.</summary>
     private void MoveRouteDrag(double y)
     {
         var rowHeight = RouteRowHeight;
         if (rowHeight <= 0) return;
-        var to = RouteDragTarget(y, rowHeight, _actions.Route.Current, _routeRows.Count);
-        if (to != _routeDragTo)
-        {
-            _routeDragTo = to;
-            RouteDragNumber.Text = (to + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            FillRouteRows();
-        }
-        // Kept in the part of the list on screen, or it would vanish past the edge just as the
-        // list scrolls. Bottom never under top: Clamp throws on that, and a viewport can be
-        // shorter than a row on a small screen.
         var top = RouteList.VerticalOffset;
-        var bottom = Math.Max(top, Math.Min(RouteRows.ActualHeight, top + RouteList.ViewportHeight) - rowHeight);
-        Canvas.SetTop(RouteDragRow, Math.Clamp(y - rowHeight / 2, top, bottom));
+        var inView = Math.Clamp(y, top, top + Math.Max(0, RouteList.ViewportHeight - 1));
+        var to = RouteDragTarget(inView, rowHeight, _actions.Route.Current, _routeRows.Count);
+        if (to != _routeDragTo) SwapRouteDragTo(to, rowHeight);
     }
+
+    /// <summary>
+    /// The carried stop takes another place: the stops in between take theirs,
+    /// each gliding from where it is on screen right now, which may be part-way
+    /// through the last glide, so a fast hand sees no jump. A fast hand also crosses
+    /// many rows between two mouse messages: they all glide together.
+    /// </summary>
+    private void SwapRouteDragTo(int to, double rowHeight)
+    {
+        var (from, was) = (_routeDragFrom, _routeDragTo);
+        var onScreen = _routeRows.Select((row, i) => i * rowHeight + GlideOf(row.Grid).Y).ToList();
+        var carriedOnScreen = Canvas.GetTop(RouteDragRow) + GlideOf(RouteDragRow).Y;
+
+        _routeDragTo = to;
+        FillRouteRows();
+        for (var row = Math.Min(was, to); row <= Math.Max(was, to) && row < _routeRows.Count; row++)
+        {
+            if (row == to) continue; // empty: the carried copy is over it
+            var cameFrom = RouteRowOf(RouteStopAt(row, from, to), from, was);
+            if (cameFrom != row) Glide(_routeRows[row].Grid, onScreen[cameFrom] - row * rowHeight);
+        }
+        PlaceRouteDragRow();
+        Glide(RouteDragRow, carriedOnScreen - to * rowHeight);
+    }
+
+    /// <summary>The carried copy on the place on offer, saying what that place is: its number, and ▶ if it would make it the current stop.</summary>
+    private void PlaceRouteDragRow()
+    {
+        Canvas.SetTop(RouteDragRow, _routeDragTo * RouteRowHeight);
+        RouteDragNumber.Text = (_routeDragTo + 1).ToString(CultureInfo.InvariantCulture);
+        RouteDragMark.Text = _routeDragTo == _actions.Route.Current ? "▶" : "";
+    }
+
+    private static TranslateTransform GlideOf(UIElement element) => (TranslateTransform)element.RenderTransform;
+
+    /// <summary>Slides an element to where it belongs from this far away. Stops by itself and leaves nothing behind: the offset's base value stays 0.</summary>
+    private static void Glide(UIElement element, double from) =>
+        GlideOf(element).BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(from, 0, RouteGlideTime)
+        {
+            EasingFunction = RouteGlideEase,
+            FillBehavior = FillBehavior.Stop
+        });
+
+    private static void StopGlide(UIElement element) => GlideOf(element).BeginAnimation(TranslateTransform.YProperty, null);
 
     private void ScrollRouteDrag()
     {
@@ -223,6 +295,8 @@ public partial class SettingsWindow
         _routeDragScroll?.Stop();
         Mouse.OverrideCursor = null;
         RouteDragRow.Visibility = Visibility.Collapsed;
+        StopGlide(RouteDragRow);
+        foreach (var row in _routeRows) StopGlide(row.Grid);
         FillRouteRows();
         RouteRows.ReleaseMouseCapture();
     }

@@ -111,10 +111,12 @@ public partial class SettingsWindow
         // closed on the press, the release would go to the game, which may
         // then open its own menu. Handled = a box used Esc for itself (a
         // hotkey box, Dino storage's rename): that press is not ours.
+        // A repeat is no press of its own: Esc held down after calling off a drag on the Route
+        // page (whose press was the drag's) must not start the dialog closing.
         KeyDown += (_, e) =>
         {
             if (e.Key != Key.Escape || e.Handled) return;
-            _escapeDown = true;
+            if (!e.IsRepeat) _escapeDown = true;
             e.Handled = true;
         };
         KeyUp += (_, e) =>

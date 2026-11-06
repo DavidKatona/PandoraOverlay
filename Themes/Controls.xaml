@@ -137,10 +137,13 @@
 
     <!-- A list row's text that is a click (a stop's name on the Route page):
          no chrome at rest, so the row reads as a row, and the menu row's hover
-         across the whole column, since the empty part of it clicks too. -->
+         across the whole column, since the empty part of it clicks too. Never
+         focusable: a focused element is scrolled into view, so a press on a row
+         half out of the list would jump the list under the mouse. -->
     <Style x:Key="ListRowButton" TargetType="Button">
         <Setter Property="Padding" Value="7,0"/>
         <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Focusable" Value="False"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">

@@ -124,8 +124,15 @@ public partial class SettingsWindow
         // it can't move any more. Another one was: the place it would take may have to give way.
         if (_routeDragFrom >= 0)
         {
-            if (_routeDragFrom < route.Current || _routeDragFrom >= route.Count) EndRouteDrag();
-            else _routeDragTo = Math.Clamp(_routeDragTo, route.Current, route.Count - 1);
+            if (_routeDragFrom < route.Current || _routeDragFrom >= route.Count)
+            {
+                EndRouteDrag();
+            }
+            else
+            {
+                _routeDragTo = Math.Clamp(_routeDragTo, route.Current, route.Count - 1);
+                PlaceRouteDragRow();
+            }
         }
 
         RouteCount.Text = RouteCountText();
@@ -222,7 +229,7 @@ public partial class SettingsWindow
     /// </summary>
     private RouteRow BuildRouteRow(int index)
     {
-        var grid = new Grid { Margin = new Thickness(0, 1, 0, 1) };
+        var grid = new Grid { Margin = new Thickness(0, 1, 0, 1), RenderTransform = new TranslateTransform() }; // a drag glides it
         foreach (var width in new[] { 18.0, 18, 24, 21 }) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         foreach (var width in new[] { 60.0, 46 }) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width) });
@@ -269,7 +276,8 @@ public partial class SettingsWindow
     /// What a slot shows now, in the theme on screen: ✓ and dim for a passed
     /// stop, ▶ for the current one. Its number, mark and place are the slot's,
     /// its stop may be another during a drag: the list reads as it would if you
-    /// let go, and the place being offered is dimmed under the carried copy.
+    /// let go, and the place being offered is empty under the carried copy, so
+    /// nothing shows through as the copy glides in.
     /// </summary>
     private void FillRouteRow(int index)
     {
@@ -284,7 +292,7 @@ public partial class SettingsWindow
         var text = (passed ? Theme.Current.Text.Off : current ? Theme.Current.Text.Bright : Theme.Current.Text.Text2).ToBrush();
 
         row.Grid.Background = current ? Theme.Current.Nav.Selected.Fill.ToBrush() : index % 2 == 1 ? RowStripe : Brushes.Transparent;
-        row.Grid.Opacity = carrying && index == _routeDragTo ? RouteDraggedOpacity : 1;
+        row.Grid.Visibility = carrying && index == _routeDragTo ? Visibility.Hidden : Visibility.Visible;
         row.Grid.Cursor = passed ? null : Cursors.SizeAll; // only upcoming stops move: Windows' Move cursor, over all but the name (a click) and the ✕
         row.Grip.Visibility = passed ? Visibility.Hidden : Visibility.Visible;
         row.Grip.Foreground = Theme.Current.Text.Dim.ToBrush();
