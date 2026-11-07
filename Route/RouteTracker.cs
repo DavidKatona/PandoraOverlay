@@ -56,6 +56,13 @@ public sealed class RouteTracker
         _watchedNext = null;
     }
 
+    /// <summary>The walk starts over (Restart, a pasted route): no stop is a hand pick any more, and standing at the first one counts. The position stays: you are still where you were.</summary>
+    public void StartOver()
+    {
+        _currentMustLeave = false;
+        _watchedNext = null;
+    }
+
     /// <summary>Not in game: the next position has no path from this one.</summary>
     public void Forget() => _last = null;
 

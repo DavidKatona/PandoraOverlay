@@ -15,8 +15,11 @@ public sealed record MapMenuSpot((double X, double Y)? World, Waypoint? Waypoint
 /// it, and put it on the route. Always: "Waypoint here" (auto-named and
 /// tracked) and "Add stop here", then with a route its own entries, then
 /// share-a-spot: this spot ("meet here"), my position ("come to me") and
-/// Paste, which makes a waypoint named from the code. An entry closes the
-/// menu, then acts through MapActions; its notice goes back to the map.
+/// Paste, which makes a waypoint named from the code, and a route's paste when
+/// the clipboard holds one. An entry closes the menu, then acts through
+/// MapActions; its notice goes back to the map. The one exception is pasting
+/// over a route you have, which asks first and keeps the menu open for its
+/// answer: no Cancel brings the old route back.
 /// No name box in the popup (owner's call): a new waypoint is auto-named,
 /// and names are typed on the Settings Waypoints page.
 /// </summary>
@@ -90,10 +93,14 @@ public sealed class MapMenuBuilder
             if (spot.World is { } at) Say(_actions.AddStopHere(at.X, at.Y));
         }, enabled: !full && !route.IsFull);
         Separator();
-        if (_actions.CurrentStopWaypoint is { } current)
+        if (!route.IsEmpty)
         {
-            if (_actions.RoutePaused) Item("Resume route", null, _actions.ResumeRoute);
-            Item($"Skip {_actions.Short(current.Name)}", null, () => Say(_actions.SkipStop()));
+            if (_actions.CurrentStopWaypoint is { } current)
+            {
+                if (_actions.RoutePaused) Item("Resume route", null, _actions.ResumeRoute);
+                Item($"Skip {_actions.Short(current.Name)}", null, () => Say(_actions.SkipStop()));
+            }
+            Item("Copy route", null, () => Say(_actions.CopyRoute()));
             Separator();
         }
         Item("Copy this spot", null, () =>
@@ -105,6 +112,34 @@ public sealed class MapMenuBuilder
             if (_me() is { } p) Say(_actions.Copy(ShareCode.Format(p.X, p.Y), "position copied"));
         }, enabled: _me() is not null);
         Item("Paste waypoint", null, () => Say(_actions.Paste()), enabled: !full && MapActions.ClipboardHasCode());
+        if (_actions.ClipboardHasRoute())
+        {
+            void Paste() => Say(_actions.PasteRoute().Notice);
+            if (route.IsEmpty) Item("Paste route", null, Paste);
+            else ArmedItem("Paste route", "Replace your route?", Paste);
+        }
+    }
+
+    /// <summary>An entry that asks first: its first click changes its words and leaves the menu open, its second closes the menu and acts.</summary>
+    private void ArmedItem(string text, string armedText, Action onClick)
+    {
+        var label = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center };
+        var content = new StackPanel { Orientation = Orientation.Horizontal };
+        content.Children.Add(label);
+        var button = new Button { Content = content, Style = _button };
+        var armed = false;
+        button.Click += (_, _) =>
+        {
+            if (!armed)
+            {
+                armed = true;
+                label.Text = armedText;
+                return;
+            }
+            _close();
+            onClick();
+        };
+        _items.Children.Add(button);
     }
 
     private void Item(string text, Brush? dot, Action onClick, bool enabled = true)

@@ -16,6 +16,9 @@ namespace PandoraOverlay;
 /// </summary>
 public static class RouteCode
 {
+    /// <summary>The group pasted stops arrive under on the Waypoints page, like a pack: one band, deleted at once (the owner's call).</summary>
+    public const string SharedPack = "Shared route";
+
     /// <summary>One stop of a pasted route. World cm, as the spot code gives them; the name may be empty.</summary>
     public sealed record Stop(double X, double Y, string Name);
 
@@ -37,4 +40,19 @@ public static class RouteCode
 
     /// <summary>Two or more stops make a route; one is "Paste waypoint", as it always was.</summary>
     public static bool IsRoute(string? text) => Parse(text).Count >= 2;
+
+    /// <summary>The Route page's line for a paste that worked: how many stops, and how many of their waypoints were new.</summary>
+    public static string PastedWords(int stops, int added, int reused, int inText)
+    {
+        var words = $"Route pasted: {stops} stops";
+        if (added > 0) words += $", {added} new {(added == 1 ? "waypoint" : "waypoints")}";
+        if (reused > 0) words += $", {reused} you already had";
+        words += ".";
+        if (inText > stops) words += $" The first {stops} of {inText}: a route holds {Route.Capacity}.";
+        if (added > 0) words += $" New ones start hidden, under {SharedPack} on Waypoints.";
+        return words;
+    }
 }
+
+/// <summary>What a paste of a route did. <see cref="Done"/> false: nothing changed, neither the route nor the library. The notice is for a map's footer, the words for the Route page's status line.</summary>
+public sealed record RoutePaste(bool Done, string Notice, string Words);

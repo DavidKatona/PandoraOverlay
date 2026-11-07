@@ -639,9 +639,18 @@
                     </DockPanel>
                 </Border>
             </Grid>
+            <!-- A copy's or a paste's result: two lines at most, as on Waypoints. Its room is always kept, and
+                 hidden rather than collapsed, unlike Waypoints': Clear and Paste take two clicks here, and a
+                 line coming or going would move the buttons out from under the second one. -->
+            <TextBlock x:Name="RouteStatus" Foreground="{DynamicResource Theme.Text.Label}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap"
+                       TextTrimming="CharacterEllipsis" Height="30" Margin="0,6,0,0" Visibility="Hidden"/>
             <DockPanel Margin="0,8,0,0">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="RouteRestartButton" Content="Restart" Click="RouteRestart_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button x:Name="RouteCopyButton" Content="Copy" Click="RouteCopy_Click"
+                            Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
+                    <Button x:Name="RoutePasteButton" Content="Paste" Click="RoutePaste_Click"
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
                     <Button x:Name="RouteClearButton" Content="Clear" Click="RouteClear_Click"
                             Style="{StaticResource DangerButtonStyle}"/>

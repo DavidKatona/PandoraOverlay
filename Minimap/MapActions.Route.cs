@@ -1,3 +1,5 @@
+using System.Windows;
+
 namespace PandoraOverlay;
 
 /// <summary>
@@ -185,7 +187,120 @@ public sealed partial class MapActions
     public void RestartRoute()
     {
         _route.Restart();
+        _tracker.StartOver();
         TrackRouteStop();
+    }
+
+    // ---- Sharing ------------------------------------------------------------------
+
+    /// <summary>The notice for a route copied: the page says more in its own words when it sees this one.</summary>
+    public const string RouteCopiedNotice = "route copied";
+
+    /// <summary>Where a paste reads from. A property so the tests never touch the real clipboard, which is the player's.</summary>
+    internal Func<string?> ReadClipboard { get; set; } = () => Clipboard.ContainsText() ? Clipboard.GetText() : null;
+
+    /// <summary>The whole list as text, passed stops too: the receiver starts at stop 1 (PLAN.md, D8).</summary>
+    internal string RouteCodes() => RouteCode.Format(_route.Stops.Select(id => _library.Find(id)).OfType<Waypoint>());
+
+    /// <summary>"Copy route".</summary>
+    public string CopyRoute() => Copy(RouteCodes(), RouteCopiedNotice);
+
+    /// <summary>Whether the clipboard holds a route: the menu shows "Paste route" only then. The clipboard is a shared resource another app can hold.</summary>
+    public bool ClipboardHasRoute()
+    {
+        try
+        {
+            return RouteCode.IsRoute(ReadClipboard());
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>"Paste route": a route from the clipboard takes your route's place. Asking first is the caller's: its second click.</summary>
+    public RoutePaste PasteRoute()
+    {
+        string? text;
+        try
+        {
+            text = ReadClipboard();
+        }
+        catch
+        {
+            return new RoutePaste(false, "couldn't reach the clipboard", "Couldn't reach the clipboard. Try again in a moment.");
+        }
+        return PasteRouteFrom(text);
+    }
+
+    /// <summary>
+    /// A shared route becomes your route, from its first stop, and is tracked:
+    /// pasting one is asking to walk it. Its stops arrive like a pack import (the
+    /// owner's call): a waypoint of the same name within the packs' duplicate
+    /// distance is reused, so a route you already have the places for adds nothing;
+    /// the rest arrive hidden, under one band the Waypoints page can delete at once,
+    /// taking the library's next colours since the code carries none. A code with no
+    /// name has no name to compare, so any waypoint on that spot is the one it means.
+    /// <para>
+    /// All or nothing: the arrivals are worked out on a copy, so a library with no
+    /// room for them changes nothing, and half a route never arrives. And one
+    /// Changed for them all: a save and a redraw per stop would be 64 of each.
+    /// </para>
+    /// </summary>
+    internal RoutePaste PasteRouteFrom(string? text)
+    {
+        var parsed = RouteCode.Parse(text);
+        if (parsed.Count < 2)
+        {
+            return new RoutePaste(false, "no route in the clipboard", "There's no route in the clipboard. A route is two or more spot codes, one per line.");
+        }
+
+        var stops = parsed.Take(Route.Capacity).ToList();
+        var scratch = new WaypointLibrary();
+        scratch.ReplaceWith(_library.Clone());
+        var had = _library.Items.Select(w => w.Id).ToHashSet();
+        var ids = new List<Guid>();
+        var noRoom = 0;
+        foreach (var stop in stops)
+        {
+            var waypoint = FindPastedStop(scratch, stop);
+            if (waypoint is null)
+            {
+                var name = stop.Name.Length > 0 ? stop.Name : scratch.NextName(_areaAt?.Invoke(stop.X, stop.Y));
+                waypoint = scratch.Add(name, stop.X, stop.Y, scratch.NextColour());
+                if (waypoint is null)
+                {
+                    noRoom++;
+                    continue;
+                }
+                waypoint.Visible = false;
+                waypoint.Pack = RouteCode.SharedPack;
+            }
+            ids.Add(waypoint.Id);
+        }
+        var added = scratch.Count - _library.Count;
+        if (noRoom > 0)
+        {
+            return new RoutePaste(false, "library full",
+                $"Your waypoint library can't hold it: {added + noRoom} new waypoints, room for {WaypointLibrary.Capacity - _library.Count}. Nothing changed.");
+        }
+
+        var reused = ids.Distinct().Count(had.Contains);
+        _library.ReplaceWith(scratch.Items.ToList());
+        _route.ReplaceWith(ids);
+        _tracker.StartOver();
+        TrackRouteStop();
+        return new RoutePaste(true,
+            parsed.Count > stops.Count ? $"first {stops.Count} stops pasted" : $"route pasted · {stops.Count} stops",
+            RouteCode.PastedWords(stops.Count, added, reused, parsed.Count));
+    }
+
+    private static Waypoint? FindPastedStop(WaypointLibrary library, RouteCode.Stop stop)
+    {
+        bool Near(Waypoint w) => WaypointLibrary.Distance(w.X, w.Y, stop.X, stop.Y) / 100 <= WaypointPacks.DuplicateMeters;
+        if (stop.Name.Length == 0) return library.Items.Where(Near).MinBy(w => WaypointLibrary.Distance(w.X, w.Y, stop.X, stop.Y));
+        var name = WaypointLibrary.SanitizeName(stop.Name);
+        return library.Items.FirstOrDefault(w => Near(w) && string.Equals(w.Name, name, StringComparison.OrdinalIgnoreCase));
     }
 
     // ---- Keeping the tracking in step ----------------------------------------------

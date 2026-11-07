@@ -400,6 +400,225 @@ public sealed class SettingsRouteTests
         Assert.Equal("▶", Page.Mark(rows[0])); // as it was drawn
     });
 
+    // ---- Sharing -------------------------------------------------------------------
+
+    private const string ARouteCode = "pandora:5000,0 Delta\npandora:6000,0 Forks\npandora:1000,0 A";
+
+    /// <summary>A dialog whose clipboard is a string here, never the player's.</summary>
+    private static (Page Page, Func<string?> Copied, Action<string?> SetClipboard) OpenSharing(int stops)
+    {
+        var page = Open(AToD, stops);
+        string? clipboard = null;
+        page.Actions.ReadClipboard = () => clipboard;
+        page.Actions.WriteClipboard = text => clipboard = text;
+        return (page, () => clipboard, text => clipboard = text);
+    }
+
+    [Fact]
+    public void AnEmptyRouteOffersOnlyPaste() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, _) = OpenSharing(0);
+
+        Assert.False(page.Named<Button>("RouteCopyButton").IsEnabled);
+        Assert.True(page.Named<Button>("RoutePasteButton").IsEnabled);
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void CopyPutsTheRouteOnTheClipboardAndSaysSo() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, copied, _) = OpenSharing(2);
+
+        Click(page.Named<Button>("RouteCopyButton"));
+
+        Assert.Equal("pandora:1000,0 A\npandora:2000,0 B", copied());
+        var status = page.Named<TextBlock>("RouteStatus");
+        Assert.Equal(Visibility.Visible, status.Visibility);
+        Assert.StartsWith("Route copied: 2 stops", status.Text);
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void ABusyClipboardSaysSoOnThePage() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, _) = OpenSharing(2);
+        page.Actions.WriteClipboard = _ => throw new InvalidOperationException();
+
+        Click(page.Named<Button>("RouteCopyButton"));
+
+        Assert.StartsWith("Couldn't reach the clipboard", page.Named<TextBlock>("RouteStatus").Text);
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void OnAnEmptyRouteAPasteActsAtOnce() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, setClipboard) = OpenSharing(0);
+        setClipboard(ARouteCode);
+
+        Click(page.Named<Button>("RoutePasteButton"));
+
+        Assert.Equal(new[] { "Delta", "Forks", "A" }, page.Rows.Select(Page.Name));
+        Assert.Equal("Route pasted: 3 stops, 2 new waypoints, 1 you already had. New ones start hidden, under Shared route on Waypoints.",
+                     page.Named<TextBlock>("RouteStatus").Text);
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void OverARouteAPasteAsksFirstAndAnythingElseCallsItOff() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, setClipboard) = OpenSharing(2);
+        setClipboard(ARouteCode);
+        var paste = page.Named<Button>("RoutePasteButton");
+
+        Click(paste);
+        Assert.Equal("Replace route?", paste.Content);
+        Assert.Equal(2, page.Route.Count);
+
+        Click(Page.NameButton(page.Rows[1])); // something else done on the page
+        Assert.Equal("Paste", paste.Content);
+
+        Click(paste);
+        Click(paste);
+        Assert.Equal(new[] { "Delta", "Forks", "A" }, page.Rows.Select(Page.Name));
+        Assert.Equal("Paste", paste.Content);
+        page.Dialog.Close();
+    });
+
+    /// <summary>Clear and Paste take two clicks: a line coming or going under the list must not move them out from under the second.</summary>
+    [Fact]
+    public void TheButtonsStayPutWhateverTheStatusLineDoes() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, setClipboard) = OpenSharing(2);
+        var paste = page.Named<Button>("RoutePasteButton");
+        var root = (FrameworkElement)page.Dialog.Content;
+        double Top()
+        {
+            LaidOut(page);
+            return paste.TransformToAncestor(root).Transform(new Point(0, 0)).Y;
+        }
+        var before = Top();
+
+        setClipboard("not a route");
+        Click(paste); // one line of status
+        Assert.Equal(before, Top(), 3);
+
+        setClipboard(ARouteCode);
+        Click(paste); // asking: the status goes
+        Assert.Equal(Visibility.Hidden, page.Named<FrameworkElement>("RouteStatus").Visibility);
+        Assert.Equal(before, Top(), 3);
+
+        Click(paste); // two lines of status
+        Assert.Equal(before, Top(), 3);
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void OnlyOneOfClearAndPasteAsksAtATime() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, setClipboard) = OpenSharing(2);
+        setClipboard(ARouteCode);
+        var (paste, clear) = (page.Named<Button>("RoutePasteButton"), page.Named<Button>("RouteClearButton"));
+
+        Click(paste);
+        Click(clear);
+        Assert.Equal("Paste", paste.Content);
+        Assert.Equal("Clear all?", clear.Content);
+
+        Click(paste);
+        Assert.Equal("Replace route?", paste.Content);
+        Assert.Equal("Clear", clear.Content);
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void NothingToPasteNeedsNoAskingAndChangesNothing() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, setClipboard) = OpenSharing(2);
+        setClipboard("just some text");
+        var paste = page.Named<Button>("RoutePasteButton");
+
+        Click(paste);
+
+        Assert.Equal("Paste", paste.Content);
+        Assert.Equal(new[] { "A", "B" }, page.Rows.Select(Page.Name));
+        Assert.StartsWith("There's no route in the clipboard", page.Named<TextBlock>("RouteStatus").Text);
+        page.Dialog.Close();
+    });
+
+    /// <summary>The page's copy of the library is written back with every edit: arrivals it lacked would be taken back, and the stops with them.</summary>
+    [Fact]
+    public void AnEditOnWaypointsAfterAPasteKeepsTheArrivals() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, setClipboard) = OpenSharing(0);
+        setClipboard(ARouteCode);
+        Click(page.Named<Button>("RoutePasteButton"));
+
+        page.Call("WaypointsEdited");
+        page.Call("FlushChanges");
+
+        Assert.Equal(new[] { "Delta", "Forks", "A" }, page.Rows.Select(Page.Name));
+        Assert.Contains(page.Library.Items, w => w.Name == "Delta");
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void AnEditWaitingOnWaypointsReachesTheLibraryBeforeAPaste() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, setClipboard) = OpenSharing(0);
+        setClipboard(ARouteCode);
+        var draft = page.Field<List<Waypoint>>("_draft");
+        draft[0].Name = "Renamed";
+        page.Call("WaypointsEdited");
+
+        Click(page.Named<Button>("RoutePasteButton"));
+
+        Assert.Equal("Renamed", page.Library.Find(draft[0].Id)!.Name); // the code's "A" is no longer the name of anything
+        Assert.Contains(page.Rows.Select(Page.Name), n => n == "A");
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void TheArrivalsShowAsAGroupOnTheWaypointsPageWithTheirBand() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, setClipboard) = OpenSharing(0);
+        page.Show("Waypoints"); // built before the paste: it must draw again
+        page.Show("Route");
+        setClipboard(ARouteCode);
+        Click(page.Named<Button>("RoutePasteButton"));
+
+        page.Show("Waypoints");
+        while (page.Field<Dictionary<Guid, RadioButton>>("_rowTrackRadios").Count < page.Library.Count) page.Idle();
+
+        var cards = page.Named<StackPanel>("WaypointRows").Children.OfType<Border>().ToList();
+        Assert.Equal(2, cards.Count);
+        var band = (Border)((StackPanel)cards[1].Child).Children[0];
+        var caption = ((Grid)band.Child).Children.OfType<TextBlock>().Single();
+        Assert.Equal("SHARED ROUTE", caption.Text);
+        page.Dialog.Close();
+    });
+
+    [Fact]
+    public void DeletingTheSharedGroupTakesItsStopsOffTheRoute() => TheThemeOnScreen.OnSta(() =>
+    {
+        var (page, _, setClipboard) = OpenSharing(0);
+        setClipboard(ARouteCode);
+        Click(page.Named<Button>("RoutePasteButton"));
+        page.Show("Waypoints");
+
+        var card = page.Named<StackPanel>("WaypointRows").Children.OfType<Border>().ElementAt(1);
+        var band = (Border)((StackPanel)card.Child).Children[0];
+        var cross = ((Grid)band.Child).Children.OfType<Button>().Single();
+        Click(cross); // armed
+        Click(cross);
+        page.Call("FlushChanges");
+
+        Assert.Equal(new[] { page.Library.Items.Single(w => w.Name == "A").Id }, page.Route.Stops);
+        page.Show("Route");
+        Assert.Equal(new[] { "A" }, page.Rows.Select(Page.Name));
+        page.Dialog.Close();
+    });
+
     // ---- Dragging ---------------------------------------------------------------
 
     /// <summary>The dialog laid out, so the rows have heights, and the height of one.</summary>

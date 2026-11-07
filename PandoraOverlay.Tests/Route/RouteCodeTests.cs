@@ -83,6 +83,17 @@ public sealed class RouteCodeTests
         Assert.Equal(isRoute, RouteCode.IsRoute(text));
     }
 
+    [Theory]
+    [InlineData(7, 4, 3, 7, "Route pasted: 7 stops, 4 new waypoints, 3 you already had. New ones start hidden, under Shared route on Waypoints.")]
+    [InlineData(2, 1, 1, 2, "Route pasted: 2 stops, 1 new waypoint, 1 you already had. New ones start hidden, under Shared route on Waypoints.")]
+    [InlineData(5, 0, 4, 5, "Route pasted: 5 stops, 4 you already had.")]
+    [InlineData(3, 3, 0, 3, "Route pasted: 3 stops, 3 new waypoints. New ones start hidden, under Shared route on Waypoints.")]
+    [InlineData(64, 0, 64, 80, "Route pasted: 64 stops, 64 you already had. The first 64 of 80: a route holds 64.")]
+    public void APastesWordsSayWhatHappened(int stops, int added, int reused, int inText, string words)
+    {
+        Assert.Equal(words, RouteCode.PastedWords(stops, added, reused, inText));
+    }
+
     [Fact]
     public void ParseHoldsEverythingForTheCallerToLimit()
     {

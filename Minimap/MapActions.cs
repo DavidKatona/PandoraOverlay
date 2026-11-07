@@ -83,12 +83,15 @@ public sealed partial class MapActions
         return $"{_short(waypoint.Name)} removed";
     }
 
+    /// <summary>Where a copy goes. A property so the tests never touch the real clipboard, which is the player's.</summary>
+    internal Action<string> WriteClipboard { get; set; } = text => Clipboard.SetText(text);
+
     /// <summary>A share code onto the clipboard; the notice says what was copied, or that the clipboard was busy.</summary>
     public string Copy(string code, string notice)
     {
         try
         {
-            Clipboard.SetText(code);
+            WriteClipboard(code);
             return notice;
         }
         catch

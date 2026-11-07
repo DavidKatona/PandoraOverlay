@@ -172,8 +172,10 @@ public class DialogLayoutTests
     /// the list takes the frame's room but the two lines the status keeps (Oct
     /// 31 2026), and a page that fitted only while its status was hidden would
     /// scroll on an import. The Route page in each state it has: walking (the
-    /// dialog's start), paused, finished and empty, in that order since clearing
-    /// it can't be undone. The caller closes the dialog.
+    /// dialog's start), asking before a paste or a clear, with a paste's longest
+    /// result under the list, paused (the most on its button row), finished and
+    /// empty, in that order since clearing it can't be undone. The caller closes
+    /// the dialog.
     /// </summary>
     internal static IEnumerable<(string Page, FrameworkElement Root)> EveryPage(SettingsWindow dialog)
     {
@@ -184,7 +186,19 @@ public class DialogLayoutTests
             {
                 var actions = (MapActions)(typeof(SettingsWindow).GetField("_actions", Any)?.GetValue(dialog)
                                            ?? throw new MissingFieldException(nameof(SettingsWindow), "_actions"));
-                actions.Track(null);
+                var routeStatus = (TextBlock)dialog.FindName("RouteStatus");
+                routeStatus.Text = RouteCode.PastedWords(stops: Route.Capacity, added: 40, reused: 24, inText: 80); // the longest line it writes
+                routeStatus.Visibility = Visibility.Visible;
+                yield return ("Route, after a paste", LaidOut(dialog));
+                var (paste, clear) = ((Button)dialog.FindName("RoutePasteButton"), (Button)dialog.FindName("RouteClearButton"));
+                actions.Track(null); // paused: Resume is the widest thing on the row, and the armed labels the widest there
+                paste.Content = "Replace route?";
+                yield return ("Route, paused, asking before a paste", LaidOut(dialog));
+                paste.Content = "Paste";
+                clear.Content = "Clear all?";
+                yield return ("Route, paused, asking before a clear", LaidOut(dialog));
+                clear.Content = "Clear";
+                routeStatus.Visibility = Visibility.Hidden;
                 yield return ("Route, paused", LaidOut(dialog));
                 actions.ResumeRoute();
                 actions.SkipStop();

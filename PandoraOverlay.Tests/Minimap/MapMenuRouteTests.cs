@@ -15,8 +15,17 @@ public sealed class MapMenuRouteTests
     private readonly WaypointLibrary _library = new();
     private readonly MapActions _actions;
     private readonly List<string> _notices = new();
+    private string? _clipboard;
+    private int _closed;
 
-    public MapMenuRouteTests() => _actions = new MapActions(_config, _library, new FriendBook(), name => name);
+    public MapMenuRouteTests()
+    {
+        _actions = new MapActions(_config, _library, new FriendBook(), name => name);
+        _actions.ReadClipboard = () => _clipboard; // never the player's real clipboard
+        _actions.WriteClipboard = text => _clipboard = text;
+    }
+
+    private const string ARouteCode = "pandora:5000,0 Delta\npandora:6000,0 Forks";
 
     private Waypoint Spot(string name, double x) => _library.Add(name, x, 0, 0)!;
 
@@ -25,7 +34,7 @@ public sealed class MapMenuRouteTests
     {
         var items = new StackPanel();
         var builder = new MapMenuBuilder(items, new Style(typeof(Button)), () => Brushes.Gray, _actions, _ => Brushes.White,
-                                         () => null, () => { }, _notices.Add);
+                                         () => null, () => _closed++, _notices.Add);
         builder.Build(new MapMenuSpot(world ?? (on is null ? (5, 5) : (on.X, on.Y)), on, null));
         return items;
     }
@@ -116,6 +125,90 @@ public sealed class MapMenuRouteTests
 
         Assert.DoesNotContain(texts, t => t.StartsWith("Skip"));
         Assert.DoesNotContain("Resume route", texts);
+    });
+
+    [Fact]
+    public void AnyRouteCanBeCopiedAFinishedOneToo() => TheThemeOnScreen.OnSta(() =>
+    {
+        Assert.DoesNotContain("Copy route", Texts(Menu()));
+
+        _actions.AddToRoute(Spot("A", Km));
+        Assert.Contains("Copy route", Texts(Menu()));
+
+        _actions.SkipStop();
+        Assert.Contains("Copy route", Texts(Menu()));
+    });
+
+    [Fact]
+    public void CopyRouteActsAndSaysSo() => TheThemeOnScreen.OnSta(() =>
+    {
+        _actions.AddToRoute(Spot("A", Km));
+        _actions.AddToRoute(Spot("B", 2 * Km));
+
+        Click(Entry(Menu(), "Copy route"));
+
+        Assert.Equal("pandora:1000,0 A\npandora:2000,0 B", _clipboard);
+        Assert.Equal("route copied", Assert.Single(_notices));
+    });
+
+    [Fact]
+    public void PasteRouteShowsOnlyWithARouteInTheClipboard() => TheThemeOnScreen.OnSta(() =>
+    {
+        Assert.DoesNotContain("Paste route", Texts(Menu()));
+
+        _clipboard = "pandora:5000,0 Delta"; // one spot is Paste waypoint's
+        Assert.DoesNotContain("Paste route", Texts(Menu()));
+
+        _clipboard = ARouteCode;
+        Assert.Contains("Paste route", Texts(Menu()));
+    });
+
+    [Fact]
+    public void WithNoRouteAPasteActsAtOnce() => TheThemeOnScreen.OnSta(() =>
+    {
+        _clipboard = ARouteCode;
+
+        Click(Entry(Menu(), "Paste route"));
+
+        Assert.Equal(2, _actions.Route.Count);
+        Assert.Equal(1, _closed);
+        Assert.Equal("route pasted · 2 stops", Assert.Single(_notices));
+    });
+
+    [Fact]
+    public void OverARouteAPasteAsksFirstAndKeepsTheMenuOpen() => TheThemeOnScreen.OnSta(() =>
+    {
+        var a = Spot("A", Km);
+        _actions.AddToRoute(a);
+        _clipboard = ARouteCode;
+        var menu = Menu();
+        var paste = Entry(menu, "Paste route");
+
+        Click(paste);
+
+        Assert.Equal("Replace your route?", Text(paste));
+        Assert.Equal(a.Id, Assert.Single(_actions.Route.Stops)); // nothing yet
+        Assert.Equal(0, _closed); // the menu stays for the answer
+        Assert.Empty(_notices);
+
+        Click(paste);
+
+        Assert.Equal(2, _actions.Route.Count);
+        Assert.Equal(1, _closed);
+    });
+
+    [Fact]
+    public void AMenuOpenedAgainHasForgottenTheQuestion() => TheThemeOnScreen.OnSta(() =>
+    {
+        _actions.AddToRoute(Spot("A", Km));
+        _clipboard = ARouteCode;
+        Click(Entry(Menu(), "Paste route"));
+
+        var again = Entry(Menu(), "Paste route");
+        Click(again);
+
+        Assert.Single(_actions.Route.Stops);
+        Assert.Equal("Replace your route?", Text(again));
     });
 
     [Fact]

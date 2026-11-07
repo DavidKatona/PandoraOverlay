@@ -42,6 +42,7 @@ public partial class SettingsWindow
     private bool _routeFollow;       // the page was just opened: the current stop is scrolled into view once its row exists
     private int _routeRenderVersion; // a newer render stops an older one's batches
     private bool _routeClearArmed;
+    private bool _routePasteArmed;
 
     private const string RouteGrip = "≡";
 
@@ -85,7 +86,7 @@ public partial class SettingsWindow
     {
         _routeBuilt = true;
         _routeFollow = true;
-        DisarmRouteClear();
+        DisarmRouteButtons();
         RenderRoute();
     }
 
@@ -148,8 +149,9 @@ public partial class SettingsWindow
             ? "Restart walks it again. Click a stop to start from there."
             : "Drag a stop to move it. Click a stop to go there next.";
         RouteRestartButton.IsEnabled = hasStops;
+        RouteCopyButton.IsEnabled = hasStops;
         RouteClearButton.IsEnabled = hasStops;
-        if (!hasStops) DisarmRouteClear();
+        if (!hasStops) DisarmRouteButtons();
         UpdateRouteBand();
 
         while (_routeRows.Count > route.Count)
@@ -327,10 +329,10 @@ public partial class SettingsWindow
 
     // ---- What the page does -----------------------------------------------------------
 
-    /// <summary>Anything else done on the page disarms Clear: it asked about the route as it stood.</summary>
+    /// <summary>Anything else done on the page disarms Clear and Paste: they asked about the route as it stood.</summary>
     private void RouteAct(Action act)
     {
-        DisarmRouteClear();
+        DisarmRouteButtons();
         act();
     }
 
@@ -343,6 +345,8 @@ public partial class SettingsWindow
     {
         if (!_routeClearArmed)
         {
+            DisarmRouteButtons();
+            RouteStatus.Visibility = Visibility.Hidden; // it was about something else: only the question now
             _routeClearArmed = true;
             RouteClearButton.Content = "Clear all?";
             return;
@@ -350,10 +354,63 @@ public partial class SettingsWindow
         RouteAct(() => _actions.ClearRoute());
     }
 
-    private void DisarmRouteClear()
+    private void DisarmRouteButtons()
     {
         _routeClearArmed = false;
         RouteClearButton.Content = "Clear";
+        _routePasteArmed = false;
+        RoutePasteButton.Content = "Paste";
+    }
+
+    private void SetRouteStatus(string text, Tone tone)
+    {
+        RouteStatus.Text = text;
+        ShowTone(RouteStatus, tone);
+        RouteStatus.Visibility = Visibility.Visible;
+    }
+
+    private void RouteCopy_Click(object sender, RoutedEventArgs e) => RouteAct(() =>
+    {
+        var copied = _actions.CopyRoute() == MapActions.RouteCopiedNotice;
+        if (copied) SetRouteStatus($"Route copied: {_actions.Route.Count} stops, one code per line. Paste it in a chat, or on a friend's Route page.", Tone.Good);
+        else SetRouteStatus("Couldn't reach the clipboard. Try again in a moment.", Tone.Warn);
+    });
+
+    /// <summary>
+    /// A shared route takes your route's place. Asks first if you have one, in
+    /// place, like Clear: no Cancel brings it back. Nothing in the clipboard to
+    /// paste needs no asking, it just says so.
+    /// </summary>
+    private void RoutePaste_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_routePasteArmed && !_actions.Route.IsEmpty && _actions.ClipboardHasRoute())
+        {
+            DisarmRouteButtons();
+            RouteStatus.Visibility = Visibility.Hidden; // it was about something else: only the question now
+            _routePasteArmed = true;
+            RoutePasteButton.Content = "Replace route?";
+            return;
+        }
+        RouteAct(PasteRouteHere);
+    }
+
+    /// <summary>
+    /// The Waypoints page's copy goes first and takes the arrivals after: its next
+    /// flush writes that copy into the library, and would take back any waypoint it
+    /// lacks, and the stops with it. Its rows are drawn again on its next look.
+    /// </summary>
+    private void PasteRouteHere()
+    {
+        if (_waypointsDirty) FlushChanges();
+        var paste = _actions.PasteRoute();
+        SetRouteStatus(paste.Words, paste.Done ? Tone.Good : Tone.Warn);
+        if (!paste.Done) return;
+        foreach (var waypoint in _library.Items)
+        {
+            if (!_draft.Any(w => w.Id == waypoint.Id)) _draft.Add(waypoint.Clone());
+        }
+        _waypointRowsBuilt = false;
+        RouteList.ScrollToTop();
     }
 
     /// <summary>

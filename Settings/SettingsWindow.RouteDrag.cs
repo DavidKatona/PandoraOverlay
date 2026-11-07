@@ -219,7 +219,7 @@ public partial class SettingsWindow
         _routeDragFrom = index;
         _routeDragStop = _actions.Route.Stops[index];
         _routeDragTo = index;
-        DisarmRouteClear();
+        DisarmRouteButtons();
         Mouse.OverrideCursor = Cursors.SizeAll;
         FillRouteRows(); // the place on offer empties, under the carried copy
         PlaceRouteDragRow();
