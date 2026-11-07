@@ -496,8 +496,11 @@ the position already polled, no endpoint, no pace, no write; a shared route is
 clipboard text. A player with no route sees no change on the maps. A reached stop
 wakes the Activity widget: the owner's call against the rule on chores. Guards:
 1352 tests; the driver above. The owner's calls on the drag are in
-`SettingsWindow.RouteDrag.cs`'s summary. Baselines wait for the owner's look at
-sharing: every Settings render moved with the nav's new row, in every theme.
+`SettingsWindow.RouteDrag.cs`'s summary. The owner looked at sharing in game and
+called it good (Nov 7), without itemising what was tried. Every baseline in every
+theme was recorded after that, at 4d08dae: before it the minimap's renders were all
+identical, so a player with no route draws as before, and the windows differed only
+on the Settings pages, whose nav gained a row.
 
 SHIPPED in 1.42.1 (Nov 6 2026, no pre-release, the owner's call): a patch.
 **A failed heatmap fetch keeps the last picture** while it is under ten
