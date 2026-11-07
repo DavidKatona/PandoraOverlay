@@ -1,6 +1,6 @@
 # Pandora Overlay
 
-A small always-on-top overlay for The Isle: Evrima on the Isla Pandora server. While you play it shows your dino's health, stamina, hunger, thirst, growth and fractures, a minimap with your live position, your waypoints and your friends, a map of the whole island with its zones on a key press, your Prime status, a feed of what just happened, and the server rules, and it lets you apply your Patreon skins and look after your stored dinos without alt-tabbing.
+A small always-on-top overlay for The Isle: Evrima on the Isla Pandora server. While you play it shows your dino's health, stamina, hunger, thirst, growth and fractures, a minimap with your live position, your waypoints, your route and your friends, a map of the whole island with its zones on a key press, your Prime status, a feed of what just happened, and the server rules, and it lets you apply your Patreon skins and look after your stored dinos without alt-tabbing.
 
 It is **fully external**: everything it does goes through the same logged-in HTTPS requests the islapandora.eu website makes in your browser. It never reads game memory, never touches game files, and never interacts with the game process in any way.
 
@@ -19,7 +19,7 @@ It is **fully external**: everything it does goes through the same logged-in HTT
   - [Basics](#basics) — edit mode, snapping, hotkeys, hiding
   - [Tray icon & settings](#tray-icon--settings)
   - Widgets: [Stats panel](#stats-panel) · [Minimap](#minimap) · [Prime tracker](#prime-tracker) · [Activity feed](#activity-feed)
-  - Features: [Map](#map) · [Waypoints](#waypoints) · [Friends](#friends) · [Patreon skins](#patreon-skins) · [Dino storage](#dino-storage) · [Server rules](#server-rules)
+  - Features: [Map](#map) · [Waypoints](#waypoints) · [Route](#route) · [Friends](#friends) · [Patreon skins](#patreon-skins) · [Dino storage](#dino-storage) · [Server rules](#server-rules)
 - **Help:** [FAQ](#faq) — can't see the overlay, how to close it, updating, and more · [Troubleshooting](#troubleshooting)
 - **Reference:** [Configuration (config.json)](#configuration-configjson) · [Fair-play notes](#fair-play-notes) · [Roadmap](#roadmap) · [License](#license)
 
@@ -143,7 +143,7 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 - The **Layers** menu at the top right picks what it shows: **Areas** (the borders, with your own area outlined), **Waypoints** (every waypoint ticked Show, plus the tracked one), **Friends**, **Trail**, then a tick for each kind of name: **Area names** (they show without the borders too), **Waypoint names** and **Friend names**, the first two spaced so they don't run into each other; then **Heatmap** and the three kinds of **zone**. A tick acts at once and the menu stays open until you click elsewhere or press Esc. The ticks are the map's own, apart from the minimap's, and remembered. Heatmap and the zones are off until you turn them on (Ctrl+F7 flips the heatmap while the map is open); the others start on.
 - **Zones:** where the game's **migration zones**, **patrol zones** and **sanctuaries** can be, each kind with its own tick and colour (green, red and pink, as on the website's map); mass migrations have a dashed edge. The game decides which zone is active for you and nothing outside the game can see that, so the map shows every zone, never just the active one. The shapes come from the community-made [VulnonaMAP](https://vulnona.com/game/map/) (the menu names the game versions they were mapped for) and ship with the overlay; the minimap doesn't show them.
 - The header says which area you are in. Point at a spot and a small readout names the waypoint, friend or area under the cursor, the zones there, and how far it is from you.
-- **Right-click** gives the minimap's waypoint menu: Waypoint here, Track, Copy this spot, Copy my position, Paste waypoint. Waypoints, tracking and the trail are shared with the minimap, so whatever you do on one shows on the other: the waypoint and the friend you track get the same dashed line from your arrow here too.
+- **Right-click** gives the minimap's waypoint menu: Waypoint here, Track, Copy this spot, Copy my position, Paste waypoint, and the [route](#route)'s entries. Waypoints, the route, tracking and the trail are shared with the minimap, so whatever you do on one shows on the other: the waypoint and the friend you track get the same dashed line from your arrow here too.
 - The map adds no new kind of request: the heatmap and the friends list are fetched for it only while its Heatmap or Friends tick is on, at the same pace as for the minimap, and the zones need none. The key is rebindable in Settings → Hotkeys (the "Map" box).
 
 ### Waypoints
@@ -156,6 +156,24 @@ What is kept is only the website session, encrypted with **Windows DPAPI** (scop
 - **Sharing a library:** Settings → Waypoints → **Export…** writes your waypoints to a small JSON file (a "pack", named after the file), which you can post on Discord. **Import…** reads one in: waypoints you already have, by id or by the same name within 20 m, are skipped, and the rest arrive **hidden** under their own heading, whose Show checkbox shows or hides the whole pack and whose ✕ deletes it, so a 200-entry pack can't bury your map. Packs are for places that stay put: sanctuaries, patrol zones, migration zones, landmarks, "lots of AI around here".
 - **Ready-made packs:** the [`packs`](packs/) folder has five packs to import: the island's place names (26 areas, 27 lakes, ponds and rivers, 27 landmarks and human sites), 18 mud pools and 24 salt rocks. Its [readme](packs/README.md) shows the import step by step. The names and positions come from the community-made [VulnonaMAP](https://vulnona.com/game/map/).
 - Your waypoints from earlier versions are carried over as Blue, Green and Purple.
+
+### Route
+
+- A **route** is an ordered list of your waypoints, walked like stops on a GPS: up to 64 stops, and the same waypoint can be on it more than once (water, mud, water). There is one route, kept in `route.json` in your settings folder. It survives closing the overlay, leaving the game and a new life.
+- **Building one:** right-click a map (the minimap in edit mode) and pick **Add to route** or **Add as next stop** on a waypoint, or **Add stop here** on empty ground, which makes a normal waypoint named after its area. Or click the **+** beside a waypoint on Settings → Waypoints. It starts with its first stop: nothing to press.
+- **On the maps:** the next stop is simply the tracked waypoint, so it has its ring, its dashed line from your arrow, and the footer's distance and ETA, and the footer adds which stop of how many (`Mud flats · 3/5 · 1.2 km · ~3 min`). The later legs are dashed too, a little fainter, each in its stop's colour, and the map numbers the stops. Upcoming stops are drawn even if you have hidden their waypoints. The lines are straight: the overlay knows nothing about the terrain, so it never works out a path or an order for you.
+- **Walking it:** get within about 50 m of the next stop and it is marked passed and the following one takes over, with a word in the footer and a line in the Activity feed, plus a chime if you tick it on Settings → General. A fast dino can't run past a stop between updates. Reach the stop after next instead and the one you skipped is passed along with it; a stop further on does nothing. A respawn or a teleport never passes anything along the way. At the end the tracking stops and the list stays.
+- **Waiting:** track something else or untrack the stop and the route waits, its lines still drawn. **Resume route** brings it back. A waypoint you mark along the way joins your library without taking the line. Tracking a friend has its own line and doesn't touch the route.
+- **Settings → Route** lists the stops, passed ones dimmed. **Drag** a stop to move it: the list shows the order you'd get as you carry it, and Esc calls it off. **Click** a stop to go there next, which also undoes a wrong pass. ✕ takes a stop off the route, never the waypoint off your library. **Restart** walks it again, **Clear** asks first. **Skip** is on the map's right-click menu; here, click the stop after it.
+- **Sharing one:** **Copy** on the page, or **Copy route** in the map menu, puts one spot code per line on the clipboard, passed stops included, so a route can go in a chat and be read and edited there:
+
+  ```
+  pandora:62,-3168 Nest
+  pandora:1800,400 Delta Pond
+  pandora:-900,1200 Old Ford
+  ```
+
+  **Paste** replaces your route, after asking if you have one, and starts at its first stop. A waypoint you already have, by the same name within 20 m, is used as it is; the rest arrive **hidden** under their own **Shared route** heading on Settings → Waypoints, whose ✕ deletes them all, and take your library's next colours, since the code carries none. If your library can't hold them, nothing changes. It all happens on your PC: a route never goes to the site.
 
 ### Prime tracker
 

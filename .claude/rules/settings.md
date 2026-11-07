@@ -78,7 +78,8 @@ paths:
 - A static field in one partial file must not be initialised from another part's statics:
   C# leaves the order across partial files open.
 - Destructive actions are armed in place by a first click (Delete all, Sign out, a stored
-  dino's Delete), never a modal box.
+  dino's Delete), never a modal box. Nothing may move an armed button between its two clicks:
+  a status line that shows and hides above one keeps its room (the Route page's).
 - Layout: slider rows use `SliderLabel` (140 px); a checkbox that owns a slider sits in
   the label slot with the slider's IsEnabled bound to it; list pages are a card with a
   caption band and zebra rows on a shared column grid, with a measured header

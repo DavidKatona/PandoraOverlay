@@ -194,8 +194,8 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   owner's PC: the owner runs the script once (a hidden prompt; never the
   value on a command line). A build without the file runs, with the four
   guarded endpoints blocked — what any build from source gets.
-- The user's files (`config.json`, `waypoints.json`, `friends.json`, the
-  picture caches) live in `%AppData%\PandoraOverlay` (`DataFolder`); the
+- The user's files (`config.json`, `waypoints.json`, `route.json`, `friends.json`,
+  the picture caches) live in `%AppData%\PandoraOverlay` (`DataFolder`); the
   install itself is Velopack's, under `%LocalAppData%\PandoraOverlay`, beside
   the sign-in browser's `WebView2` folder and the log's `Logs` folder.
 - The themes' files are embedded (1.39): `Assets/Themes/*.json` by one
@@ -205,11 +205,11 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   the licence asks.
 - The golden-render harness guards the drawing, in
   `Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders\`:
-  `run-golden.ps1`, the minimap (62 renders), and `run-windows.ps1`, the
-  windows mode (1.39; 104 renders: the stats panel, Prime, Activity, the
+  `run-golden.ps1`, the minimap (76 renders), and `run-windows.ps1`, the
+  windows mode (1.39; 114 renders: the stats panel, Prime, Activity, the
   control panel and every Settings page), each compared with its Default
-  baseline. `-Theme <id>` renders another theme at 1×, 1.25× and 2× (93
-  and 156 renders), fails if a render is not its Default twin's pixel
+  baseline. `-Theme <id>` renders another theme at 1×, 1.25× and 2× (114
+  and 171 renders), fails if a render is not its Default twin's pixel
   size, and compares it with that theme's own baseline (`baseline-isle`,
   recorded Oct 26 2026, `baseline-pandora`, Oct 27, and
   `baseline-nightshade`, Oct 30, each after the owner's check in game; a
@@ -217,6 +217,16 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   plan and decisions (D1–D12) live beside it: `ACTION-PLAN.md`, Fable's
   `PLAN.md` and the perf spike's `perf-spike\RESULTS.md` (code comments cite
   the D-numbers).
+- The route's driver guards what renders can't: mouse handling, in
+  `Desktop\Pandora Overlay Files\pandora-route\route-driver\` (Nov 2026). It
+  shows the real Settings dialog and sends it real WPF input: button messages
+  posted to that window only, the cursor placed with `SetCursorPos` (WPF reads
+  the real one), so the pointer jumps while it runs: tell the owner first. Never
+  `SendInput`, which a running game could receive (constraint 1). `drive` walks
+  every drag path, `drive share` copy and paste on a stand-in clipboard, `chaos
+  <seconds> <seed>` is seeded random input with the whole list checked after each
+  action. Tests can't replace it: a window never shown can't hold a mouse capture,
+  and the first drag passed every test and fell apart in the owner's hands.
 
 ## Layout
 
@@ -258,6 +268,11 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   shared map menu; the area map (AreaMap, AreaBorders, AreaMapAsset); the zones
   (ZoneSet, ZoneAsset; drawn on the map only); the pure map helpers.
 - `BigMap/` — BigMapWindow ("the map" to players) and ScrimWindow, its backdrop.
+- `Route/` — the route: Route (the list and its current stop, `route.json`),
+  RouteTracker (the rule that moves along it, pure), RouteCode (a shared route as
+  text). What acts on it is `Minimap/MapActions.Route.cs`, what draws it
+  `Minimap/RouteDrawing.cs` and `MapCanvas.Route.cs`, its page
+  `Settings/SettingsWindow.Route.cs` and `.RouteDrag.cs`.
 - `Waypoints/`, `Friends/`, `Activity/`, `Prime/`, `Rules/`, `Skins/`,
   `Storage/` (Dino storage), `Account/` (the in-app sign-in), `Updates/` (the
   update card), `Settings/` (the paged dialog, one partial per page).
@@ -327,8 +342,8 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   (click-through, no-activate, edit-mode drag with snapping, appearance, the
   fade); the map, its backdrop and the snap guides are their own windows.
 - MainWindow owns whatever must outlive a widget being hidden: the config, the
-  PollService, the waypoint library, the friend book, the activity log and its
-  feeds, the area journal, the trail, the map menu's actions.
+  PollService, the waypoint library, the route, the friend book, the activity log
+  and its feeds, the area journal, the trail, the map menu's actions.
 
 ## Runtime expectations
 
@@ -458,6 +473,31 @@ all) — say so when it matters:
   block went through the handler once, in a temporary test) and on a real
   challenge (fake answers only); the update from 1.42.0 on Herbivore or
   Carnivore, those themes' first update cards.
+- From the route (built, not released): a real respawn mid-route; a route across
+  a server restart; a fast dino passing a stop between polls, and whether 50 m is
+  right (the owner walked it, Nov 6, without calling it wrong); the real clipboard
+  for Copy and Paste (the driver and tests use a stand-in, so as not to touch the
+  player's), and a route pasted from a real chat; Esc on a drag (routed key events
+  only, the driver's window has no keyboard focus); the map's menu entries for
+  sharing (tests only); the drag in other themes and at other display scales (the
+  driver runs Default at 100%, flipping themes only as chaos); a 64-stop route on
+  a weaker PC. The drag itself was driven with real WPF input and tried by the
+  owner, who found the two looks it replaced and could not bring its first bug
+  back (Nov 6). The chaos run's last result: 0 failures (Nov 7).
+
+BUILT, NOT RELEASED (Nov 6–7 2026, on `main`, in order, one commit a step): **the
+route**. Ordered stops on both maps, walked like a GPS; the plan, every decision and
+what building changed: `Desktop\Pandora Overlay Files\pandora-route\PLAN.md`; the
+mockup: https://claude.ai/artifact/UK1sYYTGNPMKfn97nhissM. The idea that carries it:
+the current stop IS the tracked waypoint, so the ring, the edge indicator, the
+footer and the line from your arrow follow it with nothing new, and running or
+paused is read from the tracking, never stored. No constraint touched: computed from
+the position already polled, no endpoint, no pace, no write; a shared route is
+clipboard text. A player with no route sees no change on the maps. A reached stop
+wakes the Activity widget: the owner's call against the rule on chores. Guards:
+1352 tests; the driver above. The owner's calls on the drag are in
+`SettingsWindow.RouteDrag.cs`'s summary. Baselines wait for the owner's look at
+sharing: every Settings render moved with the nav's new row, in every theme.
 
 SHIPPED in 1.42.1 (Nov 6 2026, no pre-release, the owner's call): a patch.
 **A failed heatmap fetch keeps the last picture** while it is under ten
@@ -726,6 +766,10 @@ Maps
 - Zones on the minimap (owner, Oct 12 2026): the map only. And the site's zone
   pictures as their source (raster, stale, patrols as points): VulnonaMAP's
   vectors were chosen.
+- A route that works out a path or an order, and the word "planner" (Nov 6 2026):
+  the overlay has no terrain data, so the lines are straight and the order is yours.
+  A hotkey for Skip: "there's already enough" hotkeys. Stop numbers on the minimap:
+  no room.
 
 Settings and site features
 - Mid-game flips in Settings (the heatmap checkbox was removed: a layer you flip
@@ -839,7 +883,7 @@ The four-features brainstorm (Nov 2–3 2026)
 - No stock WPF chrome in any of our windows: every control kind has its own
   dark template (one set, `Themes/Controls.xaml`, since 1.39); icons are font
   glyphs (✕ ♂ ♀, text badges), not image files.
-- User content (`waypoints.json`, `friends.json`) is kept apart from config and
+- User content (`waypoints.json`, `route.json`, `friends.json`) is kept apart from config and
   the cookie vault.
 - Player-facing text states only what the API shows: never "died" (a fresh life
   "started a fresh Deino", leaving "is no longer in game"); never that drain

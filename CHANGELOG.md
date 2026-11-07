@@ -5,6 +5,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Routes.** Put your waypoints in order and walk them like stops on a GPS.
+  The minimap and the map join the stops with dashed lines, the leg you are
+  walking as before and the later ones a little fainter, each in its stop's
+  colour, and the map numbers them. The lines are straight: the overlay knows
+  nothing about the terrain, so the way there is yours to find.
+- Get within about 50 m of the next stop and the route moves on to the one
+  after, with a word in the minimap's footer and a line in the Activity feed.
+  A fast dino can't run past a stop between updates. Reach the stop after next
+  instead and the one you skipped is passed along with it.
+- Add stops by right-clicking a map (**Add to route**, **Add as next stop**,
+  **Add stop here**) or with the **+** beside each waypoint on Settings ›
+  Waypoints. The same waypoint can be on a route more than once, up to 64 stops.
+- A new **Settings › Route** page lists the stops: drag a stop to move it, click
+  one to go there next (which also undoes a wrong pass), ✕ to take it off the
+  route. The waypoints themselves stay. Restart walks a finished route again.
+- Track something else and the route waits for you, with its lines still drawn:
+  **Resume route** brings it back. A waypoint you mark along the way doesn't take
+  the line from the route, and a route survives closing the overlay and a new life.
+- **Share a route:** Copy on the Route page, or **Copy route** on a map, gives one
+  spot code per line, so it can go in a chat and be read and edited there. Paste
+  replaces your route, after asking, and starts at its first stop. New stops arrive
+  hidden under their own **Shared route** heading on Settings › Waypoints, and a
+  waypoint you already have, by name within 20 m, is used instead of a twin.
+- A chime when you reach a stop, off until you tick it on Settings › General.
+
 ## [1.42.1] - 2026-11-06
 
 ### Changed
