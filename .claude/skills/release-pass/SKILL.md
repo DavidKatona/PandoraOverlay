@@ -56,12 +56,12 @@ checked, and say when a check was a tool or a render rather than an eye.
    run the golden-render harness
    (`Desktop\Pandora Overlay Files\pandora-big-map-sketch\golden-renders`)
    in both modes against their Default baselines: `run-golden.ps1` (the
-   minimap, 62 renders) and `run-windows.ps1` (the stats panel, Prime,
-   Activity, the control panel and every Settings page, 104). Then both
+   minimap, 76 renders) and `run-windows.ps1` (the stats panel, Prime,
+   Activity, the control panel and every Settings page, 114). Then both
    again for every theme in `Assets/Themes/` (`-Theme isle`, `-Theme
-   pandora`, `-Theme nightshade`): every render must keep its Default
-   twin's pixel size, and a theme with a baseline of its own (93 and 156
-   renders: Isle's `baseline-isle` since Oct 26 2026, Pandora's
+   pandora`, `-Theme nightshade`, `-Theme herbivore`, `-Theme carnivore`):
+   every render must keep its Default twin's pixel size, and a theme with a
+   baseline of its own (114 and 171 renders: Isle's `baseline-isle` since Oct 26 2026, Pandora's
    `baseline-pandora` since Oct 27, Nightshade's `baseline-nightshade`
    since Oct 30) must match it as Default matches Default's. The map window,
    the update card and the sign-in window have no harness: say so.

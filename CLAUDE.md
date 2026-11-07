@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.42.1 is released, working, and endorsed
+tray icon and a settings dialog. **v1.43.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -473,7 +473,7 @@ all) — say so when it matters:
   block went through the handler once, in a temporary test) and on a real
   challenge (fake answers only); the update from 1.42.0 on Herbivore or
   Carnivore, those themes' first update cards.
-- From the route (built, not released): a real respawn mid-route; a route across
+- From 1.43.0 (no pre-release, the owner's call): a real respawn mid-route; a route across
   a server restart; a fast dino passing a stop between polls, and whether 50 m is
   right (the owner walked it, Nov 6, without calling it wrong); the real clipboard
   for Copy and Paste (the driver and tests use a stand-in, so as not to touch the
@@ -485,8 +485,9 @@ all) — say so when it matters:
   owner, who found the two looks it replaced and could not bring its first bug
   back (Nov 6). The chaos run's last result: 0 failures (Nov 7).
 
-BUILT, NOT RELEASED (Nov 6–7 2026, on `main`, in order, one commit a step): **the
-route**. Ordered stops on both maps, walked like a GPS; the plan, every decision and
+SHIPPED in 1.43.0 (Nov 7 2026, no pre-release and no fresh reviewer's read, the
+owner's call; built Nov 6–7 on `main`, one commit a step): **the route**. Ordered
+stops on both maps, walked like a GPS; the plan, every decision and
 what building changed: `Desktop\Pandora Overlay Files\pandora-route\PLAN.md`; the
 mockup: https://claude.ai/artifact/UK1sYYTGNPMKfn97nhissM. The idea that carries it:
 the current stop IS the tracked waypoint, so the ring, the edge indicator, the
@@ -500,7 +501,9 @@ wakes the Activity widget: the owner's call against the rule on chores. Guards:
 called it good (Nov 7), without itemising what was tried. Every baseline in every
 theme was recorded after that, at 4d08dae: before it the minimap's renders were all
 identical, so a player with no route draws as before, and the windows differed only
-on the Settings pages, whose nav gained a row.
+on the Settings pages, whose nav gained a row. At the release every theme's renders
+matched their baselines in both modes (1,615). No network, cookie or process change in
+the diff; the one new timer scrolls a list during a drag and leads to no request.
 
 SHIPPED in 1.42.1 (Nov 6 2026, no pre-release, the owner's call): a patch.
 **A failed heatmap fetch keeps the last picture** while it is under ten
@@ -905,7 +908,7 @@ The four-features brainstorm (Nov 2–3 2026)
 
 ## Releases
 
-- Current: 1.42.1. The csproj `<Version>` is the single source of truth
+- Current: 1.43.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
