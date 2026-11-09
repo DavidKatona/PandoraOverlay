@@ -391,7 +391,9 @@ public partial class PackWindow : OverlayWindowBase
     {
         var v = Math.Clamp(health, 0, 1);
         var text = Text($"{v * 100:0}%", 13, Theme.Current.Readout(BarStates.Of(v)), Theme.Current.Font.CaptionWeight);
-        text.Margin = new Thickness(2, 0, 0, 0);
+        text.Margin = new Thickness(FrameContract.PackPercentMargin, 0, 0, 0);
+        text.Width = FrameContract.PackPercentWidth; // one column, so "100%" moves no bar or badge
+        text.TextAlignment = TextAlignment.Right;
         return text;
     }
 
