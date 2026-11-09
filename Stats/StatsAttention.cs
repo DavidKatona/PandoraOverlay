@@ -34,12 +34,14 @@ public sealed class StatsAttention
     // and a theme colours those same states. The calm lines stay numbers
     // here: the gap between wake and calm is this rule's hysteresis, not a
     // state anything is drawn in.
-    private const double CalmAbove = 0.55;
+    // Internal: the Pack's wake rule (PackAttention) reuses this calm line and
+    // the damage hold below by name, never as copies.
+    internal const double CalmAbove = 0.55;
     private const double CombatCalmAbove = 0.80;
     // Both combat lines are the owner's numbers (Sep 30 2026). Accepted with them:
     // a wounded dino keeps the combat view lit until it has healed past CombatCalmAbove.
     private const double DamageStep = 0.005; // a real hit, not the 3-decimal quantization wobble
-    private static readonly TimeSpan DamageHold = TimeSpan.FromSeconds(10);
+    internal static readonly TimeSpan DamageHold = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan WakeLeftBelow = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan CalmLeftAbove = TimeSpan.FromMinutes(20);
 

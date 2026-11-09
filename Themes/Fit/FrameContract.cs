@@ -44,6 +44,18 @@ public static class FrameContract
     /// <summary>A widget's content width: the frame less its border and padding a side.</summary>
     public const double WidgetContent = WidgetFrame.Width - 2 * WidgetBorder - 2 * WidgetPadding;
 
+    /// <summary>A widget's padding, top and bottom (Padding="12,10").</summary>
+    public const double WidgetPaddingY = 10;
+
+    /// <summary>
+    /// The Pack's header row and its gap to the rows (PackWindow.xaml: the
+    /// header's fixed Height and its bottom Margin): the Activity feed's
+    /// header as measured, a 19 px line for the 14 px title and 7 under it
+    /// (the board, Nov 8 2026). The rows' room is the frame less these, the
+    /// border and the padding (<see cref="PackRows.Room"/>).
+    /// </summary>
+    public const double PackHeaderHeight = 19, PackHeaderGap = 7;
+
     /// <summary>The stats panel's row names' column (MainWindow.xaml, ColumnDefinition Width="58": the frame's 58 + 170 + 44).</summary>
     public const double StatsLabelColumn = 58;
 
