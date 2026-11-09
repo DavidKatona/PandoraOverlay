@@ -6,8 +6,8 @@ namespace PandoraOverlay;
 /// <summary>
 /// What the overlay remembers about one friend, by steamId. The roster
 /// itself comes from the site on every fetch; this holds YOUR side of it —
-/// a local nickname, a colour, whether they show on the map and in the feed
-/// — plus the last-seen facts the Settings page lists. Mutable on purpose:
+/// a local nickname, a colour, whether they show on the map, in the feed and
+/// in the Pack — plus the last-seen facts the Settings page lists. Mutable on purpose:
 /// the Settings page edits rows in place on a draft copy.
 /// </summary>
 public sealed class FriendEntry
@@ -28,6 +28,14 @@ public sealed class FriendEntry
 
     /// <summary>Post their events to the Activity feed.</summary>
     public bool Notify { get; set; } = true;
+
+    /// <summary>
+    /// Show their health, stamina, hunger and thirst in the Pack widget while
+    /// they play your exact dino (the website's own Friends stats rule). Off
+    /// until ticked: an older friends.json, which has no such key, reads false,
+    /// and the file's format stays 1. At most FriendBook.MaxWatched.
+    /// </summary>
+    public bool Watch { get; set; }
 
     public string? LastDino { get; set; }
     public double? LastGrowth { get; set; }
@@ -78,6 +86,13 @@ public static class FriendColour
 public sealed class FriendBook
 {
     public const int MaxNicknameLength = 32;
+
+    /// <summary>
+    /// The most friends the Pack watches (the owner, Nov 8 2026): the biggest
+    /// group the server's rules allow (Beipiaosaurus, 12) less you. The large
+    /// frame's compact rows hold exactly eleven.
+    /// </summary>
+    public const int MaxWatched = 11;
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
@@ -202,13 +217,18 @@ public sealed class FriendBook
     }
 
     /// <summary>
-    /// Commits the Settings draft: preferences (nickname, colour, map, feed)
-    /// are copied onto the matching live entries by steamId. Membership and
-    /// last-seen facts stay the roster's — a draft opened minutes ago must
-    /// not resurrect a friend Sync has since dropped.
+    /// Commits the Settings draft: preferences (nickname, colour, map, feed,
+    /// watch) are copied onto the matching live entries by steamId. Membership
+    /// and last-seen facts stay the roster's — a draft opened minutes ago must
+    /// not resurrect a friend Sync has since dropped. A Watch tick past
+    /// <see cref="MaxWatched"/> is refused (the page disables the boxes at the
+    /// cap; this holds the rule whatever a draft says): the unticks are
+    /// applied first, so swapping one watched friend for another in one batch
+    /// works.
     /// </summary>
     public void ApplyPrefs(IEnumerable<FriendEntry> draft)
     {
+        var watchOn = new List<FriendEntry>();
         foreach (var d in draft)
         {
             if (Find(d.SteamId) is not { } live) continue;
@@ -216,8 +236,29 @@ public sealed class FriendBook
             live.Colour = d.Colour is { } c ? WaypointPalette.Wrap(c) : null;
             live.ShowOnMap = d.ShowOnMap;
             live.Notify = d.Notify;
+            if (!d.Watch) live.Watch = false;
+            else if (!live.Watch) watchOn.Add(live);
+        }
+        foreach (var live in watchOn)
+        {
+            if (WatchedCount < MaxWatched) live.Watch = true;
         }
         Notify();
+    }
+
+    /// <summary>
+    /// Watches or unwatches one friend (the maps' right-click menu): true when
+    /// it took. Watching past the cap is refused; unwatching never is. Raises
+    /// Changed (the owner saves on it); no request is sent.
+    /// </summary>
+    public bool SetWatch(string steamId, bool on)
+    {
+        if (Find(steamId) is not { } entry) return false;
+        if (on && !CanWatch(steamId)) return false;
+        if (entry.Watch == on) return true;
+        entry.Watch = on;
+        Notify();
+        return true;
     }
 
     /// <summary>Deep copy for a draft the Settings page can edit and discard.</summary>
@@ -245,6 +286,18 @@ public sealed class FriendBook
     public bool ShowsOnMap(string steamId) => Find(steamId)?.ShowOnMap ?? true;
 
     public bool Notifies(string steamId) => Find(steamId)?.Notify ?? true;
+
+    /// <summary>Watched in the Pack widget.</summary>
+    public bool Watches(string? steamId) => Find(steamId)?.Watch == true;
+
+    /// <summary>How many friends the Pack watches.</summary>
+    public int WatchedCount => _items.Count(e => e.Watch);
+
+    /// <summary>The friends the Pack watches, in the book's order.</summary>
+    public IEnumerable<FriendEntry> Watched => _items.Where(e => e.Watch);
+
+    /// <summary>True when this friend is watched already, or one more fits under <see cref="MaxWatched"/>.</summary>
+    public bool CanWatch(string? steamId) => Watches(steamId) || WatchedCount < MaxWatched;
 
     /// <summary>Trims and caps a nickname; whitespace-only or empty becomes null (= use the site's name).</summary>
     public static string? SanitizeNickname(string? raw)
