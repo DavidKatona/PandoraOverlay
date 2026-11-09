@@ -62,9 +62,24 @@ public sealed partial class PollService
     internal static bool HeatmapWantedFor(OverlayConfig c, bool bigMapOpen, bool overlayHidden) =>
         (c.HeatmapEnabled && c.MinimapEnabled && !overlayHidden) || (bigMapOpen && c.BigMapHeatmap);
 
-    /// <summary>The friends roster is fetched while a friends surface is on screen: the Activity feed with friends' events, the minimap's arrows, or the open big map's Friends layer.</summary>
-    internal static bool FriendsWantedFor(OverlayConfig c, bool bigMapOpen) =>
-        (c.ActivityEnabled && c.ActivityIncludeFriends) || (c.MinimapEnabled && c.FriendsOnMinimap) || (bigMapOpen && c.BigMapFriends);
+    /// <summary>
+    /// True while the Pack widget is on screen (MainWindow sets it where the
+    /// window shows and goes, as it sets BigMapOpen): shown with at least one
+    /// friend watched, it is a friends surface. Hide-all and the auto-hide
+    /// don't clear it, as for the other friends surfaces.
+    /// </summary>
+    public bool PackShown { get; set; }
+
+    /// <summary>
+    /// The friends roster is fetched while a friends surface is on screen: the
+    /// Activity feed with friends' events, the minimap's arrows, the open big
+    /// map's Friends layer, or the Pack widget (shown, a friend watched). The
+    /// Pack adds no request and no pace: it rides the same roster, every 2nd
+    /// in-game poll and every idle poll.
+    /// </summary>
+    internal static bool FriendsWantedFor(OverlayConfig c, bool bigMapOpen, bool packShown) =>
+        (c.ActivityEnabled && c.ActivityIncludeFriends) || (c.MinimapEnabled && c.FriendsOnMinimap) || (bigMapOpen && c.BigMapFriends)
+        || packShown;
 
     /// <summary>Under a minute since the last fetch began (less the slack): no new fetch, the kept picture stands.</summary>
     internal static bool HeatmapFresh(DateTime fetchedUtc, DateTime nowUtc) =>

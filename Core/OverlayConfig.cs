@@ -514,6 +514,30 @@ public sealed class OverlayConfig
     /// </summary>
     public string? TrackedFriendSteamId { get; set; }
 
+    // ---- The Pack widget (Nov 2026) --------------------------------------------
+
+    /// <summary>
+    /// Show the Pack widget (the control panel's PACK Show/hide): your watched
+    /// friends' stats while they play your dino. On by default, but there is
+    /// no window until a friend is watched (Settings → Friends' Watch column,
+    /// or a map menu's "Watch"); shown, it is a friends surface (PollService).
+    /// </summary>
+    public bool PackEnabled { get; set; } = true;
+
+    /// <summary>The Pack's position; null until first placed (under the stats panel in the default layout).</summary>
+    public double? PackX { get; set; }
+
+    public double? PackY { get; set; }
+
+    /// <summary>The Pack's own scale, clamped 0.75–1.5 like every widget's; a plain 1.0, never seeded from another.</summary>
+    public double PackScale { get; set; } = 1.0;
+
+    /// <summary>The Pack's frame: "small" (the Activity feed's, the default) or "large" (the minimap's). Settings → Friends.</summary>
+    public string PackFrame { get; set; } = "small";
+
+    /// <summary>The Pack's rows: "full" (four captioned bars, the default) or "compact" (one line, health only). Settings → Friends.</summary>
+    public string PackRows { get; set; } = "full";
+
     // ---- Appearance -------------------------------------------------------
 
     /// <summary>

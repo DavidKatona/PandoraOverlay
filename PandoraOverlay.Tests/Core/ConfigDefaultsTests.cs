@@ -18,6 +18,11 @@ public class ConfigDefaultsTests
         Assert.Equal(1.0, cfg.PrimeScale);
         Assert.Equal(1.0, cfg.ActivityScale);
         Assert.Equal(1.0, cfg.ControlPanelScale);
+        Assert.Equal(1.0, cfg.PackScale);
+        Assert.True(cfg.PackEnabled);
+        Assert.Null(cfg.PackX);
+        Assert.Equal("small", cfg.PackFrame); // the owner, Nov 8 2026: small by default, large a choice
+        Assert.Equal("full", cfg.PackRows);
         Assert.True(cfg.UpdateCheckEnabled, "the launch update check is on until switched off");
     }
 

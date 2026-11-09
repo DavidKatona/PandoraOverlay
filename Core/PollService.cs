@@ -383,8 +383,8 @@ public sealed partial class PollService : IDisposable
 
     // ---- Friends ---------------------------------------------------------------
 
-    /// <summary>A friends surface is on screen: the Activity widget with friends' events included, the minimap with its friend arrows, or the open big map with its Friends layer (PollService.Maps.cs).</summary>
-    private bool FriendsWanted => FriendsWantedFor(_config, BigMapOpen);
+    /// <summary>A friends surface is on screen: the Activity widget with friends' events included, the minimap with its friend arrows, the open big map with its Friends layer, or the Pack widget (PollService.Maps.cs).</summary>
+    private bool FriendsWanted => FriendsWantedFor(_config, BigMapOpen, PackShown);
 
     /// <summary>The cadence rule, pure for the tests: every idle poll, else every Nth — and never within one poll interval of the last roster.</summary>
     internal static bool FriendsDue(int pollsSinceFriends, bool idling, bool hotTrigger, TimeSpan sinceLastRoster, TimeSpan interval) =>

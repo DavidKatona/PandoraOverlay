@@ -57,14 +57,14 @@ public sealed class MapGateTests
     public void TheFriendsGateKeepsTheWidgetsRules()
     {
         var c = Quiet();
-        Assert.False(PollService.FriendsWantedFor(c, bigMapOpen: false));
+        Assert.False(PollService.FriendsWantedFor(c, bigMapOpen: false, packShown: false));
 
         c.ActivityEnabled = c.ActivityIncludeFriends = true;
-        Assert.True(PollService.FriendsWantedFor(c, bigMapOpen: false));
+        Assert.True(PollService.FriendsWantedFor(c, bigMapOpen: false, packShown: false));
 
         c.ActivityIncludeFriends = false;
         c.FriendsOnMinimap = true;
-        Assert.True(PollService.FriendsWantedFor(c, bigMapOpen: false));
+        Assert.True(PollService.FriendsWantedFor(c, bigMapOpen: false, packShown: false));
     }
 
     [Fact]
@@ -73,11 +73,22 @@ public sealed class MapGateTests
         var c = Quiet();
         c.BigMapFriends = true;
 
-        Assert.True(PollService.FriendsWantedFor(c, bigMapOpen: true));
-        Assert.False(PollService.FriendsWantedFor(c, bigMapOpen: false));
+        Assert.True(PollService.FriendsWantedFor(c, bigMapOpen: true, packShown: false));
+        Assert.False(PollService.FriendsWantedFor(c, bigMapOpen: false, packShown: false));
 
         c.BigMapFriends = false;
-        Assert.False(PollService.FriendsWantedFor(c, bigMapOpen: true));
+        Assert.False(PollService.FriendsWantedFor(c, bigMapOpen: true, packShown: false));
+    }
+
+    /// <summary>The Pack on screen (a friend watched) is a friends surface of its own; the other surfaces don't need it, and it needs none of them.</summary>
+    [Fact]
+    public void ThePackShownWantsFriends()
+    {
+        var c = Quiet();
+        Assert.True(PollService.FriendsWantedFor(c, bigMapOpen: false, packShown: true));
+        Assert.False(PollService.FriendsWantedFor(c, bigMapOpen: false, packShown: false));
+        c.FriendsOnMinimap = true;
+        Assert.True(PollService.FriendsWantedFor(c, bigMapOpen: false, packShown: false));
     }
 
     [Fact]
