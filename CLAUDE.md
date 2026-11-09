@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.43.0 is released, working, and endorsed
+tray icon and a settings dialog. **v1.43.1 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -484,6 +484,29 @@ all) — say so when it matters:
   a weaker PC. The drag itself was driven with real WPF input and tried by the
   owner, who found the two looks it replaced and could not bring its first bug
   back (Nov 6). The chaos run's last result: 0 failures (Nov 7).
+- From 1.43.1 (no pre-release, the owner's call): the fallback to the old list
+  address against the real site (tests against a fake site only: the new address
+  answered every time); a session the website has ended, which now costs two list
+  requests, as on the site's page; the skin hotkey, "Apply your favourite" and the
+  ★ on a tile since the move (the favourites' ids were found in the new list from
+  the owner's browser, the key itself not pressed); Refresh inside the 30 s floor; a
+  list where some skins have colours and some have none (tiles of two heights in a
+  row). The list (90 skins), its pictures, an apply from a tile and the tiles
+  without dots were seen by the owner in game (Nov 9).
+
+SHIPPED in 1.43.1 (Nov 9 2026, no pre-release and no fresh reviewer's read, the
+owner's call): a patch. **Settings › Skins shows the skins again.** The website
+moved its list to `POST /api/extras/patreon/skins`; its page asks that first and
+the old `/api/skins/patreon-skins` only after a JSON answer with no list in it, and
+the old one, which the overlay asked alone since 1.28, answered a success with no
+skins (87 skins on Nov 8, 0 on Nov 9, in the owner's log). The overlay does what the
+page does (`PatreonSkins.IsList`, the second request decided in `PollService.Skins`):
+two requests at most per fetch, under the old floors. The skins keep their fields
+and ids, but for the colours and `sv`, which the new list leaves out: **a tile
+shows no colour dots** when the website sends no colours, instead of the site's
+seven greys (the owner's call). Guards: 1379 tests; every theme's renders identical
+to its baseline in both modes (1,615), Skins drawn signed out; no baseline changed.
+Constraint review offered, not run.
 
 SHIPPED in 1.43.0 (Nov 7 2026, no pre-release and no fresh reviewer's read, the
 owner's call; built Nov 6–7 on `main`, one commit a step): **the route**. Ordered
@@ -908,7 +931,7 @@ The four-features brainstorm (Nov 2–3 2026)
 
 ## Releases
 
-- Current: 1.43.0. The csproj `<Version>` is the single source of truth
+- Current: 1.43.1. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
