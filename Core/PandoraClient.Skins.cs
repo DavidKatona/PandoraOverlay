@@ -5,17 +5,22 @@ using System.Text.Json;
 namespace PandoraOverlay;
 
 /// <summary>
-/// PandoraClient, Skins part (v1.28): the two calls behind the website's
-/// /patreon page and the tile pictures. The list is a read; apply-patreon is
-/// the overlay's first WRITE — it changes your dino's skin in game — so it is
-/// only ever sent for a click (PollService.Skins holds the gating). Pictures
-/// are fetched by a separate client that carries no cookie and none of the
-/// site headers, whatever host they live on. Same class as PandoraClient.cs,
-/// split for reading; see CLAUDE.md.
+/// PandoraClient, Skins part (v1.28): the calls behind the website's /patreon
+/// page and the tile pictures. The list is a read, from two addresses since
+/// Nov 2026 (below); apply-patreon is the overlay's first WRITE — it changes
+/// your dino's skin in game — so it is only ever sent for a click
+/// (PollService.Skins holds the gating). Pictures are fetched by a separate
+/// client that carries no cookie and none of the site headers, whatever host
+/// they live on. Same class as PandoraClient.cs, split for reading; see
+/// CLAUDE.md.
 /// </summary>
 public sealed partial class PandoraClient
 {
-    private const string PatreonSkinsEndpoint = "https://islapandora.eu/api/skins/patreon-skins";
+    // The list moved by Nov 9 2026: the site's page asks the new address first and
+    // the old one only when the new one's answer holds no list. The old one, asked
+    // alone by 1.28–1.43, then answered a success with no skins: an empty page.
+    private const string PatreonSkinsEndpoint = "https://islapandora.eu/api/extras/patreon/skins";
+    private const string OldPatreonSkinsEndpoint = "https://islapandora.eu/api/skins/patreon-skins";
     private const string ApplyPatreonSkinEndpoint = "https://islapandora.eu/api/skins/apply-patreon";
     private const string PatreonPage = "https://islapandora.eu/patreon"; // the page these calls come from on the site
     // The first build capped pictures at 4 MB, which turned the site's real ones away.
@@ -25,26 +30,66 @@ public sealed partial class PandoraClient
     private HttpClient? _pictures;
 
     /// <summary>
-    /// The Patreon skins this account can see (the same authenticated,
-    /// empty-bodied POST the site's page sends on load), locked ones
-    /// included. Null when the server declines.
+    /// The Patreon skins this account can see, from the site's list address
+    /// (the same authenticated, empty-bodied POST its page sends on load),
+    /// locked ones included. Null when the answer is JSON but holds no list
+    /// (a failed status, no success or no skins array: PatreonSkins.IsList),
+    /// the site page's sign to ask its old address (FetchOldPatreonSkinsAsync;
+    /// PollService.Skins decides). An answer that isn't JSON throws, as the
+    /// page stops there too: a failed status as that status (Cloudflare's
+    /// block page), a good one as the JsonException.
     /// </summary>
     public async Task<IReadOnlyList<PatreonSkin>?> FetchPatreonSkinsAsync(CancellationToken ct = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, PatreonSkinsEndpoint)
+        using var response = await SendPatreonSkinsAsync(PatreonSkinsEndpoint, ct).ConfigureAwait(false);
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(bytes);
+        }
+        catch (JsonException)
+        {
+            response.EnsureSuccessStatusCode();
+            throw;
+        }
+        using (doc)
+        {
+            return response.IsSuccessStatusCode && PatreonSkins.IsList(doc.RootElement)
+                ? PatreonSkins.ParseList(doc.RootElement)
+                : null;
+        }
+    }
+
+    /// <summary>
+    /// The old list address: the site's page asks it only after the new one
+    /// gave no list, and its answer is the last word. Read as 1.28–1.43 read
+    /// it: a failed status throws, a decline is null, a success without a
+    /// list is an empty one.
+    /// </summary>
+    public async Task<IReadOnlyList<PatreonSkin>?> FetchOldPatreonSkinsAsync(CancellationToken ct = default)
+    {
+        using var response = await SendPatreonSkinsAsync(OldPatreonSkinsEndpoint, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
+        return PatreonSkins.ParseList(doc.RootElement);
+    }
+
+    /// <summary>One list request, to either address: the empty-bodied POST with the cookie and the page's Referer.</summary>
+    private async Task<HttpResponseMessage> SendPatreonSkinsAsync(string endpoint, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
         {
             Content = new ByteArrayContent(Array.Empty<byte>())
         };
         request.Headers.TryAddWithoutValidation("Cookie", _cookie);
         request.Headers.TryAddWithoutValidation("Referer", PatreonPage);
 
-        using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+        var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
         UpdateRollingCookie(response);
-        response.EnsureSuccessStatusCode();
-
-        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
-        return PatreonSkins.ParseList(doc.RootElement);
+        return response;
     }
 
     /// <summary>

@@ -110,6 +110,17 @@ public class PatreonSkinsTests
     [Fact]
     public void AMissingListIsEmptyNotAMiss() => Assert.Empty(PatreonSkins.ParseList(Json("""{"success":true}"""))!);
 
+    [Theory]
+    [InlineData("""{"success":true,"skins":[]}""", true)] // an empty list is a list: the page shows it
+    [InlineData("""{"success":1,"skins":[{"id":1,"name":"Ember"}]}""", true)]
+    [InlineData("""{"success":true}""", false)] // no skins array: the page asks the old address
+    [InlineData("""{"success":true,"skins":{}}""", false)]
+    [InlineData("""{"success":false,"skins":[]}""", false)]
+    [InlineData("""{"error":"Forbidden"}""", false)]
+    [InlineData("[]", false)]
+    public void IsListIsThePagesTestForAnAnswerItCanShow(string json, bool isList) =>
+        Assert.Equal(isList, PatreonSkins.IsList(Json(json)));
+
     [Fact]
     public void SortsWhatYouCanApplyFirstThenByTierThenName()
     {

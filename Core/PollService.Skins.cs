@@ -85,8 +85,11 @@ public sealed partial class PollService
 
     /// <summary>
     /// The skins for the page. Answers from the session's copy while it is
-    /// fresh (or, with refresh, at least 30 s old), else asks the server
-    /// once. A failure keeps the last good copy and names the problem.
+    /// fresh (or, with refresh, at least 30 s old), else asks the server:
+    /// the list address, and its old one only when that answered with no
+    /// list in it, as the site's page does on load (Nov 2026) — two requests
+    /// at most, under one busy flag and one floor. A failure keeps the last
+    /// good copy and names the problem.
     /// </summary>
     public async Task<SkinListResult> GetSkinsAsync(bool refresh)
     {
@@ -102,6 +105,11 @@ public sealed partial class PollService
         try
         {
             var list = await _client.FetchPatreonSkinsAsync();
+            if (list is null)
+            {
+                AppLog.Skins.Log("Skins list: no list at the website's address, asking its old one");
+                list = await _client.FetchOldPatreonSkinsAsync();
+            }
             if (list is null)
             {
                 AppLog.Skins.Warning("Skins list: the website declined");

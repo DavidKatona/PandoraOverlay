@@ -129,6 +129,16 @@ public static class PatreonSkins
         return skins;
     }
 
+    /// <summary>
+    /// The site page's test for an answer it can show (Nov 2026): a success
+    /// with a skins array. The page asks the new list address first and the
+    /// old one only when that answer fails this (or its status does); the old
+    /// one's answer is shown whatever it holds.
+    /// </summary>
+    public static bool IsList(JsonElement root) =>
+        root.ValueKind == JsonValueKind.Object && IsTruthy(root, "success") &&
+        root.TryGetProperty("skins", out var list) && list.ValueKind == JsonValueKind.Array;
+
     /// <summary>The apply response: success, or the server's own words for why not (message, else error), cleaned.</summary>
     public static SkinApplyResult ParseApply(JsonElement root, string skinName, int pattern)
     {
