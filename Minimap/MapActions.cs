@@ -68,6 +68,20 @@ public sealed partial class MapActions
         FriendTracked?.Invoke();
     }
 
+    /// <summary>True when this friend is in the Pack.</summary>
+    public bool Watches(string? steamId) => _book.Watches(steamId);
+
+    /// <summary>True when this friend is watched or one more fits (the cap, FriendBook.MaxWatched): unwatching is never refused.</summary>
+    public bool CanWatch(string? steamId) => _book.CanWatch(steamId);
+
+    /// <summary>
+    /// The maps' "Watch …" / "Unwatch …" (the Pack, Nov 2026): sets the book's
+    /// entry, which raises its Changed (MainWindow saves the file and brings
+    /// the Pack up at the first, or closes it at the last). No request: a
+    /// Pack already shown just redraws.
+    /// </summary>
+    public void WatchFriend(string steamId, bool on) => _book.SetWatch(steamId, on);
+
     /// <summary>"Waypoint here": a new waypoint at a world spot, named after its area, coloured, and tracked.</summary>
     public string AddWaypoint(double x, double y) => Added(_library.Add(NewName(x, y), x, y, _library.NextColour()));
 

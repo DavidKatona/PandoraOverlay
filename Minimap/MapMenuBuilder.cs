@@ -10,9 +10,9 @@ public sealed record MapMenuSpot((double X, double Y)? World, Waypoint? Waypoint
 
 /// <summary>
 /// Fills a map's right-click menu, the same on every map; the map owns the
-/// popup and says what is under the cursor. On a friend: track them, or
-/// drop a waypoint where they stand. On a waypoint: track, copy or remove
-/// it, and put it on the route. Always: "Waypoint here" (auto-named and
+/// popup and says what is under the cursor. On a friend: track them, watch
+/// them in the Pack, or drop a waypoint where they stand. On a waypoint:
+/// track, copy or remove it, and put it on the route. Always: "Waypoint here" (auto-named and
 /// tracked) and "Add stop here", then with a route its own entries, then
 /// share-a-spot: this spot ("meet here"), my position ("come to me") and
 /// Paste, which makes a waypoint named from the code, and a route's paste when
@@ -60,6 +60,10 @@ public sealed class MapMenuBuilder
             var name = _actions.Short(_actions.FriendName(friend));
             var tracked = friendId == _actions.TrackedFriendSteamId;
             Item(tracked ? $"Untrack {name}" : $"Track {name}", brush, () => _actions.TrackFriend(tracked ? null : friendId));
+            // The Pack (Nov 2026): watched, their stats show in it while they play your dino. Greyed at the cap; unwatching never is.
+            var watched = _actions.Watches(friendId);
+            Item(watched ? $"Unwatch {name}" : $"Watch {name}", brush, () => _actions.WatchFriend(friendId, !watched),
+                 enabled: watched || _actions.CanWatch(friendId), disabledHint: $"Up to {FriendBook.MaxWatched}");
             Item($"Waypoint at {name}", brush, () => Say(_actions.AddWaypointAtFriend(friend)), enabled: !full);
             Separator();
         }
@@ -142,7 +146,8 @@ public sealed class MapMenuBuilder
         _items.Children.Add(button);
     }
 
-    private void Item(string text, Brush? dot, Action onClick, bool enabled = true)
+    /// <param name="disabledHint">A tooltip shown on the entry while it is greyed (why it is).</param>
+    private void Item(string text, Brush? dot, Action onClick, bool enabled = true, string? disabledHint = null)
     {
         var content = new StackPanel { Orientation = Orientation.Horizontal };
         if (dot is not null)
@@ -155,6 +160,11 @@ public sealed class MapMenuBuilder
         content.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center });
 
         var button = new Button { Content = content, Style = _button, IsEnabled = enabled };
+        if (!enabled && disabledHint is not null)
+        {
+            button.ToolTip = disabledHint;
+            ToolTipService.SetShowOnDisabled(button, true);
+        }
         button.Click += (_, _) =>
         {
             _close();
