@@ -8,6 +8,9 @@ namespace PandoraOverlay;
 /// with a name, the tier that unlocks it and a picture. The server decides
 /// Locked — the overlay only ever shows it. The id is kept with its JSON
 /// type, because applying sends back exactly what the list delivered.
+/// Colours are the seven slots in the site's order, or none at all when the
+/// website sent no colours (its list since Nov 2026 has none): the tile then
+/// shows no dots rather than the site's seven grey ones (the owner's call).
 /// </summary>
 public sealed record PatreonSkin(
     string Id,
@@ -219,17 +222,25 @@ public static class PatreonSkins
                (skin.RequiredRole?.Contains(needle, StringComparison.OrdinalIgnoreCase) ?? false);
     }
 
+    /// <summary>The seven slots, a missing one in the site's grey; none when no slot came at all (no "colors", or none of its seven).</summary>
     private static IReadOnlyList<string> ReadColours(JsonElement item)
     {
+        if (!item.TryGetProperty("colors", out var set) || set.ValueKind != JsonValueKind.Object) return Array.Empty<string>();
         var colours = new string[ColourKeys.Length];
-        var has = item.TryGetProperty("colors", out var set) && set.ValueKind == JsonValueKind.Object;
+        var any = false;
         for (var i = 0; i < ColourKeys.Length; i++)
         {
-            colours[i] = has && set.TryGetProperty(ColourKeys[i], out var c) && c.ValueKind == JsonValueKind.Object
-                ? ToHex(Number(c, "R"), Number(c, "G"), Number(c, "B"))
-                : "#808080"; // the site's own stand-in for a missing colour
+            if (set.TryGetProperty(ColourKeys[i], out var c) && c.ValueKind == JsonValueKind.Object)
+            {
+                colours[i] = ToHex(Number(c, "R"), Number(c, "G"), Number(c, "B"));
+                any = true;
+            }
+            else
+            {
+                colours[i] = "#808080"; // the site's own stand-in for a missing colour
+            }
         }
-        return colours;
+        return any ? colours : Array.Empty<string>();
     }
 
     private static string? RoleId(JsonElement item) =>

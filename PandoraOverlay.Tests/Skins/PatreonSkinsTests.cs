@@ -88,11 +88,22 @@ public class PatreonSkinsTests
         Assert.Equal("#808080", colours[6]); // e missing: the site's grey
     }
 
-    [Fact]
-    public void ASkinWithoutColoursIsAllGrey()
+    [Theory]
+    [InlineData("""{"id":1,"name":"Glacier"}""")] // the website's list since Nov 2026: no colours at all
+    [InlineData("""{"id":1,"name":"Glacier","colors":null}""")]
+    [InlineData("""{"id":1,"name":"Glacier","colors":{}}""")]
+    [InlineData("""{"id":1,"name":"Glacier","colors":{"x":{"R":1,"G":0,"B":0},"md":"red"}}""")] // none of the seven slots
+    public void ASkinWithoutColoursHasNone_NotSevenGreys(string skin)
     {
-        var glacier = PatreonSkins.ParseList(Json(List))![1];
-        Assert.All(glacier.Colours, c => Assert.Equal("#808080", c));
+        var glacier = Assert.Single(PatreonSkins.ParseList(Json($$"""{"success":true,"skins":[{{skin}}]}"""))!);
+        Assert.Empty(glacier.Colours);
+    }
+
+    [Fact]
+    public void OneColourIsEnoughForAllSevenDots()
+    {
+        var one = Assert.Single(PatreonSkins.ParseList(Json("""{"success":true,"skins":[{"id":1,"name":"Ember","colors":{"u":{"R":1,"G":1,"B":1}}}]}"""))!);
+        Assert.Equal(new[] { "#808080", "#808080", "#808080", "#808080", "#ffffff", "#808080", "#808080" }, one.Colours);
     }
 
     [Theory]

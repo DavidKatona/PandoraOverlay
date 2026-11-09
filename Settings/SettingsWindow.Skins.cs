@@ -11,7 +11,8 @@ namespace PandoraOverlay;
 
 /// <summary>
 /// SettingsWindow, Skins part (v1.28): the website's Patreon skins page as
-/// tiles — picture, name, tier, the seven colour dots, Apply. Two things set
+/// tiles — picture, name, tier, the seven colour dots (when the website
+/// sends colours), Apply. Two things set
 /// it apart from every other page: it talks to the site (the list when the
 /// page is first looked at; a picture only once its tile is on screen, and
 /// then only if no thumbnail of it is saved on disk — see SkinThumbnails),
@@ -203,16 +204,23 @@ public partial class SettingsWindow
             Foreground = skin.Locked ? HintBad : Highlight, FontSize = Theme.Current.Size(10), TextTrimming = TextTrimming.CharacterEllipsis
         });
 
-        var dots = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 6) };
-        foreach (var hex in skin.Colours)
+        // The colour dots only when the website sent colours (none since Nov 2026):
+        // not seven greys, as its own page now shows (the owner's call, Nov 9 2026).
+        // The tile is that much shorter; the gap above Apply stays.
+        if (skin.Colours.Count > 0)
         {
-            dots.Children.Add(new Ellipse
+            var dots = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 6) };
+            foreach (var hex in skin.Colours)
             {
-                Width = 10, Height = 10, Fill = BrushOf(hex), Stroke = DotRim, StrokeThickness = 1, Margin = new Thickness(0, 0, 4, 0)
-            });
+                dots.Children.Add(new Ellipse
+                {
+                    Width = 10, Height = 10, Fill = BrushOf(hex), Stroke = DotRim, StrokeThickness = 1, Margin = new Thickness(0, 0, 4, 0)
+                });
+            }
+            body.Children.Add(dots);
         }
-        body.Children.Add(dots);
         var area = BuildApplyArea(skin);
+        if (skin.Colours.Count == 0) area.Margin = new Thickness(0, 6, 0, 0);
         body.Children.Add(area);
         if (!skin.Locked) AddFavouriteStar(skin, wellGrid, area); // in the picture's corner (SettingsWindow.SkinFavourites.cs)
 

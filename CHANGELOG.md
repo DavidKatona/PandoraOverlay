@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- A skin's colour dots on Settings › Skins show only when the website sends
+  the skin's colours. Its new list has none, so the tiles are a little
+  shorter instead of showing seven grey dots.
+
 ### Fixed
 
 - Settings › Skins shows the skins again. The website moved its list of
