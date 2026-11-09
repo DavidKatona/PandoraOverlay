@@ -251,7 +251,7 @@ public static class FrameContract
     public const double PackCompactBadgeMargins = 4 + 4;
     public const double PackPercentMargin = 2;
     public const double PackMetaMargin = 6, PackSexMargin = 4;
-    public const double PackCompactNameMax = 88;
+    public const double PackCompactNameMax = 88;      // a compact row's name column (its names end in "…" past it)
     public const double PackCompactBarMin = 40;       // the least a compact row's bar keeps
     public const double PackCompactBarMargins = 6 + 2;
     public const double PackColumnGap = 6;            // between a full row's four captioned bars
@@ -264,7 +264,7 @@ public static class FrameContract
     /// The Pack's tight strings: a full row's right end (the sex, the three
     /// badges and "100%") beside a one-letter name and its ellipsis, the four
     /// captions in their quarter columns, a compact row's badges and "100%"
-    /// beside its least bar, a badge's letter in its badge, a compact row's
+    /// beside its name column and its least bar, a badge's letter in its badge, a compact row's
     /// note beside the longest name, and the lines that take the whole width.
     /// The header is with the other widgets' headers.
     /// </summary>
@@ -277,8 +277,8 @@ public static class FrameContract
                            Beside: _ => PackDot + PackMetaMargin + PackSexMargin + PackFullBadgeMargins + PackBadges + PackPercentMargin));
         foreach (var caption in new[] { "Health", "Stamina", "Hunger", "Thirst" })
             slots.Add(new Slot(PackRowsWhere, caption, new[] { Body(caption, 10) }, _ => (WidgetContent - 3 * PackColumnGap) / 4, PackCaptionHeight));
-        slots.Add(new Slot(PackRowsWhere, "a compact row's right end", new[] { Name("W…"), Name("100%") }, _ => WidgetContent,
-                           Beside: _ => PackDot + PackCompactBarMargins + PackCompactBarMin + PackCompactBadgeMargins + PackBadges + PackPercentMargin));
+        slots.Add(new Slot(PackRowsWhere, "a compact row's right end", new[] { Name("100%") }, _ => WidgetContent,
+                           Beside: _ => PackDot + PackCompactNameMax + PackCompactBarMargins + PackCompactBarMin + PackCompactBadgeMargins + PackBadges + PackPercentMargin));
         foreach (var letter in new[] { "H", "B", "L" })
             slots.Add(new Slot(PackRowsWhere, $"the {letter} badge", new[] { new Piece(letter, t => t.Font.BadgeSize, _ => ThemeWeight.Bold) },
                                _ => PackBadgeWidth, PackBadgeHeight));

@@ -298,7 +298,9 @@ public partial class PackWindow : OverlayWindowBase
         var line = new DockPanel { LastChildFill = true };
         line.Children.Add(Dot(row));
         var dim = row.Kind is PackRowKind.Held or PackRowKind.Away;
-        line.Children.Add(NameText(row.Name, CompactNameMax, dim));
+        var name = NameText(row.Name, CompactNameMax, dim);
+        name.Width = CompactNameMax; // one name column, so the bars start together down the list
+        line.Children.Add(name);
         if (row.Kind == PackRowKind.Live && row.Friend is { } live)
         {
             var pct = Percent(live.Health);
