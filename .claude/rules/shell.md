@@ -17,6 +17,12 @@ paths:
   `Refresh*Async` if it is a request surface, and a nullable X/Y filled by
   `FillDefaultPositions` (DefaultLayout). It gets a captioned control-panel group and a
   captioned group on Settings → Widgets (`.claude/rules/settings.md`) — never a tray line.
+  The Pack (Nov 2026) is the exception on the second: its control-panel group yes (PACK,
+  Show/hide, greyed while nobody is watched), its options on Settings → Friends, not
+  Widgets. Its window exists only while it is shown AND a friend is watched
+  (`MainWindow.Pack.cs`); the control panel made its room by folding the minimap's Map
+  view, Heatmap and Areas into one Layers menu (`ControlPanelWindow.Layers.cs`), so the
+  panel kept its 940 × 74 frame, with `SessionGap` before Lock and Exit.
 - **A new global hotkey** needs: an id constant (0xA11D is reserved for the Settings
   dialog's test registration); a default WITH a modifier, clear of the game's F2
   (recording), F10 (hide HUD), F11 (windowed / fullscreen) and Steam's F12 (screenshot) —

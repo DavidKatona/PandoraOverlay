@@ -43,7 +43,7 @@ a file in the folder is touched.
    | `GET /map/api/heatmap-status` + `GET /map/heatmap-live.png` | **no** (the site headers are sent) | only while a heatmap layer is on: the minimap's (the minimap widget switched on, its layer on, and the overlay not hidden by hide-all or the auto-hide) or the open map's own Heatmap layer | never two fetches less than 60 s apart, whatever triggers them: within a minute the kept picture is reused, and a fetch re-arms the 60 s timer (the site's page: 10 s per tab, while its layer is on) |
    | `POST /api/prime/check` | yes | USER ONLY: the control panel's Check or the Check Prime hotkey, never a timer | the server's cooldown, mirrored locally: no session (signed out or ended), cooling down or not in game = no request (a STALE not-in-game state first gets one regular `mylocation` poll); 15 s floor |
    | `POST /api/prime/cooldown` | yes | exactly once after each SUCCESSFUL check (the success answer carries no cooldown, and its length varies with supporter rank; the site button's hard-coded 5 min is only the fallback when this request fails) | once per check |
-   | `POST /api/map/friends` (empty body) | yes | only while a friends surface is switched on (the Activity widget with friends' events included, the minimap's friend arrows, the open map's Friends layer; all off = zero requests; hide-all and the auto-hide don't stop it, on purpose: the friend chime and the Activity log work while hidden): right after a successful `mylocation` poll, or once for a hot trigger (a surface shown, including one switched on in Settings since 1.38; a surface hidden or switched off, or a friend's nickname or colour changed, sends nothing) when the last poll succeeded and the last roster is at least one poll interval old | every 2nd in-game poll, every idle poll, never two within one poll interval (the site: with every poll at 5 s); read-only |
+   | `POST /api/map/friends` (empty body) | yes | only while a friends surface is switched on (the Activity widget with friends' events included, the minimap's friend arrows, the open map's Friends layer, the Pack widget shown with a friend watched; all off = zero requests; hide-all and the auto-hide don't stop it, on purpose: the friend chime and the Activity log work while hidden): right after a successful `mylocation` poll, or once for a hot trigger (a surface shown, including one switched on in Settings since 1.38, and the Pack appearing at the first Watch tick; a surface hidden or switched off, a friend's nickname or colour changed, or a Watch tick on a Pack already shown, sends nothing) when the last poll succeeded and the last roster is at least one poll interval old | every 2nd in-game poll, every idle poll, never two within one poll interval (the site: with every poll at 5 s); read-only |
    | `POST /api/extras/patreon/skins` (empty body); `POST /api/skins/patreon-skins` (empty body) only after a JSON answer with no list, as the site's page does (the list moved by Nov 9 2026; the old address alone then answered an empty one) | yes | opening Settings → Skins; Refresh | reused 10 min, 30 s floor; two requests at most per fetch |
    | `POST /api/skins/apply-patreon` `{skinId, patternIndex}` — **WRITE** | yes | a click on a pattern button (or Apply your favourite); the Apply my skin hotkey, which sends your favourite for this dino (1.38, the owner's okay Oct 24 2026) | 15 s mash guard; no session or not in game answered locally; no favourite for the dino = nothing sent |
    | `POST /api/auth/me` | yes | once right after a sign-in; once per dialog when Settings → Account is looked at | never on a timer |
@@ -273,6 +273,10 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   text). What acts on it is `Minimap/MapActions.Route.cs`, what draws it
   `Minimap/RouteDrawing.cs` and `MapCanvas.Route.cs`, its page
   `Settings/SettingsWindow.Route.cs` and `.RouteDrag.cs`.
+- `Pack/` — the Pack widget (PackWindow) and its pure helpers: PackRows (who
+  gets a row, showing what, and the frame's capacity), PackLeavers (the held
+  leavers) and PackAttention (its wake rule). Its MainWindow part is
+  `Shell/MainWindow.Pack.cs`, its options on `Settings/SettingsWindow.Friends.cs`.
 - `Waypoints/`, `Friends/`, `Activity/`, `Prime/`, `Rules/`, `Skins/`,
   `Storage/` (Dino storage), `Account/` (the in-app sign-in), `Updates/` (the
   update card), `Settings/` (the paged dialog, one partial per page).
@@ -767,7 +771,9 @@ Widgets and the stats panel
 Activity and friends
 - A row-per-friend Activity list (it would resize with the roster; the arrows
   already say who is where), and an Activity rows setting.
-- A friend's stats anywhere on the overlay — including a stats line for the
+- A friend's stats anywhere on the overlay but the Pack (reversed for the Pack
+  by the owner, Nov 3–8 2026: watched friends only, your own species only, by
+  the website's own Friends stats rule), including a stats line for the
   tracked friend in the minimap footer (the footer is navigation only).
 - A friends-only feed: your own events are always on, friends' are the
   default-on extra.
@@ -866,14 +872,17 @@ The four-features brainstorm (Nov 2–3 2026)
   often earns a **hotkey** instead of a tray line (the heatmap and Check Prime
   did).
 - Every distinct widget gets its OWN size slider in Settings (owner's rule):
-  `UiScale` (stats panel), `MinimapScale`, `PrimeScale`, `ActivityScale` — a new
+  `UiScale` (stats panel), `MinimapScale`, `PrimeScale`, `ActivityScale`,
+  `PackScale` — a new
   widget ships with one (override `AppearanceScale`). The control panel has its
   own too, `ControlPanelScale` (1.37; it rode `UiScale` before). All behave
   alike (owner, Oct 6 2026): plain numbers defaulting to 1.0, no seeding from
   another widget, no migration. No global multiplier on top.
 - **A widget never changes size.** Every widget is 298 wide on one of two fixed
   frames (`WidgetFrame`: the minimap and the Prime tracker share the large one,
-  the stats panel and the Activity feed the small one) and lays its content out
+  the stats panel and the Activity feed the small one; the Pack takes either,
+  the player's choice on Settings → Friends, and never switches by itself) and
+  lays its content out
   inside; additions overlay existing space, transient things are popups. An
   update must never resize an existing widget — 1.25's move to the frames was
   the one accepted exception, never again. Since 1.39 the control panel

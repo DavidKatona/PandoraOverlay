@@ -37,7 +37,7 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Heatmap hotkey / control panel: flips the minimap's heatmap layer
+    /// Heatmap hotkey / the control panel's Layers menu: flips the minimap's heatmap layer
     /// (persisted with the next Save). Ignored while the minimap is hidden —
     /// flipping an invisible layer would only surprise whoever shows the map
     /// again later.
@@ -55,7 +55,7 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// The control panel's Areas button: flips the minimap's area-border
+    /// The control panel's Layers menu, Areas: flips the minimap's area-border
     /// layer (persisted with the next Save). A layer you switch, like the
     /// heatmap, so it lives on the control panel and not in Settings; no
     /// hotkey until it proves to be flipped mid-game often. Local drawing

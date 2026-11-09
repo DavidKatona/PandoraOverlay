@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **The Pack widget.** Watch up to 11 friends (tick Watch on Settings →
+  Friends, or right-click a friend's arrow on a map) and see their health,
+  stamina, hunger and thirst while they play your species, in a widget under
+  the stats panel. Small or large, full or compact rows, with its own size
+  slider.
+
+### Changed
+
+- The control panel's Map view, Heatmap and Areas buttons are one Layers
+  menu, to make room for the Pack's group. Ctrl+F6 and Ctrl+F7 work as
+  before.
+
 ## [1.43.1] - 2026-11-09
 
 ### Changed

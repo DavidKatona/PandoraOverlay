@@ -30,8 +30,11 @@ paths:
 - A new widget adds a captioned group to the **Widgets** page, in the control panel's
   order, its own Scale slider first; it gets a page of its own only when its options
   would make Widgets taller than the tallest page. The minimap's options are on **Maps**,
-  with what the minimap and the map share (the trail). General is app-wide only:
-  start-up, the look, and every chime (a chime plays whether or not its widget is on
+  with what the minimap and the map share (the trail). The Pack's (its Scale, Frame and
+  Rows) are on **Friends**, under the list, beside its Watch column (Nov 2026: measured
+  Nov 8 in a clean copy, every theme, Widgets had 77 to 85 px left and the group needs
+  about 109; it came to 101.22 in Default, and the friends list gave up exactly that, 330
+  to 228). General is app-wide only: start-up, the look, and every chime (a chime plays whether or not its widget is on
   screen). Groups inside a page use `SectionCaption`.
 - Content built in code is built on the page's **first look** (`SetPage` →
   `Open<Page>Page`), never for a page you aren't on: anything built up front is paid for
