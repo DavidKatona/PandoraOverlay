@@ -168,7 +168,7 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// Hide-all hotkey / tray: hides all four widgets for screenshots or cutscenes.
+    /// Hide-all hotkey / tray: hides every widget for screenshots or cutscenes.
     /// Polling continues (the state stays warm; only the minimap's heatmap
     /// pauses, see OnHiddenChanged); hidden is never persisted —
     /// the app always starts visible.
@@ -215,6 +215,7 @@ public partial class MainWindow
         _minimap?.Hide();
         _prime?.Hide();
         _activity?.Hide();
+        _pack?.Hide();
     }
 
     private void ShowWindows()
@@ -224,6 +225,7 @@ public partial class MainWindow
         _minimap?.Show();
         _prime?.Show();
         _activity?.Show();
+        _pack?.Show();
     }
 
     /// <summary>
@@ -297,6 +299,7 @@ public partial class MainWindow
         _minimap?.SetEditMode(on);
         _prime?.SetEditMode(on);
         _activity?.SetEditMode(on);
+        _pack?.SetEditMode(on);
 
         if (on)
         {
@@ -324,15 +327,24 @@ public partial class MainWindow
                 toggleMinimapView: () => _minimap?.ToggleView(),
                 toggleHeatmap: ToggleHeatmap,
                 toggleAreaBorders: ToggleAreaBorders,
+                layers: () => new PanelLayers(
+                    MinimapShown: _minimap is not null,
+                    Centered: string.Equals(_config.MinimapMode, "centered", StringComparison.OrdinalIgnoreCase),
+                    Heatmap: _config.HeatmapEnabled,
+                    Areas: _config.MinimapAreaBordersEnabled,
+                    ViewKey: _hotkeyView.ToString(),
+                    HeatmapKey: _hotkeyHeatmap.ToString()),
                 togglePrime: TogglePrime,
                 checkPrime: CheckPrime,
                 toggleActivity: ToggleActivity,
+                togglePack: TogglePack,
                 lockOverlay: ToggleEditMode,
                 exit: () => Application.Current.Shutdown());
         }
         _controlPanel.Show();
         _controlPanel.SetEditMode(true); // permanently interactive while visible
         _controlPanel.SetHotkeyLabel(_hotkey.ToString());
+        _controlPanel.SetPackAvailable(_book.WatchedCount > 0); // greyed while nobody is watched
 
         // Take focus away from the game so it releases its mouse capture and
         // the cursor becomes visible. Windows grants us foreground rights

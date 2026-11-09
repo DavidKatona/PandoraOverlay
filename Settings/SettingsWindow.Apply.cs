@@ -34,6 +34,8 @@ public enum SettingsChange
     Positions = 1 << 9,
     /// <summary>The theme (the Themes page): MainWindow.ApplyTheme repaints every window; never moves or resizes one.</summary>
     Theme = 1 << 10,
+    /// <summary>The Pack's frame or rows (Settings → Friends): the widget lays its rows out again. Its scale rides Appearance.</summary>
+    Pack = 1 << 11,
 }
 
 /// <summary>

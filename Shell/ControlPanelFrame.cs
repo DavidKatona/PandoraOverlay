@@ -44,10 +44,25 @@ public static class ControlPanelFrame
     public const double SettingsButton = 73;
     public const double ShowHideButton = 78;
     public const double ViewButton = 49;
-    public const double MapViewButton = 72;
-    public const double HeatmapButton = 72;
-    public const double AreasButton = 52;
+    /// <summary>
+    /// The minimap's Layers button (the Pack, Nov 2026): Map view (72),
+    /// Heatmap (72) and Areas (52) became one menu, as the map's own Layers
+    /// button is, to make room for the PACK group without growing the panel
+    /// (the owner, Nov 8 2026). Ctrl+F6 and Ctrl+F7 still flip the view and
+    /// the heatmap.
+    /// </summary>
+    public const double LayersButton = 56;
     public const double CheckButton = 56;
     public const double LockButton = 48;
     public const double ExitButton = 43;
+
+    /// <summary>
+    /// What the Layers menu and the PACK group leave of the row (152 freed,
+    /// 99 taken): a gap before the separator ahead of Lock and Exit, so the
+    /// session controls sit at the panel's right end.
+    /// </summary>
+    public const double SessionGap = 53;
+
+    /// <summary>The Layers menu's width (it opens above the button, the panel sitting at the screen's bottom).</summary>
+    public const double LayersMenuWidth = 196;
 }

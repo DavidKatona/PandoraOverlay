@@ -35,11 +35,19 @@ public static class DefaultLayout
     /// <summary>Gap between the two widgets of a column.</summary>
     public const double Gap = 8;
 
-    /// <summary>The four top-left corners of one arrangement.</summary>
-    public sealed record Placement(Point Prime, Point Activity, Point Minimap, Point Stats);
+    /// <summary>The five top-left corners of one arrangement.</summary>
+    public sealed record Placement(Point Prime, Point Activity, Point Minimap, Point Stats, Point Pack);
 
-    /// <summary>The "Columns" preset for a screen of the given bounds (DIPs) and the widgets' actual sizes.</summary>
-    public static Placement Columns(Rect screen, Size prime, Size activity, Size minimap, Size stats)
+    /// <summary>
+    /// The "Columns" preset for a screen of the given bounds (DIPs) and the
+    /// widgets' actual sizes. The Pack (Nov 2026) goes under the stats panel,
+    /// right edges aligned, <see cref="Gap"/> between, from its own size (its
+    /// frame, small or large, times its scale). Nothing flows toward the
+    /// screen's centre (the owner, Nov 8 2026); a Pack that runs off the
+    /// bottom is pulled up onto the screen by the widgets' own clamp when it
+    /// appears and when edit mode locks.
+    /// </summary>
+    public static Placement Columns(Rect screen, Size prime, Size activity, Size minimap, Size stats, Size pack = default)
     {
         var top = screen.Top + Math.Max(Inset, screen.Height * TopFraction);
         var left = screen.Left + Inset;
@@ -49,6 +57,7 @@ public static class DefaultLayout
         var activityAt = new Point(left, top + prime.Height + Gap);
         var minimapAt = new Point(right - minimap.Width, top);
         var statsAt = new Point(right - stats.Width, top + minimap.Height + Gap);
-        return new Placement(primeAt, activityAt, minimapAt, statsAt);
+        var packAt = new Point(right - pack.Width, statsAt.Y + stats.Height + Gap);
+        return new Placement(primeAt, activityAt, minimapAt, statsAt, packAt);
     }
 }

@@ -61,3 +61,45 @@ public class DefaultLayoutTests
         Assert.Equal(-200 + 144, p.Minimap.Y);
     }
 }
+
+/// <summary>The Pack's place in the default layout: under the stats panel, right edges aligned, 8 apart, at either frame and any scale.</summary>
+public class DefaultLayoutPackTests
+{
+    private static readonly Rect Screen = new(0, 0, 1920, 1080);
+    private static readonly Size Large = new(WidgetFrame.Width, WidgetFrame.LargeHeight);
+    private static readonly Size Small = new(WidgetFrame.Width, WidgetFrame.SmallHeight);
+
+    public static IEnumerable<object[]> FramesAndScales() =>
+        from frame in new[] { PackFrame.Small, PackFrame.Large }
+        from scale in new[] { 0.75, 1.0, 1.5 }
+        select new object[] { frame, scale };
+
+    [Theory]
+    [MemberData(nameof(FramesAndScales))]
+    public void ThePackGoesUnderTheStatsPanel(PackFrame frame, double scale)
+    {
+        var pack = new Size(WidgetFrame.Width * scale, PackRows.FrameHeight(frame) * scale);
+        var p = DefaultLayout.Columns(Screen, Large, Small, Large, Small, pack);
+        Assert.Equal(1920 - 16, p.Pack.X + pack.Width);                 // right edges aligned
+        Assert.Equal(p.Stats.X + Small.Width, p.Pack.X + pack.Width);
+        Assert.Equal(p.Stats.Y + Small.Height + DefaultLayout.Gap, p.Pack.Y); // 8 under the stats panel
+    }
+
+    /// <summary>The Pack moves nothing else: the four widgets are where they were without it.</summary>
+    [Fact]
+    public void ThePackMovesNoOtherWidget()
+    {
+        var without = DefaultLayout.Columns(Screen, Large, Small, Large, Small);
+        var with = DefaultLayout.Columns(Screen, Large, Small, Large, Small, Large);
+        Assert.Equal((without.Prime, without.Activity, without.Minimap, without.Stats), (with.Prime, with.Activity, with.Minimap, with.Stats));
+    }
+
+    /// <summary>A bigger stats panel pushes the Pack down with it.</summary>
+    [Fact]
+    public void ThePackFollowsAScaledStatsPanel()
+    {
+        var stats = new Size(WidgetFrame.Width * 1.25, WidgetFrame.SmallHeight * 1.25);
+        var p = DefaultLayout.Columns(Screen, Large, Small, Large, stats, Small);
+        Assert.Equal(p.Stats.Y + stats.Height + 8, p.Pack.Y);
+    }
+}

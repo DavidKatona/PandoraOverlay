@@ -62,13 +62,34 @@
                     <StackPanel Orientation="Horizontal">
                         <Button Content="Show/hide" Click="Minimap_Click" Width="{x:Static local:ControlPanelFrame.ShowHideButton}"
                                 Style="{StaticResource PanelButton}"/>
-                        <Button Content="Map view" Click="MapView_Click" Width="{x:Static local:ControlPanelFrame.MapViewButton}"
-                                Style="{StaticResource PanelButton}"/>
-                        <Button Content="Heatmap" Click="Heatmap_Click" Width="{x:Static local:ControlPanelFrame.HeatmapButton}"
-                                Style="{StaticResource PanelButton}"/>
-                        <Button Content="Areas" Click="AreaBorders_Click" Width="{x:Static local:ControlPanelFrame.AreasButton}"
-                                Style="{StaticResource PanelButton}" Margin="0"
-                                ToolTip="Show or hide the borders between the island's named areas"/>
+                        <!-- The minimap's view and its two layers behind one menu
+                             (the Pack, Nov 2026: Map view, Heatmap and Areas gave
+                             way to it), as the map's own Layers button: lit while
+                             open, its menu above it, filled in code
+                             (ControlPanelWindow.Layers.cs). The popup sits ALONE in
+                             the button's Tag, out of the window's tree, as the
+                             map's does: keys pressed in it never reach the
+                             window's own Esc, which locks edit mode, and a popup
+                             held in a Tag inside a Grid never opens. -->
+                        <ToggleButton x:Name="LayersButton" Content="Layers" Click="LayersButton_Click"
+                                      Width="{x:Static local:ControlPanelFrame.LayersButton}"
+                                      Style="{StaticResource PanelToggle}" Margin="0"
+                                      ToolTip="The minimap's view, its heatmap and its area borders">
+                            <ToggleButton.Tag>
+                                <Popup x:Name="LayersMenu" StaysOpen="False" AllowsTransparency="True"
+                                       Placement="Custom" PopupAnimation="None"
+                                       Opened="LayersMenu_Opened" Closed="LayersMenu_Closed">
+                                    <Border x:Name="LayersMenuPanel" Focusable="True"
+                                            PreviewKeyDown="LayersMenu_PreviewKeyDown" PreviewKeyUp="LayersMenu_PreviewKeyUp"
+                                            TextElement.FontFamily="{DynamicResource Theme.Font.Family}"
+                                            Background="{DynamicResource Theme.Glass.Menu}" BorderBrush="{DynamicResource Theme.Frame.Locked.Line}" BorderThickness="1"
+                                            CornerRadius="{DynamicResource Theme.Corner.Menu}" Padding="4"
+                                            Width="{x:Static local:ControlPanelFrame.LayersMenuWidth}">
+                                        <StackPanel x:Name="LayersItems"/>
+                                    </Border>
+                                </Popup>
+                            </ToggleButton.Tag>
+                        </ToggleButton>
                     </StackPanel>
                 </StackPanel>
 
@@ -91,6 +112,19 @@
                     <Button Content="Show/hide" Click="Activity_Click" Width="{x:Static local:ControlPanelFrame.ShowHideButton}"
                             Style="{StaticResource PanelButton}" Margin="0"/>
                 </StackPanel>
+
+                <Border Style="{StaticResource PanelSeparator}"/>
+
+                <!-- The Pack (Nov 2026): greyed while nobody is watched (there is no
+                     window then), its tooltip saying where the Watch ticks are. -->
+                <StackPanel>
+                    <TextBlock Style="{StaticResource PanelCaption}" Text="PACK"/>
+                    <Button x:Name="PackButton" Content="Show/hide" Click="Pack_Click" Width="{x:Static local:ControlPanelFrame.ShowHideButton}"
+                            Style="{StaticResource PanelButton}" Margin="0" ToolTipService.ShowOnDisabled="True"/>
+                </StackPanel>
+
+                <!-- What the Layers menu freed beyond the Pack's group: Lock and Exit at the right end. -->
+                <Border Width="{x:Static local:ControlPanelFrame.SessionGap}"/>
 
                 <Border Style="{StaticResource PanelSeparator}"/>
 

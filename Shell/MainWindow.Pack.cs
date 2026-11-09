@@ -1,0 +1,74 @@
+namespace PandoraOverlay;
+
+/// <summary>
+/// MainWindow, Pack part (Nov 2026): the Pack widget's lifetime. The Pack is
+/// shown while it is switched on (the control panel's PACK Show/hide,
+/// <see cref="OverlayConfig.PackEnabled"/>) AND at least one friend is
+/// watched; with nobody watched there is no window at all, in edit mode too,
+/// and the PACK button is greyed. The first Watch tick (Settings → Friends,
+/// a map menu) brings it up; the last one taken off closes it. The window
+/// exists only while it is shown, like the other widgets'; hide-all, the
+/// auto-hide and the map only hide it.
+/// <para>
+/// It is a friends surface (<see cref="PollService.PackShown"/>): appearing,
+/// it asks for a roster through the existing hot trigger, under its usual
+/// floor (one poll interval); going away it sends nothing
+/// (<see cref="PollService.FriendsSurfaceHidden"/>). A Watch tick on a Pack
+/// already shown sends nothing: the window just redraws from the book.
+/// Same class as MainWindow.xaml.cs, split for reading; see CLAUDE.md.
+/// </para>
+/// </summary>
+public partial class MainWindow
+{
+    private PackWindow? _pack;
+
+    /// <summary>The "is it shown" rule: switched on, and a friend watched.</summary>
+    private bool PackWanted => _config.PackEnabled && _book.WatchedCount > 0;
+
+    /// <summary>The control panel's PACK Show/hide (greyed while nobody is watched, so it is never pressed then).</summary>
+    private void TogglePack()
+    {
+        _config.PackEnabled = _pack is null;
+        UpdatePack();
+    }
+
+    /// <summary>
+    /// The one place the Pack comes and goes, after a toggle, a Watch tick (the
+    /// book's Changed) and at start-up; the control panel's button follows.
+    /// </summary>
+    private void UpdatePack()
+    {
+        if (_exiting || !IsLoaded) return; // start-up calls it once Loaded; nothing comes up on the way out
+        _controlPanel?.SetPackAvailable(_book.WatchedCount > 0);
+        if (PackWanted && _pack is null) ShowPack();
+        else if (!PackWanted && _pack is not null) ClosePack();
+    }
+
+    private void ShowPack()
+    {
+        var pack = new PackWindow(_config, _poll, _book);
+        _pack = pack;
+        pack.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_pack, pack)) _pack = null;
+        };
+        _poll.PackShown = true;
+        // Hidden with the overlay (hide-all, the auto-hide) or under the map: it
+        // shows when they let the widgets back (ShowWindows).
+        if (!_overlayHidden && !_autoHidden && _bigMap is null) pack.Show();
+        AppLog.App.Log("Pack widget shown");
+        _ = _poll.RefreshFriendsAsync("Pack widget shown"); // the widget wants a roster
+        if (EditMode) pack.SetEditMode(true);
+    }
+
+    private void ClosePack()
+    {
+        if (_pack is not { } pack) return;
+        if (!double.IsNaN(pack.Left) && !double.IsNaN(pack.Top)) (_config.PackX, _config.PackY) = (pack.Left, pack.Top); // a hidden widget comes back where it was
+        _pack = null;
+        pack.Close();
+        _poll.PackShown = false;
+        AppLog.App.Log("Pack widget hidden");
+        _poll.FriendsSurfaceHidden("Pack widget hidden"); // stops the friends fetch unless another surface still shows them
+    }
+}

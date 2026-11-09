@@ -26,7 +26,8 @@ public class ControlPanelWidthTests
     [Fact]
     public void TheFramesWidthIsItsRow()
     {
-        var row = FrameContract.PanelRow.Sum(g => GroupWidth(g.Buttons)) + FrameContract.PanelSeparator * (FrameContract.PanelRow.Count - 1);
+        var row = FrameContract.PanelRow.Sum(g => GroupWidth(g.Buttons)) + FrameContract.PanelSeparator * (FrameContract.PanelRow.Count - 1)
+                  + ControlPanelFrame.SessionGap;
         Assert.Equal(ControlPanelFrame.Width, row + 2 * (FrameContract.PanelPaddingX + FrameContract.PanelBorder));
     }
 
@@ -59,6 +60,44 @@ public class ControlPanelWidthTests
     {
         var tokens = Theme.All.Single(e => e.Id == id).Tokens;
         var problems = FrameContract.Misses(tokens).Where(m => m.Where == FrameContract.ControlPanel).Select(m => m.ToString()).ToList();
+        Assert.True(problems.Count == 0, $"{id}: " + string.Join("; ", problems));
+    }
+
+    /// <summary>
+    /// The Pack's room in the row (Nov 2026): Map view, Heatmap and Areas gave
+    /// way to one Layers button, the PACK group took its Show/hide and a
+    /// separator, and what was left is the gap before Lock and Exit.
+    /// </summary>
+    [Fact]
+    public void ThePacksGroupTookTheRoomTheLayersMenuFreed()
+    {
+        const double mapView = 72, heatmap = 72, areas = 52;
+        var freed = mapView + heatmap + areas + 2 * FrameContract.PanelButtonGap - ControlPanelFrame.LayersButton;
+        var pack = ControlPanelFrame.ShowHideButton + FrameContract.PanelSeparator;
+        Assert.Equal(152, freed);
+        Assert.Equal(99, pack);
+        Assert.Equal(ControlPanelFrame.SessionGap, freed - pack);
+        Assert.Contains(FrameContract.PanelRow, g => g.Caption == "PACK");
+    }
+
+    /// <summary>Every theme's Layers menu captions, rows and hotkeys fit the menu's width.</summary>
+    [Theory]
+    [MemberData(nameof(EveryTheme))]
+    public void EveryThemesLayersMenuFits(string id)
+    {
+        var tokens = Theme.All.Single(e => e.Id == id).Tokens;
+        var problems = FrameContract.Misses(tokens).Where(m => m.Where == FrameContract.LayersMenu).Select(m => m.ToString()).ToList();
+        Assert.True(problems.Count == 0, $"{id}: " + string.Join("; ", problems));
+    }
+
+    /// <summary>Every theme's Pack strings fit their room in the Pack's rows (its header is with the widgets' headers).</summary>
+    [Theory]
+    [MemberData(nameof(EveryTheme))]
+    public void EveryThemesPackStringsFit(string id)
+    {
+        var tokens = Theme.All.Single(e => e.Id == id).Tokens;
+        var problems = FrameContract.Misses(tokens).Where(m => m.Where is FrameContract.PackRowsWhere or FrameContract.Headers)
+                                                   .Select(m => m.ToString()).ToList();
         Assert.True(problems.Count == 0, $"{id}: " + string.Join("; ", problems));
     }
 

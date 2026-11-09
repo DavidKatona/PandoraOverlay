@@ -46,11 +46,13 @@ public partial class PackWindow : OverlayWindowBase
     private const double ThinBarHeight = 4;      // a full row's four bars
     private const double CompactBarHeight = 7;   // a compact row's health bar
     private const double NameLineHeight = 18;    // a full row's name line
-    private const double CaptionHeight = 12;     // a full row's captions over their bars
-    private const double CaptionGap = 4;         // between the captions and the bars
-    private const double ColumnGap = 6;          // between the four captioned bars
-    private const double FullNameMax = 120, CompactNameMax = 88;
-    private const double BadgeWidth = 16, BadgeHeight = 14, BadgeGap = 3;
+    // The parts the frame contract measures the Pack's strings with
+    // (FrameContract, "The Pack"), named there once.
+    private const double CaptionHeight = FrameContract.PackCaptionHeight; // a full row's captions over their bars
+    private const double CaptionGap = 2;                                  // between the captions and the bars
+    private const double ColumnGap = FrameContract.PackColumnGap;         // between the four captioned bars
+    private const double FullNameMax = 120, CompactNameMax = FrameContract.PackCompactNameMax;
+    private const double BadgeWidth = FrameContract.PackBadgeWidth, BadgeHeight = FrameContract.PackBadgeHeight, BadgeGap = 3;
     private static readonly TimeSpan HoldTick = TimeSpan.FromSeconds(5);
 
     /// <summary>The four stats of a full row, in their order, with their captions.</summary>

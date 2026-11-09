@@ -79,7 +79,8 @@ public static class FrameContract
 
     /// <summary>Where a string sits, for the messages: one of the four groups below.</summary>
     public const string PrimeRows = "Prime's rows", BarLabels = "the stats panel's row names",
-                        Headers = "the widgets' headers", ControlPanel = "the control panel";
+                        Headers = "the widgets' headers", ControlPanel = "the control panel",
+                        LayersMenu = "the control panel's Layers menu";
 
     /// <summary>One text in one face: a size (a body size, at the theme's factor; a title's as drawn) and its weight from the theme.</summary>
     public sealed record Piece(string Text, Func<ThemeTokens, double> Size, Func<ThemeTokens, ThemeWeight> Weight, bool Title = false);
@@ -97,20 +98,44 @@ public static class FrameContract
         public override string ToString() => $"{Where}: \"{Name}\" {Problem}";
     }
 
-    /// <summary>The control panel's row as its XAML has it: a lone Settings button, then each group's caption over its buttons, then Lock and Exit.</summary>
+    /// <summary>
+    /// The control panel's row as its XAML has it: a lone Settings button, then
+    /// each group's caption over its buttons, then (after the session gap,
+    /// <see cref="ControlPanelFrame.SessionGap"/>) Lock and Exit. The minimap's
+    /// Map view, Heatmap and Areas are one Layers menu since the Pack (Nov 2026).
+    /// </summary>
     public static readonly IReadOnlyList<(string? Caption, (string Label, double Width)[] Buttons)> PanelRow = new (string?, (string, double)[])[]
     {
         (null, new[] { ("Settings…", ControlPanelFrame.SettingsButton) }),
         ("STATS", new[] { ("Show/hide", ControlPanelFrame.ShowHideButton), ("View", ControlPanelFrame.ViewButton) }),
-        ("MINIMAP", new[]
-        {
-            ("Show/hide", ControlPanelFrame.ShowHideButton), ("Map view", ControlPanelFrame.MapViewButton),
-            ("Heatmap", ControlPanelFrame.HeatmapButton), ("Areas", ControlPanelFrame.AreasButton),
-        }),
+        ("MINIMAP", new[] { ("Show/hide", ControlPanelFrame.ShowHideButton), ("Layers", ControlPanelFrame.LayersButton) }),
         ("PRIME", new[] { ("Show/hide", ControlPanelFrame.ShowHideButton), ("Check", ControlPanelFrame.CheckButton) }),
         ("ACTIVITY", new[] { ("Show/hide", ControlPanelFrame.ShowHideButton) }),
+        ("PACK", new[] { ("Show/hide", ControlPanelFrame.ShowHideButton) }),
         (null, new[] { ("Lock", ControlPanelFrame.LockButton), ("Exit", ControlPanelFrame.ExitButton) }),
     };
+
+    /// <summary>
+    /// The control panel's Layers menu (ControlPanelWindow.Layers.cs): its two
+    /// captions with the longest hotkey a capture box can write on their right,
+    /// and its rows with a hotkey where a row has one, in the menu's width less
+    /// its padding, the row's padding and the mark's column.
+    /// </summary>
+    public static readonly IReadOnlyList<(string Text, string? Key, bool Caption)> LayersMenuRows = new (string, string?, bool)[]
+    {
+        ("VIEW", "Ctrl+Shift+F12", true),
+        ("Island view", null, false),
+        ("Centered view", null, false),
+        ("LAYERS", null, true),
+        ("Heatmap", "Ctrl+Shift+F12", false),
+        ("Areas", null, false),
+    };
+
+    // The Layers menu's insets (ControlPanelWindow.xaml and Layers.cs).
+    public const double LayersMenuPadding = 4 + 1;   // the panel's Padding="4" in its 1 px border
+    public const double LayersRowPadding = 10;       // MenuTick's Padding="10,4,16,4" (left), and the right edge's 10 a caption keeps
+    public const double LayersMarkColumn = 18;       // MenuTick's ✓ column
+    public const double LayersKeyGap = 8;            // between a row's label and its hotkey
 
     /// <summary>A group of the panel's buttons, with the gaps between them.</summary>
     public static double PanelGroupWidth((string Label, double Width)[] buttons) =>
@@ -173,7 +198,7 @@ public static class FrameContract
                      ("Connecting…", ""),
                  })
             slots.Add(new Slot(Headers, $"{name} · {corner}", new[] { Title(name[..1] + "…"), Corner(corner) }, _ => WidgetContent, Beside: Glyph));
-        foreach (var (title, corner) in new[] { ("Prime", "Not ready · 10/10 (7 needed)"), ("Activity", "12 of 30 friends in game") })
+        foreach (var (title, corner) in new[] { ("Prime", "Not ready · 10/10 (7 needed)"), ("Activity", "12 of 30 friends in game"), ("Pack", "11 of 11 in game") })
             slots.Add(new Slot(Headers, $"{title} · {corner}", new[] { Title(title), Corner(corner) }, _ => WidgetContent));
 
         // The control panel: every label in its button (inside the label
@@ -191,8 +216,84 @@ public static class FrameContract
         }
         slots.Add(new Slot(ControlPanel, "the hint", new[] { new Piece(PanelHint, _ => 10, t => t.Font.BodyWeight) },
                            _ => ControlPanelFrame.Width - 2 * (PanelPaddingX + PanelBorder) - PanelHintMargin, ControlPanelFrame.HintHeight));
+
+        // The control panel's Layers menu: a caption and its hotkey across the
+        // menu less the caption's own margins; a row's label and its hotkey in
+        // what the tick's padding and its ✓ column leave.
+        foreach (var (text, key, caption) in LayersMenuRows)
+        {
+            var pieces = new List<Piece>
+            {
+                caption ? new Piece(text, _ => 10, t => t.Font.CaptionWeight) : new Piece(text, _ => 12, t => t.Font.BodyWeight),
+            };
+            if (key is not null) pieces.Add(new Piece(key, _ => 10, t => t.Font.BodyWeight));
+            slots.Add(new Slot(LayersMenu, text, pieces, _ => caption ? LayersCaptionWidth : LayersRowWidth,
+                               Beside: key is null ? null : _ => LayersKeyGap));
+        }
+
+        AddPackSlots(slots);
         return slots;
     }
+
+    /// <summary>A Layers menu caption's room: the menu less its padding and the caption's margins (12 left, 10 right).</summary>
+    public const double LayersCaptionWidth = ControlPanelFrame.LayersMenuWidth - 2 * LayersMenuPadding - 12 - 10;
+
+    /// <summary>A Layers menu row's room: the menu less its padding, MenuTick's (10 left, 16 right) and the ✓ column.</summary>
+    public const double LayersRowWidth = ControlPanelFrame.LayersMenuWidth - 2 * LayersMenuPadding - LayersRowPadding - 16 - LayersMarkColumn;
+
+    #region The Pack (Nov 2026)
+
+    // The Pack's row parts (PackWindow.xaml.cs), the insets its rows lay out with.
+    public const double PackDot = 8 + 6;              // the colour dot and its gap
+    public const double PackBadges = 3 * 16 + 2 * 3;  // three 16 px badges, 3 apart
+    public const double PackBadgeWidth = 16, PackBadgeHeight = 14;
+    public const double PackFullBadgeMargins = 6 + 4; // a full row's badges: 6 before, 4 after
+    public const double PackCompactBadgeMargins = 4 + 4;
+    public const double PackPercentMargin = 2;
+    public const double PackMetaMargin = 6, PackSexMargin = 4;
+    public const double PackCompactNameMax = 88;
+    public const double PackCompactBarMin = 40;       // the least a compact row's bar keeps
+    public const double PackCompactBarMargins = 6 + 2;
+    public const double PackColumnGap = 6;            // between a full row's four captioned bars
+    public const double PackCaptionHeight = 14;  // PackWindow's CaptionHeight: a 10 px line in every bundled font
+
+    /// <summary>The Pack's rows, in its strings' group.</summary>
+    public const string PackRowsWhere = "the Pack's rows";
+
+    /// <summary>
+    /// The Pack's tight strings: a full row's right end (the sex, the three
+    /// badges and "100%") beside a one-letter name and its ellipsis, the four
+    /// captions in their quarter columns, a compact row's badges and "100%"
+    /// beside its least bar, a badge's letter in its badge, a compact row's
+    /// note beside the longest name, and the lines that take the whole width.
+    /// The header is with the other widgets' headers.
+    /// </summary>
+    private static void AddPackSlots(List<Slot> slots)
+    {
+        static Piece Name(string s) => new(s, _ => 13, t => t.Font.CaptionWeight);
+        static Piece Body(string s, double size) => new(s, _ => size, t => t.Font.BodyWeight);
+
+        slots.Add(new Slot(PackRowsWhere, "a full row's right end", new[] { Name("W…"), Body("♂", 12), Name("100%") }, _ => WidgetContent,
+                           Beside: _ => PackDot + PackMetaMargin + PackSexMargin + PackFullBadgeMargins + PackBadges + PackPercentMargin));
+        foreach (var caption in new[] { "Health", "Stamina", "Hunger", "Thirst" })
+            slots.Add(new Slot(PackRowsWhere, caption, new[] { Body(caption, 10) }, _ => (WidgetContent - 3 * PackColumnGap) / 4, PackCaptionHeight));
+        slots.Add(new Slot(PackRowsWhere, "a compact row's right end", new[] { Name("W…"), Name("100%") }, _ => WidgetContent,
+                           Beside: _ => PackDot + PackCompactBarMargins + PackCompactBarMin + PackCompactBadgeMargins + PackBadges + PackPercentMargin));
+        foreach (var letter in new[] { "H", "B", "L" })
+            slots.Add(new Slot(PackRowsWhere, $"the {letter} badge", new[] { new Piece(letter, t => t.Font.BadgeSize, _ => ThemeWeight.Bold) },
+                               _ => PackBadgeWidth, PackBadgeHeight));
+        foreach (var note in new[] { "Other species", "No stats shown", "Not in game" })
+            slots.Add(new Slot(PackRowsWhere, $"a compact row's \"{note}\"", new[] { Body(note, 11) },
+                               _ => WidgetContent - PackDot - PackCompactNameMax - PackMetaMargin));
+        foreach (var (line, size) in new[]
+                 {
+                     ("Other species · no stats shown", 11.0), ("No stats shown", 11.0), ("+11 more in game", 11.0),
+                     (PackRows.NobodyInGame, 12.0), (PackRows.NotInGame, 12.0),
+                 })
+            slots.Add(new Slot(PackRowsWhere, line, new[] { Body(line, size) }, _ => WidgetContent));
+    }
+
+    #endregion
 
     #endregion
 

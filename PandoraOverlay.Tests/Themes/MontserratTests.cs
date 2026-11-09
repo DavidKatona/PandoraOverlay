@@ -304,7 +304,8 @@ public class MontserratTests
         var d = DefaultTheme.Tokens;
         var wide = d with { Fit = 2 };
         var misses = FrameContract.Misses(wide).ToList();
-        foreach (var where in new[] { FrameContract.PrimeRows, FrameContract.BarLabels, FrameContract.Headers, FrameContract.ControlPanel })
+        foreach (var where in new[] { FrameContract.PrimeRows, FrameContract.BarLabels, FrameContract.Headers, FrameContract.ControlPanel,
+                                      FrameContract.LayersMenu, FrameContract.PackRowsWhere })
             Assert.Contains(misses, m => m.Where == where);
         Assert.Contains(misses, m => m.Name == "Stamina");
         Assert.Empty(FrameContract.Misses(d));

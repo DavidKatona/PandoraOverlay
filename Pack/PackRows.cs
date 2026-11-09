@@ -239,13 +239,6 @@ public sealed class PackLeavers
     /// <summary>True while anyone is held: the window ages the holds on a timer of its own only then.</summary>
     public bool Any(DateTime now) => _held.Values.Any(l => now - l.LeftUtc < PackRows.HoldAfterLeaving);
 
-    /// <summary>You left the game (or your dino changed): a fresh start, nobody held.</summary>
-    public void Clear()
-    {
-        _held.Clear();
-        _wasInGame = new();
-    }
-
     private void Expire(DateTime now)
     {
         foreach (var id in _held.Where(kv => now - kv.Value.LeftUtc >= PackRows.HoldAfterLeaving).Select(kv => kv.Key).ToList()) _held.Remove(id);

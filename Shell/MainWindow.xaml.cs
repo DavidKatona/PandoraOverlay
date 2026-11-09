@@ -70,6 +70,7 @@ public partial class MainWindow : OverlayWindowBase
         _library.Changed += () => _library.Save(); // user content: saved on every change, not just on exit
         _book = FriendBook.Load();
         _book.Changed += () => _book.Save(); // membership + preferences; the per-fetch last-seen facts are flushed on exit
+        _book.Changed += UpdatePack; // a Watch tick (or the last watched friend unfriended) brings the Pack up or closes it
         LoadRoute();
         _ = MapActions; // made now, not at the first map: it hears the library's Changed, so a deleted waypoint leaves the route with no map open
         if (_config.WindowX is { } wx && _config.WindowY is { } wy)
@@ -135,6 +136,7 @@ public partial class MainWindow : OverlayWindowBase
             if (_config.MinimapEnabled) ShowMinimap();
             if (_config.PrimeEnabled) ShowPrime();
             if (_config.ActivityEnabled) ShowActivity();
+            UpdatePack(); // shown when switched on and a friend is watched
 
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
             {
@@ -157,6 +159,7 @@ public partial class MainWindow : OverlayWindowBase
             _minimap?.Close();
             _prime?.Close();
             _activity?.Close();
+            _pack?.Close();
             _controlPanel?.Close();
         };
     }
@@ -244,6 +247,7 @@ public partial class MainWindow : OverlayWindowBase
             _controlPanel?.ApplySettingsFromConfig();
         }
         if (Has(SettingsChange.Appearance | SettingsChange.Activity | SettingsChange.Friends)) _activity?.ApplySettingsFromConfig();
+        if (Has(SettingsChange.Appearance | SettingsChange.Pack)) _pack?.ApplySettingsFromConfig(); // its scale, the glass, the fade, its frame and rows
         // A friends surface switched on wants a roster: the existing "a surface
         // shown" trigger, under its usual floor (constraint 2). Switched off, or a
         // friend's nickname or colour changed: nothing is sent.
@@ -305,6 +309,7 @@ public partial class MainWindow : OverlayWindowBase
         _minimap?.ApplyTheme();
         _prime?.ApplyTheme();
         _activity?.ApplyTheme();
+        _pack?.ApplyTheme();
         _controlPanel?.ApplySettingsFromConfig();
         _settings?.ApplyTheme();
         Dispatcher.BeginInvoke(() => Theme.LogFit(_config.Theme, Application.Current.Windows.OfType<Window>().Select(w => w.Content).OfType<FrameworkElement>()),
@@ -434,7 +439,8 @@ public partial class MainWindow : OverlayWindowBase
             prime: Frame(WidgetFrame.LargeHeight, _config.PrimeScale),
             activity: Frame(WidgetFrame.SmallHeight, _config.ActivityScale),
             minimap: Frame(WidgetFrame.LargeHeight, _config.MinimapScale),
-            stats: Frame(WidgetFrame.SmallHeight, _config.UiScale));
+            stats: Frame(WidgetFrame.SmallHeight, _config.UiScale),
+            pack: Frame(PackRows.FrameHeight(PackRows.FrameOf(_config.PackFrame)), _config.PackScale));
 
         if (_config.WindowX is null || _config.WindowY is null)
         {
@@ -445,6 +451,7 @@ public partial class MainWindow : OverlayWindowBase
         if (_config.MinimapX is null || _config.MinimapY is null) (_config.MinimapX, _config.MinimapY) = (p.Minimap.X, p.Minimap.Y);
         if (_config.PrimeX is null || _config.PrimeY is null) (_config.PrimeX, _config.PrimeY) = (p.Prime.X, p.Prime.Y);
         if (_config.ActivityX is null || _config.ActivityY is null) (_config.ActivityX, _config.ActivityY) = (p.Activity.X, p.Activity.Y);
+        if (_config.PackX is null || _config.PackY is null) (_config.PackX, _config.PackY) = (p.Pack.X, p.Pack.Y);
     }
 
     private static Size Frame(double height, double scale)
@@ -465,12 +472,14 @@ public partial class MainWindow : OverlayWindowBase
         _config.MinimapX = _config.MinimapY = null;
         _config.PrimeX = _config.PrimeY = null;
         _config.ActivityX = _config.ActivityY = null;
+        _config.PackX = _config.PackY = null;
         _config.ControlPanelX = _config.ControlPanelY = null;
         FillDefaultPositions();
 
         if (_minimap is not null) (_minimap.Left, _minimap.Top) = (_config.MinimapX!.Value, _config.MinimapY!.Value);
         if (_prime is not null) (_prime.Left, _prime.Top) = (_config.PrimeX!.Value, _config.PrimeY!.Value);
         if (_activity is not null) (_activity.Left, _activity.Top) = (_config.ActivityX!.Value, _config.ActivityY!.Value);
+        if (_pack is not null) (_pack.Left, _pack.Top) = (_config.PackX!.Value, _config.PackY!.Value);
         _controlPanel?.PlaceDefault();
         _config.Save();
     }
@@ -517,6 +526,11 @@ public partial class MainWindow : OverlayWindowBase
         {
             _config.ActivityX = _activity.Left;
             _config.ActivityY = _activity.Top;
+        }
+        if (_pack is not null && !double.IsNaN(_pack.Left) && !double.IsNaN(_pack.Top))
+        {
+            _config.PackX = _pack.Left;
+            _config.PackY = _pack.Top;
         }
         _book.Save(); // flushes the last-seen facts Sync updates silently
         if (_controlPanel is not null)

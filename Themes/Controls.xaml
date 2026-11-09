@@ -69,6 +69,64 @@
                             <Setter TargetName="HoverGlow" Property="Background" Value="{DynamicResource Theme.Button.PressedGlow}"/>
                             <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
                         </Trigger>
+                        <!-- Greyed (the PACK Show/hide while nobody is watched): the
+                             neutral family's own disabled look, as the dialogs' buttons. -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="{DynamicResource Theme.Button.Neutral.Disabled.Fill}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Neutral.Disabled.Text}"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Neutral.Disabled.Line}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A panel button that opens a menu (the minimap's Layers, Nov 2026): the
+         PanelButton look, lit while its menu is open (IsChecked) by the pressed
+         glow held on. Never focusable, so the menu's keys stay the menu's. -->
+    <Style x:Key="PanelToggle" TargetType="ToggleButton">
+        <Setter Property="Height" Value="{x:Static local:ControlPanelFrame.ButtonHeight}"/>
+        <Setter Property="Padding" Value="6,0"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="FontSize" Value="{DynamicResource Theme.Font.ControlPanelButtonSize}"/>
+        <Setter Property="FontWeight" Value="{DynamicResource Theme.Font.BodyWeight}"/>
+        <Setter Property="Background" Value="{DynamicResource Theme.Button.Neutral.Idle.Fill}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Theme.Button.Neutral.Idle.Text}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Theme.Button.Neutral.Idle.Line}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="ContentTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis"/>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Theme.Corner.Button}"/>
+                        <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Theme.Corner.Button}"/>
+                        <Border x:Name="HoverGlow" Background="{DynamicResource Theme.Button.HoverGlow}"
+                                CornerRadius="{DynamicResource Theme.Corner.Button}" Visibility="Collapsed"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Background" Value="{DynamicResource Theme.Button.PressedGlow}"/>
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="HoverGlow" Property="Background" Value="{DynamicResource Theme.Button.PressedGlow}"/>
+                            <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
