@@ -195,6 +195,12 @@ public partial class SettingsWindow
             _config.FriendsOnMinimap = on;
             Changed(SettingsChange.Friends | (on ? SettingsChange.FriendsShown : SettingsChange.FriendsHidden));
         };
+        // The Pack's options (its Watch ticks are the rows', applied with the list)
+        Live(PackScaleSlider, v => _config.PackScale = v, SettingsChange.Appearance);
+        Live(PackFrameSmall, () => _config.PackFrame = "small", SettingsChange.Pack);
+        Live(PackFrameLarge, () => _config.PackFrame = "large", SettingsChange.Pack);
+        Live(PackRowsFull, () => _config.PackRows = "full", SettingsChange.Pack);
+        Live(PackRowsCompact, () => _config.PackRows = "compact", SettingsChange.Pack);
 
         // About
         Live(UpdateCheck, on => _config.UpdateCheckEnabled = on); // read at the next launch

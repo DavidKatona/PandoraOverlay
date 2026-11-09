@@ -9,7 +9,7 @@ namespace PandoraOverlay;
 /// <summary>
 /// SettingsWindow, Friends part: the friend list — one row per friend the
 /// roster has shown, editing YOUR side of it (nickname, colour, on the map,
-/// in the feed, tracked) on a draft copy of the FriendBook; Save commits the
+/// in the feed, watched in the Pack, tracked) on a draft copy of the FriendBook; Save commits the
 /// preferences, Cancel drops them. The roster's own facts (who is a friend,
 /// in game now, last seen) are read-only here — they are the site's. Same
 /// class as SettingsWindow.xaml.cs, split for reading; see CLAUDE.md.
@@ -49,6 +49,7 @@ public partial class SettingsWindow
     private void BuildFriendRows()
     {
         FriendRows.Children.Clear();
+        _watchBoxes.Clear();
         Drawn("Friends");
         var inGame = _friendDraft.Count(e => IsInGame(e.SteamId));
         FriendCount.Text = _friendDraft.Count == 0 ? "" : $"{_friendDraft.Count} friends · {inGame} in game";
@@ -75,6 +76,7 @@ public partial class SettingsWindow
             body.Children.Add(BuildFriendRow(entry, stripe));
             stripe = !stripe;
         }
+        MarkWatchBoxes();
         FriendRows.Children.Add(new Border
         {
             Child = body, CornerRadius = CardCorner, BorderBrush = CardBorder, BorderThickness = new Thickness(1),
@@ -84,7 +86,7 @@ public partial class SettingsWindow
 
     private bool IsInGame(string steamId) => _roster?.Any(f => f.SteamId == steamId && f.InGame) == true;
 
-    /// <summary>The six-column grid every friend row and the caption share: colour | name | last seen | Map | Feed | Track.</summary>
+    /// <summary>The seven-column grid every friend row and the caption share: colour | name | last seen | Map | Feed | Watch | Track.</summary>
     private static Grid NewFriendRowGrid()
     {
         var row = new Grid { Margin = new Thickness(0, 1, 0, 1) };
@@ -94,7 +96,28 @@ public partial class SettingsWindow
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
         return row;
+    }
+
+    // The rows' Watch boxes, so a tick at the cap greys the others in place (and an untick frees them).
+    private readonly List<(FriendEntry Entry, CheckBox Box)> _watchBoxes = new();
+
+    /// <summary>At the cap the unticked Watch boxes are disabled, "Up to 11"; under it they are free again.</summary>
+    private void MarkWatchBoxes()
+    {
+        var full = _friendDraft.Count(e => e.Watch) >= FriendBook.MaxWatched;
+        foreach (var (entry, box) in _watchBoxes)
+        {
+            var open = entry.Watch || !full;
+            box.IsEnabled = open;
+            box.ToolTip = open ? "Show their stats in the Pack widget" : $"Up to {FriendBook.MaxWatched}";
+        }
+    }
+
+    private void PackScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (PackScaleLabel != null) PackScaleLabel.Text = $"{e.NewValue:0%}";
     }
 
     private Border BuildFriendBand()
@@ -209,6 +232,23 @@ public partial class SettingsWindow
         Grid.SetColumn(feed, 4);
         row.Children.Add(feed);
 
+        // The Pack (Nov 2026): their stats in the widget while they play your
+        // dino. Up to eleven; ToolTipService shows the cap's hint on a greyed box.
+        var watch = new CheckBox
+        {
+            IsChecked = entry.Watch, Style = (Style)FindResource("Check"), HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        ToolTipService.SetShowOnDisabled(watch, true);
+        watch.Click += (_, _) =>
+        {
+            entry.Watch = watch.IsChecked == true;
+            MarkWatchBoxes();
+            FriendsEdited();
+        };
+        _watchBoxes.Add((entry, watch));
+        Grid.SetColumn(watch, 5);
+        row.Children.Add(watch);
+
         var track = new RadioButton
         {
             GroupName = "TrackFriend", IsChecked = entry.SteamId == _draftTrackedFriend,
@@ -229,7 +269,7 @@ public partial class SettingsWindow
             }
             FriendsEdited();
         };
-        Grid.SetColumn(track, 5);
+        Grid.SetColumn(track, 6);
         row.Children.Add(track);
 
         return row;

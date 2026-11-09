@@ -235,6 +235,13 @@ public partial class SettingsWindow : Window
         // Friends
         FriendsMapCheck.IsChecked = config.FriendsOnMinimap;
         FriendsChimeCheck.IsChecked = config.FriendsChimeEnabled;
+        PackScaleSlider.Value = Math.Clamp(config.PackScale, PackScaleSlider.Minimum, PackScaleSlider.Maximum);
+        var large = PackRows.FrameOf(config.PackFrame) == PackFrame.Large;
+        PackFrameSmall.IsChecked = !large;
+        PackFrameLarge.IsChecked = large;
+        var compact = PackRows.SizeOf(config.PackRows) == PackRowSize.Compact;
+        PackRowsFull.IsChecked = !compact;
+        PackRowsCompact.IsChecked = compact;
         FriendList.ScrollChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14); // the rows are built on the first look (SetPage)
         FriendList.SizeChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
 

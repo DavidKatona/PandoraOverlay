@@ -688,20 +688,25 @@
                     <ColumnDefinition Width="46"/>
                     <ColumnDefinition Width="46"/>
                     <ColumnDefinition Width="46"/>
+                    <ColumnDefinition Width="46"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="Colour" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
                 <TextBlock Grid.Column="1" Text="Name" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" Margin="8,0,0,0"/>
                 <TextBlock Grid.Column="2" Text="Last seen" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
                 <TextBlock Grid.Column="3" Text="Map" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
                 <TextBlock Grid.Column="4" Text="Feed" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Column="5" Text="Track" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="5" Text="Watch" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Column="6" Text="Track" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10}" HorizontalAlignment="Center"/>
             </Grid>
             <!-- The height is the frame's room (the owner, Oct 31 2026, with the
-                 waypoint list's): 200 from the page's first day, under which the
-                 dialog's later height left 130 px of nothing. The page column is
-                 455.81 tall in Default and this page without its list 125.78, so
-                 330; nothing on this page comes and goes outside the list. -->
-            <ScrollViewer x:Name="FriendList" Height="330" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+                 waypoint list's), less the Pack's group under it (Nov 2026): the
+                 page column is 455.81 tall in Default and this page without its
+                 list 125.78 before the group; the group (its caption, the Scale
+                 slider and the two radio rows) takes 101.22 more in Default, so
+                 227.00 without the list, and the list keeps 228 (every other
+                 theme has 11 to 20 px more, measured Nov 9 2026). Nothing on
+                 this page comes and goes outside the list. -->
+            <ScrollViewer x:Name="FriendList" Height="228" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
                 <ScrollViewer.Resources>
                     <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
                 </ScrollViewer.Resources>
@@ -713,6 +718,35 @@
                 <TextBlock Text="Names and colours here stay on this PC. Adding, removing and hiding your location happen on the website."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
             </DockPanel>
+
+            <!-- The Pack widget's options (Nov 2026): here, not on Widgets, which
+                 had 77 to 85 px left in every theme for a group of about 109
+                 (measured Nov 8 in a clean copy); the minimap's on Maps are the
+                 precedent. Its own Scale slider first, as every widget's group. -->
+            <TextBlock Style="{StaticResource SectionCaption}" Text="PACK WIDGET"/>
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="PackScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider Style="{DynamicResource Theme.SliderStyle}" x:Name="PackScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="PackScaleSlider_ValueChanged"/>
+            </DockPanel>
+            <!-- The two radio rows start where the slider does (SliderLabel's width). -->
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Frame:"/>
+                <RadioButton x:Name="PackFrameSmall" Style="{StaticResource Radio}" Content="Small"
+                             GroupName="PackFrame" Margin="10,0,0,0"/>
+                <RadioButton x:Name="PackFrameLarge" Style="{StaticResource Radio}" Content="Large"
+                             GroupName="PackFrame" Margin="14,0,0,0"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Rows:"/>
+                <RadioButton x:Name="PackRowsFull" Style="{StaticResource Radio}" Content="Full"
+                             GroupName="PackRows" Margin="10,0,0,0"/>
+                <RadioButton x:Name="PackRowsCompact" Style="{StaticResource Radio}" Content="Compact (health only)"
+                             GroupName="PackRows" Margin="14,0,0,0"/>
+            </StackPanel>
             </StackPanel>
 
             <!-- ============================ Skins ========================== -->
