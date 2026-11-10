@@ -2,7 +2,7 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.43.1 is released, working, and endorsed
+tray icon and a settings dialog. **v1.44.0 is released, working, and endorsed
 by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
@@ -497,6 +497,44 @@ all) — say so when it matters:
   list where some skins have colours and some have none (tiles of two heights in a
   row). The list (90 skins), its pictures, an apply from a tile and the tiles
   without dots were seen by the owner in game (Nov 9).
+- From 1.44.0 (after the pre-release 1.44.0-rc.1; no fresh reviewer's read, the
+  owner's call): the shipped Pack rules with friends in game: the nearest filling
+  the frame and the 100 m margin before a swap, the held "Not in game" row, a
+  friend hiding their location left out, the ticked mode, switching Shows back to
+  all (tests and renders only; rc.1's Pack, with Watch ticks and a cap of 11, is
+  what Findert and friends tried, and their feedback became these rules); the Pack
+  starting off on an update (tests only); the Layers menu in the owner's hands (the
+  build session's driver, with the real pointer: 28 of 28, Nov 9); other PCs and
+  display scales. The owner ran it in game on Nov 10, in Pandora with nobody on
+  their dino: the empty Pack and the new control panel ("seems to work well").
+
+SHIPPED in 1.44.0 (Nov 10 2026, after the pre-release 1.44.0-rc.1 on Nov 9; no
+fresh reviewer's read, the owner's call): **the Pack widget**, the stats of your
+friends on your dino. The plan, the board and every decision:
+`Desktop\Pandora Overlay Files\pandora-friend-strips\` (NOTES.md, BRIEF.md);
+built by one Opus 5.5 session from the brief. The rows follow the website's own
+Friends stats panel (read from its script, Nov 9): bars only for a friend in
+game, sharing their location, on exactly your dino; the small frame by default,
+the large a choice, full or compact rows, its own Scale. rc.1 went to Findert,
+who asked for it, and friends: it had Watch ticks and a cap of 11. Their feedback
+(why a cap, why other species, a "follow all") became the shipped rules: every
+friend on your dino by default ("Shows: Only ticked" the other choice), no cap,
+the nearest filling the frame with a 100 m margin before a swap, rows in name
+order, "+N more", other species and hidden friends not listed, a leaver's row held
+five minutes. **The Pack starts off** for everyone (the owner, Nov 10: it can be
+empty, unlike the other widgets, and an update must not put it on anyone's screen
+or resume friends requests); the control panel's Pack button shows it. **The
+control panel's Layers menu**: Map view, Heatmap and Areas in one menu (the view,
+the two layers, their hotkeys), to make room for the PACK group in the same
+940 × 74. No endpoint, cookie or process change: the Pack is one more friends
+surface in `FriendsWantedFor` and asks once when it appears. Guards: 1436 tests;
+the minimap's renders identical in every theme; in the windows mode only the
+control panel's and the Friends page's renders changed, plus the Pack's new
+scenarios, recorded as baselines in every theme at 0803d98 after the owner's look
+in game (Nov 10); the harness's `WindowScenarios.cs` took the build session's
+scenarios. The hero is the owner's Pandora shot with the empty Pack filled from a
+render (Vonczz and Zorro) and the caption box under the Activity feed, since the
+Pack sits in the box's usual place.
 
 SHIPPED in 1.43.1 (Nov 9 2026, no pre-release and no fresh reviewer's read, the
 owner's call): a patch. **Settings › Skins shows the skins again.** The website
@@ -941,7 +979,7 @@ The four-features brainstorm (Nov 2–3 2026)
 
 ## Releases
 
-- Current: 1.43.1. The csproj `<Version>` is the single source of truth
+- Current: 1.44.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do
