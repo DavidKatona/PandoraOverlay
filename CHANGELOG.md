@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **The Pack widget.** Watch up to 11 friends (tick Watch on Settings →
-  Friends, or right-click a friend's arrow on a map) and see their health,
-  stamina, hunger and thirst while they play your species, in a widget under
-  the stats panel. Small or large, full or compact rows, with its own size
-  slider.
+- **The Pack widget.** See the health, stamina, hunger and thirst of your
+  friends playing the same dino as you, in a widget under the stats panel.
+  It shows all of them by default, the nearest first when there are more
+  than fit; or only the friends you pick (tick Watch on Settings → Friends,
+  or right-click a friend's arrow on a map). Small or large, full or compact
+  rows, with its own size slider.
 
 ### Changed
 
