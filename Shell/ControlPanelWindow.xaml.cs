@@ -125,14 +125,15 @@ public partial class ControlPanelWindow : OverlayWindowBase
     private void Pack_Click(object sender, RoutedEventArgs e) => _togglePack();
 
     /// <summary>
-    /// The PACK button follows whether anyone is watched: with nobody, there is
-    /// no Pack window to show or hide, so it is greyed and says where the Watch
-    /// ticks are.
+    /// The PACK button follows whether the Pack has anyone to show: in its
+    /// ticked mode with no friend ticked there is no Pack window to show or
+    /// hide, so it is greyed and says where to change that.
     /// </summary>
-    public void SetPackAvailable(bool anyWatched)
+    public void SetPackAvailable(bool hasAnyone)
     {
-        PackButton.IsEnabled = anyWatched;
-        PackButton.ToolTip = anyWatched ? "Show or hide the Pack: your watched friends' stats" : "Tick Watch beside a friend on Settings → Friends";
+        PackButton.IsEnabled = hasAnyone;
+        PackButton.ToolTip = hasAnyone ? "Show or hide the Pack: your friends' stats on your dino"
+                                       : "Tick Watch beside a friend, or show all friends, on Settings → Friends";
     }
 
     private void Lock_Click(object sender, RoutedEventArgs e) => _lockOverlay();

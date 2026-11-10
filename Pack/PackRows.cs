@@ -21,60 +21,62 @@ public enum PackRowKind
 {
     /// <summary>In game, sharing their location, with a position, on exactly your dino: the bars (the website's Friends stats rule).</summary>
     Live,
-    /// <summary>In game on another dino: "Other species · no stats shown", no bars.</summary>
-    OtherSpecies,
-    /// <summary>In game but hiding their location or without a position: "No stats shown", no bars and no reason (it is their setting).</summary>
-    NoStats,
-    /// <summary>Left the game under five minutes ago: their row held as "Not in game" where it was, so the rows under it don't jump.</summary>
+    /// <summary>Had bars and left the game under five minutes ago: their row held as "Not in game" where it was, so the rows under it don't jump.</summary>
     Held,
-    /// <summary>Not in game: listed in edit mode only, as a sample.</summary>
-    Away,
 }
 
 /// <summary>One row to draw: who, what it shows, and the record it shows it from (the last one seen, for a held row).</summary>
-public sealed record PackRow(string SteamId, string Name, int Colour, PackRowKind Kind, FriendState? Friend, DateTime? LastSeenUtc)
+public sealed record PackRow(string SteamId, string Name, int Colour, PackRowKind Kind, FriendState Friend)
 {
-    /// <summary>The friend's dino for the name line: the record's, else the book's last seen.</summary>
-    public string? Dino { get; init; }
+    /// <summary>The friend's dino for the name line.</summary>
+    public string? Dino => Friend.Dino;
 
-    /// <summary>Growth 0–1 for the name line; null = unknown.</summary>
-    public double? Growth { get; init; }
+    /// <summary>Growth 0–1 for the name line.</summary>
+    public double Growth => Friend.Growth;
 }
 
-/// <summary>What the Pack draws this moment: the rows that fit, the closing line's count, the header's count and the body's words when there are no rows.</summary>
-/// <param name="Rows">The rows on screen, in order.</param>
-/// <param name="More">Rows that didn't fit: the closing line "+N more in game" ("+N more" in edit mode); 0 = no line.</param>
-/// <param name="InGame">Watched friends in game, for the header's "3 of 5 in game".</param>
-/// <param name="Watched">Watched friends.</param>
-/// <param name="Empty">The body's line when there are no rows ("You're not in game", "No watched friend in game"), else null.</param>
-public sealed record PackView(IReadOnlyList<PackRow> Rows, int More, int InGame, int Watched, string? Empty)
+/// <summary>What the Pack draws this moment.</summary>
+/// <param name="Rows">The rows on screen, in name order.</param>
+/// <param name="More">Friends with bars that didn't fit, the farthest: the closing line "+N more"; 0 = no line.</param>
+/// <param name="OnYourDino">Friends the Pack counts now (with bars, and watched in the ticked mode), for the header.</param>
+/// <param name="Empty">The body's line when there are no rows ("You're not in game", "No friend on your dino in game"), else null.</param>
+/// <param name="Shown">Who is on screen, handed back next time so a friend at the edge keeps their row (<see cref="PackRows.Hysteresis"/>).</param>
+public sealed record PackView(IReadOnlyList<PackRow> Rows, int More, int OnYourDino, string? Empty, IReadOnlySet<string> Shown)
 {
     /// <summary>The header's right-hand count.</summary>
-    public string Count => $"{InGame} of {Watched} in game";
+    public string Count => $"{OnYourDino} on your dino";
 
     /// <summary>The closing line, or null.</summary>
-    public string? MoreLine(bool editMode) => More <= 0 ? null : editMode ? $"+{More} more" : $"+{More} more in game";
+    public string? MoreLine => More <= 0 ? null : $"+{More} more";
 }
 
 /// <summary>
-/// The Pack widget's rows, pure and tested (BRIEF.md, Nov 2026). From the
-/// roster, the friend book's Watch ticks, your dino and whether you are in
-/// game, the held leavers and the clock: which watched friends get a row, in
-/// what order, showing what, and how many fit the frame.
+/// The Pack widget's rows, pure and tested (BRIEF.md, Nov 2026; reworked
+/// Nov 10 after the first testers' feedback). From the roster, the friend
+/// book, you, the held leavers and the clock: which friends get a row, in
+/// what order, and how many fit the frame.
 /// <para>
-/// The bars follow the website's own "Friends stats" panel (its live-map
-/// script, read Nov 9 2026): a friend who is in game, not hiding their
-/// location and with a position (<see cref="FriendState.OnMap"/>, the same
-/// filter as the map's arrows), and of those only the ones whose dino equals
-/// yours exactly, compared as the site compares them (case counts). The
-/// server's rules forbid mixpacking too. Another dino gets a row without
-/// bars; so does a friend who hides their location, with no reason given.
+/// Who: the friends the website's own "Friends stats" panel would show (its
+/// live-map script, read Nov 9 2026): in game, not hiding their location and
+/// with a position (<see cref="FriendState.OnMap"/>, the map's arrows' filter),
+/// and of those only the ones whose dino equals yours exactly, compared as the
+/// site compares them (case counts; the server's rules forbid mixpacking).
+/// All of them by default; only the ones you tick in the ticked mode
+/// (<see cref="OverlayConfig.PackShows"/>), with no cap: the frame cuts. No
+/// row has no bars (the owner, Nov 10: another species and a hidden friend
+/// are left out), but a friend who had bars and LEFT keeps their row for
+/// <see cref="HoldAfterLeaving"/> (<see cref="PackLeavers"/>).
 /// </para>
 /// <para>
-/// Order: friends with bars first, then the rest in game, each by the name
-/// you see (nickname, else the site's), case ignored; away friends last in
-/// edit mode. A friend who leaves keeps their row and its rank for
-/// <see cref="HoldAfterLeaving"/> (<see cref="PackLeavers"/>).
+/// Which, when more qualify than the frame holds: the NEAREST to you (a tester's
+/// idea, Nov 10: with a big friends list, the ones beside you are your pack),
+/// with a margin (<see cref="Hysteresis"/>): a friend on screen keeps their row
+/// until another is that much nearer, so one at the edge doesn't flicker in
+/// and out. The rest are "+N more". The rows themselves are in NAME order (the
+/// name you see, case ignored): sorted by distance they would swap places every
+/// roster as the pack moves, mid-fight (the owner's call: nearest fill, name
+/// order; nothing rearranges by itself). Distance is only ever computed for a
+/// friend on the map, from positions already polled, and never shown.
 /// </para>
 /// <para>
 /// The heights are the code's, never a theme's: a full row 42 with 6 between,
@@ -94,8 +96,15 @@ public static class PackRows
     /// <summary>How long a friend who left keeps their row as "Not in game" (the owner, Nov 8 2026).</summary>
     public static readonly TimeSpan HoldAfterLeaving = TimeSpan.FromMinutes(5);
 
+    /// <summary>
+    /// A friend on screen keeps their row until one off screen is this much
+    /// nearer (world cm: 100 m). A pack in a fight stays within a few dozen
+    /// metres; a friend 100 m nearer than one shown is clearly closer.
+    /// </summary>
+    public const double Hysteresis = 10_000;
+
     public const string NotInGame = "You're not in game";
-    public const string NobodyInGame = "No watched friend in game";
+    public const string NobodyOnYourDino = "No friend on your dino in game";
 
     /// <summary>The frame's outer height at 100%.</summary>
     public static double FrameHeight(PackFrame frame) => frame == PackFrame.Large ? WidgetFrame.LargeHeight : WidgetFrame.SmallHeight;
@@ -130,6 +139,9 @@ public static class PackRows
     public static PackRowSize SizeOf(string? value) =>
         string.Equals(value, "compact", StringComparison.OrdinalIgnoreCase) ? PackRowSize.Compact : PackRowSize.Full;
 
+    /// <summary>The config's words for who the Pack shows: "ticked" = only the friends you tick; anything else = all your friends on your dino (the default).</summary>
+    public static bool TickedOnly(string? value) => string.Equals(value, "ticked", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// The website's Friends stats rule: bars only for a friend on the map
     /// (in game, sharing, with a position) on exactly your dino.
@@ -139,105 +151,110 @@ public static class PackRows
 
     /// <summary>Everything the Pack draws now.</summary>
     /// <param name="roster">The last roster (you filtered out); null = none yet, or cleared.</param>
-    /// <param name="book">The friend book: who is watched, their names and colours.</param>
-    /// <param name="yourDino">Your dino while in game.</param>
-    /// <param name="youInGame">False: "You're not in game", no rows ("your species" can't be judged).</param>
-    /// <param name="leavers">The friends who left in the last five minutes.</param>
-    public static PackView Build(IReadOnlyList<FriendState>? roster, FriendBook book, string? yourDino, bool youInGame,
-                                 PackLeavers leavers, DateTime now, bool editMode, PackFrame frame, PackRowSize size)
+    /// <param name="book">The friend book: names, colours and, in the ticked mode, who is ticked.</param>
+    /// <param name="me">You while in game; null: "You're not in game", no rows ("your dino" can't be judged).</param>
+    /// <param name="tickedOnly">Only the friends you tick (else every friend on your dino).</param>
+    /// <param name="leavers">The friends with bars who left in the last five minutes.</param>
+    /// <param name="shownBefore">Who was on screen last time (<see cref="PackView.Shown"/>), for the margin.</param>
+    public static PackView Build(IReadOnlyList<FriendState>? roster, FriendBook book, PlayerState? me, bool tickedOnly,
+                                 PackLeavers leavers, IReadOnlySet<string> shownBefore, DateTime now, PackFrame frame, PackRowSize size)
     {
-        var watched = book.Watched.ToList();
-        var byId = new Dictionary<string, FriendState>();
+        var none = new HashSet<string>();
+        if (me is null) return new PackView(Array.Empty<PackRow>(), 0, 0, NotInGame, none);
+
+        bool Counts(string id) => !tickedOnly || book.Watches(id);
+        var candidates = new List<PackRow>();
+        var seen = new HashSet<string>();
+        var inGame = new HashSet<string>();
         foreach (var f in roster ?? Array.Empty<FriendState>())
         {
-            if (f.SteamId is { } id && !byId.ContainsKey(id)) byId[id] = f;
+            if (f.SteamId is not { } id || !seen.Add(id)) continue;
+            if (f.InGame) inGame.Add(id);
+            if (HasBars(f, me.Dino) && Counts(id))
+                candidates.Add(new PackRow(id, book.DisplayName(id, f.Name), book.ColourOf(id), PackRowKind.Live, f));
         }
-        var inGame = watched.Count(e => byId.TryGetValue(e.SteamId, out var f) && f.InGame);
-        if (!youInGame) return new PackView(Array.Empty<PackRow>(), 0, inGame, watched.Count, NotInGame);
-
-        var ranked = new List<(int Rank, PackRow Row)>();
-        foreach (var entry in watched)
+        var onYourDino = candidates.Count;
+        foreach (var held in leavers.HeldNow(now))
         {
-            var name = book.DisplayName(entry.SteamId, entry.Name);
-            var colour = book.ColourOf(entry.SteamId);
-            if (byId.TryGetValue(entry.SteamId, out var f) && f.InGame)
-            {
-                var kind = HasBars(f, yourDino) ? PackRowKind.Live : f.OnMap ? PackRowKind.OtherSpecies : PackRowKind.NoStats;
-                ranked.Add((kind == PackRowKind.Live ? 0 : 1,
-                            new PackRow(entry.SteamId, name, colour, kind, f, entry.LastSeenUtc) { Dino = f.Dino, Growth = f.Growth }));
-            }
-            else if (leavers.Held(entry.SteamId, now) is { } held)
-            {
-                ranked.Add((held.Rank, new PackRow(entry.SteamId, name, colour, PackRowKind.Held, held.Last, entry.LastSeenUtc)
-                                       { Dino = held.Last.Dino, Growth = held.Last.Growth }));
-            }
-            else if (editMode)
-            {
-                ranked.Add((2, new PackRow(entry.SteamId, name, colour, PackRowKind.Away, null, entry.LastSeenUtc)
-                               { Dino = entry.LastDino, Growth = entry.LastGrowth }));
-            }
+            var id = held.Last.SteamId!;
+            if (inGame.Contains(id) || !Counts(id)) continue; // in game again (with bars or not): never held
+            candidates.Add(new PackRow(id, book.DisplayName(id, held.Last.Name), book.ColourOf(id), PackRowKind.Held, held.Last));
         }
+        if (candidates.Count == 0) return new PackView(candidates, 0, 0, NobodyOnYourDino, none);
 
-        var rows = ranked
-            .OrderBy(r => r.Rank)
-            .ThenBy(r => r.Row.Name, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(r => r.Row.SteamId, StringComparer.Ordinal)
-            .Select(r => r.Row)
-            .ToList();
-        if (rows.Count == 0) return new PackView(rows, 0, inGame, watched.Count, NobodyInGame);
-
+        var picked = candidates;
         var more = 0;
-        if (rows.Count > Capacity(frame, size))
+        if (candidates.Count > Capacity(frame, size))
         {
             var fit = RowsThatFit(frame, size, withMore: true);
-            more = rows.Count - fit;
-            rows = rows.Take(fit).ToList();
+            picked = candidates
+                .OrderBy(r => Distance(r.Friend, me) - (shownBefore.Contains(r.SteamId) ? Hysteresis : 0))
+                .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(r => r.SteamId, StringComparer.Ordinal)
+                .Take(fit)
+                .ToList();
+            more = candidates.Count - fit;
         }
-        return new PackView(rows, more, inGame, watched.Count, null);
+        var rows = picked
+            .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.SteamId, StringComparer.Ordinal)
+            .ToList();
+        return new PackView(rows, more, onYourDino, null, rows.Select(r => r.SteamId).ToHashSet());
     }
+
+    /// <summary>World cm between you and a friend on the map (a held friend: where they were last seen).</summary>
+    internal static double Distance(FriendState friend, PlayerState me) =>
+        friend is { X: { } x, Y: { } y } ? Math.Sqrt((x - me.X) * (x - me.X) + (y - me.Y) * (y - me.Y)) : double.MaxValue;
 }
 
 /// <summary>
-/// The Pack's held leavers: a friend who was in game in the last roster and
-/// is not in this one keeps their row as "Not in game" for
-/// <see cref="PackRows.HoldAfterLeaving"/>, at the rank they had (bars first,
-/// then the rest), so the rows under it don't jump mid-fight. Back within
-/// it, the row goes live in place; after it, the rows close up. A cleared
-/// roster (null) tells nothing about who left, so it holds no one new.
+/// The Pack's held leavers: a friend who had bars in the last roster (on the
+/// map, on your dino) and is not in game in this one keeps their row as "Not
+/// in game" for <see cref="PackRows.HoldAfterLeaving"/>, so the rows under it
+/// don't jump mid-fight. Back within it, the row goes live in place; after it,
+/// the rows close up. A friend who is still in game but lost their bars (they
+/// changed dino or hid their location, or you changed yours) is not held: they
+/// didn't leave. A cleared roster (null) tells nothing about who left, so it
+/// holds no one new.
 /// </summary>
 public sealed class PackLeavers
 {
-    /// <summary>One held friend: when they left, the last record seen and the rank they had (0 bars, 1 the rest).</summary>
-    public sealed record Leaver(DateTime LeftUtc, FriendState Last, int Rank);
+    /// <summary>One held friend: when they left and the last record seen with bars.</summary>
+    public sealed record Leaver(DateTime LeftUtc, FriendState Last);
 
     private readonly Dictionary<string, Leaver> _held = new();
-    private Dictionary<string, (FriendState Friend, int Rank)> _wasInGame = new();
+    private Dictionary<string, FriendState> _hadBars = new();
 
-    /// <summary>A new roster: who left is held, who came back is let go, and the old holds expire.</summary>
+    /// <summary>A new roster: who left is held, who is back in game is let go, and the old holds expire.</summary>
     public void Update(IReadOnlyList<FriendState>? roster, string? yourDino, DateTime now)
     {
         Expire(now);
         if (roster is null) return;
-        var inGame = new Dictionary<string, (FriendState, int)>();
+        var inGame = new HashSet<string>();
+        var hadBars = new Dictionary<string, FriendState>();
         foreach (var f in roster)
         {
-            if (f.SteamId is not { } id || !f.InGame || inGame.ContainsKey(id)) continue;
-            inGame[id] = (f, PackRows.HasBars(f, yourDino) ? 0 : 1);
-            _held.Remove(id); // back: the row is live again, in place
+            if (f.SteamId is not { } id || !f.InGame) continue;
+            inGame.Add(id);
+            _held.Remove(id); // back in game: no longer held (with bars, the row is live again, in place)
+            if (PackRows.HasBars(f, yourDino)) hadBars[id] = f;
         }
-        foreach (var (id, was) in _wasInGame)
+        foreach (var (id, last) in _hadBars)
         {
-            if (!inGame.ContainsKey(id)) _held[id] = new Leaver(now, was.Friend, was.Rank);
+            if (!inGame.Contains(id)) _held[id] = new Leaver(now, last);
         }
-        _wasInGame = inGame;
+        _hadBars = hadBars;
     }
 
     /// <summary>The hold on this friend, or null (never left, back, or over five minutes ago).</summary>
     public Leaver? Held(string steamId, DateTime now) =>
         _held.TryGetValue(steamId, out var l) && now - l.LeftUtc < PackRows.HoldAfterLeaving ? l : null;
 
+    /// <summary>Every hold still running.</summary>
+    public IEnumerable<Leaver> HeldNow(DateTime now) => _held.Values.Where(l => now - l.LeftUtc < PackRows.HoldAfterLeaving);
+
     /// <summary>True while anyone is held: the window ages the holds on a timer of its own only then.</summary>
-    public bool Any(DateTime now) => _held.Values.Any(l => now - l.LeftUtc < PackRows.HoldAfterLeaving);
+    public bool Any(DateTime now) => HeldNow(now).Any();
 
     private void Expire(DateTime now)
     {

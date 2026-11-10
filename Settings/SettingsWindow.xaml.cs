@@ -242,6 +242,9 @@ public partial class SettingsWindow : Window
         var compact = PackRows.SizeOf(config.PackRows) == PackRowSize.Compact;
         PackRowsFull.IsChecked = !compact;
         PackRowsCompact.IsChecked = compact;
+        var ticked = PackRows.TickedOnly(config.PackShows);
+        PackShowsAll.IsChecked = !ticked;
+        PackShowsTicked.IsChecked = ticked;
         FriendList.ScrollChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14); // the rows are built on the first look (SetPage)
         FriendList.SizeChanged += (_, _) => AlignHeader(FriendHeader, FriendList, top: 14);
 

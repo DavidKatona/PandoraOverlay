@@ -8,13 +8,14 @@ using System.Windows.Threading;
 namespace PandoraOverlay;
 
 /// <summary>
-/// The Pack widget (BRIEF.md, Nov 2026): the friends you watch (Settings →
-/// Friends' Watch column, or a map menu's "Watch …"), a row each, with their
-/// health, stamina, hunger and thirst while they play your exact dino, by the
-/// website's own Friends stats rule (PackRows). On one of the two widget
-/// frames, the player's choice (Small, the Activity feed's, by default;
-/// Large, the minimap's), with Full or Compact rows; the frame never changes
-/// size, the rows are cut to it and the last line says "+N more in game".
+/// The Pack widget (BRIEF.md, Nov 2026; reworked Nov 10 after the first
+/// testers): your friends on your exact dino, a row each, with their health,
+/// stamina, hunger and thirst, by the website's own Friends stats rule
+/// (PackRows): all of them by default, or only those ticked Watch (Settings →
+/// Friends, or a map menu's "Watch …"). On one of the two widget frames, the
+/// player's choice (Small, the Activity feed's, by default; Large, the
+/// minimap's), with Full or Compact rows; the frame never changes size: the
+/// nearest fill it, in name order, and the last line says "+N more".
 /// Click-through and never scrolling, dragged, snapped, scaled
 /// (<see cref="OverlayConfig.PackScale"/>) and faded like the other widgets;
 /// it wakes by <see cref="PackAttention"/> (no chime).
@@ -27,9 +28,9 @@ namespace PandoraOverlay;
 /// holds: a theme switch or a setting repaints and sends nothing. It adds no
 /// request and no pace: MainWindow tells the poll it is shown
 /// (<see cref="PollService.PackShown"/>), and the roster keeps its cadence.
-/// MainWindow owns its lifetime: the window exists only while it is shown,
-/// with at least one friend watched. Nothing positional is shown here
-/// (distance, area, "nearby"): that is the maps'.
+/// MainWindow owns its lifetime: the window exists only while it is shown
+/// (in the ticked mode, with a friend ticked). Nothing positional is shown here
+/// (distance, area, "nearby"): distance only picks who fills the frame.
 /// </para>
 /// <para>
 /// Every colour, corner and font is a theme token, read by meaning as it
@@ -76,6 +77,7 @@ public partial class PackWindow : OverlayWindowBase
     private readonly DispatcherTimer _holdTimer; // ages the held rows and the drop's hold; runs only while one is running
     private IReadOnlyList<FriendState>? _roster;
     private PlayerState? _me;
+    private IReadOnlySet<string> _shown = new HashSet<string>();
 
     public PackWindow(OverlayConfig config, PollService poll, FriendBook book)
     {
@@ -155,7 +157,7 @@ public partial class PackWindow : OverlayWindowBase
     protected override void OnEditModeChanged(bool editMode)
     {
         RootPanel.Lit = editMode; // the theme's edit look on the frame (ThemedBorder)
-        Render();     // edit mode lists every watched friend, away ones as samples
+        Render();
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragIfEditing(e);
@@ -189,7 +191,8 @@ public partial class PackWindow : OverlayWindowBase
     private void Render()
     {
         var now = DateTime.UtcNow;
-        var view = PackRows.Build(_roster, _book, _me?.Dino, _me is not null, _leavers, now, EditMode, Frame, Size);
+        var view = PackRows.Build(_roster, _book, _me, PackRows.TickedOnly(_config.PackShows), _leavers, _shown, now, Frame, Size);
+        _shown = view.Shown; // the margin: who is on screen keeps their row until another is clearly nearer
         CountText.Text = view.Count;
 
         Rows.Children.Clear();
@@ -203,7 +206,7 @@ public partial class PackWindow : OverlayWindowBase
             if (i > 0) row.Margin = new Thickness(0, PackRows.RowGap(size), 0, 0);
             Rows.Children.Add(row);
         }
-        if (view.MoreLine(EditMode) is { } more)
+        if (view.MoreLine is { } more)
         {
             Rows.Children.Add(new TextBlock
             {
@@ -237,10 +240,10 @@ public partial class PackWindow : OverlayWindowBase
 
         var line = new DockPanel { LastChildFill = true };
         line.Children.Add(Dot(row));
-        var dim = row.Kind is PackRowKind.Held or PackRowKind.Away;
+        var dim = row.Kind == PackRowKind.Held;
         var name = NameText(row.Name, FullNameMax, dim);
         line.Children.Add(name);
-        if (row.Kind == PackRowKind.Live && row.Friend is { } live)
+        if (row.Kind == PackRowKind.Live && row.Friend is var live)
         {
             var pct = Percent(live.Health);
             DockPanel.SetDock(pct, Dock.Right);
@@ -250,7 +253,7 @@ public partial class PackWindow : OverlayWindowBase
             badges.Margin = new Thickness(6, 0, 4, 0);
             line.Children.Add(badges);
         }
-        if (Sex(row.Friend?.Gender) is { Length: > 0 } sex)
+        if (Sex(row.Friend.Gender) is { Length: > 0 } sex)
         {
             var symbol = Text(sex, 12, Theme.Current.Text.Label, Theme.Current.Font.BodyWeight);
             symbol.Margin = new Thickness(4, 0, 0, 0);
@@ -262,7 +265,7 @@ public partial class PackWindow : OverlayWindowBase
         line.Children.Add(meta);
         grid.Children.Add(line);
 
-        if (row.Kind == PackRowKind.Live && row.Friend is { } f)
+        if (row.Kind == PackRowKind.Live && row.Friend is var f)
         {
             var captions = Quarters();
             var bars = Quarters();
@@ -283,7 +286,7 @@ public partial class PackWindow : OverlayWindowBase
         }
         else
         {
-            var note = Text(Note(row, full: true), 11, Theme.Current.Text.Dim, Theme.Current.Font.BodyWeight);
+            var note = Text(HeldNote, 11, Theme.Current.Text.Dim, Theme.Current.Font.BodyWeight);
             note.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetRow(note, 1);
             Grid.SetRowSpan(note, 4);
@@ -297,11 +300,11 @@ public partial class PackWindow : OverlayWindowBase
     {
         var line = new DockPanel { LastChildFill = true };
         line.Children.Add(Dot(row));
-        var dim = row.Kind is PackRowKind.Held or PackRowKind.Away;
+        var dim = row.Kind == PackRowKind.Held;
         var name = NameText(row.Name, CompactNameMax, dim);
         name.Width = CompactNameMax; // one name column, so the bars start together down the list
         line.Children.Add(name);
-        if (row.Kind == PackRowKind.Live && row.Friend is { } live)
+        if (row.Kind == PackRowKind.Live && row.Friend is var live)
         {
             var pct = Percent(live.Health);
             DockPanel.SetDock(pct, Dock.Right);
@@ -317,7 +320,7 @@ public partial class PackWindow : OverlayWindowBase
         }
         else
         {
-            var note = Text(Note(row, full: false), 11, Theme.Current.Text.Dim, Theme.Current.Font.BodyWeight);
+            var note = Text(HeldNote, 11, Theme.Current.Text.Dim, Theme.Current.Font.BodyWeight);
             note.TextAlignment = TextAlignment.Right;
             note.Margin = new Thickness(6, 0, 0, 0);
             line.Children.Add(note);
@@ -325,32 +328,14 @@ public partial class PackWindow : OverlayWindowBase
         return line;
     }
 
-    /// <summary>The note a row without bars shows: why not, in the fewest words (a hidden friend's reason is their setting, not ours to show).</summary>
-    private static string Note(PackRow row, bool full) => row.Kind switch
-    {
-        PackRowKind.OtherSpecies => full ? "Other species · no stats shown" : "Other species",
-        PackRowKind.NoStats => "No stats shown",
-        _ => "Not in game",
-    };
+    /// <summary>The one row without bars: a friend who just left, held in place for five minutes.</summary>
+    private const string HeldNote = "Not in game";
 
-    /// <summary>The name line's middle: the dino and growth, as the Activity feed names a spawn; an away friend's last-seen time.</summary>
+    /// <summary>The name line's middle: the dino and growth, as the Activity feed names a spawn.</summary>
     private static string Meta(PackRow row)
     {
         var dino = row.Dino ?? "";
-        if (row.Kind == PackRowKind.Away)
-        {
-            var seen = row.LastSeenUtc is { } at ? "last seen " + Ago(DateTime.UtcNow - at) : "";
-            return string.Join(" · ", new[] { dino, seen }.Where(s => s.Length > 0));
-        }
-        return row.Growth is { } g && dino.Length > 0 ? $"{dino} · {GrowthReadout.Percent(g)}%" : dino;
-    }
-
-    private static string Ago(TimeSpan span)
-    {
-        if (span < TimeSpan.FromMinutes(1)) return "just now";
-        if (span < TimeSpan.FromHours(1)) return $"{(int)span.TotalMinutes} min ago";
-        if (span < TimeSpan.FromDays(1)) return $"{(int)span.TotalHours} h ago";
-        return $"{(int)span.TotalDays} d ago";
+        return dino.Length > 0 ? $"{dino} · {GrowthReadout.Percent(row.Growth)}%" : dino;
     }
 
     private static string Sex(string? gender) =>

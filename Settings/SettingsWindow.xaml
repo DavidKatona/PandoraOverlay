@@ -702,11 +702,11 @@
                  waypoint list's), less the Pack's group under it (Nov 2026): the
                  page column is 455.81 tall in Default and this page without its
                  list 125.78 before the group; the group (its caption, the Scale
-                 slider and the two radio rows) takes 101.22 more in Default, so
-                 227.00 without the list, and the list keeps 228 (every other
-                 theme has 11 to 20 px more, measured Nov 9 2026). Nothing on
+                 slider and the three radio rows) takes 124.22 more in Default, so
+                 251.00 without the list, and the list keeps 204 (0.81 px to spare;
+                 the other themes 1.7 to 21.6 px; measured Nov 10 2026). Nothing on
                  this page comes and goes outside the list. -->
-            <ScrollViewer x:Name="FriendList" Height="228" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer x:Name="FriendList" Height="204" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
                 <ScrollViewer.Resources>
                     <Style TargetType="ScrollBar" BasedOn="{StaticResource DarkScrollBar}"/>
                 </ScrollViewer.Resources>
@@ -732,7 +732,17 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="PackScaleSlider_ValueChanged"/>
             </DockPanel>
-            <!-- The two radio rows start where the slider does (SliderLabel's width). -->
+            <!-- The radio rows start where the slider does (SliderLabel's width).
+                 Who it shows (Nov 10 2026, the first testers: ticking friends every
+                 session was a chore): every friend on your dino by default, the
+                 Watch ticks above only in the second mode. -->
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Shows:"/>
+                <RadioButton x:Name="PackShowsAll" Style="{StaticResource Radio}" Content="All friends on my dino"
+                             GroupName="PackShows" Margin="10,0,0,0"/>
+                <RadioButton x:Name="PackShowsTicked" Style="{StaticResource Radio}" Content="Only ticked"
+                             GroupName="PackShows" Margin="14,0,0,0"/>
+            </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock Style="{StaticResource SliderLabel}" Text="Frame:"/>
                 <RadioButton x:Name="PackFrameSmall" Style="{StaticResource Radio}" Content="Small"

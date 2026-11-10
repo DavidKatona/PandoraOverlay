@@ -8,7 +8,7 @@ public class PackAttentionTests
     private static readonly DateTime Now = new(2026, 11, 9, 18, 0, 0, DateTimeKind.Utc);
 
     private static PackRow Row(string id, double health, PackRowKind kind = PackRowKind.Live, bool head = false, string dino = "Deinosuchus") =>
-        new(id, id, 0, kind, PackRowsTests.F(id, dino: dino, health: health, head: head), null);
+        new(id, id, 0, kind, PackRowsTests.F(id, dino: dino, health: health, head: head));
 
     [Fact]
     public void ADropIntoALowerQuarterWakesForTheDamageHold()
@@ -48,11 +48,10 @@ public class PackAttentionTests
     }
 
     [Fact]
-    public void OtherSpeciesHeldAndAwayRowsNeverWakeIt()
+    public void AHeldRowNeverWakesIt()
     {
         var a = new PackAttention();
-        Assert.False(a.Update(new[] { Row("o", 0.1, PackRowKind.OtherSpecies, head: true), Row("n", 0.1, PackRowKind.NoStats),
-                                      Row("h", 0.1, PackRowKind.Held), Row("w", 0.1, PackRowKind.Away) }, Now));
+        Assert.False(a.Update(new[] { Row("h", 0.1, PackRowKind.Held, head: true) }, Now));
     }
 
     [Fact]

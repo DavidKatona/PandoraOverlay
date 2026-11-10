@@ -34,7 +34,7 @@ public enum SettingsChange
     Positions = 1 << 9,
     /// <summary>The theme (the Themes page): MainWindow.ApplyTheme repaints every window; never moves or resizes one.</summary>
     Theme = 1 << 10,
-    /// <summary>The Pack's frame or rows (Settings → Friends): the widget lays its rows out again. Its scale rides Appearance.</summary>
+    /// <summary>The Pack's frame, rows or who it shows (Settings → Friends): the widget lays its rows out again, and comes or goes with who it shows. Its scale rides Appearance.</summary>
     Pack = 1 << 11,
 }
 
@@ -201,6 +201,8 @@ public partial class SettingsWindow
         Live(PackFrameLarge, () => _config.PackFrame = "large", SettingsChange.Pack);
         Live(PackRowsFull, () => _config.PackRows = "full", SettingsChange.Pack);
         Live(PackRowsCompact, () => _config.PackRows = "compact", SettingsChange.Pack);
+        Live(PackShowsAll, () => { _config.PackShows = "all"; MarkWatchBoxes(); }, SettingsChange.Pack);       // may bring the Pack up
+        Live(PackShowsTicked, () => { _config.PackShows = "ticked"; MarkWatchBoxes(); }, SettingsChange.Pack); // or close it, with none ticked
 
         // About
         Live(UpdateCheck, on => _config.UpdateCheckEnabled = on); // read at the next launch

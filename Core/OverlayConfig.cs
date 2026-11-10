@@ -519,10 +519,11 @@ public sealed class OverlayConfig
     // ---- The Pack widget (Nov 2026) --------------------------------------------
 
     /// <summary>
-    /// Show the Pack widget (the control panel's PACK Show/hide): your watched
-    /// friends' stats while they play your dino. On by default, but there is
-    /// no window until a friend is watched (Settings → Friends' Watch column,
-    /// or a map menu's "Watch"); shown, it is a friends surface (PollService).
+    /// Show the Pack widget (the control panel's PACK Show/hide): your friends'
+    /// stats while they play your dino. On by default; with PackShows
+    /// "ticked" there is no window until a friend is ticked (Settings →
+    /// Friends' Watch column, or a map menu's "Watch"). Shown, it is a friends
+    /// surface (PollService).
     /// </summary>
     public bool PackEnabled { get; set; } = true;
 
@@ -539,6 +540,14 @@ public sealed class OverlayConfig
 
     /// <summary>The Pack's rows: "full" (four captioned bars, the default) or "compact" (one line, health only). Settings → Friends.</summary>
     public string PackRows { get; set; } = "full";
+
+    /// <summary>
+    /// Who the Pack shows: "all" (every friend on your dino sharing their
+    /// location, the default since the first testers' feedback, Nov 10 2026:
+    /// ticking friends every session was a chore) or "ticked" (only the friends
+    /// ticked Watch on Settings → Friends, any number). Settings → Friends.
+    /// </summary>
+    public string PackShows { get; set; } = "all";
 
     // ---- Appearance -------------------------------------------------------
 

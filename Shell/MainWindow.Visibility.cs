@@ -344,7 +344,7 @@ public partial class MainWindow
         _controlPanel.Show();
         _controlPanel.SetEditMode(true); // permanently interactive while visible
         _controlPanel.SetHotkeyLabel(_hotkey.ToString());
-        _controlPanel.SetPackAvailable(_book.WatchedCount > 0); // greyed while nobody is watched
+        _controlPanel.SetPackAvailable(PackHasAnyone); // greyed while it has nobody to show (the ticked mode, none ticked)
 
         // Take focus away from the game so it releases its mouse capture and
         // the cursor becomes visible. Windows grants us foreground rights

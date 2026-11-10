@@ -71,14 +71,14 @@ public sealed partial class MapActions
     /// <summary>True when this friend is in the Pack.</summary>
     public bool Watches(string? steamId) => _book.Watches(steamId);
 
-    /// <summary>True when this friend is watched or one more fits (the cap, FriendBook.MaxWatched): unwatching is never refused.</summary>
-    public bool CanWatch(string? steamId) => _book.CanWatch(steamId);
+    /// <summary>The Pack shows only the friends ticked Watch (Settings → Friends): the menu's Watch entry means something only then.</summary>
+    public bool PackTickedOnly => PackRows.TickedOnly(_config.PackShows);
 
     /// <summary>
     /// The maps' "Watch …" / "Unwatch …" (the Pack, Nov 2026): sets the book's
-    /// entry, which raises its Changed (MainWindow saves the file and brings
-    /// the Pack up at the first, or closes it at the last). No request: a
-    /// Pack already shown just redraws.
+    /// entry (the Pack's ticked mode), which raises its Changed (MainWindow
+    /// saves the file and brings the Pack up at the first, or closes it at
+    /// the last). No request: a Pack already shown just redraws.
     /// </summary>
     public void WatchFriend(string steamId, bool on) => _book.SetWatch(steamId, on);
 

@@ -70,7 +70,7 @@ public partial class MainWindow : OverlayWindowBase
         _library.Changed += () => _library.Save(); // user content: saved on every change, not just on exit
         _book = FriendBook.Load();
         _book.Changed += () => _book.Save(); // membership + preferences; the per-fetch last-seen facts are flushed on exit
-        _book.Changed += UpdatePack; // a Watch tick (or the last watched friend unfriended) brings the Pack up or closes it
+        _book.Changed += UpdatePack; // in the ticked mode, a Watch tick (or the last ticked friend unfriended) brings the Pack up or closes it
         LoadRoute();
         _ = MapActions; // made now, not at the first map: it hears the library's Changed, so a deleted waypoint leaves the route with no map open
         if (_config.WindowX is { } wx && _config.WindowY is { } wy)
@@ -136,7 +136,7 @@ public partial class MainWindow : OverlayWindowBase
             if (_config.MinimapEnabled) ShowMinimap();
             if (_config.PrimeEnabled) ShowPrime();
             if (_config.ActivityEnabled) ShowActivity();
-            UpdatePack(); // shown when switched on and a friend is watched
+            UpdatePack(); // shown when switched on with someone to show
 
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
             {
@@ -247,7 +247,8 @@ public partial class MainWindow : OverlayWindowBase
             _controlPanel?.ApplySettingsFromConfig();
         }
         if (Has(SettingsChange.Appearance | SettingsChange.Activity | SettingsChange.Friends)) _activity?.ApplySettingsFromConfig();
-        if (Has(SettingsChange.Appearance | SettingsChange.Pack)) _pack?.ApplySettingsFromConfig(); // its scale, the glass, the fade, its frame and rows
+        if (Has(SettingsChange.Appearance | SettingsChange.Pack)) _pack?.ApplySettingsFromConfig(); // its scale, the glass, the fade, its frame, rows and who it shows
+        if (Has(SettingsChange.Pack)) UpdatePack(); // who it shows may bring it up (a surface switched on: its hot trigger, under the floor) or close it
         // A friends surface switched on wants a roster: the existing "a surface
         // shown" trigger, under its usual floor (constraint 2). Switched off, or a
         // friend's nickname or colour changed: nothing is sent.

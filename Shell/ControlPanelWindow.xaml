@@ -115,8 +115,8 @@
 
                 <Border Style="{StaticResource PanelSeparator}"/>
 
-                <!-- The Pack (Nov 2026): greyed while nobody is watched (there is no
-                     window then), its tooltip saying where the Watch ticks are. -->
+                <!-- The Pack (Nov 2026): greyed while it has nobody to show (its ticked
+                     mode with none ticked: there is no window then), its tooltip saying what to change. -->
                 <StackPanel>
                     <TextBlock Style="{StaticResource PanelCaption}" Text="PACK"/>
                     <Button x:Name="PackButton" Content="Show/hide" Click="Pack_Click" Width="{x:Static local:ControlPanelFrame.ShowHideButton}"

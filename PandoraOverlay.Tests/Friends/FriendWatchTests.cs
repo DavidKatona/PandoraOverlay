@@ -2,7 +2,7 @@ using Xunit;
 
 namespace PandoraOverlay.Tests;
 
-/// <summary>The Pack's Watch tick in the friend book: kept in friends.json, at most eleven, gone with the friend.</summary>
+/// <summary>The Pack's Watch tick in the friend book (its ticked mode): kept in friends.json, any number, gone with the friend.</summary>
 public class FriendWatchTests
 {
     private static readonly DateTime Now = new(2026, 11, 9, 18, 0, 0, DateTimeKind.Utc);
@@ -32,39 +32,21 @@ public class FriendWatchTests
         Assert.Equal(0, old.WatchedCount);
     }
 
+    /// <summary>The 11 cap of 1.44.0-rc.1 is gone (the testers, Nov 10 2026): the frame cuts, nearest first.</summary>
     [Fact]
-    public void ApplyPrefsCopiesWatchAndRefusesATwelfth()
+    public void AnyNumberCanBeTicked()
     {
-        var book = BookOf(13);
+        var book = BookOf(20);
         var draft = book.Clone();
-        foreach (var d in draft) d.Watch = true; // thirteen ticked in a draft
+        foreach (var d in draft) d.Watch = true;
         book.ApplyPrefs(draft);
-        Assert.Equal(FriendBook.MaxWatched, book.WatchedCount);
-        Assert.Equal(11, FriendBook.MaxWatched);
+        Assert.Equal(20, book.WatchedCount);
 
-        // A swap in one batch: one unticked, another ticked; the untick lands first.
-        var swap = book.Clone();
-        var was = swap.First(d => d.Watch);
-        var now = swap.First(d => !d.Watch);
-        was.Watch = false;
-        now.Watch = true;
-        book.ApplyPrefs(swap);
-        Assert.False(book.Watches(was.SteamId));
-        Assert.True(book.Watches(now.SteamId));
-        Assert.Equal(11, book.WatchedCount);
-    }
-
-    [Fact]
-    public void CanWatchAtTheCap()
-    {
-        var book = BookOf(12);
-        for (var i = 1; i <= 11; i++) Assert.True(book.SetWatch(i.ToString(), true));
-        Assert.False(book.CanWatch("12"));
-        Assert.False(book.SetWatch("12", true)); // refused
-        Assert.False(book.Watches("12"));
-        Assert.True(book.CanWatch("3"));         // a watched one stays watchable
-        Assert.True(book.SetWatch("3", false));  // unwatching never is refused
-        Assert.True(book.CanWatch("12"));
+        var one = BookOf(13);
+        for (var i = 1; i <= 13; i++) Assert.True(one.SetWatch(i.ToString(), true));
+        Assert.Equal(13, one.WatchedCount);
+        Assert.True(one.SetWatch("3", false));
+        Assert.Equal(12, one.WatchedCount);
     }
 
     [Fact]

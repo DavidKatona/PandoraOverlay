@@ -100,18 +100,22 @@ public partial class SettingsWindow
         return row;
     }
 
-    // The rows' Watch boxes, so a tick at the cap greys the others in place (and an untick frees them).
+    // The rows' Watch boxes, so the Pack's mode greys or frees them in place.
     private readonly List<(FriendEntry Entry, CheckBox Box)> _watchBoxes = new();
 
-    /// <summary>At the cap the unticked Watch boxes are disabled, "Up to 11"; under it they are free again.</summary>
+    /// <summary>
+    /// The Watch boxes count only when the Pack shows the friends you tick
+    /// (Nov 10 2026: by default it shows every friend on your dino); in the
+    /// default mode they are greyed, their ticks kept for the other.
+    /// </summary>
     private void MarkWatchBoxes()
     {
-        var full = _friendDraft.Count(e => e.Watch) >= FriendBook.MaxWatched;
-        foreach (var (entry, box) in _watchBoxes)
+        var ticked = PackRows.TickedOnly(_config.PackShows);
+        foreach (var (_, box) in _watchBoxes)
         {
-            var open = entry.Watch || !full;
-            box.IsEnabled = open;
-            box.ToolTip = open ? "Show their stats in the Pack widget" : $"Up to {FriendBook.MaxWatched}";
+            box.IsEnabled = ticked;
+            box.ToolTip = ticked ? "Show them in the Pack widget while they play your dino"
+                                 : "The Pack shows all your friends on your dino: pick \"Only ticked\" below to choose";
         }
     }
 
@@ -232,8 +236,8 @@ public partial class SettingsWindow
         Grid.SetColumn(feed, 4);
         row.Children.Add(feed);
 
-        // The Pack (Nov 2026): their stats in the widget while they play your
-        // dino. Up to eleven; ToolTipService shows the cap's hint on a greyed box.
+        // The Pack (Nov 2026): in its ticked mode, the friends it shows while they
+        // play your dino, any number. ToolTipService shows why a box is greyed.
         var watch = new CheckBox
         {
             IsChecked = entry.Watch, Style = (Style)FindResource("Check"), HorizontalAlignment = HorizontalAlignment.Center,
@@ -242,7 +246,6 @@ public partial class SettingsWindow
         watch.Click += (_, _) =>
         {
             entry.Watch = watch.IsChecked == true;
-            MarkWatchBoxes();
             FriendsEdited();
         };
         _watchBoxes.Add((entry, watch));

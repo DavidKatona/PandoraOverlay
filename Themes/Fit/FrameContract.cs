@@ -198,7 +198,7 @@ public static class FrameContract
                      ("Connecting…", ""),
                  })
             slots.Add(new Slot(Headers, $"{name} · {corner}", new[] { Title(name[..1] + "…"), Corner(corner) }, _ => WidgetContent, Beside: Glyph));
-        foreach (var (title, corner) in new[] { ("Prime", "Not ready · 10/10 (7 needed)"), ("Activity", "12 of 30 friends in game"), ("Pack", "11 of 11 in game") })
+        foreach (var (title, corner) in new[] { ("Prime", "Not ready · 10/10 (7 needed)"), ("Activity", "12 of 30 friends in game"), ("Pack", "99 on your dino") })
             slots.Add(new Slot(Headers, $"{title} · {corner}", new[] { Title(title), Corner(corner) }, _ => WidgetContent));
 
         // The control panel: every label in its button (inside the label
@@ -265,8 +265,8 @@ public static class FrameContract
     /// The Pack's tight strings: a full row's right end (the sex, the three
     /// badges and "100%") beside a one-letter name and its ellipsis, the four
     /// captions in their quarter columns, a compact row's badges and "100%"
-    /// beside its name column and its least bar, a badge's letter in its badge, a compact row's
-    /// note beside the longest name, and the lines that take the whole width.
+    /// beside its name column and its least bar, a badge's letter in its badge, a held
+    /// compact row's note beside the longest name, and the lines that take the whole width.
     /// The header is with the other widgets' headers.
     /// </summary>
     private static void AddPackSlots(List<Slot> slots)
@@ -284,13 +284,13 @@ public static class FrameContract
         foreach (var letter in new[] { "H", "B", "L" })
             slots.Add(new Slot(PackRowsWhere, $"the {letter} badge", new[] { new Piece(letter, t => t.Font.BadgeSize, _ => ThemeWeight.Bold) },
                                _ => PackBadgeWidth, PackBadgeHeight));
-        foreach (var note in new[] { "Other species", "No stats shown", "Not in game" })
+        foreach (var note in new[] { "Not in game" })
             slots.Add(new Slot(PackRowsWhere, $"a compact row's \"{note}\"", new[] { Body(note, 11) },
                                _ => WidgetContent - PackDot - PackCompactNameMax - PackMetaMargin));
         foreach (var (line, size) in new[]
                  {
-                     ("Other species · no stats shown", 11.0), ("No stats shown", 11.0), ("+11 more in game", 11.0),
-                     (PackRows.NobodyInGame, 12.0), (PackRows.NotInGame, 12.0),
+                     ("Not in game", 11.0), ("+99 more", 11.0),
+                     (PackRows.NobodyOnYourDino, 12.0), (PackRows.NotInGame, 12.0),
                  })
             slots.Add(new Slot(PackRowsWhere, line, new[] { Body(line, size) }, _ => WidgetContent));
     }

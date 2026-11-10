@@ -64,16 +64,17 @@ public sealed partial class PollService
 
     /// <summary>
     /// True while the Pack widget is on screen (MainWindow sets it where the
-    /// window shows and goes, as it sets BigMapOpen): shown with at least one
-    /// friend watched, it is a friends surface. Hide-all and the auto-hide
-    /// don't clear it, as for the other friends surfaces.
+    /// window shows and goes, as it sets BigMapOpen): shown (every friend on
+    /// your dino by default; in its ticked mode, with a friend ticked), it is
+    /// a friends surface. Hide-all and the auto-hide don't clear it, as for
+    /// the other friends surfaces.
     /// </summary>
     public bool PackShown { get; set; }
 
     /// <summary>
     /// The friends roster is fetched while a friends surface is on screen: the
     /// Activity feed with friends' events, the minimap's arrows, the open big
-    /// map's Friends layer, or the Pack widget (shown, a friend watched). The
+    /// map's Friends layer, or the Pack widget (shown). The
     /// Pack adds no request and no pace: it rides the same roster, every 2nd
     /// in-game poll and every idle poll.
     /// </summary>

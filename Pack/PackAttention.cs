@@ -3,8 +3,8 @@ namespace PandoraOverlay;
 /// <summary>
 /// Whether the Pack needs your eyes: the wake rule behind its fade, pure and
 /// tested (BRIEF.md, Nov 2026). It reads only the rows on screen that have
-/// bars (another species, a friend with no stats shown, a held or an away
-/// row never wakes it), with the stats panel's own lines, reused by name:
+/// bars (a held row, a friend who just left, never wakes it), with the
+/// stats panel's own lines, reused by name:
 /// <list type="bullet">
 /// <item>lit while a shown friend's health is under half (the bars' half,
 /// <see cref="BarStates.UnderHalf"/>, the Survival view's wake line), calm
@@ -28,7 +28,7 @@ public sealed class PackAttention
     /// <summary>The rows on screen now (only those with bars count): the verdict.</summary>
     public bool Update(IEnumerable<PackRow> shown, DateTime now)
     {
-        var live = shown.Where(r => r.Kind == PackRowKind.Live && r.Friend is not null).Select(r => r.Friend!).ToList();
+        var live = shown.Where(r => r.Kind == PackRowKind.Live).Select(r => r.Friend).ToList();
         var seen = new HashSet<string>();
         foreach (var f in live)
         {

@@ -69,7 +69,7 @@
                             <Setter TargetName="HoverGlow" Property="Background" Value="{DynamicResource Theme.Button.PressedGlow}"/>
                             <Setter TargetName="HoverGlow" Property="Visibility" Value="Visible"/>
                         </Trigger>
-                        <!-- Greyed (the PACK Show/hide while nobody is watched): the
+                        <!-- Greyed (the PACK Show/hide while the Pack has nobody to show): the
                              neutral family's own disabled look, as the dialogs' buttons. -->
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Background" Value="{DynamicResource Theme.Button.Neutral.Disabled.Fill}"/>

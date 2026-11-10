@@ -27,7 +27,7 @@ namespace PandoraOverlay;
 /// Owner's design (Sep 27 2026): a feed, NOT a row per friend — rows would
 /// resize the widget with the roster, and the map arrows already say who
 /// is where. A friend's stats are the Pack's alone (PackWindow, Nov 2026:
-/// watched friends of your own species, by the website's rule), never the feed's.
+/// your friends on your own dino, by the website's rule), never the feed's.
 /// </summary>
 public partial class ActivityWindow : OverlayWindowBase
 {

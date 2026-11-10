@@ -30,10 +30,12 @@ public sealed class FriendEntry
     public bool Notify { get; set; } = true;
 
     /// <summary>
-    /// Show their health, stamina, hunger and thirst in the Pack widget while
-    /// they play your exact dino (the website's own Friends stats rule). Off
-    /// until ticked: an older friends.json, which has no such key, reads false,
-    /// and the file's format stays 1. At most FriendBook.MaxWatched.
+    /// Show them in the Pack widget when it shows only the friends you tick
+    /// (OverlayConfig.PackShows "ticked"; by default it shows every friend on
+    /// your dino and this tick changes nothing). Off until ticked: an older
+    /// friends.json, which has no such key, reads false, and the file's format
+    /// stays 1. Any number: the 11 cap of 1.44.0-rc.1 went with the testers'
+    /// feedback (Nov 10 2026); the Pack's frame cuts, nearest first.
     /// </summary>
     public bool Watch { get; set; }
 
@@ -86,13 +88,6 @@ public static class FriendColour
 public sealed class FriendBook
 {
     public const int MaxNicknameLength = 32;
-
-    /// <summary>
-    /// The most friends the Pack watches (the owner, Nov 8 2026): the biggest
-    /// group the server's rules allow (Beipiaosaurus, 12) less you. The large
-    /// frame's compact rows hold exactly eleven.
-    /// </summary>
-    public const int MaxWatched = 11;
 
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
@@ -220,15 +215,10 @@ public sealed class FriendBook
     /// Commits the Settings draft: preferences (nickname, colour, map, feed,
     /// watch) are copied onto the matching live entries by steamId. Membership
     /// and last-seen facts stay the roster's — a draft opened minutes ago must
-    /// not resurrect a friend Sync has since dropped. A Watch tick past
-    /// <see cref="MaxWatched"/> is refused (the page disables the boxes at the
-    /// cap; this holds the rule whatever a draft says): the unticks are
-    /// applied first, so swapping one watched friend for another in one batch
-    /// works.
+    /// not resurrect a friend Sync has since dropped.
     /// </summary>
     public void ApplyPrefs(IEnumerable<FriendEntry> draft)
     {
-        var watchOn = new List<FriendEntry>();
         foreach (var d in draft)
         {
             if (Find(d.SteamId) is not { } live) continue;
@@ -236,25 +226,19 @@ public sealed class FriendBook
             live.Colour = d.Colour is { } c ? WaypointPalette.Wrap(c) : null;
             live.ShowOnMap = d.ShowOnMap;
             live.Notify = d.Notify;
-            if (!d.Watch) live.Watch = false;
-            else if (!live.Watch) watchOn.Add(live);
-        }
-        foreach (var live in watchOn)
-        {
-            if (WatchedCount < MaxWatched) live.Watch = true;
+            live.Watch = d.Watch;
         }
         Notify();
     }
 
     /// <summary>
     /// Watches or unwatches one friend (the maps' right-click menu): true when
-    /// it took. Watching past the cap is refused; unwatching never is. Raises
-    /// Changed (the owner saves on it); no request is sent.
+    /// the friend is in the book. Raises Changed when it changes something (the
+    /// owner saves on it); no request is sent.
     /// </summary>
     public bool SetWatch(string steamId, bool on)
     {
         if (Find(steamId) is not { } entry) return false;
-        if (on && !CanWatch(steamId)) return false;
         if (entry.Watch == on) return true;
         entry.Watch = on;
         Notify();
@@ -287,17 +271,11 @@ public sealed class FriendBook
 
     public bool Notifies(string steamId) => Find(steamId)?.Notify ?? true;
 
-    /// <summary>Watched in the Pack widget.</summary>
+    /// <summary>Ticked Watch, for the Pack's ticked mode.</summary>
     public bool Watches(string? steamId) => Find(steamId)?.Watch == true;
 
-    /// <summary>How many friends the Pack watches.</summary>
+    /// <summary>How many friends are ticked Watch.</summary>
     public int WatchedCount => _items.Count(e => e.Watch);
-
-    /// <summary>The friends the Pack watches, in the book's order.</summary>
-    public IEnumerable<FriendEntry> Watched => _items.Where(e => e.Watch);
-
-    /// <summary>True when this friend is watched already, or one more fits under <see cref="MaxWatched"/>.</summary>
-    public bool CanWatch(string? steamId) => Watches(steamId) || WatchedCount < MaxWatched;
 
     /// <summary>Trims and caps a nickname; whitespace-only or empty becomes null (= use the site's name).</summary>
     public static string? SanitizeNickname(string? raw)

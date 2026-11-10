@@ -3,12 +3,14 @@ namespace PandoraOverlay;
 /// <summary>
 /// MainWindow, Pack part (Nov 2026): the Pack widget's lifetime. The Pack is
 /// shown while it is switched on (the control panel's PACK Show/hide,
-/// <see cref="OverlayConfig.PackEnabled"/>) AND at least one friend is
-/// watched; with nobody watched there is no window at all, in edit mode too,
-/// and the PACK button is greyed. The first Watch tick (Settings → Friends,
-/// a map menu) brings it up; the last one taken off closes it. The window
-/// exists only while it is shown, like the other widgets'; hide-all, the
-/// auto-hide and the map only hide it.
+/// <see cref="OverlayConfig.PackEnabled"/>), and, when it shows only the
+/// friends you tick (<see cref="OverlayConfig.PackShows"/> "ticked"), while at
+/// least one is ticked: with none ticked there is no window at all, in edit
+/// mode too, and the PACK button is greyed. In that mode the first Watch tick
+/// (Settings → Friends, a map menu) brings it up and the last one taken off
+/// closes it. By default (every friend on your dino) it is simply shown. The
+/// window exists only while it is shown, like the other widgets'; hide-all,
+/// the auto-hide and the map only hide it.
 /// <para>
 /// It is a friends surface (<see cref="PollService.PackShown"/>): appearing,
 /// it asks for a roster through the existing hot trigger, under its usual
@@ -22,10 +24,13 @@ public partial class MainWindow
 {
     private PackWindow? _pack;
 
-    /// <summary>The "is it shown" rule: switched on, and a friend watched.</summary>
-    private bool PackWanted => _config.PackEnabled && _book.WatchedCount > 0;
+    /// <summary>The Pack has someone to show: every friend on your dino, or in the ticked mode a friend ticked.</summary>
+    private bool PackHasAnyone => !PackRows.TickedOnly(_config.PackShows) || _book.WatchedCount > 0;
 
-    /// <summary>The control panel's PACK Show/hide (greyed while nobody is watched, so it is never pressed then).</summary>
+    /// <summary>The "is it shown" rule: switched on, with someone to show.</summary>
+    private bool PackWanted => _config.PackEnabled && PackHasAnyone;
+
+    /// <summary>The control panel's PACK Show/hide (greyed while it has nobody to show, so it is never pressed then).</summary>
     private void TogglePack()
     {
         _config.PackEnabled = _pack is null;
@@ -34,12 +39,13 @@ public partial class MainWindow
 
     /// <summary>
     /// The one place the Pack comes and goes, after a toggle, a Watch tick (the
-    /// book's Changed) and at start-up; the control panel's button follows.
+    /// book's Changed), a change of who it shows (Settings) and at start-up;
+    /// the control panel's button follows.
     /// </summary>
     private void UpdatePack()
     {
         if (_exiting || !IsLoaded) return; // start-up calls it once Loaded; nothing comes up on the way out
-        _controlPanel?.SetPackAvailable(_book.WatchedCount > 0);
+        _controlPanel?.SetPackAvailable(PackHasAnyone);
         if (PackWanted && _pack is null) ShowPack();
         else if (!PackWanted && _pack is not null) ClosePack();
     }
