@@ -142,6 +142,16 @@ public static class PackRows
     /// <summary>The config's words for who the Pack shows: "ticked" = only the friends you tick; anything else = all your friends on your dino (the default).</summary>
     public static bool TickedOnly(string? value) => string.Equals(value, "ticked", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>The Pack has someone to show: every friend on your dino, or in the ticked mode a friend ticked. The control panel's Pack button is greyed otherwise.</summary>
+    public static bool HasAnyone(OverlayConfig c, int ticked) => !TickedOnly(c.PackShows) || ticked > 0;
+
+    /// <summary>
+    /// The Pack's window is wanted (MainWindow.Pack.cs), and so is a friends
+    /// surface (PollService.PackShown): switched on (off by default; only the
+    /// control panel's Pack button turns it on), with someone to show.
+    /// </summary>
+    public static bool Wanted(OverlayConfig c, int ticked) => c.PackEnabled && HasAnyone(c, ticked);
+
     /// <summary>
     /// The website's Friends stats rule: bars only for a friend on the map
     /// (in game, sharing, with a position) on exactly your dino.

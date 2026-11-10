@@ -520,12 +520,16 @@ public sealed class OverlayConfig
 
     /// <summary>
     /// Show the Pack widget (the control panel's PACK Show/hide): your friends'
-    /// stats while they play your dino. On by default; with PackShows
-    /// "ticked" there is no window until a friend is ticked (Settings →
-    /// Friends' Watch column, or a map menu's "Watch"). Shown, it is a friends
-    /// surface (PollService).
+    /// stats while they play your dino. OFF by default, for a fresh install
+    /// and an update alike (the owner, Nov 10 2026): an update must not put a
+    /// new widget under anyone's stats panel, nor send friends requests for a
+    /// player who had stopped them. Only the control panel's Pack button turns
+    /// it on; a Watch tick never does. No migration: a config.json that has the
+    /// key keeps its value (rc.1 testers who turned it on keep it on). With
+    /// PackShows "ticked" there is no window until a friend is ticked. On and
+    /// shown, it is a friends surface (PollService); off, it sends nothing.
     /// </summary>
-    public bool PackEnabled { get; set; } = true;
+    public bool PackEnabled { get; set; }
 
     /// <summary>The Pack's position; null until first placed (under the stats panel in the default layout).</summary>
     public double? PackX { get; set; }

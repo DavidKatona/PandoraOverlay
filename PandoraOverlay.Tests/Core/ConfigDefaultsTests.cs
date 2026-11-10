@@ -19,7 +19,7 @@ public class ConfigDefaultsTests
         Assert.Equal(1.0, cfg.ActivityScale);
         Assert.Equal(1.0, cfg.ControlPanelScale);
         Assert.Equal(1.0, cfg.PackScale);
-        Assert.True(cfg.PackEnabled);
+        Assert.False(cfg.PackEnabled); // the owner, Nov 10 2026: off until the control panel's Pack button turns it on
         Assert.Null(cfg.PackX);
         Assert.Equal("small", cfg.PackFrame); // the owner, Nov 8 2026: small by default, large a choice
         Assert.Equal("full", cfg.PackRows);

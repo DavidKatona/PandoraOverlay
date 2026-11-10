@@ -19,7 +19,8 @@ paths:
   captioned group on Settings → Widgets (`.claude/rules/settings.md`) — never a tray line.
   The Pack (Nov 2026) is the exception on the second: its control-panel group yes (PACK,
   Show/hide, greyed only while it has nobody to show), its options on Settings → Friends,
-  not Widgets. Its window exists only while it is shown (in its ticked mode, with a friend ticked)
+  not Widgets. It starts OFF (the owner, Nov 10 2026: only its Pack button turns it on), and its
+  window exists only while it is switched on and shown (in its ticked mode, with a friend ticked)
   (`MainWindow.Pack.cs`); the control panel made its room by folding the minimap's Map
   view, Heatmap and Areas into one Layers menu (`ControlPanelWindow.Layers.cs`), so the
   panel kept its 940 × 74 frame, with `SessionGap` before Lock and Exit.

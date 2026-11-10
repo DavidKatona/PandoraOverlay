@@ -64,9 +64,9 @@ public sealed partial class PollService
 
     /// <summary>
     /// True while the Pack widget is on screen (MainWindow sets it where the
-    /// window shows and goes, as it sets BigMapOpen): shown (every friend on
-    /// your dino by default; in its ticked mode, with a friend ticked), it is
-    /// a friends surface. Hide-all and the auto-hide don't clear it, as for
+    /// window shows and goes, as it sets BigMapOpen): switched on (off by
+    /// default) and shown (every friend on your dino, or in its ticked mode
+    /// with a friend ticked), it is a friends surface. Hide-all and the auto-hide don't clear it, as for
     /// the other friends surfaces.
     /// </summary>
     public bool PackShown { get; set; }
