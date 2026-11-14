@@ -117,6 +117,52 @@ internal static class Moves
         return (int)Tuning.Round(food * stats.Meal(kind));
     }
 
+    /// <summary>
+    /// What Eat would add to food now (H49): what goes into the bar, never more than
+    /// it holds, rounded halves up (H24); 0 when Eat would be refused (nothing you eat
+    /// here, or food at its most). The Eat button's second line and the
+    /// <see cref="Ate"/> event both ask this, so the screen never promises more than
+    /// the move gives: food 90 and a plant says +10, and the plant is still gone.
+    /// <see cref="MealGain"/> stays what a meal is worth.
+    /// </summary>
+    public static int EatGain(RunState run, Stats stats)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(stats);
+        var kind = FoodHere(run, stats);
+        var food = run.You.Food;
+        if (kind is null || food >= Tuning.FoodMost) return 0;
+        return (int)Tuning.Round(Math.Min(Tuning.FoodMost, food + MealGain(stats, kind.Value)) - food);
+    }
+
+    /// <summary>
+    /// What Drink would add to water now (H49): <see cref="Tuning.DrinkWater"/> held
+    /// at <see cref="Tuning.WaterMost"/>, rounded halves up; 0 when Drink would be
+    /// refused (no water near, or water at its most). Asked by the Drink button and
+    /// the <see cref="Drank"/> event alike.
+    /// </summary>
+    public static int DrinkGain(RunState run)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        var water = run.You.Water;
+        if (!WaterNear(run) || water >= Tuning.WaterMost) return 0;
+        return (int)Tuning.Round(Math.Min(Tuning.WaterMost, water + Tuning.DrinkWater) - water);
+    }
+
+    /// <summary>
+    /// What Rest would add to health now, in percent points (H49): your rest's share
+    /// held at full health, rounded halves up; 0 at full health. Rest is always
+    /// allowed, so this is never a refusal. Asked by the Rest button and the
+    /// <see cref="Rested"/> event alike.
+    /// </summary>
+    public static int RestGain(RunState run, Stats stats)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(stats);
+        var health = run.You.Health;
+        return (int)Tuning.Round((Math.Min(1, health + stats.RestHeal) - health) * 100);
+    }
+
     /// <summary>You stand on water or beside it: where Drink is allowed.</summary>
     public static bool WaterNear(RunState run)
     {

@@ -374,8 +374,9 @@ public class MovesTests
         run.Meat[Middle] = 1;
         run.You.Food = 0;
         var (after, events, _, _) = Turns.Move(run, new PlayerAction.Eat());
-        Assert.Equal(gain, Assert.IsType<Ate>(events.Single()).Gain);
-        Assert.Equal(Math.Min(Tuning.FoodMost, gain), after.You.Food, 10);
+        var added = (int)Math.Min(Tuning.FoodMost, gain);   // from 0: the meal, held at the bar's most (101 is 100)
+        Assert.Equal(added, Assert.IsType<Ate>(events.Single()).Gain);
+        Assert.Equal(added, after.You.Food, 10);
     }
 
     [Fact]
@@ -386,7 +387,21 @@ public class MovesTests
         run.You.Food = 90;
         var (after, events, _, _) = Turns.Move(run, new PlayerAction.Eat());
         Assert.Equal(Tuning.FoodMost, after.You.Food);
-        Assert.Equal(30, Assert.IsType<Ate>(events.Single()).Gain);   // the meal's gain, as the Eat button showed it
+        Assert.Equal(10, Assert.IsType<Ate>(events.Single()).Gain);   // what went into the bar (H49), not the meal's 30
+        Assert.False(after.Plants[Middle]);                            // and the plant is gone all the same
+    }
+
+    [Theory]
+    [InlineData(72.4, 28)]   // 27.6 went in: rounded halves up (H24)
+    [InlineData(99.6, 0)]    // allowed, and 0.4 is no point
+    public void AMealsGainIsWhatWentInEvenAFraction(double food, int gain)
+    {
+        var run = Turns.Board("Dryosaurus");
+        run.Plants[Middle] = true;
+        run.You.Food = food;
+        var (after, events, _, _) = Turns.Move(run, new PlayerAction.Eat());
+        Assert.Equal(Tuning.FoodMost, after.You.Food);
+        Assert.Equal(gain, Assert.IsType<Ate>(events.Single()).Gain);
         Assert.False(after.Plants[Middle]);
     }
 
@@ -468,7 +483,9 @@ public class MovesTests
     {
         var run = Turns.Board("Herrerasaurus").Ground(Right(1), Terrain.Water);
         run.You.Water = 75;
-        Assert.Equal(Tuning.WaterMost, Turns.Move(run, new PlayerAction.Drink()).After.You.Water);
+        var (after, events, _, _) = Turns.Move(run, new PlayerAction.Drink());
+        Assert.Equal(Tuning.WaterMost, after.You.Water);
+        Assert.Equal(25, Assert.IsType<Drank>(events.Single()).Gain);   // what went in (H49), not the drink's 40
     }
 
     // ---- Rest -----------------------------------------------------------------------------
@@ -476,8 +493,8 @@ public class MovesTests
     [Theory]
     [InlineData(false, 0.5, 0.58, 8)]
     [InlineData(true, 0.5, 0.66, 16)]     // Fast healer
-    [InlineData(false, 0.95, 1.0, 8)]     // held at full
-    [InlineData(true, 1.0, 1.0, 16)]      // always allowed
+    [InlineData(false, 0.95, 1.0, 5)]     // held at full: 5 points went in (H49)
+    [InlineData(true, 1.0, 1.0, 0)]       // always allowed, and at full it regains nothing
     public void ARestHealsItsShareToFullAtMost(bool fastHealer, double health, double after, int healed)
     {
         var run = Turns.Board("Herrerasaurus");
@@ -497,5 +514,91 @@ public class MovesTests
         var (_, events, done, _) = Turns.Move(Turns.Board("Tyrannosaurus"), new PlayerAction.Rest());
         Assert.Equal(2, Assert.IsType<Rested>(events.Single()).Noise);
         Assert.Equal(2, done.Noise);
+    }
+
+    // ---- What a move would add: the button and the event ask the same (H49) --------------
+
+    [Theory]
+    [InlineData("Dryosaurus", 0.0)]
+    [InlineData("Dryosaurus", 50.0)]
+    [InlineData("Dryosaurus", 72.4)]
+    [InlineData("Dryosaurus", 99.6)]
+    [InlineData("Maiasaura", 40.0)]       // a 45-point meal
+    [InlineData("Ceratosaurus", 10.0)]    // a 68-point carcass
+    [InlineData("Ceratosaurus", 60.0)]
+    [InlineData("Deinosuchus", 85.5)]     // fish
+    public void EatGainIsTheNumberTheAteEventCarries(string species, double food)
+    {
+        var run = Turns.Board(species).Ground(Middle, species == "Deinosuchus" ? Terrain.Water : Terrain.Grass);
+        run.Plants[Middle] = true;
+        run.Meat[Middle] = 1;
+        run.You.Food = food;
+        var stats = Stats.Of(run);
+        var gain = Moves.EatGain(run, stats);
+        var (after, events, _, _) = Turns.Move(run, new PlayerAction.Eat());
+        Assert.Equal(gain, Assert.IsType<Ate>(events.Single()).Gain);
+        Assert.Equal((int)Tuning.Round(after.You.Food - food), gain);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(30.0)]
+    [InlineData(60.0)]
+    [InlineData(60.5)]
+    [InlineData(99.9)]
+    public void DrinkGainIsTheNumberTheDrankEventCarries(double water)
+    {
+        var run = Turns.Board("Herrerasaurus").Ground(Right(1), Terrain.Water);
+        run.You.Water = water;
+        var gain = Moves.DrinkGain(run);
+        var (after, events, _, _) = Turns.Move(run, new PlayerAction.Drink());
+        Assert.Equal(gain, Assert.IsType<Drank>(events.Single()).Gain);
+        Assert.Equal((int)Tuning.Round(after.You.Water - water), gain);
+    }
+
+    [Theory]
+    [InlineData(false, 0.1)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 0.95)]
+    [InlineData(false, 0.997)]
+    [InlineData(false, 1.0)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 0.9)]
+    public void RestGainIsTheNumberTheRestedEventCarries(bool fastHealer, double health)
+    {
+        var run = Turns.Board("Herrerasaurus");
+        if (fastHealer) run = run.Picked(Instinct.Healer);
+        run.You.Health = health;
+        var gain = Moves.RestGain(run, Stats.Of(run));
+        var (after, events, _, _) = Turns.Move(run, new PlayerAction.Rest());
+        Assert.Equal(gain, Assert.IsType<Rested>(events.Single()).Healed);
+        Assert.Equal((int)Tuning.Round((after.You.Health - health) * 100), gain);
+    }
+
+    [Fact]
+    public void AGainIsZeroWhenItsMoveIsRefused()
+    {
+        var bare = Turns.Board("Dryosaurus");
+        bare.You.Food = 50;
+        Assert.Equal(0, Moves.EatGain(bare, Stats.Of(bare)));               // nothing you eat here
+        var hunter = Turns.Board("Herrerasaurus");
+        hunter.Plants[Middle] = true;
+        hunter.You.Food = 50;
+        Assert.Equal(0, Moves.EatGain(hunter, Stats.Of(hunter)));           // a plant, and you don't eat plants
+        var full = Turns.Board("Dryosaurus");
+        full.Plants[Middle] = true;
+        full.You.Food = Tuning.FoodMost;
+        Assert.Equal(0, Moves.EatGain(full, Stats.Of(full)));               // food at its most
+
+        var dry = Turns.Board("Herrerasaurus");
+        dry.You.Water = 30;
+        Assert.Equal(0, Moves.DrinkGain(dry));                               // no water near
+        var sated = Turns.Board("Herrerasaurus").Ground(Middle, Terrain.Water);
+        sated.You.Water = Tuning.WaterMost;
+        Assert.Equal(0, Moves.DrinkGain(sated));                             // water at its most
+
+        var whole = Turns.Board("Herrerasaurus");
+        whole.You.Health = 1;
+        Assert.Equal(0, Moves.RestGain(whole, Stats.Of(whole)));            // a rest is never refused, and here adds nothing
     }
 }

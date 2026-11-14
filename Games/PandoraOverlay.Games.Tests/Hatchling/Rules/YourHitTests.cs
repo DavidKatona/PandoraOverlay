@@ -483,6 +483,25 @@ public class YourHitTests
         Assert.Empty(after.Creatures);
     }
 
+    [Theory]
+    [InlineData("Pachycephalosaurus")]
+    [InlineData("Troodon")]
+    [InlineData("Allosaurus")]
+    public void SmallGameThatLivesTakesTheDamageAndNoAffliction(string species)
+    {
+        // H51: only a predator is dazed, slowed or made to bleed.
+        var run = Turns.Board(species, growth: 75).PutSmallGame(Right(1));
+        var game = run.Creatures[0];
+        game.Health = 500;   // enough to live through any hit
+        var (after, events, _, _) = Turns.Move(run, new PlayerAction.Attack(game.Id));
+        var struck = Assert.IsType<Struck>(events.Single());
+        Assert.False(struck.Defeated);
+        var hit = after.Creatures[0];
+        Assert.Equal(game.Health - struck.Damage, hit.Health);
+        Assert.Equal((game.Dazed, game.DazeFreeAt, game.Slowed, game.Bleed, game.BleedDamage),
+            (hit.Dazed, hit.DazeFreeAt, hit.Slowed, hit.Bleed, hit.BleedDamage));
+    }
+
     // ---- A creature that falls ----------------------------------------------------------
 
     [Theory]

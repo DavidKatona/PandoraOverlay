@@ -36,8 +36,10 @@ internal static class Fights
     /// <item>The damage: <c>max(1, Round(Attack * boost * Swing * armour))</c>, one
     /// roll for the swing; Crushing bite ignores the armour.</item>
     /// <item>The target loses it; at 0 or less it falls (<see cref="Defeat"/>).</item>
-    /// <item>If it lives: Headbutt dazes it (not again for three turns), Venom slows
-    /// it, Bleeder makes it bleed a quarter of the hit.</item>
+    /// <item>If it lives and is a predator: Headbutt dazes it (not again for three
+    /// turns), Venom slows it, Bleeder makes it bleed a quarter of the hit. Small game
+    /// takes the damage and nothing else (H51): the world's turn reads no daze, slow
+    /// or bleed on it, so one would be a mark that never acts.</item>
     /// <item>Thagomizer: every OTHER creature beside you, in id order, takes 60% of
     /// your attack with a swing of its own and no boost, by steps 3 and 4.</item>
     /// <item>The target is marked as hit by you (Charge is spent on it), and the
@@ -151,8 +153,9 @@ internal static class Fights
     }
 
     /// <summary>
-    /// Steps 3 and 4 for one creature: it loses <paramref name="damage"/>; it falls,
-    /// or, living, takes what your perk leaves on it. Its <see cref="Struck"/> comes
+    /// Steps 3 and 4 for one creature, the target or a swept one alike: it loses
+    /// <paramref name="damage"/>; it falls, or, living and a predator, takes what your
+    /// perk leaves on it (small game never does, H51). Its <see cref="Struck"/> comes
     /// first, its <see cref="Afflicted"/> right after. True when it was the apex and fell.
     /// </summary>
     private static bool Land(RunState run, Stats stats, Creature creature, int damage, List<TurnEvent> events,
@@ -166,6 +169,7 @@ internal static class Fights
             Defeat(run, creature);
             return IsApex(creature);
         }
+        if (creature.Kind != CreatureKind.Predator) return false;   // H51
 
         switch (stats.Species.Perk)
         {

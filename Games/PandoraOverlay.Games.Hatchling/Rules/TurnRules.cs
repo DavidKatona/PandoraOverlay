@@ -200,8 +200,10 @@ internal static class TurnRules
 
     /// <summary>
     /// Eat what <see cref="Moves.FoodHere"/> finds, while food is under its most: the
-    /// meal's gain (<see cref="Moves.MealGain"/>), food held at its most; a plant is
-    /// gone, a carcass loses a meal, fish is the water and stays. Noise 1, fish 2.
+    /// meal's worth (<see cref="Moves.MealGain"/>), food held at its most; a plant is
+    /// gone, a carcass loses a meal, fish is the water and stays. The event says what
+    /// went into the bar (<see cref="Moves.EatGain"/>, asked before it changes, H49),
+    /// as the Eat button did. Noise 1, fish 2.
     /// </summary>
     private static Done? Eat(RunState run, Stats stats, List<TurnEvent> events)
     {
@@ -209,8 +211,8 @@ internal static class TurnRules
         if (food is null || run.You.Food >= Tuning.FoodMost) return null;
 
         var kind = food.Value;
-        var gain = Moves.MealGain(stats, kind);
-        run.You.Food = Math.Min(Tuning.FoodMost, run.You.Food + gain);
+        var gain = Moves.EatGain(run, stats);
+        run.You.Food = Math.Min(Tuning.FoodMost, run.You.Food + Moves.MealGain(stats, kind));
         var at = run.You.At;
         if (kind == Food.Plants) run.Plants[at] = false;
         if (kind == Food.Meat) run.Meat[at] -= 1;
@@ -220,23 +222,32 @@ internal static class TurnRules
         return new Done(noise, Tuning.PlainDrain, Won: false);
     }
 
-    /// <summary>Drink, on water or beside it, while water is under its most: +40, held at its most. Noise 1.</summary>
+    /// <summary>
+    /// Drink, on water or beside it, while water is under its most: +40, held at its
+    /// most; the event says what went in (<see cref="Moves.DrinkGain"/>, H49). Noise 1.
+    /// </summary>
     private static Done? Drink(RunState run, Stats stats, List<TurnEvent> events)
     {
         if (!Moves.WaterNear(run) || run.You.Water >= Tuning.WaterMost) return null;
 
+        var gain = Moves.DrinkGain(run);
         run.You.Water = Math.Min(Tuning.WaterMost, run.You.Water + Tuning.DrinkWater);
         var noise = Moves.NoiseOf(stats, Tuning.DrinkNoise);
-        events.Add(new Drank((int)Tuning.DrinkWater, noise));
+        events.Add(new Drank(gain, noise));
         return new Done(noise, Tuning.PlainDrain, Won: false);
     }
 
-    /// <summary>Rest, always allowed: health up by your rest's share (Fast healer's 16%, else 8%), to full at most. Noise 0.</summary>
+    /// <summary>
+    /// Rest, always allowed: health up by your rest's share (Fast healer's 16%, else
+    /// 8%), to full at most; the event says what was regained
+    /// (<see cref="Moves.RestGain"/>, H49), 0 at full health. Noise 0.
+    /// </summary>
     private static Done Rest(RunState run, Stats stats, List<TurnEvent> events)
     {
+        var healed = Moves.RestGain(run, stats);
         run.You.Health = Math.Min(1, run.You.Health + stats.RestHeal);
         var noise = Moves.NoiseOf(stats, Tuning.RestNoise);
-        events.Add(new Rested((int)Tuning.Round(stats.RestHeal * 100), noise));
+        events.Add(new Rested(healed, noise));
         return new Done(noise, Tuning.PlainDrain, Won: false);
     }
 
