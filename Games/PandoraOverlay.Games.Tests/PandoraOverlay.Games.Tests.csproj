@@ -20,6 +20,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The engine's test atlas, embedded the way a game embeds its art
+         (A28: Art/<file>), so Atlas.Load(assembly, "test-atlas") is tested as
+         a game calls it. The golden frames under Frames/ are not embedded:
+         FrameGolden reads them from the source folder. -->
+    <EmbeddedResource Include="Fixtures\test-atlas.png;Fixtures\test-atlas.json" LogicalName="Art/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\PandoraOverlay.Games.Contract\PandoraOverlay.Games.Contract.csproj" />
     <ProjectReference Include="..\PandoraOverlay.Games.Engine\PandoraOverlay.Games.Engine.csproj" />
   </ItemGroup>
