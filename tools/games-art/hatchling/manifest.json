@@ -1,0 +1,16 @@
+{
+  "sources": {
+    "tools/games-art/engine.js": "f87be50eb8e358f5d61008ded88a8d6e102a1ee3e19615aa9b2f46b4707a2e87",
+    "tools/games-art/hatchling/build.js": "914f0bcbc764484ce8ebea7d50996bf9ff6e327ac376052ea5d1d9e02aa5db2e",
+    "tools/games-art/hatchling/species.js": "d20fac69228f574057a6c5d4a068eeff1c3aeee073e32170961a812c33d83230",
+    "tools/games-art/hex.js": "33c2663f00cf9348be75a5550ccfaa5480a0cfadcd487b80ed7612c0c6267044",
+    "tools/games-art/manifest.js": "bc7565fb69c36f621eafb89904e234bbb2645c61d5d684cb11e4b4fcc312acb4",
+    "tools/games-art/pack.js": "5de302628e9d3d01e5795fe63a60d5250bf47d36be897de81e30d642586f1210",
+    "tools/games-art/png.js": "930127a648711a1d2798a8c81e5268232b98c0698656373a492dda9ad01835a1",
+    "tools/games-art/sheet.js": "4d68310f6fd089429f1125f87fbc3c315c9c381ac6d1fd10abb7b594a11e9a7b"
+  },
+  "outputs": {
+    "Games/PandoraOverlay.Games.Hatchling/Art/creatures.json": "563ee5ea14c7642f79779c1550ebd03490109e0c9a7a8642a9496da048d3e00c",
+    "Games/PandoraOverlay.Games.Hatchling/Art/creatures.png": "6e5ad6ac375bcf1ca02bd84e40bc8f19e2ab9ce251e7dd673fbfae0a2206c42a"
+  }
+}
