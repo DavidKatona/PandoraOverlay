@@ -6,16 +6,16 @@ using static PandoraOverlay.Games.Tests.Sweeps;
 namespace PandoraOverlay.Games.Tests;
 
 /// <summary>
-/// The balance's targets B1 to B12 as tests (H32), on the bot's runs (<see cref="Bot"/>,
+/// The balance's targets B1 to B13 as tests (H32), on the bot's runs (<see cref="Bot"/>,
 /// <see cref="Sweeps"/>, <see cref="Careers"/>). Each prints its whole table before it
 /// asserts anything, so a failure shows every number, and each failure names the rows
 /// that missed. The bands are the planner's; the knobs that may move to meet them are
 /// the species' threat and, a little, the dangers' threat and turns (H33), and
 /// nothing else.
 ///
-/// <para>Trait <c>Category=Balance</c>, to run them alone
+/// <para>B13 holds the middle of the climb (H68). Trait <c>Category=Balance</c>, to run them alone
 /// (<c>dotnet test Games/PandoraOverlay.Games.Tests --filter Category=Balance</c>);
-/// they run in CI with the rest. About 60,000 runs and 27 careers, side by side.</para>
+/// they run in CI with the rest. About 64,000 runs and 45 careers, side by side.</para>
 /// </summary>
 [Trait("Category", "Balance")]
 public class BalanceTests
@@ -193,17 +193,27 @@ public class BalanceTests
         var none = Careers.Of(Careers.Player.NeverGrows);
         var rex = Careers.Of(Careers.Player.RexMain);
         var rotates = Careers.Of(Careers.Player.Rotates);
-        Line($"B8: the same careers with a week's server play fed between runs (seven runs a day): the Rex main is done no later than with no server play, and the player who rotates in at most 75% of the Rex main's runs");
+        var tyrannosaurus = Careers.Of(Careers.Player.TyrannosaurusMain);
+        var deinosuchus = Careers.Of(Careers.Player.DeinosuchusMain);
+        Line($"B8: the same careers with a week's server play fed between runs (seven runs a day): the Rex main is done no later than with no server play, the player who rotates in at most 75% of the Rex main's runs, and a Tyrannosaurus main and a Deinosuchus main who play their own species are each done no later than the player who never grows anything (H67)");
         Line("Rex main (a Tyrannosaurus grown 30% a day, from a fresh save):");
         CareerTable(rex);
         Line("Rotates (a new species each grow, 65% a day; plays every species it has unlocked in turn):");
         CareerTable(rotates);
+        Line("Tyrannosaurus main (a Tyrannosaurus grown 30% a day; plays it once unlocked, the starters until then):");
+        CareerTable(tyrannosaurus);
+        Line("Deinosuchus main (a Deinosuchus grown 30% a day; plays it once unlocked, the starters until then):");
+        CareerTable(deinosuchus);
         int Done(Bot.CareerResult[] c) => Careers.Median(c.Select(r => r.Complete == 0 ? int.MaxValue : r.Complete));
         var (n, r, o) = (Done(none), Done(rex), Done(rotates));
+        var (t, d) = (Done(tyrannosaurus), Done(deinosuchus));
         Line($"median runs to the whole lineage: never grows {n}, Rex main {r}, rotates {o} ({o / (double)r * 100:F0}% of the Rex main's)");
+        Line($"the mains: Tyrannosaurus {t} ({tyrannosaurus.Min(c => c.Complete)} to {tyrannosaurus.Max(c => c.Complete)}), Deinosuchus {d} ({deinosuchus.Min(c => c.Complete)} to {deinosuchus.Max(c => c.Complete)})");
         var misses = new List<string>();
         if (r > n) misses.Add($"the Rex main at {r}, later than {n}");
         if (o > 0.75 * r) misses.Add($"the rotating player at {o}, over 75% of {r}");
+        if (t > n) misses.Add($"the Tyrannosaurus main at {t}, later than {n}");
+        if (d > n) misses.Add($"the Deinosuchus main at {d}, later than {n}");
         NoMisses(misses, "B8");
     }
 
@@ -305,5 +315,35 @@ public class BalanceTests
             if (limit > 0) misses.Add($"{instinct}: {limit} runs did not end");
         }
         NoMisses(misses, "B12");
+    }
+
+    // ---- B13: the middle of the climb ---------------------------------------------------
+
+    /// <summary>B13: runs a species with a third of the lineage.</summary>
+    private const int ThirdRuns = 200;
+
+    /// <summary>
+    /// B13, nobody is left behind (H68). With a third of the lineage
+    /// (<see cref="Sweeps.Third"/>) the builds are not level: the big ones win nearly
+    /// every run, the small ones half or fewer. That is ruled as it is; this test holds
+    /// the floor under it, so no species falls back below it unseen.
+    /// </summary>
+    [Fact]
+    public void B13_NobodyIsLeftBehind()
+    {
+        var runs = Of("third", 1, ThirdRuns);
+        Line($"B13: a third of the lineage (14,780 of 42,180), danger 1, {ThirdRuns} runs a species: every species reaches Adult in at least 85% and wins at least 30%");
+        Line("species              build     adult    won   mean pay");
+        var misses = new List<string>();
+        foreach (var s in SpeciesTable.All)
+        {
+            var r = runs[s.Name];
+            var adult = Share(r, x => x.ReachedAdult);
+            var won = Share(r, x => x.Won);
+            var miss = adult < 0.85 || won < 0.30;
+            Line($"{s.Name,-20} {s.Build,-8} {Pct(adult)} {Pct(won)} {r.Average(x => x.Pay),10:F1}{(miss ? "  MISS" : "")}");
+            if (miss) misses.Add($"{s.Name} adult {Pct(adult)} won {Pct(won)}");
+        }
+        NoMisses(misses, "B13 under its floor");
     }
 }

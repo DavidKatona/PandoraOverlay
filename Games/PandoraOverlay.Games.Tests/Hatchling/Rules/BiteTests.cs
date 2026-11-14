@@ -190,7 +190,7 @@ public class BiteTests
     [Fact]
     public void FrillCapsABiteAtItsShareOfYourHealth()
     {
-        // A hatchling Triceratops under an Allosaurus: the bite would be far over 15% of its health.
+        // A hatchling Triceratops under an Allosaurus: the bite would be far over 7% of its health.
         var run = Rolling(Beside("Triceratops", PredatorType.Allosaurus, growth: 0), r => true, r => true);
         var stats = Stats.Of(run);
         var cap = (int)Math.Ceiling(Tuning.FrillMost * stats.MaxHealth);

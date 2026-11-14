@@ -38,6 +38,28 @@ internal static class Sweeps
         public bool Starved => Reason is EndReason.Hunger or EndReason.Thirst;
     }
 
+    /// <summary>
+    /// "A third of the lineage" (B13, H68): these ranks and no others, 14,780 amber of
+    /// the whole lineage's 42,180. They are what the median career of a player who
+    /// never grows anything held after its run 136, the first after which it had spent
+    /// a third (B7's careers, measured in H09's first round), so the test reads a
+    /// lineage a player really reaches, not one drawn up to suit it. No star.
+    /// </summary>
+    public static IReadOnlyDictionary<Trait, int> Third { get; } = new Dictionary<Trait, int>
+    {
+        [Trait.DeepStomach] = 5,
+        [Trait.KeenNose] = 2,
+        [Trait.FastMetabolism] = 5,
+        [Trait.ThickHide] = 4,
+        [Trait.QuickReflexes] = 4,
+        [Trait.StrongStart] = 3,
+        [Trait.SharpInstincts] = 1,
+        [Trait.DrySpells] = 2,
+        [Trait.LightStep] = 2,
+        [Trait.Legacy] = 1,
+        [Trait.SecondThoughts] = 1,
+    };
+
     /// <summary>A run's summary.</summary>
     public static RunSummary Summary(Bot.Outcome outcome)
     {
@@ -51,7 +73,7 @@ internal static class Sweeps
 
     /// <summary>
     /// <paramref name="count"/> runs of every species at <paramref name="danger"/>
-    /// with the lineage named <paramref name="lineage"/> (<c>"fresh"</c> or
+    /// with the lineage named <paramref name="lineage"/> (<c>"fresh"</c>, <c>"third"</c> or
     /// <c>"full"</c>), by species in the table's order; played once per process
     /// and shared by every test that asks.
     /// </summary>
@@ -64,7 +86,8 @@ internal static class Sweeps
     {
         "fresh" => Fresh,
         "full" => Full,
-        _ => throw new ArgumentOutOfRangeException(nameof(lineage), lineage, "fresh or full"),
+        "third" => Third,
+        _ => throw new ArgumentOutOfRangeException(nameof(lineage), lineage, "fresh, third or full"),
     };
 
     /// <summary>

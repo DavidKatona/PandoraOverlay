@@ -19,10 +19,12 @@ internal sealed record DangerInfo(int Level, double Threat, int Every, int MostB
 
 /// <summary>
 /// The five danger levels (H15). Danger 2's threat (1.20 to 1.30) and danger 5's threat
-/// (1.85 to 2.00) and outlast (21 to 23) were turned by the balance work, within its
-/// limits (H33), for tests B4 and B5 (H32). Before, with the full lineage and the
-/// species' threat tuned, the bot won 97.8% of runs at danger 1 and 93.1% at danger 2
-/// (B5 asks for a fall of 5 points), and 46.3% at danger 5 (B4 asks for 35% at most).
+/// (1.85 to 2.00) were turned by the balance work, within its limits (H33), for tests
+/// B5 and B4 (H32): with the full lineage the bot won 97.8% of runs at danger 1 and
+/// 93.1% at danger 2 (B5 asks for a fall of 5 points), and 46.3% at danger 5. Danger
+/// 5's turns to outlast the apex went from 21 to 25 by the planner's ruling (H63): at
+/// 23 the bot still won 35.5% with the whole lineage (35.9% over 400 runs a species,
+/// B4 asks for 35% at most); at 25 it wins 30.4%.
 /// </summary>
 internal static class Dangers
 {
@@ -39,7 +41,7 @@ internal static class Dangers
         new DangerInfo(2,    1.30,  6,    2,   5,  15,     1.25),
         new DangerInfo(3,    1.40,  6,    3,   6,  17,     1.50),
         new DangerInfo(4,    1.60,  5,    3,   6,  19,     1.75),
-        new DangerInfo(5,    2.00,  5,    4,   7,  23,     2.00),
+        new DangerInfo(5,    2.00,  5,    4,   7,  25,     2.00),
     };
 
     /// <summary>The five, from 1 to 5.</summary>

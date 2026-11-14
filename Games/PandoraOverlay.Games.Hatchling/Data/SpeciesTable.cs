@@ -12,7 +12,7 @@ internal enum Perk
 
 /// <summary>A species of the server, as the game plays it.</summary>
 /// <param name="Name">Spelled as the server spells it, so a reading's species finds it (A23).</param>
-/// <param name="Threat">The species' own factor on the predators' threat, on top of the build's (H17): tuned by the C# bot so that a fresh run of each species reaches Adult in about 40% of the bot's runs at danger 1 (test B1, H32), within 0.70 to 1.40 (H33).</param>
+/// <param name="Threat">The species' own factor on the predators' threat, on top of the build's (H17): tuned by the C# bot so that a fresh run of each species reaches Adult in about 40% of the bot's runs at danger 1 (test B1, H32), within 0.70 to 1.40 (H33). The Deinosuchus at 46% (H64): its fresh runs barely answer to threat, and 40% cost it a fifth of its wins everywhere after.</param>
 internal sealed record SpeciesInfo(string Name, Build Build, Perk Perk, double Threat);
 
 /// <summary>
@@ -34,7 +34,7 @@ internal static class SpeciesTable
         new SpeciesInfo("Diabloceratops", Build.Grazer, Perk.Charge, 1.05),
         new SpeciesInfo("Maiasaura", Build.Grazer, Perk.BigBites, 0.98),
         new SpeciesInfo("Stegosaurus", Build.Tank, Perk.Thagomizer, 1.05),
-        new SpeciesInfo("Triceratops", Build.Tank, Perk.Frill, 1.03),
+        new SpeciesInfo("Triceratops", Build.Tank, Perk.Frill, 1.05),
         new SpeciesInfo("Pteranodon", Build.Flyer, Perk.HighView, 1.35),
         new SpeciesInfo("Troodon", Build.Hunter, Perk.Venom, 1.07),
         new SpeciesInfo("Herrerasaurus", Build.Hunter, Perk.Pounce, 1.09),
@@ -42,7 +42,7 @@ internal static class SpeciesTable
         new SpeciesInfo("Carnotaurus", Build.Stalker, Perk.Fleet, 1.15),
         new SpeciesInfo("Ceratosaurus", Build.Stalker, Perk.Scavenger, 1.08),
         new SpeciesInfo("Dilophosaurus", Build.Hunter, Perk.Spit, 1.10),
-        new SpeciesInfo("Deinosuchus", Build.Swimmer, Perk.Lunge, 1.25),
+        new SpeciesInfo("Deinosuchus", Build.Swimmer, Perk.Lunge, 1.10),
         new SpeciesInfo("Allosaurus", Build.Stalker, Perk.Bleeder, 1.15),
         new SpeciesInfo("Tyrannosaurus", Build.Apex, Perk.CrushingBite, 1.04),
         new SpeciesInfo("Beipiaosaurus", Build.Forager, Perk.Wader, 1.21),

@@ -5,7 +5,7 @@ using PandoraOverlay.Games.Hatchling;
 namespace PandoraOverlay.Games.Tests;
 
 /// <summary>
-/// The careers of B7 and B8, and the plan's table of them: three players, nine
+/// The careers of B7 and B8, and the plan's table of them: five players, nine
 /// careers each, played by <see cref="Bot.Career"/> through the game's own rules
 /// (settling, achievements, buying, server play) at danger 1, the bot buying the
 /// cheapest rank after every run.
@@ -16,6 +16,10 @@ namespace PandoraOverlay.Games.Tests;
 /// <item><b>Rotates</b>: every species it has unlocked in turn (the starters, then
 /// each one its server play grows to Adult), and between runs a new species each
 /// grow, in the table's order, 65% a day (B10's rotating player).</item>
+/// <item><b>The Tyrannosaurus main</b> and <b>the Deinosuchus main</b> (H67): the
+/// server feed of the Rex main, of their own species, 30% a day; and in the game their
+/// own species once their server play has unlocked it, the two starters in turn until
+/// then.</item>
 /// </list>
 /// Seven runs a day: the server's day is cut into seven equal slices of 0.1% steps,
 /// one after each run, on a manual calendar a day on every seven runs. Career
@@ -37,8 +41,8 @@ internal static class Careers
     /// <summary>The careers' seeds' stream: apart from the sweeps' (<see cref="Sweeps.BaseSeed"/> salted).</summary>
     public static readonly uint CareerSeed = Rng.Mix(Sweeps.BaseSeed, 0xCA2EE2u);
 
-    /// <summary>The three players.</summary>
-    public enum Player { NeverGrows, RexMain, Rotates }
+    /// <summary>The players: the three of 5.4 and the two mains of H67.</summary>
+    public enum Player { NeverGrows, RexMain, Rotates, TyrannosaurusMain, DeinosuchusMain }
 
     private static readonly ConcurrentDictionary<Player, Lazy<Bot.CareerResult[]>> Cache = new();
 
@@ -58,12 +62,22 @@ internal static class Careers
                 Player.NeverGrows => Bot.Career(start, Starters, Dangers.Lowest, MostRuns),
                 Player.RexMain => Bot.Career(start, Starters, Dangers.Lowest, MostRuns,
                     new ServerFeed(300, _ => "Tyrannosaurus").Between),
+                Player.TyrannosaurusMain => MainOf(start, "Tyrannosaurus"),
+                Player.DeinosuchusMain => MainOf(start, "Deinosuchus"),
                 _ => Bot.Career(start, Unlocked, Dangers.Lowest, MostRuns,
                     new ServerFeed(650, life => SpeciesTable.All[life % SpeciesTable.All.Count].Name).Between),
             };
         });
         return results;
     }
+
+    /// <summary>
+    /// A main of <paramref name="species"/> (H67): <paramref name="species"/> grown 30% a
+    /// day on the server, and played in the game once that has unlocked it.
+    /// </summary>
+    private static Bot.CareerResult MainOf(GameState start, string species) =>
+        Bot.Career(start, (state, k) => state.Unlocked.Contains(species) ? species : Starters(state, k),
+            Dangers.Lowest, MostRuns, new ServerFeed(300, _ => species).Between);
 
     /// <summary>The two starters in turn.</summary>
     public static string Starters(GameState state, int k) => SpeciesTable.Starters[k % SpeciesTable.Starters.Count];
