@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Hatchling, the first game (G7): a turn-based roguelite in the Games
+       window. Its own project (G2), in its own namespace (G20). The
+       framework, WPF and the rest come from Games/Directory.Build.props. -->
+  <PropertyGroup>
+    <RootNamespace>PandoraOverlay.Games.Hatchling</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The rules are internal static functions with tests (the repo's
+         style). The games' tests hold almost all of them; the app's tests
+         hold the few that need both sides, such as the species table against
+         the overlay's Assets/rules.json (A23). -->
+    <InternalsVisibleTo Include="PandoraOverlay.Games.Tests" />
+    <InternalsVisibleTo Include="PandoraOverlay.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The game's art: the atlases the art tool writes into Art/ (a sheet and
+         its frame table each), embedded under the names Atlas.Load(assembly,
+         name) asks for, "Art/<file>" (A28). The game reads its art from its
+         own assembly and never from a file (A29). An empty Art/ embeds
+         nothing, and the painter draws its stand-ins (H30). -->
+    <EmbeddedResource Include="Art\*.png;Art\*.json" LogicalName="Art/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- A game references the Contract and the Engine and nothing else: not
+         the app, not another game, not a package (A2). -->
+    <ProjectReference Include="..\PandoraOverlay.Games.Contract\PandoraOverlay.Games.Contract.csproj" />
+    <ProjectReference Include="..\PandoraOverlay.Games.Engine\PandoraOverlay.Games.Engine.csproj" />
+  </ItemGroup>
+
+</Project>
