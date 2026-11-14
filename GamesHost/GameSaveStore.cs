@@ -18,12 +18,14 @@ namespace PandoraOverlay;
 /// One folder per game, <c>&lt;root&gt;\&lt;id&gt;\</c> (so no file is shared
 /// between two games, G3, and one game's bad save can't touch another's), with
 /// these files and no others:
-/// <c>save.json</c> the current save; <c>save.bak</c> the save before the last
-/// write; <c>save.json.tmp</c> a write in progress; <c>save.v&lt;n&gt;.json</c>
-/// the last save of version n, copied before the first write of a higher one;
-/// <c>save.before-reset.json</c> the save a Reset replaced;
-/// <c>unreadable-&lt;n&gt;.json</c> and <c>unreadable-&lt;n&gt;.bak</c>, files
-/// set aside by the player's "Start fresh", never deleted and never read again.
+/// <c>save.json</c> the current save; <c>save.bak</c> the good save before the
+/// last write; <c>save.json.tmp</c> a write in progress;
+/// <c>save.v&lt;n&gt;.json</c> the last good save of version n, copied before
+/// the first write of a higher one; <c>save.before-reset.json</c> the save a
+/// Reset replaced; <c>unreadable-&lt;n&gt;.json</c> and
+/// <c>unreadable-&lt;n&gt;.bak</c>, damaged files set aside, by the player's
+/// "Start fresh" (<see cref="SetAside"/>) or by a write that found a damaged
+/// save in its way (A36), never deleted and never read again.
 /// </para>
 /// <para>
 /// The envelope round the game's text: one JSON object, UTF-8 without a BOM,
@@ -39,7 +41,10 @@ namespace PandoraOverlay;
 /// flushed to the disk, and is swapped in by <c>File.Replace</c>, which makes
 /// the old save the backup in the same step. A crash at any point
 /// leaves either the old save or the new one under <c>save.json</c>, and a
-/// leftover temp file is never read. A save that could not be read is HELD
+/// leftover temp file is never read. A damaged save never becomes the backup
+/// (A36): a write that finds one in its way sets it aside first, so a good
+/// backup stays where it is, and after any write the last good save before it
+/// is still on disk. A save that could not be read is HELD
 /// (<see cref="Hold"/>): every write is refused until the player's armed
 /// "Start fresh" sets the files aside, so it is never silently replaced.
 /// </para>
@@ -151,8 +156,16 @@ internal sealed class GameSaveStore
         return default;
     }
 
-    /// <summary>What one file turned out to be: there or not, and its envelope when it is good.</summary>
-    private readonly record struct Found(bool There, Envelope? Good, string Why);
+    /// <summary>
+    /// What one file turned out to be: there or not; when there, opened and
+    /// read or not; and its envelope when it is good. Three cases matter to a
+    /// write (A36): missing; there but not opened (it can't be judged, so
+    /// nothing is moved); read and damaged (<see cref="Damaged"/>: set aside).
+    /// </summary>
+    private readonly record struct Found(bool There, bool Opened, Envelope? Good, string Why)
+    {
+        public bool Damaged => Opened && Good is null;
+    }
 
     /// <summary>A good file's content.</summary>
     private sealed record Envelope(int Version, string Payload);
@@ -174,14 +187,14 @@ internal sealed class GameSaveStore
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
-            return new Found(false, null, "missing");
+            return new Found(false, false, null, "missing");
         }
         catch (Exception ex)
         {
-            return new Found(true, null, $"not opened: {AppLog.Short(ex)}");
+            return new Found(true, false, null, $"not opened: {AppLog.Short(ex)}");
         }
         var (good, why) = Parse(gameId, bytes);
-        return new Found(true, good, why);
+        return new Found(true, true, good, why);
     }
 
     /// <summary>
@@ -234,18 +247,24 @@ internal sealed class GameSaveStore
     ///    refused, nothing touched;
     /// 1. a held save: refused, nothing touched;
     /// 2. the game's folder is created;
-    /// 3. a version rise: a good <c>save.json</c> of a lower version is copied
+    /// 3. what is in the way (<see cref="ClearTheWay"/>, A36): a
+    ///    <c>save.json</c> that is there but can't be opened ends the write
+    ///    with nothing moved, since it can't be judged; on a version rise the
+    ///    newest GOOD file (<c>save.json</c>, else <c>save.bak</c>) is copied
     ///    to <c>save.v&lt;its version&gt;.json</c> (a rise happens once, so
-    ///    the copy is the last save before it); a <c>save.json</c> that is
-    ///    there but can't be opened ends the write, since whether a copy is
-    ///    owed can't be known;
+    ///    the copy is the last good save before it); a damaged
+    ///    <c>save.json</c> is set aside as <c>unreadable-&lt;n&gt;.json</c>
+    ///    (with a damaged <c>save.bak</c> as <c>unreadable-&lt;n&gt;.bak</c>)
+    ///    instead of becoming the backup, so a good backup stays where it is;
     /// 4. the envelope to <c>save.json.tmp</c>, flushed to the disk itself,
     ///    not only to Windows' cache, so a power cut can't leave the swap
     ///    pointing at a file that was never written;
-    /// 5. swapped in: <c>File.Replace</c> over <c>save.json</c>, the old save
-    ///    becoming <c>save.bak</c> in the same step; or a plain move for the
-    ///    first save. If Windows fails half-way through a replace, the old save
-    ///    is left as <c>save.bak</c> and the read falls back to it.
+    /// 5. swapped in: <c>File.Replace</c> over <c>save.json</c>, the old
+    ///    (good) save becoming <c>save.bak</c> in the same step; or, with no
+    ///    <c>save.json</c> (the first save, or one set aside in step 3), a
+    ///    plain move, <c>save.bak</c> left as it was. If Windows fails half-way
+    ///    through a replace, the old save is left as <c>save.bak</c> and the
+    ///    read falls back to it.
     /// </summary>
     public bool Write(string gameId, int version, string payload)
     {
@@ -270,7 +289,7 @@ internal sealed class GameSaveStore
             Directory.CreateDirectory(folder);
             var save = Path.Combine(folder, SaveFile);
             var temp = Path.Combine(folder, TempFile);
-            KeepVersion(gameId, folder, version);
+            if (!ClearTheWay(gameId, folder, version)) return false;
             var bytes = EnvelopeBytes(gameId, version, payload);
             using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None))
             {
@@ -289,15 +308,55 @@ internal sealed class GameSaveStore
         }
     }
 
-    /// <summary>Step 3 of <see cref="Write"/>: the copy at a version rise. Throws when <c>save.json</c> is there and can't be read.</summary>
-    private static void KeepVersion(string gameId, string folder, int version)
+    /// <summary>
+    /// Step 3 of <see cref="Write"/> (A36), before the temp file is written:
+    /// what is on disk is looked at with the reader <see cref="Read"/> uses,
+    /// and the way is cleared so that nothing good is ever pushed out.
+    /// <c>false</c> (with a Warning, nothing moved) when <c>save.json</c> is
+    /// there and can't be opened. Why each part:
+    /// the version copy comes from the newest good file, so a rise run on a
+    /// save read from its backup (with <c>save.json</c> missing or damaged)
+    /// keeps its copy too: that is the case a wrong upgrade step must be
+    /// undone from. A damaged <c>save.json</c> is moved aside rather than
+    /// becoming the backup over a good one, which would leave only the
+    /// damaged bytes and the new save. A <c>save.bak</c> that can't be opened
+    /// is left alone and the write goes on: the new save is good either way,
+    /// and nothing is lost by not touching what can't be judged. Throws on an
+    /// IO failure, which ends the write (<see cref="Write"/>'s catch).
+    /// </summary>
+    private static bool ClearTheWay(string gameId, string folder, int version)
     {
-        var save = Path.Combine(folder, SaveFile);
-        if (!File.Exists(save)) return;
-        var (current, _) = Parse(gameId, File.ReadAllBytes(save));
-        if (current is null || current.Version >= version) return;
-        File.Copy(save, Path.Combine(folder, VersionFile(current.Version)), overwrite: true);
-        AppLog.Games.Log($"{gameId}: kept the version {current.Version} save before the first version {version} write");
+        var savePath = Path.Combine(folder, SaveFile);
+        var backupPath = Path.Combine(folder, BackupFile);
+        var save = Look(gameId, savePath);
+        if (save.There && !save.Opened)
+        {
+            AppLog.Games.Warning($"{gameId}: write refused: the save is there but was {save.Why}");
+            return false;
+        }
+
+        // The backup matters only when save.json is not good: as the version
+        // copy's source, or as a damaged file to set aside with it.
+        var backup = save.Good is null ? Look(gameId, backupPath) : default;
+
+        string? source = null;
+        Envelope? kept = null;
+        if (save.Good is { } current) (source, kept) = (savePath, current);
+        else if (backup.Good is { } previous) (source, kept) = (backupPath, previous);
+        if (source is not null && kept is not null && kept.Version < version)
+        {
+            File.Copy(source, Path.Combine(folder, VersionFile(kept.Version)), overwrite: true);
+            AppLog.Games.Log($"{gameId}: kept the version {kept.Version} save before the first version {version} write");
+        }
+
+        if (save.Damaged)
+        {
+            var n = FreeNumber(folder);
+            File.Move(savePath, Path.Combine(folder, UnreadableSave(n)));
+            if (backup.Damaged) File.Move(backupPath, Path.Combine(folder, UnreadableBackup(n)));
+            AppLog.Games.Warning($"{gameId}: a damaged save was set aside as unreadable-{n} before the write");
+        }
+        return true;
     }
 
     private byte[] EnvelopeBytes(string gameId, int version, string payload) =>
@@ -416,7 +475,7 @@ internal sealed class GameSaveStore
     {
         if (!GameIds.IsValid(gameId))
         {
-            throw new ArgumentException("Not a game id: 1 to 32 characters of a-z, 0-9 and '-', not starting or ending with '-' (A7).", nameof(gameId));
+            throw new ArgumentException("Not a game id: 1 to 32 characters of a-z, 0-9 and '-', not starting or ending with '-', and not a Windows device name (A7, A37).", nameof(gameId));
         }
         return Path.Combine(_root, gameId);
     }

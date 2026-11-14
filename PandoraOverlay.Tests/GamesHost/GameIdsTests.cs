@@ -54,6 +54,56 @@ public sealed class GameIdsTests
         Assert.False(GameIds.IsValid("game" + (char)code));
     }
 
+    [Theory]
+    [InlineData("con")]
+    [InlineData("prn")]
+    [InlineData("aux")]
+    [InlineData("nul")]
+    [InlineData("com0")]
+    [InlineData("com1")]
+    [InlineData("com2")]
+    [InlineData("com3")]
+    [InlineData("com4")]
+    [InlineData("com5")]
+    [InlineData("com6")]
+    [InlineData("com7")]
+    [InlineData("com8")]
+    [InlineData("com9")]
+    [InlineData("lpt0")]
+    [InlineData("lpt1")]
+    [InlineData("lpt2")]
+    [InlineData("lpt3")]
+    [InlineData("lpt4")]
+    [InlineData("lpt5")]
+    [InlineData("lpt6")]
+    [InlineData("lpt7")]
+    [InlineData("lpt8")]
+    [InlineData("lpt9")]
+    public void AWindowsDeviceNameIsRefused(string id)
+    {
+        // A37: Windows can't always make a folder of such a name, and which it
+        // refuses differs by version, so a game's writes would fail in the field.
+        Assert.False(GameIds.IsValid(id));
+    }
+
+    [Fact]
+    public void TheDeviceNamesAreTwentyFour()
+    {
+        Assert.Equal(24, GameIds.DeviceNames.Count);
+    }
+
+    [Theory]
+    [InlineData("con1")]
+    [InlineData("nulls")]
+    [InlineData("com10")]
+    [InlineData("lpt")]
+    [InlineData("console")]
+    [InlineData("a-con")]
+    public void ANameThatOnlyContainsADeviceNameIsFine(string id)
+    {
+        Assert.True(GameIds.IsValid(id));
+    }
+
     [Fact]
     public void TheLongestIsThirtyTwo()
     {

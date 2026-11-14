@@ -332,6 +332,138 @@ public sealed class GameSaveStoreTests : IDisposable
         Assert.Equal(default, Store().Read(Id));
     }
 
+    // ---- A damaged save in a write's way (A36) -------------------------------------
+
+    /// <summary>A save.json that parses but fails its check, at the version given, and a good save.bak ("A") at version 1.</summary>
+    private (byte[] Damaged, byte[] Backup) DamagedSaveGoodBackup(int damagedVersion = 1)
+    {
+        Plant(GameSaveStore.SaveFile, Envelope(Id, damagedVersion, "newer progress", check: new string('0', 64)));
+        Plant(GameSaveStore.BackupFile, Envelope(Id, 1, "A"));
+        return (File.ReadAllBytes(FileOf(GameSaveStore.SaveFile)), File.ReadAllBytes(FileOf(GameSaveStore.BackupFile)));
+    }
+
+    private string[] Unreadables() =>
+        Directory.GetFiles(Folder, "unreadable-*").Select(f => Path.GetFileName(f)).OrderBy(f => f, StringComparer.Ordinal).ToArray();
+
+    [Fact]
+    public void ADamagedSaveIsSetAsideAndTheGoodBackupStays()
+    {
+        var (damaged, backup) = DamagedSaveGoodBackup();
+        var store = Store();
+        Assert.Equal(new SaveRead(SaveReadState.FromBackup, 1, "A"), store.Read(Id));
+
+        Assert.True(store.Write(Id, 1, "B"));
+
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "B"), store.Read(Id));
+        Assert.Equal(backup, File.ReadAllBytes(FileOf(GameSaveStore.BackupFile)));
+        Assert.Equal(damaged, File.ReadAllBytes(FileOf(GameSaveStore.UnreadableSave(1))));
+        Assert.False(File.Exists(FileOf(GameSaveStore.UnreadableBackup(1))), "a good backup is not set aside");
+
+        // The next write is an ordinary one: the good "B" becomes the backup.
+        Assert.True(store.Write(Id, 1, "C"));
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "B"), ReadAsSave(FileOf(GameSaveStore.BackupFile)));
+        Assert.Equal(damaged, File.ReadAllBytes(FileOf(GameSaveStore.UnreadableSave(1))));
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "C"), store.Read(Id));
+    }
+
+    [Fact]
+    public void AVersionRiseOverADamagedSaveKeepsTheGoodBackupAsItsCopy()
+    {
+        var (damaged, backup) = DamagedSaveGoodBackup(damagedVersion: 1);
+        var store = Store();
+
+        Assert.True(store.Write(Id, 2, "U"));
+
+        Assert.Equal(backup, File.ReadAllBytes(FileOf(GameSaveStore.VersionFile(1))));
+        Assert.Equal(backup, File.ReadAllBytes(FileOf(GameSaveStore.BackupFile)));
+        Assert.Equal(damaged, File.ReadAllBytes(FileOf(GameSaveStore.UnreadableSave(1))));
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 2, "U"), store.Read(Id));
+    }
+
+    [Fact]
+    public void AVersionRiseWithOnlyABackupKeepsItsCopy()
+    {
+        Plant(GameSaveStore.BackupFile, Envelope(Id, 1, "A"));
+        var backup = File.ReadAllBytes(FileOf(GameSaveStore.BackupFile));
+        var store = Store();
+        Assert.Equal(new SaveRead(SaveReadState.FromBackup, 1, "A"), store.Read(Id));
+
+        Assert.True(store.Write(Id, 2, "U"));
+
+        Assert.Equal(backup, File.ReadAllBytes(FileOf(GameSaveStore.VersionFile(1))));
+        Assert.Equal(backup, File.ReadAllBytes(FileOf(GameSaveStore.BackupFile)));
+        Assert.Empty(Unreadables());
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 2, "U"), store.Read(Id));
+    }
+
+    [Fact]
+    public void BothDamagedAndNotHeldAreSetAsideTogether()
+    {
+        Plant(GameSaveStore.SaveFile, "torn save");
+        Plant(GameSaveStore.BackupFile, Envelope(OtherId, 1, "another game's backup"));
+        var damagedSave = File.ReadAllBytes(FileOf(GameSaveStore.SaveFile));
+        var damagedBackup = File.ReadAllBytes(FileOf(GameSaveStore.BackupFile));
+        var store = Store();
+
+        Assert.True(store.Write(Id, 1, "fresh"));
+
+        Assert.Equal(damagedSave, File.ReadAllBytes(FileOf(GameSaveStore.UnreadableSave(1))));
+        Assert.Equal(damagedBackup, File.ReadAllBytes(FileOf(GameSaveStore.UnreadableBackup(1))));
+        Assert.False(File.Exists(FileOf(GameSaveStore.BackupFile)));
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "fresh"), store.Read(Id));
+    }
+
+    [Fact]
+    public void ADamagedSaveTakesTheNextFreeNumber()
+    {
+        Plant(GameSaveStore.UnreadableSave(1), "set aside before");
+        Plant(GameSaveStore.SaveFile, "torn save");
+        var before = File.ReadAllBytes(FileOf(GameSaveStore.UnreadableSave(1)));
+        var damaged = File.ReadAllBytes(FileOf(GameSaveStore.SaveFile));
+
+        Assert.True(Store().Write(Id, 1, "fresh"));
+
+        Assert.Equal(before, File.ReadAllBytes(FileOf(GameSaveStore.UnreadableSave(1))));
+        Assert.Equal(damaged, File.ReadAllBytes(FileOf(GameSaveStore.UnreadableSave(2))));
+        Assert.Equal(new[] { "unreadable-1.json", "unreadable-2.json" }, Unreadables());
+    }
+
+    [Fact]
+    public void ASaveThatCantBeOpenedEndsTheWriteWithNothingMoved()
+    {
+        var store = TwoWrites();
+        var before = Snapshot();
+
+        using (new FileStream(FileOf(GameSaveStore.SaveFile), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Assert.False(store.Write(Id, 1, "can't judge what is there"));
+            Assert.False(store.Write(Id, 2, "nor at a higher version"));
+        }
+
+        AssertSameFiles(before, Snapshot());
+        Assert.False(File.Exists(FileOf(GameSaveStore.TempFile)));
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "second-save"), store.Read(Id));
+    }
+
+    [Fact]
+    public void ABackupThatCantBeOpenedIsLeftAloneAndTheWriteGoesOn()
+    {
+        Plant(GameSaveStore.SaveFile, "torn save");
+        Plant(GameSaveStore.BackupFile, "can't be judged");
+        var damaged = File.ReadAllBytes(FileOf(GameSaveStore.SaveFile));
+        var store = Store();
+
+        using (new FileStream(FileOf(GameSaveStore.BackupFile), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Assert.True(store.Write(Id, 1, "fresh"));
+        }
+
+        Assert.Equal("can't be judged", File.ReadAllText(FileOf(GameSaveStore.BackupFile)));
+        Assert.Equal(damaged, File.ReadAllBytes(FileOf(GameSaveStore.UnreadableSave(1))));
+        Assert.Equal(new[] { "unreadable-1.json" }, Unreadables());
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "fresh"), store.Read(Id));
+    }
+
     // ---- A torn write ------------------------------------------------------------
 
     [Fact]
