@@ -116,7 +116,7 @@ internal static class Runs
             c.Relentless, c.SawYou, c.Dazed, c.DazeFreeAt, c.Slowed, c.Bleed, c.BleedDamage, c.HitByYou))),
         r.NextId, string.Join(",", r.Arrived.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")), r.Pace,
         string.Join(",", r.You.At, r.You.Growth, r.You.Start, r.You.Best, r.You.Health, r.You.Food, r.You.Water, r.You.Wind,
-            r.You.LastMove, r.You.LatchOn, r.You.LatchStreak, r.You.Bitten),
+            r.You.LastMove, r.You.LatchOn, r.You.LatchStreak, r.You.Bitten, r.You.AdultUnbitten),
         string.Join(",", r.Instincts), r.Offer is null ? "none" : string.Join(",", r.Offer), r.PicksOwed, r.Redraws, r.FreeRedrawUsed,
         r.ApexAt, r.Kills,
         r.Over is null ? "none" : string.Join(",", r.Over.Won, r.Over.Reason, r.Over.ByType, r.Over.ByOrdinal, r.Over.Stage,

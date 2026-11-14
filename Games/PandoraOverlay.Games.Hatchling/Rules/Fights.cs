@@ -191,4 +191,103 @@ internal static class Fights
         }
         return false;
     }
+
+    // ---- A predator's bite (the world's turn) ------------------------------------------
+
+    /// <summary>
+    /// <paramref name="predator"/>, ending its action beside you, bites (the world's
+    /// turn, B6). <paramref name="stats"/> are your numbers as the world's turn took
+    /// them at its start: its dodge, defense and full health are what every bite of
+    /// the turn reads.
+    ///
+    /// <list type="number">
+    /// <item>One roll: under your <see cref="Stats.Dodge"/> you dodged
+    /// (<see cref="Bit"/> with <c>Dodged</c>, 0 damage), and nothing more. The roll is
+    /// taken whatever the chance, 0 included, so a dodge bought never shifts the rolls
+    /// after it.</item>
+    /// <item>The damage, a second roll for the swing:
+    /// <c>max(1, Round(Attack * Threat * Swing * Armour(Defense)))</c>, the
+    /// predator's table attack and the run's threat (H17).</item>
+    /// <item>Braced (your move this turn was not a walk, a sneak or a sprint) takes
+    /// it to <see cref="Tuning.BracedShare"/>, at least 1; Frill caps it at
+    /// <see cref="Tuning.FrillMost"/> of your full health, rounded up.
+    /// <c>Softened</c> says when either changed the number.</item>
+    /// <item>You lose it, as a share of your full health; the run notes a bite
+    /// landed (<see cref="You.Bitten"/>).</item>
+    /// <item>At 0 health or less: Second wind, if still to spend, leaves you at
+    /// <see cref="Tuning.SecondWindHealth"/> (<see cref="SecondWind"/>, right after the
+    /// bite); else the run ends at once, caught by this predator.</item>
+    /// <item>Spikes: the predator loses <see cref="Tuning.SpikesShare"/> of the bite,
+    /// at least 1 (<see cref="Hurt"/>); at 0 it is defeated (<see cref="Defeat"/>),
+    /// and the apex so defeated ends the run won.</item>
+    /// </list>
+    ///
+    /// Second wind and the end come before the spikes because that is the order of
+    /// a predator's events the turn script plays, which is the order things happen
+    /// (H2): bite, Second wind, your spikes. So a bite that catches you ends the run
+    /// before your spikes answer it. (The design's list of the bite's steps puts the
+    /// spikes before the end; the events' order, which the player is shown, is the
+    /// one followed here, so what is shown is what happened.)
+    /// It changes the run given: called on the world's turn's own copy (A20).
+    /// </summary>
+    public static void Bite(RunState run, Stats stats, Rng rng, Creature predator, List<TurnEvent> events)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(stats);
+        ArgumentNullException.ThrowIfNull(rng);
+        ArgumentNullException.ThrowIfNull(predator);
+        ArgumentNullException.ThrowIfNull(events);
+
+        // 1. The dodge.
+        if (rng.NextDouble() < stats.Dodge)
+        {
+            events.Add(new Bit(predator.Id, 0, Dodged: true, Softened: false));
+            return;
+        }
+
+        // 2. The damage.
+        var perk = stats.Species.Perk;
+        var swing = Tuning.SwingBase + Tuning.SwingSpread * rng.NextDouble();
+        var blow = Predators.Of(predator.Type).Attack * Island.Threat(run);
+        var raw = (int)Math.Max(Tuning.LeastDamage, Tuning.Round(blow * swing * Armour(stats.Defense)));
+
+        // 3. What your perk takes off it.
+        var damage = raw;
+        if (perk == Perk.Braced && !Moved(run.You.LastMove))
+            damage = (int)Math.Max(Tuning.LeastDamage, Tuning.Round(damage * Tuning.BracedShare));
+        if (perk == Perk.Frill)
+            damage = Math.Min(damage, (int)Math.Ceiling(Tuning.FrillMost * stats.MaxHealth));
+
+        // 4. You lose it.
+        run.You.Health -= (double)damage / stats.MaxHealth;
+        run.You.Bitten = true;
+        events.Add(new Bit(predator.Id, damage, Dodged: false, Softened: damage != raw));
+
+        // 5. Second wind, or caught.
+        if (run.You.Health <= 0)
+        {
+            if (!run.You.Wind)
+            {
+                run.You.Health = 0;
+                World.End(run, won: false, EndReason.Caught, predator, events);
+                return;
+            }
+            run.You.Wind = false;
+            run.You.Health = Tuning.SecondWindHealth;
+            events.Add(new SecondWind());
+        }
+
+        // 6. Your spikes answer the bite.
+        if (perk != Perk.Spikes) return;
+        var back = (int)Math.Max(Tuning.LeastDamage, Tuning.Round(damage * Tuning.SpikesShare));
+        predator.Health -= back;
+        var fell = predator.Health <= 0;
+        events.Add(new Hurt(predator.Id, predator.At, back, HurtBy.Spikes, fell));
+        if (!fell) return;
+        Defeat(run, predator);
+        if (IsApex(predator)) World.End(run, won: true, EndReason.DefeatedApex, by: null, events);
+    }
+
+    /// <summary>Your move was a walk, a sneak or a sprint: Braced holds only when you stood your ground.</summary>
+    private static bool Moved(MoveKind move) => move is MoveKind.Walk or MoveKind.Sneak or MoveKind.Sprint;
 }
