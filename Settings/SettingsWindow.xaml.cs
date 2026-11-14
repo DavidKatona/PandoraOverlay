@@ -175,6 +175,7 @@ public partial class SettingsWindow : Window
         _hotkeyEntries[PrimeHotkeyBox] = new HotkeyEntry(config.HotkeyPrimeCheck, OverlayConfig.DefaultHotkeyPrimeCheck, "Check Prime");
         _hotkeyEntries[SkinHotkeyBox] = new HotkeyEntry(config.HotkeySkin, OverlayConfig.DefaultHotkeySkin, "apply my skin");
         _hotkeyEntries[BigMapHotkeyBox] = new HotkeyEntry(config.HotkeyBigMap, OverlayConfig.DefaultHotkeyBigMap, "the map");
+        _hotkeyEntries[GamesHotkeyBox] = new HotkeyEntry(config.HotkeyGames, OverlayConfig.DefaultHotkeyGames, "the Games window");
         foreach (var (box, entry) in _hotkeyEntries)
         {
             box.Text = entry.Chosen.ToString();
@@ -450,6 +451,7 @@ public partial class SettingsWindow : Window
         _config.HotkeyStatsView = _hotkeyEntries[StatsViewHotkeyBox].Chosen.ToString();
         _config.HotkeyBigMap = _hotkeyEntries[BigMapHotkeyBox].Chosen.ToString();
         _config.HotkeySkin = _hotkeyEntries[SkinHotkeyBox].Chosen.ToString();
+        _config.HotkeyGames = _hotkeyEntries[GamesHotkeyBox].Chosen.ToString();
     }
 
     /// <summary>Briefly registers the combo on this window to see whether the OS allows it.</summary>

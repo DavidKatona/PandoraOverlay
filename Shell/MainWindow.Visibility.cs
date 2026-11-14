@@ -171,7 +171,9 @@ public partial class MainWindow
     /// Hide-all hotkey / tray: hides every widget for screenshots or cutscenes.
     /// Polling continues (the state stays warm; only the minimap's heatmap
     /// pauses, see OnHiddenChanged); hidden is never persisted —
-    /// the app always starts visible.
+    /// the app always starts visible. Hiding closes the Games window with the
+    /// widgets (G16); showing again leaves an open one where it is, on top of
+    /// the widgets (ShowWindows).
     /// </summary>
     private void ToggleOverlayVisibility()
     {
@@ -182,6 +184,7 @@ public partial class MainWindow
             // way rather than turning into a manual hide: never both flags.
             if (!_autoHidden) _overlayHidden = true;
             AppLog.App.Log("Overlay hidden (hide-all, over the map)");
+            CloseGamesFor(OverlayEvent.HidingAll); // never open beside the map, but a hide is a hide
             CloseBigMap();
             OnHiddenChanged(); // after the close, so the map's own layer no longer counts
             return;
@@ -196,6 +199,7 @@ public partial class MainWindow
             if (EditMode) ToggleEditMode(); // lock + persist before vanishing
             _overlayHidden = true;
             AppLog.App.Log("Overlay hidden (hide-all)");
+            CloseGamesFor(OverlayEvent.HidingAll); // Games goes with the widgets (G16)
             HideWindows();
             OnHiddenChanged();
         }
@@ -226,6 +230,7 @@ public partial class MainWindow
         _prime?.Show();
         _activity?.Show();
         _pack?.Show();
+        RaiseGames(); // shown topmost windows land over an open Games window: it goes back on top (MainWindow.Games.cs)
     }
 
     /// <summary>
@@ -291,6 +296,7 @@ public partial class MainWindow
     private void ToggleEditMode()
     {
         CloseBigMap(); // editing is about the widgets: they come back first
+        CloseGamesFor(OverlayEvent.EditModeToggled); // one of the two on screen at a time (A13)
         if (_overlayHidden || _autoHidden) ToggleOverlayVisibility(); // un-hide first, then edit as usual
 
         var on = !EditMode;

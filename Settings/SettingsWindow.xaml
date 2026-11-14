@@ -273,7 +273,7 @@
             <!-- ============================ Hotkeys ======================== -->
             <!-- In the default layout's order (1.38, OverlayConfig.DefaultHotkey):
                  the overlay itself (F1–F4), the widgets in the control panel's
-                 order (F5–F8), the website (F9), the map (M). Was "Controls"
+                 order (F5–F8), the website (F9), the map (M), the games (J). Was "Controls"
                  until 1.37: the name read like the control panel. -->
             <StackPanel Tag="Hotkeys" Visibility="Collapsed">
             <TextBlock Style="{StaticResource PageTitle}" Text="HOTKEYS"/>
@@ -341,6 +341,16 @@
                          GotKeyboardFocus="HotkeyBox_GotFocus"
                          LostKeyboardFocus="HotkeyBox_LostFocus"/>
             </StackPanel>
+            <!-- The Games window (G12, A14), the ninth key: after the map, as J
+                 comes after M in the layout. The window's one setting: no page of
+                 its own, no tray line, no control-panel button. -->
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Games:" Width="150"/>
+                <TextBox x:Name="GamesHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
             <TextBlock x:Name="HotkeyHint"
                        Text="Click a box, then press the combination you want."
                        Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap"
@@ -351,7 +361,7 @@
             <DockPanel Margin="0,14,0,0">
                 <Button x:Name="DefaultKeysButton" DockPanel.Dock="Left" Content="Use the default keys" Click="DefaultKeys_Click"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
-                <TextBlock Text="F1–F4 the overlay, F5–F8 the widgets in the control panel's order, F9 the website, M the map. Updating the overlay keeps the keys you have."
+                <TextBlock Text="F1–F4 the overlay, F5–F8 the widgets in the control panel's order, F9 the website, M the map, J the games. Updating the overlay keeps the keys you have."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
             </StackPanel>
