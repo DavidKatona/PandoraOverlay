@@ -44,13 +44,29 @@ public partial class App : Application
 
     /// <summary>
     /// A crash leaves a Fatal line with its stack trace before the process
-    /// goes. The overlay still crashes as it did before the log existed:
-    /// nothing here marks an exception handled. A task's exception that nobody
-    /// awaited doesn't end the process, so it is an Error.
+    /// goes. The overlay still crashes as it did before the log existed, with
+    /// one exception only ever marked handled: a game's (A10). On the UI
+    /// thread the games' last net is asked first (GameFaults.TryContain): an
+    /// exception whose stack passes through an assembly named
+    /// "PandoraOverlay.Games." and more (a game, the engine or the Contract)
+    /// is logged there, its game stopped and noted on its tile, and the
+    /// overlay goes on. Everything else, and everything when no games host
+    /// exists yet, crashes exactly as before: an app bug is never hidden as a
+    /// game's. A game's code runs only on the UI thread, so the domain's
+    /// handler has nothing to contain. A task's exception that nobody awaited
+    /// doesn't end the process, so it is an Error.
     /// </summary>
     private void ListenForCrashes()
     {
-        DispatcherUnhandledException += (_, args) => LogCrash("Unhandled exception on the UI thread", args.Exception);
+        DispatcherUnhandledException += (_, args) =>
+        {
+            if (GameFaults.TryContain(args.Exception))
+            {
+                args.Handled = true; // a game's, contained: logged and its game stopped (A10)
+                return;
+            }
+            LogCrash("Unhandled exception on the UI thread", args.Exception);
+        };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             if (args.ExceptionObject is Exception ex) LogCrash("Unhandled exception", ex);

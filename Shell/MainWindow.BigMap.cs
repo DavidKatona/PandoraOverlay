@@ -3,14 +3,16 @@ namespace PandoraOverlay;
 /// <summary>
 /// MainWindow, big map part (the big map plan, phase 3): opening and closing
 /// the big map, and its rules against the overlay's other states.
-/// Opening locks edit mode first (like hide-all), hides the widgets and
-/// tells PollService, whose heatmap and friends gates widen to the map's
+/// Opening closes the Games window first (one of the two at a time, A13;
+/// MainWindow.Games.cs), locks edit mode (like hide-all), hides the widgets
+/// and tells PollService, whose heatmap and friends gates widen to the map's
 /// layers (the same endpoints at the same pace). While the map is open
 /// nothing shows the widgets again — not a spawn after the auto-hide, not
 /// an un-hide — and closing brings them back only when neither hide is in
 /// force, exactly as they were. What would show a widget closes the map
 /// first: the edit and Check Prime hotkeys, the tray's Settings, Server
-/// rules and sign-in; hide-all closes it and leaves the screen clear. The
+/// rules and sign-in, and the Games hotkey; hide-all closes it and leaves
+/// the screen clear. The
 /// heatmap hotkey flips the big map's own layer while it is open. Also the
 /// breadcrumb trail lives here now (D6), so both maps draw the same path
 /// and closing the minimap no longer forgets it. Same class as
@@ -36,6 +38,7 @@ public partial class MainWindow
 
     private void OpenBigMap()
     {
+        CloseGamesFor(OverlayEvent.MapOpening); // one of the two at a time (A13): Games first, then the map as always
         if (EditMode) ToggleEditMode(); // lock and persist first, like hide-all
 
         // The monitor the player arranged their HUD on: the minimap's, else the stats panel's.

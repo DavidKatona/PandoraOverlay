@@ -8,7 +8,7 @@ using System.Windows.Media.Animation;
 namespace PandoraOverlay;
 
 /// <summary>
-/// MainWindow, hotkeys part: the eight global hotkeys — ids, late-key
+/// MainWindow, hotkeys part: the nine global hotkeys — ids, late-key
 /// candidates, registration with fallback, the settings-dialog suspension,
 /// and the WM_HOTKEY dispatch. Same class as MainWindow.xaml.cs, split for
 /// reading; see CLAUDE.md.
@@ -25,6 +25,7 @@ public partial class MainWindow
     private const int StatsViewHotkeyId = 0xA122;
     private const int BigMapHotkeyId = 0xA123;
     private const int SkinHotkeyId = 0xA124;
+    private const int GamesHotkeyId = 0xA125;
 
     // Tried in order when a late-added key's combo collides with one the
     // user already gave another action; always one more candidate than
@@ -38,7 +39,7 @@ public partial class MainWindow
     // fallbacks here until the owner checked them in game (Oct 24 2026). And
     // clear of Ctrl+F3, which proved held globally by third-party software in
     // the wild. Only keys whose bare press is known to do nothing in game:
-    // F1 and F4–F9, and M. Shift is the game's sprint, so the Ctrl+Shift
+    // F1 and F4–F9, M and J. Shift is the game's sprint, so the Ctrl+Shift
     // fallbacks come after the plain ones. A new key adds its own list here,
     // one longer than the last.
     internal static readonly HotkeySpec[] HeatmapHotkeyCandidates =
@@ -99,6 +100,26 @@ public partial class MainWindow
         new(ModifierKeys.Control | ModifierKeys.Shift, Key.F8)
     };
 
+    // The Games key (G12, A14) is the ninth: eight possible takers, nine candidates.
+    // Ctrl+J is the second letter key among the defaults, safe only because a
+    // bare J does nothing in The Isle (the owner checked in game, Oct 31 2026).
+    // Its fallbacks are only keys whose bare press is known to do nothing in
+    // game, and all of them Ctrl+Shift: Shift is the game's sprint, so they
+    // come after the plain Ctrl+J, and every plain Ctrl F-key that is allowed
+    // is already some key's default.
+    internal static readonly HotkeySpec[] GamesHotkeyCandidates =
+    {
+        new(ModifierKeys.Control, Key.J),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.J),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F1),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F4),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F5),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F6),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F7),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F8),
+        new(ModifierKeys.Control | ModifierKeys.Shift, Key.F9)
+    };
+
     /// <summary>
     /// Re-registers all hotkeys after a settings change. Everything is
     /// unregistered first so swapped combos can't collide with themselves;
@@ -117,6 +138,7 @@ public partial class MainWindow
         HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
         HotkeySpec.Unregister(hwnd, BigMapHotkeyId);
         HotkeySpec.Unregister(hwnd, SkinHotkeyId);
+        HotkeySpec.Unregister(hwnd, GamesHotkeyId);
 
         _registerFailures.Clear();
         _hotkey = RegisterWithFallback(hwnd, HotkeyId, _config.Hotkey, _hotkey, v => _config.Hotkey = v);
@@ -127,6 +149,7 @@ public partial class MainWindow
         _hotkeyStatsView = RegisterWithFallback(hwnd, StatsViewHotkeyId, _config.HotkeyStatsView, _hotkeyStatsView, v => _config.HotkeyStatsView = v);
         _hotkeyBigMap = RegisterWithFallback(hwnd, BigMapHotkeyId, _config.HotkeyBigMap, _hotkeyBigMap, v => _config.HotkeyBigMap = v);
         _hotkeySkin = RegisterWithFallback(hwnd, SkinHotkeyId, _config.HotkeySkin, _hotkeySkin, v => _config.HotkeySkin = v);
+        _hotkeyGames = RegisterWithFallback(hwnd, GamesHotkeyId, _config.HotkeyGames, _hotkeyGames, v => _config.HotkeyGames = v);
         _config.Save();
         UpdateHotkeyTexts();
 
@@ -142,8 +165,8 @@ public partial class MainWindow
     /// and is written back. (The settings dialog rejects duplicates at
     /// capture time, so this only matters for that upgrade case and
     /// hand-edited configs.)
-    /// The stats-view, big-map and skin keys arrived the same way and go through
-    /// here too; the first three keys never needed it.
+    /// The stats-view, big-map, skin and Games keys arrived the same way and go
+    /// through here too; the first three keys never needed it.
     /// </summary>
     internal static HotkeySpec ResolveLateHotkey(string configured, HotkeySpec[] candidates, HotkeySpec[] taken, Action<string> writeBack)
     {
@@ -193,6 +216,7 @@ public partial class MainWindow
         if (!HotkeySpec.Register(hwnd, StatsViewHotkeyId, _hotkeyStatsView)) _registerFailures.Add(_hotkeyStatsView.ToString());
         if (!HotkeySpec.Register(hwnd, BigMapHotkeyId, _hotkeyBigMap)) _registerFailures.Add(_hotkeyBigMap.ToString());
         if (!HotkeySpec.Register(hwnd, SkinHotkeyId, _hotkeySkin)) _registerFailures.Add(_hotkeySkin.ToString());
+        if (!HotkeySpec.Register(hwnd, GamesHotkeyId, _hotkeyGames)) _registerFailures.Add(_hotkeyGames.ToString());
         if (_registerFailures.Count > 0)
         {
             var combos = string.Join(", ", _registerFailures);
@@ -240,6 +264,10 @@ public partial class MainWindow
                     break;
                 case SkinHotkeyId:
                     _ = ApplyMySkinAsync();
+                    handled = true;
+                    break;
+                case GamesHotkeyId:
+                    ToggleGames(); // also while the overlay is hidden, as the map's key (G16)
                     handled = true;
                     break;
             }
