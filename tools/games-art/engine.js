@@ -281,7 +281,7 @@ function sprite(spec) {
 //                 under 1 always keep it.
 //
 // Marks, tips and extras (pixels, not shapes) go where the part under them
-// went; stripes and ridges are spaced for the new size. An extra tagged "eye"
+// went (a tip tagged "fine" is left out under FINE_MIN); stripes and ridges are spaced for the new size. An extra tagged "eye"
 // as its fourth element is kept off the edge of a smaller head (an eye on the
 // outline is no eye), and one tagged "pupil" stays beside its eye.
 //
@@ -293,6 +293,10 @@ const MIN_ELLIPSE = 0.6;
 // The skull (a part tagged `skull`) at a smaller size: its radii never under
 // this, so it holds a row of skin round its eye.
 const MIN_SKULL = 1.9;
+// A tip tagged "fine" as its fourth element (a feather's pale end) is drawn
+// only at a scale of at least this: at a hatchling's size it was a scatter of
+// loose dots (H12).
+const FINE_MIN = 0.6;
 function place(spec, look) {
   const s = look.scale === undefined ? 1 : look.scale;
   const [fx, fy] = look.from;
@@ -478,7 +482,7 @@ function place(spec, look) {
     h: look.h,
     parts,
     marks: movePixels(spec.marks || []),
-    tips: movePixels(spec.tips || []),
+    tips: movePixels((spec.tips || []).filter((t) => !(t[3] === "fine" && s < FINE_MIN))),
     stripes,
     ridges,
     extras

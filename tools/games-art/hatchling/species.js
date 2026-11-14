@@ -326,14 +326,16 @@ const SPECIES = {
         head: [24.8, 15.0, 3.7, 3.0], snout: [[27.0, 15.8, 2.3], [30.4, 17.4, 1.35], [31.4, 18.3, 0.9]],
         mid: [
           stroke([[22.8, 4.8, 0.95], [24.0, 2.2, 0.6], [25.8, 0.6, 0.35]], { ramp: "bone", thin: "shadow", bone: "head", orn: DIABLO_FRILL }),
-          ellipse(21.2, 9.4, 4.4, 5.5, { ramp: "rim", bone: "head", orn: DIABLO_FRILL }),
-          ellipse(21.2, 9.6, 3.3, 4.4, { ramp: "frill", bone: "head", orn: DIABLO_FRILL }),
+          // The frill: a fan swept back from the skull, not a disc (a round
+          // plate with a pale ring read as a shield, H12); knobs on its edge.
+          poly([[23.8, 12.8], [22.2, 15.2], [19.2, 14.0], [17.2, 10.8], [16.6, 7.4], [17.4, 5.0], [19.2, 4.0], [21.2, 4.4], [22.8, 6.6], [24.4, 9.8]], { ramp: "frill", bone: "head", orn: DIABLO_FRILL }),
           stroke([[19.8, 5.0, 0.95], [18.6, 2.4, 0.6], [16.8, 0.7, 0.35]], { ramp: "bone", thin: true, bone: "head", orn: DIABLO_FRILL })
         ],
         onTop: [stroke([[25.8, 12.8, 0.8], [28.0, 10.4, 0.35]], { ramp: "bone", thin: true, bone: "head", orn: true })]
       }, g),
       {
-        ramps: { body: "#96744E", belly: "#D8C4A0", frill: "#A84E3A", rim: "#D9C29A" },
+        ramps: { body: "#96744E", belly: "#D8C4A0", frill: "#A84E3A" },
+        ridges: [{ from: 17, to: 23, step: 2, colour: "#D9C29A" }],
         marks: [[20, 8, "shadow", "frill"], [22, 10, "shadow", "frill"], [20, 12, "shadow", "frill"]],
         tips: [[31, 18, BONE], [30, 18, BONE]]
       }
@@ -388,8 +390,9 @@ const SPECIES = {
         head: [25.2, 14.2, 4.2, 3.4], snout: [[27.8, 15.2, 2.6], [31.6, 17.0, 1.5], [32.8, 18.0, 1.0]],
         mid: [
           stroke([[25.0, 11.0, 0.9], [30.6, 5.4, 0.4]], { ramp: "bone", thin: "shadow", bone: "head", orn: true }),
-          ellipse(22.0, 9.0, 5.4, 6.0, { ramp: "rim", bone: "head", orn: TRIKE_FRILL }),
-          ellipse(22.0, 9.2, 4.3, 4.9, { ramp: "frill", bone: "head", orn: TRIKE_FRILL })
+          // The frill: a short fan swept back and up from the skull, knobbed
+          // along its edge, not a disc in a pale ring (it read as a shield, H12).
+          poly([[25.2, 11.6], [23.4, 15.4], [19.8, 14.0], [17.0, 10.6], [16.4, 7.0], [17.6, 4.4], [20.2, 3.0], [22.8, 3.4], [24.6, 5.4], [25.8, 8.6]], { ramp: "frill", bone: "head", orn: TRIKE_FRILL })
         ],
         onTop: [
           stroke([[26.6, 11.6, 1.0], [33.4, 6.4, 0.4]], { ramp: "bone", thin: true, bone: "head", orn: true }),
@@ -397,7 +400,8 @@ const SPECIES = {
         ]
       }, g),
       {
-        ramps: { body: "#8B7B62", belly: "#D5C8A8", frill: "#B26A48", rim: "#CDB88E" },
+        ramps: { body: "#8B7B62", belly: "#D5C8A8", frill: "#B26A48" },
+        ridges: [{ from: 16, to: 24, step: 2, colour: "#CDB88E" }],
         marks: [[20, 8, "shadow", "frill"], [23, 7, "shadow", "frill"], [21, 11, "shadow", "frill"], [24, 10, "shadow", "frill"]],
         tips: [[32, 18, BONE], [33, 18, BONE]]
       }
@@ -406,8 +410,8 @@ const SPECIES = {
   // The flyer. Its walk is a wing beat (g.wing, 0 to 3: up as it stands, level,
   // down, level): each wing is raised, flattened or mirrored under its shoulder
   // line (WING_BEAT), and the highlights along the near wing's edge go with it.
-  Pteranodon: (g) => {
-    const beat = WING_BEAT[(g || STAND).wing];
+  Pteranodon: (g, size) => {
+    const beat = wingBeat((g || STAND).wing, size);
     const nearWing = (pts) => pts.map((p) => turn(p, NEAR_SHOULDER, beat.near));
     const farWing = (pts) => pts.map((p) => turn(p, FAR_SHOULDER, beat.far));
     const parts = [
@@ -451,7 +455,7 @@ const SPECIES = {
       }, g),
       {
         ramps: { body: "#6C7C8C", belly: "#D4D8D8", feather: "#4F6274" },
-        tips: [[1, 9, "#E8EEF2"], [1, 12, "#E8EEF2"], [2, 14, "#E8EEF2"], [21, 17, "#E8EEF2"]],
+        tips: [[1, 9, "#E8EEF2", "fine"], [1, 12, "#E8EEF2", "fine"], [2, 14, "#E8EEF2", "fine"], [21, 17, "#E8EEF2"]],
         eyeColour: AMBER, pupil: true,
         marks: [[2, 13, "highlight", "feather"], [3, 11, "highlight", "feather"], [20, 16, "highlight", "feather"], [22, 16, "highlight", "feather"], [16, 12, "highlight"], [18, 11, "highlight"], [12, 13, "highlight"]]
       }
@@ -460,11 +464,11 @@ const SPECIES = {
   Herrerasaurus: (g) =>
     finish(
       biped({
-        hip: [14, 12.6], chest: [21, 11.8], girth: [4.2, 3.6],
-        tail: [[11.5, 12.2, 3.2], [6.5, 10.8, 2.0], [2, 9.2, 0.9], [0.5, 8.8, 0.5]],
-        neck: [[22.6, 11, 2.8], [25.4, 9, 2.3]],
-        head: [28, 8.2, 3.5, 2.6], snout: [[29.2, 8.4, 2.0], [34.4, 9.2, 1.25]], teeth: true,
-        leg: { T: 5.2, w: 3.3, f: 3.5 }, arm: { len: 3.2, w: 0.95 }
+        hip: [14, 13.6], chest: [21.2, 13.0], girth: [3.4, 2.9],
+        tail: [[12, 13.4, 2.6], [7, 12.6, 1.6], [2.5, 11.6, 0.8], [0.4, 11.2, 0.45]],
+        neck: [[22.4, 12.4, 2.3], [25.2, 10.8, 1.9]],
+        head: [27.6, 10.0, 3.1, 2.2], snout: [[28.8, 10.2, 1.7], [34.2, 11.0, 1.05]], teeth: true,
+        leg: { T: 4.6, w: 2.8, f: 3.4 }, arm: { len: 3.4, w: 0.85 }
       }, g),
       { ramps: { body: "#9A4E30", belly: "#E2C496" }, eyeColour: AMBER, pupil: true, stripes: stripes([4, 7, 10, 13, 16, 19], 2, { tone: "shadow" }) }
     ),
@@ -485,25 +489,25 @@ const SPECIES = {
         ramps: { body: "#57483C", belly: "#D9C09A", feather: "#A9572F" },
         eyeColour: AMBER, pupil: true,
         marks: [[1, 12, "highlight", "feather"], [2, 10, "highlight", "feather"], [20, 15, "highlight", "feather"], [22, 16, "highlight", "feather"]],
-        tips: [[16, 21, BONE], [17, 20, BONE], [0, 8, "#E9B58A"], [0, 11, "#E9B58A"], [1, 13, "#E9B58A"]]
+        tips: [[16, 21, BONE], [17, 20, BONE], [0, 8, "#E9B58A", "fine"], [0, 11, "#E9B58A", "fine"], [1, 13, "#E9B58A", "fine"]]
       }
     ),
 
   Carnotaurus: (g) =>
     finish(
       biped({
-        hip: [13.5, 11.8], chest: [20.5, 10.8], girth: [4.4, 3.9],
-        tail: [[11.5, 11.6, 3.4], [6, 10.4, 2.1], [2, 9.0, 1.0], [0.5, 8.6, 0.5]],
-        neck: [[22, 9.8, 3.0], [24.6, 7.8, 2.6]],
-        head: [27.2, 6.6, 3.2, 2.9], snout: [[28.2, 7.0, 2.3], [31.6, 7.7, 1.7]], teeth: true,
-        behind: [poly([[24.6, 4.8], [25.0, 1.6], [26.2, 4.4]], { ramp: "bone", far: true, thin: "shadow", bone: "head", orn: true })],
-        onTop: [poly([[26.2, 4.6], [27.2, 0.8], [28.7, 4.4]], { ramp: "bone", thin: "light", bone: "head", orn: true })],
-        leg: { T: 6, w: 3.3, f: 3.4 }, arm: { len: 1.5, w: 0.7 }
+        hip: [13.5, 10.2], chest: [20.5, 9.4], girth: [4.0, 3.5],
+        tail: [[11.5, 10.0, 3.1], [6, 9.0, 1.9], [2, 7.8, 0.9], [0.5, 7.4, 0.5]],
+        neck: [[21.8, 8.4, 2.7], [24.4, 6.6, 2.4]],
+        head: [27.0, 5.6, 3.0, 2.7], snout: [[28.0, 6.0, 2.2], [31.2, 6.6, 1.7]], teeth: true,
+        behind: [poly([[24.3, 3.8], [24.4, 0.8], [25.7, 3.4]], { ramp: "bone", far: true, thin: "shadow", bone: "head", orn: true })],
+        onTop: [poly([[25.8, 3.6], [26.4, 0.3], [28.2, 3.4]], { ramp: "bone", thin: "light", bone: "head", orn: true })],
+        leg: { T: 7.4, w: 3.1, f: 3.4 }, arm: { len: 0.9, w: 0.6 }
       }, g),
       {
         ramps: { body: "#A84A32", belly: "#E0C49C" },
-        eye: [28, 6], eyeColour: AMBER, pupil: true,
-        marks: [[8, 10, "shadow"], [11, 9, "shadow"], [12, 10, "shadow"], [15, 9, "shadow"], [18, 9, "shadow"], [19, 10, "shadow"], [5, 10, "shadow"], [22, 8, "shadow"]],
+        eye: [28, 5], eyeColour: AMBER, pupil: true,
+        marks: [[8, 9, "shadow"], [11, 8, "shadow"], [12, 9, "shadow"], [15, 8, "shadow"], [18, 8, "shadow"], [19, 9, "shadow"], [5, 9, "shadow"], [22, 7, "shadow"]],
         ridges: [{ from: 6, to: 22, step: 3, colour: "#5E2418" }]
       }
     ),
@@ -512,11 +516,11 @@ const SPECIES = {
     finish(
       biped({
         hip: [13.5, 12.4], chest: [21, 11.6], girth: [4.3, 3.7],
-        tail: [[11.5, 12.2, 3.5], [6, 11, 2.3], [2, 9.6, 1.1], [0.5, 9.2, 0.5]],
+        tail: [[11.5, 12.2, 3.9], [6.5, 11.6, 3.1], [2.6, 10.6, 2.0], [0.5, 10.0, 0.9]],
         neck: [[22.6, 10.8, 2.9], [25.2, 8.8, 2.4]],
         head: [27.8, 7.8, 3.5, 2.7], snout: [[29, 8.1, 2.1], [33.8, 8.9, 1.4]], teeth: true,
         onTop: [
-          poly([[30.4, 7.3], [31.4, 3.6], [32.7, 7.5]], { ramp: "bone", thin: "light", bone: "snout", orn: true }),
+          poly([[30.1, 7.3], [31.2, 2.4], [32.9, 7.5]], { ramp: "bone", thin: "light", bone: "snout", orn: true }),
           poly([[26.5, 5.9], [27.2, 3.6], [28.5, 5.7]], { ramp: "bone", thin: "light", bone: "head", orn: true })
         ],
         leg: { T: 5.4, w: 3.4, f: 3.5 }, arm: { len: 3.0, w: 0.95 }
@@ -602,12 +606,17 @@ const SPECIES = {
   Allosaurus: (g) =>
     finish(
       biped({
-        hip: [13, 12], chest: [21, 11], girth: [4.8, 4.2],
-        tail: [[10.8, 11.8, 3.8], [5.6, 10.4, 2.4], [1.8, 8.8, 1.1], [0.5, 8.4, 0.5]],
-        neck: [[22.8, 10, 3.2], [25.4, 8, 2.8]],
-        head: [28.2, 7.2, 3.9, 2.9], snout: [[29.4, 7.5, 2.3], [34.6, 8.4, 1.6]], teeth: true,
-        onTop: [poly([[27.0, 5.1], [28.0, 2.6], [29.7, 5.0]], { ramp: "crest", sep: true, bone: "head", orn: true })],
-        leg: { T: 5.8, w: 3.7, f: 3.6 }, arm: { len: 3.6, w: 1.1 }
+        hip: [13, 11.8], chest: [21, 10.8], girth: [5.2, 4.5],
+        tail: [[10.8, 11.6, 4.0], [5.6, 10.4, 2.6], [1.8, 8.8, 1.2], [0.5, 8.4, 0.5]],
+        neck: [[22.8, 9.8, 3.4], [25.4, 8, 3.0]],
+        head: [28.4, 7.2, 4.0, 2.9], snout: [[29.6, 7.5, 2.4], [34.6, 8.4, 1.6]], teeth: true,
+        onTop: [
+          // The horns before and behind its eyes, light on the skull (an
+          // outlined knob this small was all outline: a dark nub, H12).
+          poly([[28.7, 5.3], [29.8, 2.0], [31.5, 5.1]], { ramp: "crest", thin: "light", bone: "head", orn: true }),
+          poly([[25.9, 5.1], [26.6, 3.2], [27.9, 5.0]], { ramp: "crest", thin: "base", bone: "head", orn: true })
+        ],
+        leg: { T: 5.8, w: 3.9, f: 3.6 }, arm: { len: 3.6, w: 1.1 }
       }, g),
       {
         ramps: { body: "#6F7F86", belly: "#D6D2C0", crest: "#B5603A" },
@@ -642,10 +651,13 @@ const SPECIES = {
         head: [25.4, 3.9, 2.4, 1.8], snout: [[26.4, 4.2, 1.3], [29.2, 4.9, 0.8]], mouth: false,
         behind: [ellipse(4.4, 13.3, 2.7, 2.1, { bone: "tailEnd" })],
         front: [
-          stroke([[20.4, 12.8, 1.1], [23.6, 15.2, 0.8]], { limb: true, sep: true }),
-          stroke([[23.8, 15.2, 0.5], [27.0, 17.4, 0.3]], { ramp: "bone", thin: true, orn: true }),
-          stroke([[23.8, 15.4, 0.5], [26.0, 18.6, 0.3]], { ramp: "bone", thin: true, orn: true }),
-          stroke([[23.4, 15.6, 0.5], [24.6, 19.0, 0.3]], { ramp: "bone", thin: true, orn: true })
+          // The hand reaches its claws, and the claws are the bone's shadow:
+          // a pale claw apart from the arm was a white fleck before the animal
+          // at every size (H12). Long claws are still its kind's outline.
+          stroke([[20.4, 12.8, 1.1], [24.0, 15.6, 0.85]], { limb: true, sep: true }),
+          stroke([[24.0, 15.4, 0.55], [27.0, 17.4, 0.3]], { ramp: "bone", thin: "shadow", orn: true }),
+          stroke([[24.0, 15.6, 0.55], [26.0, 18.6, 0.3]], { ramp: "bone", thin: "shadow", orn: true }),
+          stroke([[23.6, 15.8, 0.55], [24.6, 19.0, 0.3]], { ramp: "bone", thin: "shadow", orn: true })
         ],
         leg: { T: 4.6, w: 3.3, f: 3.2 }
       }, g),
@@ -767,6 +779,15 @@ const WING_BEAT = [
   { near: -0.6, far: -0.45 },
   { near: 0.35, far: 0.4 }
 ];
+// A level wing at the two small sizes (H12): flattened to a third of its height
+// it was a sliver of outline, so the beat read as wing, nothing, wing; there
+// it keeps more of its height.
+const LEVEL_SMALL = { "-m": 0.55, "-s": 0.6 };
+function wingBeat(wing, size) {
+  const beat = WING_BEAT[wing];
+  const level = LEVEL_SMALL[(size && size.suffix) || ""];
+  return level && (wing === 1 || wing === 3) ? { near: level, far: level + 0.05 } : beat;
+}
 function turn(p, about, f) {
   if (f === 1) return p;
   return [p[0], about[1] + (p[1] - about[1]) * f, ...p.slice(2)];
