@@ -140,7 +140,40 @@ public class ThemedWindowsTests
         var root = ThemeFileTests.RepoRoot();
         return Directory.EnumerateFiles(root, "*" + extension, SearchOption.AllDirectories)
             .Select(f => Path.GetRelativePath(root, f).Replace('\\', '/'))
-            .Where(f => f.Split('/')[0] is not ("bin" or "obj" or "PandoraOverlay.Tests" or "publish" or "Releases" or ".git" or ".vs" or "tools" or ".claude")); // .claude: the rules, and the app's worktrees (whole checkouts)
+            .Where(IsScanned);
+    }
+
+    /// <summary>
+    /// Whether the scans read a file, by its path from the repo root. Not the
+    /// tests' (they hold sample strings on purpose), not the build's, not the
+    /// tools', not git's or Visual Studio's, and not .claude (the rules, and
+    /// the app's worktrees: whole checkouts). A bin or obj folder is skipped
+    /// at ANY depth, since the projects under Games/ build their own there;
+    /// Games/PandoraOverlay.Games.Tests is skipped as PandoraOverlay.Tests is.
+    /// The rest of Games/ IS read, on purpose: a game's chrome is held to the
+    /// theme rules by these very scans (the games' A25).
+    /// </summary>
+    private static bool IsScanned(string relative)
+    {
+        var segments = relative.Split('/', '\\');
+        if (segments[0] is "PandoraOverlay.Tests" or "publish" or "Releases" or ".git" or ".vs" or "tools" or ".claude") return false;
+        if (segments.Any(s => s is "bin" or "obj")) return false;
+        return !(segments.Length > 1 && segments[0] == "Games" && segments[1] == "PandoraOverlay.Games.Tests");
+    }
+
+    /// <summary>The scans read Games/ but neither a build's output inside it nor the games' tests.</summary>
+    [Fact]
+    public void TheScansReadGamesButNotItsBuildOrItsTests()
+    {
+        Assert.True(IsScanned("Games/PandoraOverlay.Games.Engine/Views/MadeUp.xaml"));
+        Assert.True(IsScanned("Games/PandoraOverlay.Games.Engine/MadeUp.cs"));
+        Assert.False(IsScanned("Games/PandoraOverlay.Games.Engine/obj/x.cs"));
+        Assert.False(IsScanned("Games/PandoraOverlay.Games.Engine/bin/Debug/net8.0-windows/x.cs"));
+        Assert.False(IsScanned("Games/PandoraOverlay.Games.Tests/x.cs"));
+        // What the scans skipped before still is, and the app's own source is still read.
+        Assert.False(IsScanned("obj/x.cs"));
+        Assert.False(IsScanned("PandoraOverlay.Tests/x.cs"));
+        Assert.True(IsScanned("Shell/MainWindow.xaml"));
     }
 
     /// <summary>

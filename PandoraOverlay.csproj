@@ -37,6 +37,27 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The projects under Games/ (the Contract, the engine, each game and
+         their tests) are not the app's source: each builds as its own
+         project, and their bin and obj folders are in there too. All four
+         of the SDK's globs would take them otherwise (A1): the code, the
+         XAML (WPF's Page glob), the resources and everything else. -->
+    <Compile Remove="Games\**" />
+    <Page Remove="Games\**" />
+    <EmbeddedResource Remove="Games\**" />
+    <None Remove="Games\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The app talks to a game only through the Contract (A2). Each game
+         gets a ProjectReference beside this one (and one line in
+         GamesHost/GameCatalog.cs); the engine never does: its DLL reaches
+         the app through the games, and no app source names one of its
+         types. -->
+    <ProjectReference Include="Games\PandoraOverlay.Games.Contract\PandoraOverlay.Games.Contract.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     <!-- One-click updates (v1.30): the same version as the packer the release workflow installs. -->
     <PackageReference Include="Velopack" Version="1.2.161" />

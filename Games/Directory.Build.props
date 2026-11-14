@@ -1,0 +1,29 @@
+<Project>
+
+  <!-- Every project under Games/ (the Contract, the Engine, each game, the
+       games' tests) takes these settings from here, so they can't drift
+       apart (A1). MSBuild stops looking upward at the first
+       Directory.Build.props it finds, and the app's project sits at the
+       repo root, above this folder: none of this reaches the app. -->
+  <PropertyGroup>
+    <!-- The app's own framework: the games run inside the overlay's process
+         (the app references them, A2), and "-windows" is what WPF needs. -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- A game's view is a WPF FrameworkElement inside the app's Games window,
+         and the Contract names that one type (A3). -->
+    <UseWPF>true</UseWPF>
+    <!-- As the app: nullable reference types on, the SDK's implicit usings. -->
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- New code starts clean (A30): the app's baseline is 0 warnings, and a
+         warning here would be the first. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- As the app: the symbols inside each DLL, so the stack trace the app
+         logs for a game's exception (its type and stack, never its message)
+         carries line numbers, and no .pdb file sits beside the DLLs. -->
+    <DebugType>embedded</DebugType>
+    <!-- No PlatformTarget on purpose: these are AnyCPU libraries; the app
+         alone is x64 and loads them as such. -->
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Contract (A3, A4, A5): the interfaces and records between the app
+       and a game, and nothing else. It references no project and no package:
+       the app and every game reference IT, so neither side can reach past it
+       (A2). Its namespace is PandoraOverlay.Games, a deliberate exception to
+       the app's one flat namespace (G20). The framework, WPF and the rest
+       come from Games/Directory.Build.props. -->
+  <PropertyGroup>
+    <RootNamespace>PandoraOverlay.Games</RootNamespace>
+  </PropertyGroup>
+
+</Project>
