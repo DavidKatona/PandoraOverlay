@@ -168,16 +168,78 @@ public class GameLoopTests
     });
 
     [Fact]
-    public void AmbientToFullKeepsTheTimeBase() => Sta.Run(() =>
+    public void AtAmbientTimeStillRunsAtThirtyTicksASecond() => Sta.Run(() =>
+    {
+        // Four looks 250 ms apart, 7.5 ticks each: 7, 8, 7, 8, the half carried,
+        // 30 ticks in the second and nothing lost (A55).
+        var p = new Probe();
+        p.Loop.Rate = LoopRate.Ambient;
+        for (var i = 0; i < 4; i++)
+            p.After(250);
+        Assert.Equal(new[] { "step 7", "draw", "step 8", "draw", "step 7", "draw", "step 8", "draw" }, p.Calls);
+        p.Loop.Dispose();
+    });
+
+    [Fact]
+    public void ATenSecondStallAtAmbientIsThirtySevenAndTheNextLookIsSeven() => Sta.Run(() =>
     {
         var p = new Probe();
         p.Loop.Rate = LoopRate.Ambient;
-        p.After(20);
+        p.After(10_000); // five looks' worth: 5 x 30 / 4 = 37
+        p.After(250);    // 7.5: 7, the stall's fraction gone with its excess
+        Assert.Equal(new[] { "step 37", "draw", "step 7", "draw" }, p.Calls);
+        p.Loop.Dispose();
+    });
+
+    [Fact]
+    public void GoingFullFromAmbientStartsAfreshSoTheFirstBeatStartsAtItsStart() => Sta.Run(() =>
+    {
+        // At rest, 200 ms pass with no look; the click sets Full; the first look,
+        // 34 ms later, hands over 1 tick, not the quiet time before the click (A55, G9).
+        var p = new Probe();
+        p.Loop.Rate = LoopRate.Ambient;
+        p.Clock.Advance(TimeSpan.FromMilliseconds(200));
         p.Loop.Rate = LoopRate.Full;
-        p.After(20); // 1.2 since the last look before the change: kept
+        p.After(34);
         Assert.Equal(new[] { "step 1", "draw" }, p.Calls);
         p.Loop.Dispose();
     });
+
+    [Fact]
+    public void AStepThatSetsAmbientDropsTheCarry() => Sta.Run(() =>
+    {
+        // Full, a look after 50 ms: 1.5 ticks, a step of 1 and half a tick
+        // carried; the step sets Ambient, as a Drained handler does; the look
+        // 250 ms later is 7, not 8: the carry went with the change.
+        var p = new Probe();
+        p.Loop.Rate = LoopRate.Full;
+        p.OnStep = _ => p.Loop.Rate = LoopRate.Ambient;
+        p.After(50);
+        p.OnStep = null;
+        p.After(250);
+        Assert.Equal(new[] { "step 1", "draw", "step 7", "draw" }, p.Calls);
+        p.Loop.Dispose();
+    });
+
+    [Fact]
+    public void TheSameRateSetAgainKeepsTheCarry() => Sta.Run(() =>
+    {
+        var p = new Probe();
+        p.Loop.Rate = LoopRate.Full;
+        p.After(20); // 0.6: no step
+        p.Loop.Rate = LoopRate.Full;
+        p.After(20); // 1.2: one
+        Assert.Equal(new[] { "step 1", "draw" }, p.Calls);
+        p.Loop.Dispose();
+    });
+
+    [Fact]
+    public void TheCapIsFiveLooksWorthAtEachRate()
+    {
+        Assert.Equal(5, GameLoop.MaxTicks(LoopRate.Full));
+        Assert.Equal(37, GameLoop.MaxTicks(LoopRate.Ambient));
+        Assert.Throws<ArgumentOutOfRangeException>(() => GameLoop.MaxTicks(LoopRate.Off));
+    }
 
     [Fact]
     public void TheTimersIntervalsAreTheEnginesRates()

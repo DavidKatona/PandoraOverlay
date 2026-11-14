@@ -21,11 +21,26 @@ namespace PandoraOverlay.Games.Engine;
 /// <see cref="TimeSpan"/> tick over the engine's rate, so no rounding drifts
 /// over a long playback.</para>
 ///
+/// <para><b>The rate is how often it looks, never how fast time runs</b>
+/// (A55). Engine time runs at <see cref="EngineTime.TicksPerSecond"/> at
+/// every rate: at <see cref="LoopRate.Full"/> a look usually hands the step
+/// 1 tick, at <see cref="LoopRate.Ambient"/> (4 looks a second) the 7 or 8
+/// that passed, so a quiet cue keeps the art's timing.</para>
+///
 /// <para><b>Never caught up.</b> After a stall (the PC busy, the window being
 /// dragged, a breakpoint) at most <see cref="EngineTime.MaxTicksPerFrame"/>
-/// ticks are made up; the rest is dropped with its fraction. A playback is
-/// cosmetic (A20), so dropping time costs nothing but the frames, while
-/// catching up would play a burst of beats nobody could follow.</para>
+/// looks' worth of ticks are made up (<see cref="MaxTicks"/>: 5 at the full
+/// rate, 37 at the ambient one); the rest is dropped with its fraction. A
+/// playback is cosmetic (A20), so dropping time costs nothing but the
+/// frames, while catching up would play a burst of beats nobody could
+/// follow.</para>
+///
+/// <para><b>A change of rate starts afresh</b> (A55): the time base is the
+/// clock's reading at the change and nothing is carried, whether the timer is
+/// new or only its interval changes. So the quiet time before a click is
+/// never played into the playback the click starts: the first look after
+/// <see cref="LoopRate.Full"/> is set hands the playback 1 tick, and a turn's
+/// first beat starts at its start (G9).</para>
 ///
 /// <para><b>Paused</b> (the health warning, G18): the timer keeps its rate but
 /// every tick only restarts the time base, so nothing is stepped and nothing
@@ -100,12 +115,16 @@ public sealed class GameLoop : IDisposable
     /// <see cref="LoopRate.Off"/>: no timer exists. <see cref="LoopRate.Ambient"/>
     /// and <see cref="LoopRate.Full"/>: a <see cref="DispatcherTimer"/> at
     /// <see cref="DispatcherPriority.Render"/> every 1 / <see cref="EngineTime.AmbientPerSecond"/>
-    /// or 1 / <see cref="EngineTime.TicksPerSecond"/> of a second. Leaving Off
-    /// restarts the time base (a loop switched on owes nothing for the time it
-    /// was off); going Off stops and drops the timer; Ambient to Full and back
-    /// only changes the interval, the carry kept. Settable from inside the
-    /// loop's own step or draw. Once disposed it stays Off, whatever is set:
-    /// a disposed view's late handler starts nothing.
+    /// or 1 / <see cref="EngineTime.TicksPerSecond"/> of a second: how often
+    /// the loop looks, while time runs at the engine's rate at both. Every
+    /// real change to a rate with a timer restarts the time base and drops the
+    /// carry (A55): leaving Off (a loop switched on owes nothing for the time
+    /// it was off), and Ambient to Full and back (only the interval changes,
+    /// but the quiet time before a click is never played into its playback).
+    /// Going Off stops and drops the timer. The same rate set again changes
+    /// nothing, the carry kept. Settable from inside the loop's own step or
+    /// draw. Once disposed it stays Off, whatever is set: a disposed view's
+    /// late handler starts nothing.
     /// </summary>
     public LoopRate Rate
     {
@@ -124,11 +143,12 @@ public sealed class GameLoop : IDisposable
                 return;
             }
 
+            // A new rate starts afresh (A55), a new timer or only a new interval.
+            _last = _clock.Elapsed;
+            _carry = 0;
             var interval = Interval(value);
             if (_timer is null)
             {
-                _last = _clock.Elapsed;
-                _carry = 0;
                 _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = interval };
                 _timer.Tick += OnTimer;
                 _timer.Start();
@@ -148,8 +168,8 @@ public sealed class GameLoop : IDisposable
     /// The timer's handler, public so tests drive it after moving the clock.
     /// Off or disposed: nothing. Paused: the time base restarts, nothing else.
     /// Otherwise the whole ticks since the last look, the fraction carried,
-    /// at most <see cref="EngineTime.MaxTicksPerFrame"/> (the excess dropped
-    /// with its fraction); with one tick or more, the step with that count,
+    /// at most <see cref="MaxTicks"/> of the rate (the excess dropped with its
+    /// fraction); with one tick or more, the step with that count,
     /// then the draw, unless the step disposed the loop. An exception from
     /// either: Off, then the fault callback.
     /// </summary>
@@ -198,7 +218,8 @@ public sealed class GameLoop : IDisposable
 
     /// <summary>
     /// The whole engine ticks between the last look and <paramref name="now"/>,
-    /// with the carried fraction, capped; moves the time base to now.
+    /// with the carried fraction, capped at <see cref="MaxTicks"/> of the
+    /// current rate; moves the time base to now.
     /// </summary>
     private int TicksSince(TimeSpan now)
     {
@@ -207,30 +228,46 @@ public sealed class GameLoop : IDisposable
         if (gap <= 0)
             return 0; // the host's clock never runs back; nothing to count, the carry kept
 
+        var cap = MaxTicks(_rate);
         if (gap > LongestCountedGap)
         {
             _carry = 0;
-            return EngineTime.MaxTicksPerFrame;
+            return cap;
         }
 
         var owed = _carry + gap * EngineTime.TicksPerSecond;
         var ticks = owed / TimeSpan.TicksPerSecond;
         _carry = owed % TimeSpan.TicksPerSecond;
-        if (ticks > EngineTime.MaxTicksPerFrame)
+        if (ticks > cap)
         {
             // Never caught up: the excess and its fraction are dropped.
             _carry = 0;
-            return EngineTime.MaxTicksPerFrame;
+            return cap;
         }
         return (int)ticks;
     }
 
+    /// <summary>
+    /// The most ticks one look makes up at a rate with a timer (A55):
+    /// <see cref="EngineTime.MaxTicksPerFrame"/> looks' worth of engine time,
+    /// <c>MaxTicksPerFrame * TicksPerSecond / looks a second</c>, whole: 5 at
+    /// Full, 37 at Ambient. A stall is dropped after five looks' time at either
+    /// rate, and a look at the ambient rate, 7 or 8 ticks, is never cut short.
+    /// </summary>
+    internal static int MaxTicks(LoopRate rate) =>
+        EngineTime.MaxTicksPerFrame * EngineTime.TicksPerSecond / LooksPerSecond(rate);
+
     /// <summary>The timer's interval at a rate that has one: a 30th or a 4th of a second, exactly.</summary>
-    internal static TimeSpan Interval(LoopRate rate) => TimeSpan.FromTicks(TimeSpan.TicksPerSecond / (rate switch
+    internal static TimeSpan Interval(LoopRate rate) =>
+        TimeSpan.FromTicks(TimeSpan.TicksPerSecond / LooksPerSecond(rate));
+
+    /// <summary>How often the loop looks at a rate with a timer; Off has none.</summary>
+    private static int LooksPerSecond(LoopRate rate) => rate switch
     {
+        LoopRate.Full => EngineTime.TicksPerSecond,
         LoopRate.Ambient => EngineTime.AmbientPerSecond,
-        _ => EngineTime.TicksPerSecond,
-    }));
+        _ => throw new ArgumentOutOfRangeException(nameof(rate), rate, "Only a rate with a timer looks."),
+    };
 
     private void DropTimer()
     {
