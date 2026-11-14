@@ -126,11 +126,24 @@ public class TestSupportTests
         Assert.Equal(TimeSpan.FromSeconds(1), host.Clock.Elapsed);
     }
 
-    /// <summary>A fault is recorded and not rethrown, so a test can make a game throw and assert it was reported (A10).</summary>
+    /// <summary>A fault nobody expected fails the test where it happened (A41): the same exception is thrown again, and recorded.</summary>
     [Fact]
-    public void AFaultIsRecordedAndNotRethrown()
+    public void AnUnexpectedFaultIsThrownAgain()
     {
         var host = new FakeHost();
+        var first = new InvalidOperationException("one");
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => host.Fault(first));
+
+        Assert.Same(first, thrown);
+        Assert.Same(first, Assert.Single(host.Faults));
+    }
+
+    /// <summary>A test of a fault path says so, and its faults are only recorded, in order (A10, A41).</summary>
+    [Fact]
+    public void AnExpectedFaultIsRecordedAndNotThrown()
+    {
+        var host = new FakeHost { ExpectFaults = true };
         var first = new InvalidOperationException("one");
         var second = new ArgumentException("two");
 

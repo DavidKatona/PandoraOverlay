@@ -1,3 +1,5 @@
+using System.Runtime.ExceptionServices;
+
 namespace PandoraOverlay.Games.Tests;
 
 /// <summary>
@@ -7,11 +9,13 @@ namespace PandoraOverlay.Games.Tests;
 /// <see cref="MemoryStorage"/> for the save, a <see cref="CollectingLog"/> for
 /// the log, and counters for the two calls a game makes back to the host.
 /// <para>
-/// <see cref="Fault"/> records the exception and does not rethrow it, so a test
-/// can make a view's handler or the engine's loop throw and assert that the
-/// fault was reported (A10: the second layer of containment), with the test
-/// itself carrying on as the overlay would. A test that expects no fault asserts
-/// <see cref="Faults"/> is empty.
+/// A fault nobody expected fails the test where it happened (A41):
+/// <see cref="Fault"/> records the exception and throws it again, with the
+/// game's own stack. Recorded only, a view's test that asserts on layout would
+/// pass while the real window would have closed that game. A test that MEANS a
+/// fault to happen (the engine's guard and loop, a game's own fault path: the
+/// second layer of containment, A10) sets <see cref="ExpectFaults"/> and
+/// asserts on <see cref="Faults"/>.
 /// </para>
 /// </summary>
 public sealed class FakeHost : IGameHost
@@ -36,11 +40,25 @@ public sealed class FakeHost : IGameHost
     /// <summary>How many times the game said its tile changed.</summary>
     public int TileChanges { get; private set; }
 
-    /// <summary>Every exception reported through <see cref="Fault"/>, in order.</summary>
+    /// <summary>False to begin with: a fault is thrown again. True: the test means faults to happen, and they are only recorded.</summary>
+    public bool ExpectFaults { get; set; }
+
+    /// <summary>Every exception reported through <see cref="Fault"/>, in order, whether it was thrown again or not.</summary>
     public IReadOnlyList<Exception> Faults => _faults;
 
     public void TileChanged() => TileChanges++;
 
-    /// <summary>Records it; never rethrows (the window would close the game and the overlay would live).</summary>
-    public void Fault(Exception error) => _faults.Add(error);
+    /// <summary>
+    /// Records <paramref name="error"/>; then, unless <see cref="ExpectFaults"/>
+    /// is set, throws that same exception again with its stack kept, so an
+    /// unexpected fault fails the test at the throw (A41). A test of a fault
+    /// path sets <see cref="ExpectFaults"/> to true and asserts on
+    /// <see cref="Faults"/>.
+    /// </summary>
+    public void Fault(Exception error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        _faults.Add(error);
+        if (!ExpectFaults) ExceptionDispatchInfo.Capture(error).Throw();
+    }
 }

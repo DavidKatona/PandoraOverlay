@@ -48,4 +48,10 @@ internal static class Planted
 
     /// <summary>A member of the application object, which is not LoadComponent.</summary>
     internal static Application? TheApplication() => Application.Current;
+
+    /// <summary>An iterator: the compiler writes Environment.CurrentManagedThreadId into it, the one member of Environment allowed (A44).</summary>
+    internal static IEnumerable<int> AnIterator()
+    {
+        yield return 1;
+    }
 }

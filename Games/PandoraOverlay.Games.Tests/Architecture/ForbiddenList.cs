@@ -111,6 +111,8 @@ internal static class ForbiddenList
         "nothing is loaded at run time: the games are compiled in (A1, A2), never read from a folder";
     private const string NoApplication =
         "a game never reaches the application object (A2, A25): the theme reaches its view by resource key, and LoadComponent alone is allowed, the one call a view's generated code makes";
+    private const string NoEnvironment =
+        "the PC's folders, variables, settings and clock are not a game's (A29); CurrentManagedThreadId alone is allowed, because the compiler itself writes it into every iterator (yield return) (A44)";
     private const string NoNativeCall = "never a native call (A29)";
     private const string GamesTickThroughTheLoop =
         "games tick through GameLoop (A19): the engine's loop is the one timer, and it exists only while a view has something to move";
@@ -123,7 +125,7 @@ internal static class ForbiddenList
     private static ForbiddenEntry Member(string type, string member, string reason, params string[] except) =>
         new(ForbiddenKind.Member, type, reason) { Member = member, Except = except };
 
-    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception.</summary>
+    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions and A44's Environment by member sit in their groups.</summary>
     public static IReadOnlyList<ForbiddenEntry> All { get; } = new[]
     {
         // ---- Assembly references ------------------------------------------------
@@ -148,6 +150,10 @@ internal static class ForbiddenList
         Namespace("System.Media", LeavingTheFrame),
         Namespace("System.Timers", LosingThePause),
         Namespace("System.Threading.Tasks", LosingThePause),
+        // A43: a page navigated to is a surface of its own; an assembly loaded by a
+        // load context is one the build never saw.
+        Namespace("System.Windows.Navigation", LeavingTheFrame),
+        Namespace("System.Runtime.Loader", NothingLoaded),
 
         // ---- Types ----------------------------------------------------------------
         Type("System.IO.File", StorageIsTheHosts),
@@ -163,7 +169,7 @@ internal static class ForbiddenList
         // Process hands out.
         Type("System.Diagnostics.Process*", ReachingOut),
         Type("System.Diagnostics.Stopwatch", TheEnginesClock),
-        Type("System.Environment", ReachingOut),
+        // System.Environment is held by member, below (A44).
         Type("System.Random", TheEnginesClock),
         Type("System.Runtime.InteropServices.Marshal", ReachingOut),
         Type("System.Runtime.InteropServices.NativeLibrary", ReachingOut),
@@ -186,6 +192,39 @@ internal static class ForbiddenList
         Type("System.Threading.Thread", TheEnginesClock),
         Type("System.Threading.ThreadPool", TheEnginesClock),
         Type("System.Threading.Timer", TheEnginesClock),
+        // A43, leaving the frame: a message box is the likeliest window a game would
+        // open by accident; the rest are controls that open a surface of their own (a
+        // menu, a drop-down, a calendar, a page, a browser) or play a sound.
+        Type("System.Windows.MessageBox", LeavingTheFrame),
+        Type("System.Windows.Controls.ToolTipService", LeavingTheFrame),
+        Type("System.Windows.Controls.ContextMenu", LeavingTheFrame),
+        Type("System.Windows.Controls.ContextMenuService", LeavingTheFrame),
+        Type("System.Windows.Controls.Menu", LeavingTheFrame),
+        Type("System.Windows.Controls.MenuItem", LeavingTheFrame),
+        Type("System.Windows.Controls.ComboBox", LeavingTheFrame),
+        Type("System.Windows.Controls.DatePicker", LeavingTheFrame),
+        Type("System.Windows.Controls.Frame", LeavingTheFrame),
+        Type("System.Windows.Controls.WebBrowser", LeavingTheFrame),
+        Type("System.Windows.Controls.SoundPlayerAction", LeavingTheFrame),
+        // A43, the keyboard by its other doors: typed text arrives with no
+        // KeyEventArgs, and a text box takes the keyboard by itself.
+        Type("System.Windows.Input.KeyboardDevice", TheWindowsKeys),
+        Type("System.Windows.Input.KeyboardEventArgs", TheWindowsKeys),
+        Type("System.Windows.Input.KeyEventHandler", TheWindowsKeys),
+        Type("System.Windows.Input.KeyboardEventHandler", TheWindowsKeys),
+        Type("System.Windows.Input.TextCompositionEventArgs", TheWindowsKeys),
+        Type("System.Windows.Input.TextCompositionEventHandler", TheWindowsKeys),
+        Type("System.Windows.Input.TextCompositionManager", TheWindowsKeys),
+        Type("System.Windows.Controls.TextBox", TheWindowsKeys),
+        Type("System.Windows.Controls.PasswordBox", TheWindowsKeys),
+        Type("System.Windows.Controls.RichTextBox", TheWindowsKeys),
+        Type("System.Windows.Controls.Primitives.TextBoxBase", TheWindowsKeys),
+        // A43, nothing loaded: another domain, or XAML read at run time.
+        Type("System.AppDomain", NothingLoaded),
+        Type("System.Windows.Markup.XamlReader", NothingLoaded),
+        // Not on the list, on purpose (A43): System.Activator and System.Uri (the XAML
+        // compiler's generated code uses both), System.Windows.Input.KeyboardNavigation
+        // (a view may switch tab navigation off with it).
 
         // ---- Members ----------------------------------------------------------------
         Member("System.DateTime", "get_Now", TheHostsTime),
@@ -197,6 +236,18 @@ internal static class ForbiddenList
         Member("System.Reflection.Assembly", "Load*", NothingLoaded),
         Member("System.Reflection.Assembly", "UnsafeLoad*", NothingLoaded),
         Member("System.Windows.Application", "*", NoApplication, "LoadComponent"),
+        // A44: by member, not by type, since the compiler writes
+        // Environment.CurrentManagedThreadId into every iterator (yield return).
+        Member("System.Environment", "*", NoEnvironment, "get_CurrentManagedThreadId"),
+        // A43: a tooltip or a context menu set in code names neither type.
+        Member("System.Windows.FrameworkElement", "set_ToolTip", LeavingTheFrame),
+        Member("System.Windows.FrameworkElement", "ToolTipProperty", LeavingTheFrame),
+        Member("System.Windows.FrameworkElement", "set_ContextMenu", LeavingTheFrame),
+        Member("System.Windows.FrameworkElement", "ContextMenuProperty", LeavingTheFrame),
+        Member("System.Windows.FrameworkContentElement", "set_ToolTip", LeavingTheFrame),
+        Member("System.Windows.FrameworkContentElement", "ToolTipProperty", LeavingTheFrame),
+        Member("System.Windows.FrameworkContentElement", "set_ContextMenu", LeavingTheFrame),
+        Member("System.Windows.FrameworkContentElement", "ContextMenuProperty", LeavingTheFrame),
 
         // ---- Native calls -------------------------------------------------------------
         new(ForbiddenKind.PInvoke, "any", NoNativeCall),

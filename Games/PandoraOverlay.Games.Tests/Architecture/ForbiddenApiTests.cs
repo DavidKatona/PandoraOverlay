@@ -106,6 +106,78 @@ public class ForbiddenApiTests
             $"the scan of the tests' own assembly did not report {subject} under {kind} {pattern}; it reported:\n"
             + string.Join("\n", findings.Select(f => f.ToString())));
 
+    /// <summary>
+    /// The compiler writes Environment.CurrentManagedThreadId into every
+    /// iterator (yield return), so the one member of System.Environment a game
+    /// may name is that one (A44). Planted.AnIterator is such an iterator.
+    /// </summary>
+    [Fact]
+    public void TheCompilersIteratorCallIsAllowed()
+    {
+        var scan = MetadataScan.Read(typeof(Planted).Assembly.Location);
+
+        // If this assertion ever fails, the compiler no longer writes the call into
+        // an iterator, and A44's exception can go: Environment back to a type entry.
+        Assert.Contains(new MemberName("System.Environment", "get_CurrentManagedThreadId"), scan.MemberReferences);
+        Assert.DoesNotContain(ForbiddenList.Check(scan), f => f.Subject == "the member System.Environment::get_CurrentManagedThreadId");
+    }
+
+    /// <summary>Every other member of System.Environment is refused: the PC's folders, variables, settings and clock (A29, A44).</summary>
+    [Fact]
+    public void EnvironmentIsRefusedButForTheIteratorsCall()
+    {
+        Assert.Empty(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName("System.Environment", "get_CurrentManagedThreadId") })));
+        foreach (var member in new[] { "get_NewLine", "get_TickCount64", "GetEnvironmentVariable", "GetFolderPath", "Exit", "get_ProcessPath" })
+            Assert.Single(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName("System.Environment", member) })));
+    }
+
+    /// <summary>A43's additions: the frame's other doors (a message box, menus, drop-downs, pages, a browser, a sound), the keyboard's (typed text, text boxes) and loading's.</summary>
+    [Fact]
+    public void TheOtherDoorsAreRefused()
+    {
+        var types = new[]
+        {
+            T("System.Windows", "MessageBox"),
+            T("System.Windows.Controls", "ToolTipService"), T("System.Windows.Controls", "ContextMenu"), T("System.Windows.Controls", "ContextMenuService"),
+            T("System.Windows.Controls", "Menu"), T("System.Windows.Controls", "MenuItem"), T("System.Windows.Controls", "ComboBox"),
+            T("System.Windows.Controls", "DatePicker"), T("System.Windows.Controls", "Frame"), T("System.Windows.Controls", "WebBrowser"),
+            T("System.Windows.Controls", "SoundPlayerAction"),
+            T("System.Windows.Navigation", "NavigationService"),
+            T("System.Windows.Input", "KeyboardDevice"), T("System.Windows.Input", "KeyboardEventArgs"), T("System.Windows.Input", "KeyEventHandler"),
+            T("System.Windows.Input", "KeyboardEventHandler"), T("System.Windows.Input", "TextCompositionEventArgs"),
+            T("System.Windows.Input", "TextCompositionEventHandler"), T("System.Windows.Input", "TextCompositionManager"),
+            T("System.Windows.Controls", "TextBox"), T("System.Windows.Controls", "PasswordBox"), T("System.Windows.Controls", "RichTextBox"),
+            T("System.Windows.Controls.Primitives", "TextBoxBase"),
+            T("System.Runtime.Loader", "AssemblyLoadContext"), T("System", "AppDomain"), T("System.Windows.Markup", "XamlReader"),
+        };
+        foreach (var type in types)
+            Assert.True(ForbiddenList.Check(Made(AGame, types: new[] { type })).Count == 1, type.FullName + " should give exactly one finding");
+
+        foreach (var owner in new[] { "System.Windows.FrameworkElement", "System.Windows.FrameworkContentElement" })
+            foreach (var member in new[] { "set_ToolTip", "ToolTipProperty", "set_ContextMenu", "ContextMenuProperty" })
+                Assert.True(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(owner, member) })).Count == 1, $"{owner}::{member} should give exactly one finding");
+    }
+
+    /// <summary>What A43 leaves alone on purpose: the ordinary controls, the generated code's Activator and Uri, tab navigation, and a view's own sizes and tags.</summary>
+    [Fact]
+    public void TheOtherDoorsLeaveTheHarmlessAlone()
+    {
+        var types = new[]
+        {
+            T("System.Windows.Controls", "TextBlock"), T("System.Windows.Controls", "CheckBox"), T("System.Windows.Controls", "ContentControl"),
+            T("System.Windows", "MessageBoxResult"), T("System.Windows.Input", "KeyboardNavigation"),
+            T("System.Windows.Markup", "IComponentConnector"), T("System", "Activator"), T("System", "Uri"),
+        };
+        foreach (var type in types)
+            Assert.True(ForbiddenList.Check(Made(AGame, types: new[] { type })).Count == 0, type.FullName + " should give no finding");
+
+        Assert.Empty(ForbiddenList.Check(Made(AGame, members: new[]
+        {
+            new MemberName("System.Windows.FrameworkElement", "get_ActualWidth"),
+            new MemberName("System.Windows.FrameworkElement", "set_Tag"),
+        })));
+    }
+
     /// <summary>The reader names a generic type's member by the generic type, and a nested type by its outer one.</summary>
     [Fact]
     public void TheReaderNamesGenericAndNestedTypes()
@@ -198,7 +270,7 @@ public class ForbiddenApiTests
     [Fact]
     public void ATypeHoldsItsNestedTypesAndNoNamesake()
     {
-        Assert.Single(ForbiddenList.Check(Made(AGame, types: new[] { T("System", "Environment+SpecialFolder") })));
+        Assert.Single(ForbiddenList.Check(Made(AGame, types: new[] { T("System.IO", "File+Inner") })));
         Assert.Empty(ForbiddenList.Check(Made(AGame, types: new[] { T("System.IO", "PathTooLongException") })));
         Assert.Empty(ForbiddenList.Check(Made(AGame, types: new[] { T("System.Windows", "WindowState") })));
         // Process* is the family: everything a Process hands out.
