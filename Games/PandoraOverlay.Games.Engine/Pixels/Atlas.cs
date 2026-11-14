@@ -14,8 +14,8 @@ namespace PandoraOverlay.Games.Engine;
 /// <para><b>The frame table</b> (written by <c>tools/games-art/</c>):</para>
 /// <code>
 /// { "image": "creatures.png",
-///   "frames": { "Dryosaurus/stand/0": { "x": 0, "y": 0, "w": 36, "h": 25, "px": 18, "py": 24 } },
-///   "animations": { "Dryosaurus/walk": { "frames": ["Dryosaurus/walk/0", "Dryosaurus/walk/1"], "ticks": [4, 4], "loops": true } } }
+///   "frames": { "creature/stand/0": { "x": 0, "y": 0, "w": 36, "h": 25, "px": 18, "py": 24 } },
+///   "animations": { "creature/walk": { "frames": ["creature/walk/0", "creature/walk/1"], "ticks": [4, 4], "loops": true } } }
 /// </code>
 /// <para>A frame is named <c>&lt;subject&gt;/&lt;action&gt;/&lt;index&gt;</c>, an animation
 /// <c>&lt;subject&gt;/&lt;action&gt;</c>; <c>px, py</c> is the frame's pivot
