@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The shared mini-engine (G8, A21): what a game is built with, on WPF's
+       own primitives, nothing named after any one game. A game references it
+       and the Contract; the app never names one of its types (A2: its DLL
+       reaches the app only through a game). No package (A2). The framework,
+       WPF and the rest come from Games/Directory.Build.props. -->
+  <PropertyGroup>
+    <RootNamespace>PandoraOverlay.Games.Engine</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The games' tests reach the engine's internal helpers, as the app's
+         tests reach the app's. -->
+    <InternalsVisibleTo Include="PandoraOverlay.Games.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PandoraOverlay.Games.Contract\PandoraOverlay.Games.Contract.csproj" />
+  </ItemGroup>
+
+</Project>

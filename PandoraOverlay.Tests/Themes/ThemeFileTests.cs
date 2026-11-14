@@ -662,10 +662,31 @@ public class ThemeFileTests
 
     private static bool IsBuildOrTests(string relative)
     {
-        var first = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
+        var segments = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         // ".claude": the rules and skills, and the app's worktrees under .claude/worktrees,
         // each a whole checkout of its own branch (five of them, Nov 2 2026, failed this scan).
-        return first is "bin" or "obj" or "PandoraOverlay.Tests" or "publish" or "Releases" or ".git" or ".vs" or ".claude";
+        if (segments[0] is "PandoraOverlay.Tests" or "publish" or "Releases" or ".git" or ".vs" or ".claude") return true;
+        // bin and obj at ANY depth: the projects under Games/ build their own there.
+        if (segments.Any(s => s is "bin" or "obj")) return true;
+        // The games' tests, as the app's: they hold sample strings on purpose. The rest of
+        // Games/ IS scanned, on purpose: a game's chrome is held to the theme rules by this
+        // very scan (the games' A25).
+        return segments.Length > 1 && segments[0] == "Games" && segments[1] == "PandoraOverlay.Games.Tests";
+    }
+
+    /// <summary>The scan reads Games/ but neither a build's output inside it nor the games' tests.</summary>
+    [Fact]
+    public void TheKeyScanReadsGamesButNotItsBuildOrItsTests()
+    {
+        Assert.False(IsBuildOrTests(Path.Combine("Games", "PandoraOverlay.Games.Engine", "Views", "MadeUp.xaml")));
+        Assert.False(IsBuildOrTests("Games/PandoraOverlay.Games.Engine/MadeUp.cs"));
+        Assert.True(IsBuildOrTests("Games/PandoraOverlay.Games.Engine/obj/x.cs"));
+        Assert.True(IsBuildOrTests(Path.Combine("Games", "PandoraOverlay.Games.Engine", "bin", "Debug", "x.cs")));
+        Assert.True(IsBuildOrTests("Games/PandoraOverlay.Games.Tests/x.cs"));
+        // What the scan skipped before still is, and the app's own source is still read.
+        Assert.True(IsBuildOrTests("obj/x.cs"));
+        Assert.True(IsBuildOrTests(Path.Combine(".claude", "worktrees", "x", "App.xaml")));
+        Assert.False(IsBuildOrTests("App.xaml"));
     }
 
     /// <summary>The repo's root: up from the test's bin folder to the folder holding PandoraOverlay.csproj.</summary>
