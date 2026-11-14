@@ -639,7 +639,7 @@ public class GamesWindowTests
             var view = window.ViewOnScreen ?? throw new InvalidOperationException($"{entry.Id} shows no view");
             foreach (var state in view.LayoutStates) view.ShowLayoutState(state);
             window.Close();
-            Assert.Equal(0, EngineLoop.LiveTimers());
+            Assert.Equal(0, PandoraOverlay.Games.Engine.GameLoop.LiveTimers);
         }
     });
 
@@ -677,23 +677,4 @@ public class GamesWindowTests
             Assert.IsNotType<TextBlock>(GamesBench.Tile(second, 0).Well.Child); // its art, not its title
         }
     });
-}
-
-/// <summary>
-/// The engine's count of loops holding a timer (<c>GameLoop.LiveTimers</c>,
-/// A19), read by name: the engine's loop is a later task's (A05), not in the
-/// tree this test was written on. The tests may name the engine (only the
-/// app's source may not, A2); when the loop is there this reads it, and a
-/// listed game with no loop to read fails loudly instead of passing.
-/// </summary>
-internal static class EngineLoop
-{
-    public static int LiveTimers()
-    {
-        var loop = typeof(PandoraOverlay.Games.Engine.Rng).Assembly.GetType("PandoraOverlay.Games.Engine.GameLoop")
-                   ?? throw new InvalidOperationException("the engine has no GameLoop yet (A05): nothing to check a listed game's timers with");
-        var count = loop.GetProperty("LiveTimers")?.GetValue(null)
-                    ?? throw new MissingMemberException("GameLoop", "LiveTimers");
-        return (int)count;
-    }
 }
