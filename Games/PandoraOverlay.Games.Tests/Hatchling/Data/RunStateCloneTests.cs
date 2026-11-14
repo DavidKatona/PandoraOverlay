@@ -55,6 +55,8 @@ public class RunStateCloneTests
             Alert = 3, Target = 60, Dazed = true, DazeFreeAt = 26, Slowed = 1, Bleed = 2, BleedDamage = 3, HitByYou = true,
         });
         run.Creatures.Add(new Creature { Id = 2, Kind = CreatureKind.SmallGame, At = 41, Health = 6 });
+        run.Arrived[PredatorType.Troodon] = 2;
+        run.Arrived[PredatorType.Carnotaurus] = 1;
         run.You.At = 60;
         run.You.Growth = 55.5;
         run.You.Start = 10;
@@ -73,33 +75,18 @@ public class RunStateCloneTests
         return run;
     }
 
-    /// <summary>Everything a state holds, as one text: equal texts are equal states.</summary>
-    private static string Fingerprint(RunState r) => string.Join("|",
-        r.Species, r.Danger, string.Join(",", r.Ranks.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")), r.Stars, r.Seed, r.Rng,
-        r.Turn, string.Join(",", r.Tiles), string.Join(",", r.Seen), string.Join(",", r.Plants), string.Join(",", r.Meat),
-        string.Join(";", r.Creatures.Select(c => string.Join(",", c.Id, c.Kind, c.Type, c.Ordinal, c.At, c.Health, c.Alert, c.Target,
-            c.Relentless, c.SawYou, c.Dazed, c.DazeFreeAt, c.Slowed, c.Bleed, c.BleedDamage, c.HitByYou))),
-        r.NextId, r.Pace,
-        string.Join(",", r.You.At, r.You.Growth, r.You.Start, r.You.Best, r.You.Health, r.You.Food, r.You.Water, r.You.Wind,
-            r.You.LastMove, r.You.LatchOn, r.You.LatchStreak, r.You.Bitten),
-        string.Join(",", r.Instincts), r.Offer is null ? "none" : string.Join(",", r.Offer), r.PicksOwed, r.Redraws, r.FreeRedrawUsed,
-        r.ApexAt, r.Kills,
-        r.Over is null ? "none" : string.Join(",", r.Over.Won, r.Over.Reason, r.Over.ByType, r.Over.ByOrdinal, r.Over.Stage,
-            string.Join(";", r.Over.Lines), r.Over.Total, string.Join(";", r.Over.Earned), r.Over.DangerUnlocked, r.Over.Settled),
-        string.Join(";", r.LastTurn));
-
     [Fact]
     public void ACloneEqualsTheOriginal()
     {
         var run = Filled();
-        Assert.Equal(Fingerprint(run), Fingerprint(run.Clone()));
+        Assert.Equal(Runs.Fingerprint(run), Runs.Fingerprint(run.Clone()));
     }
 
     [Fact]
     public void ChangingEveryPartOfACloneLeavesTheOriginalAsItWas()
     {
         var run = Filled();
-        var before = Fingerprint(run);
+        var before = Runs.Fingerprint(run);
         var copy = run.Clone();
 
         copy.Ranks[Trait.DeepStomach] = 5;
@@ -114,6 +101,8 @@ public class RunStateCloneTests
         copy.Creatures[1].At = 99;
         copy.Creatures.RemoveAt(1);
         copy.Creatures.Add(new Creature { Id = 9 });
+        copy.Arrived[PredatorType.Troodon] = 3;
+        copy.Arrived[PredatorType.Allosaurus] = 1;
         copy.You.At = 0;
         copy.You.Health = 0.1;
         copy.You.Food = 0;
@@ -127,7 +116,7 @@ public class RunStateCloneTests
         copy.Over.Settled = true;
         copy.LastTurn.Clear();
 
-        Assert.Equal(before, Fingerprint(run));
+        Assert.Equal(before, Runs.Fingerprint(run));
     }
 
     [Fact]
