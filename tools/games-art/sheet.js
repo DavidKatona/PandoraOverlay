@@ -66,7 +66,10 @@ function crop(img, f) {
 function contactSheet(atlas, options) {
   const scale = (options && options.scale) || 6;
   const columns = (options && options.columns) || 5;
-  const names = Object.keys(atlas.table.frames);
+  // options.only picks the frames by name: an atlas of hundreds of frames is
+  // looked at in pages (the creatures atlas, one page a size: all 420 frames at
+  // 6x on one sheet ran Node out of memory, H11).
+  const names = Object.keys(atlas.table.frames).filter((options && options.only) || (() => true));
   const frames = names.map((n) => ({ name: n, ...atlas.table.frames[n], img: crop(atlas.image, atlas.table.frames[n]) }));
   const maxW = Math.max(...frames.map((f) => f.w));
   const maxH = Math.max(...frames.map((f) => f.h));
@@ -123,10 +126,11 @@ function loadAtlas(pngFile) {
   return { name: path.basename(pngFile, ".png"), image: readPng(pngFile), table };
 }
 
-// Writes the sheet of an atlas to <folder>/<name>-sheet.png and returns the path.
+// Writes the sheet of an atlas to <folder>/<name>-sheet.png (with options.page,
+// <name>-<page>-sheet.png) and returns the path.
 function writeSheet(atlas, folder, options) {
   fs.mkdirSync(folder, { recursive: true });
-  const file = path.join(folder, atlas.name + "-sheet.png");
+  const file = path.join(folder, atlas.name + (options && options.page ? "-" + options.page : "") + "-sheet.png");
   writePng(file, contactSheet(atlas, options));
   return file;
 }
