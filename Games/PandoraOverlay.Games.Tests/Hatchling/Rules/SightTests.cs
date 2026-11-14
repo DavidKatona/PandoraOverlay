@@ -158,6 +158,111 @@ public class SightTests
         Assert.True(Sight.Knows(run, Stats.Of(run), run.Creatures[0]));
     }
 
+    // ---- Food through the fog (H39) -------------------------------------------------
+
+    /// <summary>A cell seen before, now out of sight (the corner, far from the middle).</summary>
+    private const int SeenFar = 0;
+    /// <summary>A cell never seen (the other corner).</summary>
+    private const int NeverSeen = Tuning.Cells - 1;
+
+    /// <summary>
+    /// A board of <paramref name="species"/> where only <see cref="SeenFar"/> has been seen,
+    /// a plant and a carcass on it and on <see cref="NeverSeen"/>, and the given instincts.
+    /// </summary>
+    private static RunState Larder(string species, params Instinct[] instincts)
+    {
+        var run = Board(species);
+        Array.Fill(run.Seen, false);
+        Array.Fill(run.Plants, false);
+        Array.Fill(run.Meat, 0);
+        run.Seen[SeenFar] = true;
+        foreach (var cell in new[] { SeenFar, NeverSeen })
+        {
+            run.Plants[cell] = true;
+            run.Meat[cell] = 2;
+        }
+        run.Instincts.AddRange(instincts);
+        return run;
+    }
+
+    private static (bool Plant, bool Meat) Shows(RunState run, int cell)
+    {
+        var stats = Stats.Of(run);
+        return (Sight.ShowsFood(run, stats, cell, Food.Plants), Sight.ShowsFood(run, stats, cell, Food.Meat));
+    }
+
+    [Theory]
+    [InlineData("Dryosaurus")]
+    [InlineData("Herrerasaurus")]
+    [InlineData("Gallimimus")]
+    [InlineData("Tyrannosaurus")]
+    public void FoodOnASeenCellOutOfSightShowsForAnyone(string species)
+    {
+        var run = Larder(species);
+        Assert.False(Sight.InSight(run, Stats.Of(run), SeenFar));
+        Assert.Equal((true, true), Shows(run, SeenFar));   // as it is now: the eater doesn't matter
+    }
+
+    [Theory]
+    [InlineData("Dryosaurus")]
+    [InlineData("Herrerasaurus")]
+    [InlineData("Gallimimus")]
+    public void FoodOnACellNeverSeenDoesNotShowWithoutTheNoseOrThePerk(string species)
+    {
+        Assert.Equal((false, false), Shows(Larder(species), NeverSeen));
+    }
+
+    [Fact]
+    public void GoodNoseShowsTheFoodYouEat()
+    {
+        Assert.Equal((true, false), Shows(Larder("Dryosaurus", Instinct.Nose), NeverSeen));      // plants only
+        Assert.Equal((false, true), Shows(Larder("Herrerasaurus", Instinct.Nose), NeverSeen));   // meat only
+        Assert.Equal((true, true), Shows(Larder("Gallimimus", Instinct.Nose), NeverSeen));       // a Forager both
+        Assert.Equal((true, true), Shows(Larder("Beipiaosaurus", Instinct.Nose), NeverSeen));    // the Wader too
+    }
+
+    [Fact]
+    public void ScavengerShowsEveryCarcassAndNoPlant()
+    {
+        Assert.Equal((false, true), Shows(Larder("Ceratosaurus"), NeverSeen));
+        Assert.Equal((false, true), Shows(Larder("Ceratosaurus", Instinct.Nose), NeverSeen));   // it eats no plants
+    }
+
+    [Fact]
+    public void AnEmptyCellShowsNoFood()
+    {
+        var run = Larder("Gallimimus", Instinct.Nose);
+        run.Seen[Middle] = true;
+        Assert.Equal((false, false), Shows(run, Middle));   // in sight and seen, nothing on it
+        var scavenger = Larder("Ceratosaurus");
+        Assert.Equal((false, false), Shows(scavenger, Right(4)));
+    }
+
+    [Fact]
+    public void FishNeverShows()
+    {
+        var run = Board("Deinosuchus", Terrain.Water);   // eats fish, everything water
+        run.Instincts.Add(Instinct.Nose);
+        Array.Fill(run.Seen, false);
+        run.Seen[Middle] = true;
+        var stats = Stats.Of(run);
+        Assert.True(stats.Eats.HasFlag(Diet.Fish));
+        Assert.False(Sight.ShowsFood(run, stats, Middle, Food.Fish));      // seen
+        Assert.False(Sight.ShowsFood(run, stats, NeverSeen, Food.Fish));   // never seen
+    }
+
+    [Fact]
+    public void AskingAboutFoodChangesNothing()
+    {
+        var run = Larder("Ceratosaurus", Instinct.Nose);
+        var before = Runs.Fingerprint(run);
+        var stats = Stats.Of(run);
+        foreach (var kind in new[] { Food.Plants, Food.Meat, Food.Fish })
+            for (var cell = 0; cell < Tuning.Cells; cell++)
+                Sight.ShowsFood(run, stats, cell, kind);
+        Assert.Equal(before, Runs.Fingerprint(run));
+    }
+
     // ---- Reveal ---------------------------------------------------------------------
 
     [Fact]

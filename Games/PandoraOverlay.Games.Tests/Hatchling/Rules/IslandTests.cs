@@ -324,19 +324,44 @@ public class IslandTests
         Assert.Equal(id + 4, run.NextId);
     }
 
-    /// <summary>
-    /// A number is never one a living predator of its species holds. (Whether a
-    /// number may come round again after the last of them is defeated is a question
-    /// to the planner; this pins only what can't be wrong either way.)
-    /// </summary>
+    /// <summary>H38: a number is never given twice in a run, the defeated counted.</summary>
     [Fact]
-    public void AnArrivalNeverTakesTheNumberOfALivingOneOfItsSpecies()
+    public void ANumberIsNeverGivenTwiceInARun()
     {
         var run = Runs.Fresh("Dryosaurus", 1).Clear()
             .Put(PredatorType.Carnotaurus, 0).Put(PredatorType.Carnotaurus, 2);
         run.Creatures.RemoveAt(0);   // "Carnotaurus" is defeated, "Carnotaurus 2" lives
-        var c = Island.AddPredator(run, new Rng(1), PredatorType.Carnotaurus, false)!;
-        Assert.Equal(3, c.Ordinal);
+        Assert.Equal(3, Island.AddPredator(run, new Rng(1), PredatorType.Carnotaurus, false)!.Ordinal);
+
+        var none = Runs.Fresh("Dryosaurus", 1).Clear()
+            .Put(PredatorType.Carnotaurus, 0).Put(PredatorType.Carnotaurus, 2);
+        none.Creatures.Clear();      // both defeated: still the third, then the fourth
+        var rng = new Rng(1);
+        Assert.Equal(3, Island.AddPredator(none, rng, PredatorType.Carnotaurus, false)!.Ordinal);
+        Assert.Equal(4, Island.AddPredator(none, rng, PredatorType.Carnotaurus, false)!.Ordinal);
+
+        // Another species counts on its own (the fresh run's Troodon was the first).
+        Assert.Equal(1, Island.AddPredator(none, rng, PredatorType.Allosaurus, false)!.Ordinal);
+        Assert.Equal(2, Island.AddPredator(none, rng, PredatorType.Troodon, false)!.Ordinal);
+        Assert.Equal(
+            new Dictionary<PredatorType, int> { [PredatorType.Troodon] = 2, [PredatorType.Carnotaurus] = 4, [PredatorType.Allosaurus] = 1 },
+            none.Arrived);
+    }
+
+    [Fact]
+    public void AFreshRunHasHadOneTroodonAndNothingElse()
+    {
+        foreach (var seed in ManySeeds().Take(20))
+            Assert.Equal(new Dictionary<PredatorType, int> { [PredatorType.Troodon] = 1 }, Runs.Fresh("Dryosaurus", seed).Arrived);
+    }
+
+    [Fact]
+    public void SmallGameCountsNoArrival()
+    {
+        var run = Runs.Fresh("Dryosaurus", 1).Clear();
+        var before = new Dictionary<PredatorType, int>(run.Arrived);
+        Island.AddSmallGame(run, new Rng(2));
+        Assert.Equal(before, run.Arrived);
     }
 
     [Fact]
@@ -344,10 +369,12 @@ public class IslandTests
     {
         var run = Runs.Fresh("Dryosaurus", 1).Clear().Paved(Terrain.Water);
         var before = run.NextId;
+        var arrived = new Dictionary<PredatorType, int>(run.Arrived);
         Assert.Null(Island.AddPredator(run, new Rng(1), PredatorType.Troodon, false));
         Assert.Null(Island.AddSmallGame(run, new Rng(1)));
         Assert.Empty(run.Creatures);
-        Assert.Equal(before, run.NextId);   // an arrival that found no place took no id
+        Assert.Equal(before, run.NextId);     // an arrival that found no place took no id...
+        Assert.Equal(arrived, run.Arrived);   // ...and counted nothing (H38)
     }
 
     [Fact]

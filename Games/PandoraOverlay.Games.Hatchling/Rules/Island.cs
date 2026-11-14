@@ -199,7 +199,7 @@ internal static class Island
             Id = run.NextId++,
             Kind = CreatureKind.Predator,
             Type = type,
-            Ordinal = NextOrdinal(run, type),
+            Ordinal = TakeOrdinal(run, type),   // after the cell is found: no place, no count (H38)
             At = at,
             Health = (int)Tuning.Round(info.Health * Threat(run)),
             Alert = alerted ? Tuning.AlertHeard : 0,
@@ -249,20 +249,22 @@ internal static class Island
     }
 
     /// <summary>
-    /// The ordinal a newly arrived predator of <paramref name="type"/> takes (H7):
-    /// one more than the highest of its species on the island. While none of its
-    /// species has been defeated that is "how many have arrived, counting itself";
-    /// the state keeps no count of arrivals, so after the last of them is defeated a
-    /// number can come round again (a question to the planner, see the task's report).
-    /// Never a number a living one of its species holds.
+    /// Counts one more arrival of <paramref name="type"/> in the run's
+    /// <see cref="RunState.Arrived"/> and answers the arrival's ordinal (H7): how
+    /// many of its species have arrived in this run, counting itself, the defeated
+    /// included. So a number is never given twice in a run (H38): after two
+    /// Carnotaurus the next is "Carnotaurus 3" whether the first two live or not,
+    /// and the turn list can never name two creatures of one turn alike. The apex
+    /// counts like any arrival of its species. It changes the run: call it only
+    /// where a predator joins <see cref="RunState.Creatures"/>, after its cell is
+    /// found, so an arrival that found no place counts nothing, as it spends no id.
     /// </summary>
-    public static int NextOrdinal(RunState run, PredatorType type)
+    public static int TakeOrdinal(RunState run, PredatorType type)
     {
-        var highest = 0;
-        foreach (var creature in run.Creatures)
-            if (creature.Kind == CreatureKind.Predator && creature.Type == type && creature.Ordinal > highest)
-                highest = creature.Ordinal;
-        return highest + 1;
+        ArgumentNullException.ThrowIfNull(run);
+        var ordinal = (run.Arrived.TryGetValue(type, out var arrived) ? arrived : 0) + 1;
+        run.Arrived[type] = ordinal;
+        return ordinal;
     }
 
     private static bool IsLand(Terrain ground) => ground is Terrain.Grass or Terrain.Forest;

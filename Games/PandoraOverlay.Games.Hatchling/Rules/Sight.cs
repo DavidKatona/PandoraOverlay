@@ -9,6 +9,10 @@ namespace PandoraOverlay.Games.Hatchling;
 /// nothing else, so no screen can ever show, or a bot ever act on, a creature the
 /// player could not know about (the turns' clarity, G9, rests on it: what is shown
 /// is what you could know).</para>
+///
+/// <para><see cref="ShowsFood"/> is to food what <see cref="Knows"/> is to creatures
+/// (H39): the painter, the context line and the bot ask it, and nothing shows a plant
+/// or a carcass it does not answer.</para>
 /// </summary>
 internal static class Sight
 {
@@ -58,6 +62,37 @@ internal static class Sight
         if (creature.Kind != CreatureKind.Predator) return false;
         return creature.Type == Tuning.Apex
             || Island.Grid.Distance(run.You.At, creature.At) <= stats.Sense;
+    }
+
+    /// <summary>
+    /// The ONE answer to "may the player see the food of <paramref name="kind"/> on
+    /// <paramref name="cell"/>" (H39), asked by the painter, the context line and the
+    /// bot, as <see cref="Knows"/> is for creatures.
+    /// <list type="bullet">
+    /// <item>Plants: a plant is on the cell, and the cell is seen, or the run has Good
+    /// nose and you eat plants.</item>
+    /// <item>Meat: a carcass is on the cell, and the cell is seen, or your perk is
+    /// Scavenger, or the run has Good nose and you eat meat.</item>
+    /// <item>Fish: never. Fish is the water itself, a ground, and the fog covers
+    /// ground whatever your nose; the board has no picture for it.</item>
+    /// </list>
+    /// On a seen cell the food shows AS IT IS NOW, in sight or not: the run keeps no
+    /// memory of what a cell held, and what changes out of sight is small and true (a
+    /// plant grown there, the meat of a predator that bled out). "You eat" is
+    /// <see cref="Stats.Eats"/>, so a Wader with Good nose is shown plants and carcasses.
+    /// Small game is a creature, not food: <see cref="Knows"/> answers for it.
+    /// </summary>
+    public static bool ShowsFood(RunState run, Stats stats, int cell, Food kind)
+    {
+        var nose = run.Has(Instinct.Nose);
+        return kind switch
+        {
+            Food.Plants => run.Plants[cell]
+                && (run.Seen[cell] || (nose && stats.Eats.HasFlag(Diet.Plants))),
+            Food.Meat => run.Meat[cell] > 0
+                && (run.Seen[cell] || stats.Species.Perk == Perk.Scavenger || (nose && stats.Eats.HasFlag(Diet.Meat))),
+            _ => false,
+        };
     }
 
     /// <summary>

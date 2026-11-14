@@ -57,8 +57,9 @@ internal static class Runs
     /// <summary>
     /// A copy of <paramref name="run"/> with a predator of <paramref name="type"/> on
     /// <paramref name="cell"/> at <paramref name="alert"/>, whatever the ground: the next
-    /// id, the next ordinal of its species, the run's threat on its health, and, when
-    /// alerted, heading for your cell. It is the last of the copy's creatures.
+    /// id, the next ordinal of its species (counted in the copy's Arrived, as an arrival
+    /// is, H38), the run's threat on its health, and, when alerted, heading for your
+    /// cell. It is the last of the copy's creatures.
     /// </summary>
     public static RunState Put(this RunState run, PredatorType type, int cell, int alert = 0)
     {
@@ -68,7 +69,7 @@ internal static class Runs
             Id = copy.NextId++,
             Kind = CreatureKind.Predator,
             Type = type,
-            Ordinal = Island.NextOrdinal(copy, type),
+            Ordinal = Island.TakeOrdinal(copy, type),
             At = cell,
             Health = (int)Tuning.Round(Predators.Of(type).Health * Island.Threat(copy)),
             Alert = alert,
@@ -113,7 +114,7 @@ internal static class Runs
         r.Turn, string.Join(",", r.Tiles), string.Join(",", r.Seen), string.Join(",", r.Plants), string.Join(",", r.Meat),
         string.Join(";", r.Creatures.Select(c => string.Join(",", c.Id, c.Kind, c.Type, c.Ordinal, c.At, c.Health, c.Alert, c.Target,
             c.Relentless, c.SawYou, c.Dazed, c.DazeFreeAt, c.Slowed, c.Bleed, c.BleedDamage, c.HitByYou))),
-        r.NextId, r.Pace,
+        r.NextId, string.Join(",", r.Arrived.OrderBy(k => k.Key).Select(k => $"{k.Key}={k.Value}")), r.Pace,
         string.Join(",", r.You.At, r.You.Growth, r.You.Start, r.You.Best, r.You.Health, r.You.Food, r.You.Water, r.You.Wind,
             r.You.LastMove, r.You.LatchOn, r.You.LatchStreak, r.You.Bitten),
         string.Join(",", r.Instincts), r.Offer is null ? "none" : string.Join(",", r.Offer), r.PicksOwed, r.Redraws, r.FreeRedrawUsed,
