@@ -169,8 +169,13 @@ const FLOOR = mix(F.shadow, F.outline, 0.35);
 const FLOOR_LIGHT = mix(F.shadow, FOREST, 0.35);
 const FOREST_EDGE = F.outline;
 // Two crown greens, a little brighter than the floor so the crowns stand out
-// of it, and unlike each other so a canopy is not one stamp repeated.
-const CROWNS = ["#2C6A3A", "#356F35"];
+// of it, and unlike each other so a canopy is not one stamp repeated. No
+// lighter than the grass beside them (the planner's H10 verdict, H48): the
+// first greens lit to tones above the grass's ground, so a forest tile was
+// eleven bright objects and a green dino, a hatchling or a fern standing in it
+// was one more. Dark crowns let whatever stands in a forest be read before the
+// forest is.
+const CROWNS = ["#234F2E", "#28552B"];
 
 // A tree crown as the engine draws a dino's body: a lumpy round mass (a big
 // lobe and smaller ones on its shoulders), lit on top, shaded below, outlined
