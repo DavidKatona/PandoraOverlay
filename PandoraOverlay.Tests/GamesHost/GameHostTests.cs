@@ -1,0 +1,100 @@
+using PandoraOverlay.Games;
+using Xunit;
+
+namespace PandoraOverlay.Tests;
+
+/// <summary>
+/// What one game instance is given (A10): the host's clock, its own storage,
+/// and its log lines as "&lt;id&gt;: &lt;fact&gt;", one line of at most 200
+/// characters, so a game can't fill the log or break its one-line shape.
+/// </summary>
+public sealed class GameHostTests : IDisposable
+{
+    private readonly TempGamesRoot _temp = new();
+
+    public void Dispose() => _temp.Dispose();
+
+    [Fact]
+    public void ALineIsTheIdThenTheFact()
+    {
+        Assert.Equal("hatch-test: 3 runs", GameLog.Line("hatch-test", "3 runs"));
+        Assert.Equal("hatch-test: ", GameLog.Line("hatch-test", null));
+        Assert.Equal("hatch-test: ", GameLog.Line("hatch-test", ""));
+    }
+
+    // The breaks by number: a line or paragraph separator written into this
+    // source would end the source line itself.
+    [Theory]
+    [InlineData(0x0A)]
+    [InlineData(0x0D)]
+    [InlineData(0x85)]
+    [InlineData(0x2028)]
+    [InlineData(0x2029)]
+    public void AFactIsCutAtItsFirstLineBreak(int lineBreak)
+    {
+        Assert.Equal("g: first", GameLog.Line("g", "first" + (char)lineBreak + "second"));
+        Assert.Equal("g: first", GameLog.Line("g", "first" + (char)lineBreak + "\nthird"));
+    }
+
+    [Fact]
+    public void AWindowsLineEndIsALineBreakToo()
+    {
+        Assert.Equal("g: first", GameLog.Line("g", "first\r\nsecond"));
+        Assert.Equal("g: first\tsecond", GameLog.Line("g", "first\tsecond")); // a tab is not a break
+    }
+
+    [Fact]
+    public void AFactIsCutToTwoHundredCharacters()
+    {
+        Assert.Equal(200, GameLog.MaxFact);
+        var line = GameLog.Line("g", new string('x', 250));
+
+        Assert.Equal("g: " + new string('x', 200), line);
+        Assert.Equal("g: " + new string('x', 200), GameLog.Line("g", new string('x', 200)));
+    }
+
+    [Fact]
+    public void ACutNeverSplitsASurrogatePair()
+    {
+        var fact = new string('x', 199) + "\U0001F996" + "tail"; // a pair at 199 and 200
+
+        var line = GameLog.Line("g", fact);
+
+        Assert.Equal("g: " + new string('x', 199), line);
+        Assert.False(char.IsHighSurrogate(line[^1]));
+    }
+
+    [Fact]
+    public void TheHostGivesTheClockAndTheStorageItWasMadeWith()
+    {
+        var clock = new TestGameClock();
+        var log = new TestGameLog();
+        var store = new GameSaveStore(_temp.Root, () => clock.UtcNow);
+        var storage = new GameStorage(store, "sample-game", clock, log);
+        var games = new GamesHost(store, new[] { new GameEntry("sample-game", () => new FakeGame("sample-game")) }, clock, _ => log);
+
+        var host = new GameHost(games, games.Games[0], clock, storage, log);
+
+        Assert.Same(clock, host.Clock);
+        Assert.Same(storage, host.Storage);
+        Assert.Same(log, host.Log);
+        Assert.True(host.Current);
+    }
+
+    [Fact]
+    public void ADetachedHostWritesNothing()
+    {
+        var clock = new TestGameClock();
+        var log = new TestGameLog();
+        var store = new GameSaveStore(_temp.Root, () => clock.UtcNow);
+        var storage = new GameStorage(store, "sample-game", clock, log);
+        var games = new GamesHost(store, new[] { new GameEntry("sample-game", () => new FakeGame("sample-game")) }, clock, _ => log);
+        var host = new GameHost(games, games.Games[0], clock, storage, log);
+
+        host.Detach();
+        host.Storage.Write(1, "stale", SaveUrgency.Now);
+
+        Assert.False(host.Current);
+        Assert.Null(_temp.SavedPayload("sample-game"));
+    }
+}
