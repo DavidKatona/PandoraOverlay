@@ -155,6 +155,14 @@ public class RunStateCloneTests
         Assert.Null(run.Over);
     }
 
+    /// <summary>Cell 0 is a real cell: a creature nobody has aimed yet heads nowhere.</summary>
+    [Fact]
+    public void ANewCreatureHasNoTarget()
+    {
+        Assert.Equal(Tuning.NoTarget, new Creature().Target);
+        Assert.Equal(-1, Tuning.NoTarget);
+    }
+
     [Fact]
     public void RankIsZeroForATraitNotOwnedAndHasAsksTheInstincts()
     {

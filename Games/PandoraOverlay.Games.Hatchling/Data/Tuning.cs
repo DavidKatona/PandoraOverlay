@@ -104,6 +104,8 @@ internal static class Tuning
     public const PredatorType Apex = PredatorType.Tyrannosaurus;
     /// <summary><c>RunState.ApexAt</c> before the apex has come.</summary>
     public const int ApexNotYet = -1;
+    /// <summary>A creature's target when it has none: not a cell, so a rule that forgets to set one sends nobody to the island's corner (cell 0).</summary>
+    public const int NoTarget = -1;
 
     // ---- You ------------------------------------------------------------------------
 

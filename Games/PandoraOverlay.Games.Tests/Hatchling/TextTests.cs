@@ -149,6 +149,10 @@ public class TextTests
     {
         Assert.Equal("Grazer · plants", HatchlingText.CardKind(Build.Grazer, Diet.Plants));
         Assert.Equal("Forager · eats plants and meat", HatchlingText.PanelKind(Build.Forager, Diet.Plants | Diet.Meat));
+        // H37: three foods in a sentence take commas and one "and"; on a card, commas only.
+        Assert.Equal("Forager · eats plants, meat and fish", HatchlingText.PanelKind(Build.Forager, Diet.Plants | Diet.Meat | Diet.Fish));
+        Assert.Equal("Forager · plants, meat, fish", HatchlingText.CardKind(Build.Forager, Diet.Plants | Diet.Meat | Diet.Fish));
+        Assert.Equal("Grazer · eats plants", HatchlingText.PanelKind(Build.Grazer, Diet.Plants));
         Assert.Equal("Server growth ×2.6", HatchlingText.CardFresh(2.6));
         Assert.Equal("Server growth ×2.5", HatchlingText.CardFresh(2.45));   // halves up (H24)
         Assert.Equal("★★☆", HatchlingText.Stars(2));

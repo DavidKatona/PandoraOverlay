@@ -146,14 +146,26 @@ public static class HatchlingText
         _ => throw new ArgumentOutOfRangeException(nameof(food), food, "not a food"),
     };
 
-    /// <summary>What a diet eats, in the order plants, meat, fish, joined by <paramref name="join"/> (", " on a card, " and " in a sentence).</summary>
-    internal static string Foods(Diet diet, string join)
+    /// <summary>What a diet eats on a card: ", " between all, "plants, meat, fish".</summary>
+    internal static string FoodsOnCard(Diet diet) => string.Join(", ", FoodWords(diet));
+
+    /// <summary>What a diet eats in a sentence (H37): "plants", "plants and meat", "plants, meat and fish".</summary>
+    internal static string FoodsInSentence(Diet diet)
+    {
+        var words = FoodWords(diet);
+        return words.Count <= 1
+            ? string.Join("", words)
+            : string.Join(", ", words.Take(words.Count - 1)) + " and " + words[^1];
+    }
+
+    // The diet's foods, in the order plants, meat, fish.
+    private static List<string> FoodWords(Diet diet)
     {
         var words = new List<string>(3);
         if (diet.HasFlag(Diet.Plants)) words.Add(FoodWord(Food.Plants));
         if (diet.HasFlag(Diet.Meat)) words.Add(FoodWord(Food.Meat));
         if (diet.HasFlag(Diet.Fish)) words.Add(FoodWord(Food.Fish));
-        return string.Join(join, words);
+        return words;
     }
 
     // ===== Tabs ==========================================================================
@@ -338,7 +350,7 @@ public static class HatchlingText
     public const string UnlockArmed = "Click again to unlock";
 
     /// <summary>A species card's second line: "Grazer · plants".</summary>
-    internal static string CardKind(Build build, Diet eats) => $"{BuildName(build)} · {Foods(eats, ", ")}";
+    internal static string CardKind(Build build, Diet eats) => $"{BuildName(build)} · {FoodsOnCard(eats)}";
 
     /// <summary>"danger 3": the highest danger this species has won at.</summary>
     internal static string CardWon(int danger) => $"danger {Count(danger)}";
@@ -355,7 +367,7 @@ public static class HatchlingText
     }
 
     /// <summary>The chosen species' kind: "Grazer · eats plants".</summary>
-    internal static string PanelKind(Build build, Diet eats) => $"{BuildName(build)} · eats {Foods(eats, " and ")}";
+    internal static string PanelKind(Build build, Diet eats) => $"{BuildName(build)} · eats {FoodsInSentence(eats)}";
 
     /// <summary>"4 hexes".</summary>
     internal static string SightValue(int hexes) => Hexes(hexes);

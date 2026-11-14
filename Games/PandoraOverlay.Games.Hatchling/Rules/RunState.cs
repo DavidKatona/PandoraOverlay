@@ -38,8 +38,8 @@ internal sealed class Creature
     public int Health { get; set; }
     /// <summary>0 unaware; 1 to 3 searching (it heard you, one less a turn); 4 hunting (it sees you, or is the apex).</summary>
     public int Alert { get; set; }
-    /// <summary>The cell it heads for while alerted.</summary>
-    public int Target { get; set; }
+    /// <summary>The cell it heads for while alerted; -1 for none (<see cref="Tuning.NoTarget"/>), never 0, which is a real cell.</summary>
+    public int Target { get; set; } = Tuning.NoTarget;
     /// <summary>It never gives up: the apex.</summary>
     public bool Relentless { get; set; }
     /// <summary>It saw you (or is the apex) on its last action: what makes "spots you" news only once.</summary>

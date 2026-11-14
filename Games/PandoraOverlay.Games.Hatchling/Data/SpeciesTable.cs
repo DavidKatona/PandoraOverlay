@@ -50,13 +50,15 @@ internal static class SpeciesTable
     };
 
     private static readonly Dictionary<string, SpeciesInfo> ByName =
-        All.ToDictionary(s => s.Name, StringComparer.Ordinal);
+        All.ToDictionary(s => s.Name, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// The species spelled exactly <paramref name="name"/>. An unknown name, or
-    /// none, is false and never an error: a species the server adds before the
-    /// game knows it is ignored (A23). Exact, case included, because a reading
-    /// names the dino in the server's spelling and the table holds that spelling.
+    /// The species named <paramref name="name"/>, ignoring case (H36); the species
+    /// found carries the table's own spelling. An unknown name, or none, is false
+    /// and never an error: a species the server adds before the game knows it is
+    /// ignored (A23). Ignoring case because the engine's <c>SeenGrowth</c> and the
+    /// overlay's own lookup do: an exact match would pay nothing, silently, for a
+    /// reading that differed from the table only in case.
     /// </summary>
     public static bool TryGet(string? name, out SpeciesInfo species)
     {

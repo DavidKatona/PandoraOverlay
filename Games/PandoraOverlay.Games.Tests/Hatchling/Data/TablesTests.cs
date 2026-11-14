@@ -83,12 +83,22 @@ public class TablesTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("dryosaurus")]      // exact spelling: the server's (A23)
     [InlineData("Dryosaurus ")]
     [InlineData("Spinosaurus")]     // a species the game does not know is ignored, never an error
     public void AnUnknownSpeciesIsNotFound(string? name)
     {
         Assert.False(SpeciesTable.TryGet(name, out _));
+    }
+
+    /// <summary>H36: a reading that differs from the table only in case still finds its species, in the table's spelling.</summary>
+    [Theory]
+    [InlineData("Tyrannosaurus")]
+    [InlineData("tyrannosaurus")]
+    [InlineData("TYRANNOSAURUS")]
+    public void ASpeciesIsFoundIgnoringCaseAndCarriesTheTablesSpelling(string name)
+    {
+        Assert.True(SpeciesTable.TryGet(name, out var species));
+        Assert.Equal("Tyrannosaurus", species.Name);
     }
 
     [Fact]
