@@ -86,6 +86,42 @@ public class RunPayTests
         Assert.Empty(RunPay.Of(Ended(30, 30.9)));                          // under a percent: no line
     }
 
+    /// <summary>Growth from 0 after <paramref name="turns"/> base turns, added one turn at a time as the world adds it.</summary>
+    private static double Summed(int turns)
+    {
+        var growth = 0.0;
+        for (var k = 0; k < turns; k++) growth += Tuning.GrowthPerTurn;
+        return growth;
+    }
+
+    [Theory]
+    [InlineData(20, 28, 14)]
+    [InlineData(15, 21, 10)]
+    public void GrowthSummedTurnByTurnPaysItsWholePercents(int turns, int percent, int pay)
+    {
+        // H58: twenty base turns sum to 27.999999999999989, which is 28.
+        var best = Summed(turns);
+        Assert.True(best < percent, "the test's premise: the sum sits under the whole number");
+        Assert.Equal(new PayLine(PayKind.Grew, percent, pay), RunPay.Of(Ended(0, best))[0]);
+    }
+
+    [Theory]
+    [InlineData(27.5)]
+    [InlineData(27.999)]
+    public void TheSlackRoundsNothingUp(double best)
+    {
+        Assert.Equal(new PayLine(PayKind.Grew, 27, 13), RunPay.Of(Ended(0, best))[0]);
+    }
+
+    [Fact]
+    public void AHairUnderALineCrossesNothingButItsPercentCounts()
+    {
+        // The stage lines take no slack: they agree with Stages.Of, which said Hatchling.
+        var best = 25 - 1e-12;
+        Assert.Equal(Stages.Hatchling, Stages.Of(best));
+        Assert.Equal(new[] { new PayLine(PayKind.Grew, 25, 12) }, RunPay.Of(Ended(0, best)));
+    }
+
     [Fact]
     public void ALineIsPaidOnlyWhenCrossedInTheRun()
     {

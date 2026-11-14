@@ -225,9 +225,8 @@ internal static class Fights
     /// Second wind and the end come before the spikes because that is the order of
     /// a predator's events the turn script plays, which is the order things happen
     /// (H2): bite, Second wind, your spikes. So a bite that catches you ends the run
-    /// before your spikes answer it. (The design's list of the bite's steps puts the
-    /// spikes before the end; the events' order, which the player is shown, is the
-    /// one followed here, so what is shown is what happened.)
+    /// before your spikes answer it: the fallen do not strike back (H56), as the apex
+    /// felled by your hit gets no bite in.
     /// It changes the run given: called on the world's turn's own copy (A20).
     /// </summary>
     public static void Bite(RunState run, Stats stats, Rng rng, Creature predator, List<TurnEvent> events)

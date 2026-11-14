@@ -21,6 +21,18 @@ namespace PandoraOverlay.Games.Hatchling;
 /// </summary>
 internal static class RunPay
 {
+    /// <summary>
+    /// What the growth gained is read up by before its whole percents are counted
+    /// (H58). Growth is summed turn by turn from <see cref="Tuning.GrowthPerTurn"/>,
+    /// and the sum often sits a hair under the whole number it should be (twenty
+    /// base turns are 27.999999999999989, not 28), so a plain floor would say
+    /// "Grew 27%" and pay one less. Far under any real fraction a turn adds, so
+    /// it rounds nothing up. The stars and the server pay's carry take the same slack
+    /// for the same reason. The stage lines take none: they must agree with
+    /// <see cref="Stages.Of"/>, which gave the run its <see cref="StageReached"/>.
+    /// </summary>
+    internal const double GrowthSlack = 1e-9;
+
     /// <summary>The run's pay lines, in the table's order (see the class).</summary>
     public static IReadOnlyList<PayLine> Of(RunState run)
     {
@@ -28,12 +40,14 @@ internal static class RunPay
         var lines = new List<PayLine>();
         var you = run.You;
 
-        // Grew N%: the whole percents gained, at GrowthPay each, both floored.
+        // Grew N%: the whole percents gained, at GrowthPay each, both floored, each
+        // read with the slack the summed growth needs (H58).
         var gained = Math.Max(0, you.Best - you.Start);
-        var percent = (int)Math.Floor(gained);
-        if (percent > 0) lines.Add(new PayLine(PayKind.Grew, percent, (int)Math.Floor(gained * Tuning.GrowthPay)));
+        var percent = (int)Math.Floor(gained + GrowthSlack);
+        if (percent > 0) lines.Add(new PayLine(PayKind.Grew, percent, (int)Math.Floor((gained + GrowthSlack) * Tuning.GrowthPay)));
 
-        // A line crossed IN this run: begun under it, reached it (a value on a line is past it).
+        // A line crossed IN this run: begun under it, reached it (a value on a line is
+        // past it). No slack: Stages.Of decided the crossing, and the pay agrees with it.
         for (var line = 0; line < Tuning.StageLines.Count; line++)
         {
             var at = Tuning.StageLines[line];
