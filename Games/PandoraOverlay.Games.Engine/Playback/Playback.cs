@@ -24,7 +24,9 @@ namespace PandoraOverlay.Games.Engine;
 /// <para>
 /// <b>Never in the way.</b> A broken step must never hang a game: a step
 /// still running after <see cref="StepLimitTicks"/> is finished for it
-/// (<see cref="StepOverran"/>). A step that throws passes its exception to
+/// (<see cref="StepOverran"/>), and a broken chain is cut: a skip that has
+/// finished <see cref="SkipLimitSteps"/> steps with more still queued throws
+/// instead of freezing the overlay (A35). A step that throws passes its exception to
 /// the caller (the loop reports it as the game's fault, A10) and leaves the
 /// playback cleared and usable. And whatever ends a playback, a skip, an
 /// overrun or running to the end, the picture left is the same, because
@@ -45,6 +47,25 @@ public sealed class Playback
     /// run past ten seconds belongs in the queue as separate steps.
     /// </summary>
     public const int StepLimitTicks = 300;
+
+    /// <summary>
+    /// The most steps one <see cref="SkipAll"/> finishes, the current one
+    /// included: 10,000 (A35). A step whose Finish keeps enqueuing steps
+    /// would otherwise never let the skip return, and the skip runs on the
+    /// overlay's UI thread, over the game: every widget, the hotkeys and the
+    /// tray would freeze with it, the one thing a game may never cost. Past
+    /// the limit, with a step still queued, the skip throws
+    /// <see cref="InvalidOperationException"/> and leaves the playback
+    /// cleared, and the view's Guard reports it as the game's fault (A10): a
+    /// game's bug is allowed to cost the game, never the overlay. A real
+    /// playback is tens to hundreds of steps, so the limit is far from
+    /// anything a working game reaches. The same idea as
+    /// <see cref="StepLimitTicks"/>: a broken step is finished for it, a
+    /// broken chain is cut. <see cref="Advance"/> needs no such limit: it
+    /// advances at most <see cref="Speed"/> steps a tick, whatever they
+    /// enqueue.
+    /// </summary>
+    public const int SkipLimitSteps = 10_000;
 
     private readonly Queue<IStep> _queue = new();
 
@@ -200,6 +221,15 @@ public sealed class Playback
     /// running to the end would have played them, so skipping must leave
     /// their pictures as well. Afterwards the playback is idle and the
     /// picture is the final state. Does nothing while idle.
+    /// <para>
+    /// At most <see cref="SkipLimitSteps"/> steps are finished, the current
+    /// one included (A35). If a step is still queued after the last of them,
+    /// the chain is taken as endless: the playback is cleared, no
+    /// <see cref="Drained"/> is raised, and the skip throws
+    /// <see cref="InvalidOperationException"/>, which the view reports as the
+    /// game's fault (A10). Exactly <see cref="SkipLimitSteps"/> steps,
+    /// however they got into the queue, finish and drain as usual.
+    /// </para>
     /// </summary>
     public void SkipAll()
     {
@@ -207,6 +237,7 @@ public sealed class Playback
         if (Idle)
             return;
 
+        var finished = 0;
         _inStep = true;
         try
         {
@@ -214,9 +245,20 @@ public sealed class Playback
             {
                 _current.Finish();
                 _current = null;
+                finished++;
             }
-            while (_queue.TryDequeue(out var next))
-                next.Finish();
+            while (_queue.Count > 0)
+            {
+                // Checked before each further Finish, so the limit-th step
+                // is finished like any other and only a step queued after it
+                // is refused: a playback of exactly the limit completes.
+                if (finished >= SkipLimitSteps)
+                    throw new InvalidOperationException(
+                        "Playback.SkipAll finished " + SkipLimitSteps
+                        + " steps and more were still queued: a step's Finish keeps enqueuing steps.");
+                _queue.Dequeue().Finish();
+                finished++;
+            }
         }
         catch
         {

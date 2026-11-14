@@ -442,6 +442,164 @@ public class PlaybackTests
         Assert.Equal(1, scene.Get("b"));
     }
 
+    // ---- The skip's limit (A35) -----------------------------------------------------------
+
+    /// <summary>
+    /// A chain of links in which each link, however it ends (finishing by
+    /// itself on its first advance, or finished by a skip), enqueues the next
+    /// one, until the total given links have been made (without end when
+    /// null). <see cref="Made"/> and <see cref="Finishes"/> are the counters
+    /// the links share.
+    /// </summary>
+    private sealed class Chain
+    {
+        private readonly Playback _playback;
+        private readonly List<string> _log;
+        private readonly int? _total;
+
+        public Chain(Playback playback, List<string> log, int? total)
+        {
+            _playback = playback;
+            _log = log;
+            _total = total;
+            AddLink();
+        }
+
+        public int Made { get; private set; }
+        public int Finishes { get; private set; }
+
+        private void AddLink()
+        {
+            if (_total is int total && Made >= total)
+                return;
+            Made++;
+            var link = new ProbeStep("L", _log, finishOn: 1);
+            link.OnAdvance = AddLink;
+            link.OnFinish = () =>
+            {
+                Finishes++;
+                AddLink();
+            };
+            _playback.Enqueue(link);
+        }
+    }
+
+    /// <summary>
+    /// A step whose Finish enqueues another like itself, without end: the
+    /// skip finishes exactly the limit, then throws instead of freezing the
+    /// overlay; the playback is cleared with no drain, and usable.
+    /// </summary>
+    [Fact]
+    public void AnEndlessChainIsCutAtTheSkipLimit()
+    {
+        var log = new List<string>();
+        var playback = new Playback();
+        var drained = 0;
+        playback.Drained += () => drained++;
+        var chain = new Chain(playback, log, total: null);
+
+        var thrown = Assert.Throws<InvalidOperationException>(playback.SkipAll);
+
+        Assert.Equal(Playback.SkipLimitSteps, chain.Finishes);
+        Assert.Contains(Playback.SkipLimitSteps.ToString(System.Globalization.CultureInfo.InvariantCulture), thrown.Message);
+        Assert.True(playback.Idle);
+        Assert.Equal(0, drained);
+        StillWorks(playback);
+    }
+
+    /// <summary>Exactly the limit, all queued up front: every one finished, no throw, one drain.</summary>
+    [Fact]
+    public void ASkipOfExactlyTheLimitCompletes()
+    {
+        var playback = new Playback();
+        var drained = 0;
+        var runs = 0;
+        playback.Drained += () => drained++;
+        for (var i = 0; i < Playback.SkipLimitSteps; i++)
+            playback.Enqueue(Steps.Call(() => runs++));
+
+        playback.SkipAll();
+
+        Assert.Equal(Playback.SkipLimitSteps, runs);
+        Assert.True(playback.Idle);
+        Assert.Equal(1, drained);
+    }
+
+    /// <summary>
+    /// The current step counts towards the limit: begun, with the limit
+    /// less one queued behind it, the skip completes; with one more queued,
+    /// it throws.
+    /// </summary>
+    [Theory]
+    [InlineData(Playback.SkipLimitSteps - 1, false)]
+    [InlineData(Playback.SkipLimitSteps, true)]
+    public void TheCurrentStepCountsTowardsTheSkipLimit(int queuedBehind, bool throws)
+    {
+        var log = new List<string>();
+        var playback = new Playback();
+        var drained = 0;
+        playback.Drained += () => drained++;
+        var current = new ProbeStep("A", log, finishOn: 2);
+        playback.Enqueue(current);
+        for (var i = 0; i < queuedBehind; i++)
+            playback.Enqueue(Steps.Wait(1));
+        playback.Advance(); // A is now the current step
+
+        var thrown = Record.Exception(playback.SkipAll);
+
+        Assert.Equal(1, current.Finishes);
+        Assert.True(playback.Idle);
+        if (throws)
+        {
+            Assert.IsType<InvalidOperationException>(thrown);
+            Assert.Equal(0, drained);
+        }
+        else
+        {
+            Assert.Null(thrown);
+            Assert.Equal(1, drained);
+        }
+    }
+
+    /// <summary>A chain that enqueues on Finish but stops by itself at the limit, in all: no throw, one drain.</summary>
+    [Fact]
+    public void AChainThatStopsAtTheSkipLimitCompletes()
+    {
+        var log = new List<string>();
+        var playback = new Playback();
+        var drained = 0;
+        playback.Drained += () => drained++;
+        var chain = new Chain(playback, log, total: Playback.SkipLimitSteps);
+
+        playback.SkipAll();
+
+        Assert.Equal(Playback.SkipLimitSteps, chain.Made);
+        Assert.Equal(Playback.SkipLimitSteps, chain.Finishes);
+        Assert.True(playback.Idle);
+        Assert.Equal(1, drained);
+    }
+
+    /// <summary>
+    /// The endless chain played rather than skipped needs no limit: the walk
+    /// is bounded per tick, one step a tick at speed 1, for as long as it
+    /// goes on. This pins that bound.
+    /// </summary>
+    [Fact]
+    public void AnEndlessChainAdvancesOneStepATick()
+    {
+        var log = new List<string>();
+        var playback = PlaybackRun.Logged(log);
+        var chain = new Chain(playback, log, total: null);
+
+        for (var i = 0; i < 1_000; i++)
+            Assert.Equal("L.Begin L.Advance", PlaybackRun.OneTick(playback, log));
+
+        Assert.Equal(1_001, chain.Made); // the one the last link queued is waiting
+        Assert.Equal(0, chain.Finishes);
+        Assert.False(playback.Idle);
+        Assert.DoesNotContain("Drained", log);
+    }
+
     // ---- Re-entrancy ------------------------------------------------------------------
 
     public enum Call { Advance, SkipAll, Clear }

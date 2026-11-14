@@ -50,7 +50,9 @@ namespace PandoraOverlay.Games.Engine;
 /// A step's code may <see cref="Playback.Enqueue"/> more steps (they go to
 /// the back) but may not call <see cref="Playback.Advance"/>,
 /// <see cref="Playback.SkipAll"/> or <see cref="Playback.Clear"/>: the
-/// playback throws <see cref="InvalidOperationException"/> for those.
+/// playback throws <see cref="InvalidOperationException"/> for those. A
+/// Finish that enqueues must not do so without end: past
+/// <see cref="Playback.SkipLimitSteps"/> finished steps the skip throws.
 /// </para>
 /// </summary>
 public interface IStep
