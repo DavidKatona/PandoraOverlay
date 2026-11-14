@@ -259,6 +259,7 @@ internal sealed class GameState
         // The journal's three entries are drawn here by server play's own rule
         // (task H06), from the generator just set. Inside this class the bare name
         // Journal is the property, so the call is written Hatchling.Journal.Fill(state).
+        Hatchling.Journal.Fill(state);
         return state;
     }
 

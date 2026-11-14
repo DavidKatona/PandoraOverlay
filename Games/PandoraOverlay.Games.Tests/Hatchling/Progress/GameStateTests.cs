@@ -32,6 +32,7 @@ public class GameStateTests
         Assert.Null(state.Run);
         Assert.Empty(state.Lately);
         Assert.Equal(0, state.Journal.Done);
+        Assert.Equal(Tuning.JournalEntries, state.Journal.Open.Count);
         Assert.True(state.IsFresh);
     }
 
@@ -43,7 +44,11 @@ public class GameStateTests
         Assert.Equal(seed0, GameState.Seed0(Moment));
 
         var state = GameState.Fresh(Moment);
-        Assert.Equal(Rng.Mix(seed0, 1), state.Journal.Rng);
+        // The journal's stream starts at Mix(seed0, 1); a fresh save has drawn its
+        // three entries from it (task H06), one roll each.
+        var journal = new Rng(Rng.Mix(seed0, 1));
+        for (var i = 0; i < Tuning.JournalEntries; i++) journal.NextDouble();
+        Assert.Equal(journal.State, state.Journal.Rng);
         Assert.Equal(Rng.Mix(seed0, 2), state.NextSeed);
         Assert.NotEqual(state.Journal.Rng, state.NextSeed);   // two streams
     }

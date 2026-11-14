@@ -1,0 +1,32 @@
+{
+  "image": "terrain.png",
+  "frames": {
+    "fog/dim/0": { "x": 0, "y": 0, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "fog/unseen/0": { "x": 44, "y": 0, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "forest/tile/0": { "x": 88, "y": 0, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "forest/tile/1": { "x": 132, "y": 0, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "forest/tile/2": { "x": 176, "y": 0, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "grass/tile/0": { "x": 0, "y": 50, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "grass/tile/1": { "x": 44, "y": 50, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "grass/tile/2": { "x": 88, "y": 50, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "mark/attack/0": { "x": 132, "y": 50, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "mark/hover/0": { "x": 176, "y": 50, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "mark/move/0": { "x": 0, "y": 100, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "mark/move/1": { "x": 44, "y": 100, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "rock/tile/0": { "x": 88, "y": 100, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "rock/tile/1": { "x": 132, "y": 100, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "water/tile/0": { "x": 176, "y": 100, "w": 44, "h": 50, "px": 0, "py": 0 },
+    "water/tile/1": { "x": 0, "y": 150, "w": 44, "h": 50, "px": 0, "py": 0 }
+  },
+  "animations": {
+    "fog/dim": { "frames": ["fog/dim/0"], "ticks": [1], "loops": true },
+    "fog/unseen": { "frames": ["fog/unseen/0"], "ticks": [1], "loops": true },
+    "forest/tile": { "frames": ["forest/tile/0","forest/tile/1","forest/tile/2"], "ticks": [1,1,1], "loops": true },
+    "grass/tile": { "frames": ["grass/tile/0","grass/tile/1","grass/tile/2"], "ticks": [1,1,1], "loops": true },
+    "mark/attack": { "frames": ["mark/attack/0"], "ticks": [1], "loops": true },
+    "mark/hover": { "frames": ["mark/hover/0"], "ticks": [1], "loops": true },
+    "mark/move": { "frames": ["mark/move/0","mark/move/1"], "ticks": [8,8], "loops": true },
+    "rock/tile": { "frames": ["rock/tile/0","rock/tile/1"], "ticks": [1,1], "loops": true },
+    "water/tile": { "frames": ["water/tile/0","water/tile/1"], "ticks": [1,1], "loops": true }
+  }
+}
