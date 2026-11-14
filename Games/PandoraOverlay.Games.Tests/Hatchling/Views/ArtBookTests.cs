@@ -146,6 +146,59 @@ public class ArtBookTests
         }
     }
 
+    /// <summary>
+    /// Every piece the painter asks for is found by the name it asks with, through
+    /// <see cref="ArtNames"/>' constants. The golden frames are painted with no art, so a
+    /// name that drifts from the art tool's would otherwise fail nothing: the painter
+    /// would quietly draw the stand-in. What later art tasks will draw (the sizes, the
+    /// actions but stand, the five other marks, portraits) is left out on purpose: this
+    /// must pass before and after they arrive.
+    /// </summary>
+    [Fact]
+    public void EveryPieceThePainterAsksForIsFoundByItsName()
+    {
+        var book = ArtBook.Load(typeof(Island).Assembly);
+        foreach (var atlas in new[] { "creatures", "terrain", "things" })
+            Assert.Contains(atlas, book.Atlases);
+
+        var wanted = new List<(string Subject, string Action, int Index)>();
+        foreach (var ground in new[] { Terrain.Grass, Terrain.Forest, Terrain.Water, Terrain.Rock })
+            wanted.Add((ArtNames.TerrainOf(ground), ArtNames.Tile, 0));
+        wanted.Add((ArtNames.Fog, ArtNames.Unseen, 0));
+        wanted.Add((ArtNames.Fog, ArtNames.Dim, 0));
+        wanted.Add((ArtNames.Mark, ArtNames.Move, 0));
+        wanted.Add((ArtNames.Mark, ArtNames.Move, 1));
+        wanted.Add((ArtNames.Mark, ArtNames.Attack, 0));
+        wanted.Add((ArtNames.Mark, ArtNames.Hover, 0));
+        wanted.Add((ArtNames.Plant, ArtNames.Stand, 0));
+        wanted.Add((ArtNames.Meat, ArtNames.Pile, 0));
+        wanted.Add((ArtNames.Meat, ArtNames.Pile, 1));
+        wanted.Add((ArtNames.SmallGame, ArtNames.Stand, 0));
+        foreach (var ring in new[] { ArtNames.You, ArtNames.Hostile, ArtNames.Apex, ArtNames.Acting })
+            wanted.Add((ArtNames.Ring, ring, 0));
+        wanted.Add((ArtNames.Ring, ArtNames.Acting, 1));
+        wanted.Add((ArtNames.Mark, ArtNames.Hunt, 0));
+        wanted.Add((ArtNames.Mark, ArtNames.Search, 0));
+        wanted.Add((ArtNames.Mark, ArtNames.You, 0));
+        wanted.Add((ArtNames.Mark, ArtNames.You, 1));
+        for (var d = 0; d <= 9; d++)
+        {
+            wanted.Add((ArtNames.Ordinal, ArtNames.Digit, d));
+            wanted.Add((ArtNames.NumberHurt, ArtNames.Digit, d));
+            wanted.Add((ArtNames.NumberGood, ArtNames.Digit, d));
+        }
+        wanted.Add((ArtNames.NumberHurt, ArtNames.Sign, 0));
+        wanted.Add((ArtNames.NumberGood, ArtNames.Sign, 0));
+        foreach (var species in SpeciesTable.All)
+            wanted.Add((species.Name, ArtNames.Stand, 0));
+        foreach (var type in Enum.GetValues<PredatorType>())
+            wanted.Add((ArtNames.PredatorOf(type), ArtNames.Stand, 0));
+
+        var missing = wanted.Where(w => book.Frame(w.Subject, w.Action, w.Index) is null)
+            .Select(w => $"{w.Subject}/{w.Action}/{w.Index}").ToList();
+        Assert.True(missing.Count == 0, "The painter asks for art the atlases do not hold by that name:\n" + string.Join("\n", missing));
+    }
+
     [Fact]
     public void LoadOfAnAssemblyWithNoArtIsAnEmptyBook()
     {

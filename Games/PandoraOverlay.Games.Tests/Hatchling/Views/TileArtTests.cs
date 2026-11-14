@@ -78,6 +78,22 @@ public class TileArtTests
     }
 
     [Fact]
+    public void CreateIsASurfaceOfThePaintedPictureAtTheContractsSize()
+    {
+        Assert.Equal(GameFrame.TileArtWidth, TileArt.Width);
+        Assert.Equal(GameFrame.TileArtHeight, TileArt.Height);
+        Sta.Run(() =>
+        {
+            var art = ArtBook.Load(typeof(Island).Assembly);
+            var element = TileArt.Create(art, "Dryosaurus");
+            var surface = Assert.IsType<PixelSurface>(element);
+            Assert.Equal(Painted(art, "Dryosaurus").Pixels, surface.Buffer.Pixels);
+            surface.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+            Assert.Equal(new System.Windows.Size(232, 96), surface.DesiredSize);
+        });
+    }
+
+    [Fact]
     public void WithTheRealArtTheTilePaintsAndDiffers()
     {
         var art = ArtBook.Load(typeof(Island).Assembly);

@@ -124,7 +124,9 @@ internal static class BoardPainter
             else if (sprite.Kind == SpriteKind.SmallGame) SmallGameSquare(buffer, sprite.X, sprite.Y, sprite.Opacity);
         }
 
-        // 7. Above each predator: its alert, its afflictions beside it, and its number.
+        // 7. Above each predator: its alert on the mark's point, its afflictions from 10
+        // to the right, and its number. Each mark has a place of its own (H52): none
+        // moves when another comes or goes.
         for (var i = 0; i < scene.Sprites.Count; i++)
         {
             var sprite = scene.Sprites[i];
@@ -132,16 +134,21 @@ internal static class BoardPainter
             var colour = sprite.Ring == Ring.None ? HatchlingPalette.HostileRing : RingColour(sprite.Ring);
             var x = sprite.X;
             var y = sprite.Y - BoardLayout.FeetBelowCentre - BoardLayout.MarkAboveCentre;
-            var slot = 0;
-            if ((sprite.Marks & Marks.Hunt) != 0) HeadMark(buffer, art, ArtNames.Hunt, 0, x, y, ref slot, colour, sprite.Opacity);
-            else if ((sprite.Marks & Marks.Search) != 0) HeadMark(buffer, art, ArtNames.Search, 0, x, y, ref slot, colour, sprite.Opacity);
-            if ((sprite.Marks & Marks.Dazed) != 0) HeadMark(buffer, art, ArtNames.Dazed, 0, x, y, ref slot, colour, sprite.Opacity);
-            if ((sprite.Marks & Marks.Slow) != 0) HeadMark(buffer, art, ArtNames.Slow, 0, x, y, ref slot, colour, sprite.Opacity);
-            if ((sprite.Marks & Marks.Bleed) != 0) HeadMark(buffer, art, ArtNames.Bleed, 0, x, y, ref slot, colour, sprite.Opacity);
+            // At alert 0 the alert's place stays empty: no other mark takes it.
+            if ((sprite.Marks & Marks.Hunt) != 0) HeadMark(buffer, art, ArtNames.Hunt, 0, x, y, colour, sprite.Opacity);
+            else if ((sprite.Marks & Marks.Search) != 0) HeadMark(buffer, art, ArtNames.Search, 0, x, y, colour, sprite.Opacity);
+            // The afflictions are packed among themselves from the point plus 10: a run has
+            // one kind at most (its species' perk), so in play this is one place.
+            var at = x + BoardLayout.MarkStep;
+            if ((sprite.Marks & Marks.Dazed) != 0) { HeadMark(buffer, art, ArtNames.Dazed, 0, at, y, colour, sprite.Opacity); at += BoardLayout.MarkStep; }
+            if ((sprite.Marks & Marks.Slow) != 0) { HeadMark(buffer, art, ArtNames.Slow, 0, at, y, colour, sprite.Opacity); at += BoardLayout.MarkStep; }
+            if ((sprite.Marks & Marks.Bleed) != 0) HeadMark(buffer, art, ArtNames.Bleed, 0, at, y, colour, sprite.Opacity);
             OrdinalDigits(buffer, art, sprite);
         }
 
-        // 8. Above you: your turn, your hiding, your Elder.
+        // 8. Above you (H52): mark/you on the point, mark/hidden 10 to its left,
+        // mark/elder 10 to its right. Each is there or not, and none moves when another
+        // comes or goes: the playback hides mark/you every turn, and hidden must not hop.
         for (var i = 0; i < scene.Sprites.Count; i++)
         {
             var sprite = scene.Sprites[i];
@@ -149,10 +156,9 @@ internal static class BoardPainter
             var colour = sprite.Ring == Ring.None ? HatchlingPalette.YouRing : RingColour(sprite.Ring);
             var x = sprite.X;
             var y = sprite.Y - BoardLayout.FeetBelowCentre - BoardLayout.MarkAboveCentre;
-            var slot = 0;
-            if (scene.ShowYourMark && (sprite.Marks & Marks.You) != 0) HeadMark(buffer, art, ArtNames.You, scene.AmbientFrame, x, y, ref slot, colour, sprite.Opacity);
-            if ((sprite.Marks & Marks.Hidden) != 0) HeadMark(buffer, art, ArtNames.Hidden, 0, x, y, ref slot, colour, sprite.Opacity);
-            if ((sprite.Marks & Marks.Elder) != 0) HeadMark(buffer, art, ArtNames.Elder, 0, x, y, ref slot, colour, sprite.Opacity);
+            if (scene.ShowYourMark && (sprite.Marks & Marks.You) != 0) HeadMark(buffer, art, ArtNames.You, scene.AmbientFrame, x, y, colour, sprite.Opacity);
+            if ((sprite.Marks & Marks.Hidden) != 0) HeadMark(buffer, art, ArtNames.Hidden, 0, x - BoardLayout.MarkStep, y, colour, sprite.Opacity);
+            if ((sprite.Marks & Marks.Elder) != 0) HeadMark(buffer, art, ArtNames.Elder, 0, x + BoardLayout.MarkStep, y, colour, sprite.Opacity);
         }
 
         // 9. The rising numbers.
@@ -172,17 +178,16 @@ internal static class BoardPainter
     }
 
     /// <summary>
-    /// A mark above a head in the next slot (the first at the mark's point, each next
-    /// <see cref="BoardLayout.MarkStep"/> to its right): the art's 9 x 9 mark on its
-    /// pivot, else a 5 x 5 square in the ring's colour.
+    /// A mark above a head centred on (<paramref name="x"/>, <paramref name="y"/>): the
+    /// art's 9 x 9 mark on its pivot, else a 5 x 5 square in the ring's colour. Where
+    /// each mark stands is the caller's, by H52.
     /// </summary>
-    private static void HeadMark(PixelBuffer buffer, ArtBook art, string action, int frame, int x, int y, ref int slot,
+    private static void HeadMark(PixelBuffer buffer, ArtBook art, string action, int frame, int x, int y,
         uint colour, byte opacity)
     {
-        var at = x + slot++ * BoardLayout.MarkStep;
         var mark = art.Frame(ArtNames.Mark, action, frame) ?? art.Frame(ArtNames.Mark, action, 0);
-        if (mark is not null) buffer.Draw(mark, at, y, opacity: opacity);
-        else MarkSquare(buffer, at, y, colour, opacity);
+        if (mark is not null) buffer.Draw(mark, x, y, opacity: opacity);
+        else MarkSquare(buffer, x, y, colour, opacity);
     }
 
     /// <summary>

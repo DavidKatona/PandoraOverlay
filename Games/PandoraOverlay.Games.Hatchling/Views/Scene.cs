@@ -163,27 +163,28 @@ internal sealed class Scene
     /// where <see cref="Sight.ShowsFood"/> says so (H29, H39). The scene has no rule of
     /// its own for either.
     ///
-    /// <para>On your turn with no offer open and the run not over, the cells you can
-    /// move to (<paramref name="moveCells"/>, at the run's pace) and the creatures you
-    /// can attack (<paramref name="attackable"/>) are marked, and the cell under the
-    /// mouse (<paramref name="hoverCell"/>, -1 for none) too. Both lists are the
-    /// rules' answers (task H03's <c>Moves.Targets</c> and <c>Moves.Attackable</c>),
-    /// passed in so this file does not repeat a rule; an attackable creature the player
-    /// does not know is left out all the same, so no mark can point at one.</para>
+    /// <para>On your turn with no offer open and the run not over, and only then, the
+    /// cells you can move to are marked, as <see cref="Moves.Targets"/> answers them at
+    /// the run's pace, and the cells of the creatures you can attack, as
+    /// <see cref="Moves.Attackable"/> answers them; the cell under the mouse
+    /// (<paramref name="hoverCell"/>, -1 for none) too. This is the scene's one way in
+    /// (H53): nothing outside it hands a scene at rest its cells, so the board offers
+    /// exactly what the rules accept (G9). An attackable creature the player does not
+    /// know is left out all the same (<see cref="Sight.Knows"/>'s rule, a belt): no
+    /// mark can point at one.</para>
     ///
     /// <para>Everyone stands at rest: the <c>stand</c> action, tick 0, facing right
     /// (facing is the view's and is not saved), fully there. Each predator's marks come
     /// from its alert and afflictions, its ring from what it is (the apex's is heavier,
-    /// H22); your size from your stage (H21), your marks from your turn, your hiding
-    /// and Elder.</para>
+    /// H22); your size from your stage (H21); your marks from your hiding, Elder, and
+    /// <c>mark/you</c> on your turn while the run goes on (H53: an open offer keeps it,
+    /// it is still you who chooses; a run that is over never shows it).</para>
     /// </summary>
-    public static Scene Of(RunState run, Stats stats, bool yourTurn, int hoverCell,
-        IReadOnlyCollection<int> moveCells, IReadOnlyCollection<Creature> attackable)
+    public static Scene Of(RunState run, Stats stats, bool yourTurn, int hoverCell)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(stats);
-        ArgumentNullException.ThrowIfNull(moveCells);
-        ArgumentNullException.ThrowIfNull(attackable);
+        var waiting = yourTurn && run.Over is null;
 
         var cells = run.Tiles.Length;
         var scene = new Scene
@@ -208,15 +209,14 @@ internal sealed class Scene
             if (!Sight.Knows(run, stats, creature)) continue;
             scene.Sprites.Add(creature.Kind == CreatureKind.SmallGame ? SmallGame(creature) : Predator(creature));
         }
-        scene.Sprites.Add(You(run, stats, yourTurn));
+        scene.Sprites.Add(You(run, stats, waiting));
         scene.Sort();
 
-        var choosing = yourTurn && run.Offer is null && run.Over is null;
-        scene.ShowYourMark = yourTurn;
-        if (choosing)
+        scene.ShowYourMark = waiting;
+        if (waiting && run.Offer is null)
         {
-            scene.MoveCells.AddRange(moveCells);
-            foreach (var creature in attackable)
+            scene.MoveCells.AddRange(Moves.Targets(run, stats));
+            foreach (var creature in Moves.Attackable(run, stats))
                 if (Sight.Knows(run, stats, creature)) scene.AttackCells.Add(creature.At);
             if (hoverCell >= 0 && hoverCell < cells) scene.HoverCell = hoverCell;
         }
@@ -258,11 +258,11 @@ internal sealed class Scene
         Ring = Ring.None,
     }, creature.At);
 
-    private static SceneSprite You(RunState run, Stats stats, bool yourTurn)
+    private static SceneSprite You(RunState run, Stats stats, bool waiting)
     {
         var stage = Stages.Of(run.You.Growth);
         var marks = Marks.None;
-        if (yourTurn) marks |= Marks.You;
+        if (waiting) marks |= Marks.You;
         if (Sight.Hidden(run, stats)) marks |= Marks.Hidden;
         if (stage == Stages.Elder) marks |= Marks.Elder;
         return Place(new SceneSprite

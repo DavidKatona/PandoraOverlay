@@ -59,7 +59,7 @@ internal static class BoardLayout
     /// <summary>...and the first digit of a number from 10 to 99 this far to its left.</summary>
     public const int OrdinalDigitStep = 6;
 
-    /// <summary>Marks above a head after the first stand this far apart, to its right: a hunter's afflictions beside its alert.</summary>
+    /// <summary>The distance between the places of the marks above a head (H52): a hunter's afflictions start this far right of its alert; your hidden mark stands this far left of mark/you, your Elder mark this far right.</summary>
     public const int MarkStep = 10;
 
     /// <summary>A rising number's glyphs (its sign, its digits) are this far apart: a 5-pixel glyph and a pixel's gap.</summary>

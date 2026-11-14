@@ -1,3 +1,4 @@
+using System.Windows;
 using PandoraOverlay.Games.Engine;
 
 namespace PandoraOverlay.Games.Hatchling;
@@ -15,10 +16,12 @@ namespace PandoraOverlay.Games.Hatchling;
 /// than the tile, so it is centred and both ends are cut by the tile's edge: the
 /// two creatures sit well inside it.</para>
 ///
-/// <para>The surface that shows the picture (the engine's <c>PixelSurface</c>,
-/// 232 x 96) is the one WPF piece of the board's code and belongs to
-/// <c>TileArt.Create</c>; it arrives with the engine's surface (task A05), and calls
-/// <see cref="Paint"/> once into the surface's buffer.</para>
+/// <para>The surface that shows the picture (the engine's <see cref="PixelSurface"/>,
+/// 232 x 96, the Contract's tile art size) is the one WPF piece of the board's code:
+/// <see cref="Create"/> makes it, <see cref="Paint"/>s into its buffer and presents it
+/// once. Once is enough: the surface presents itself again from its buffer when its
+/// scale on screen changes. Water under the Troodon is on purpose: a hunter's red
+/// ring on the tile's one blue cell is what the eye finds first.</para>
 /// </summary>
 internal static class TileArt
 {
@@ -43,6 +46,20 @@ internal static class TileArt
 
     /// <summary>The strip in the tile's pixels: the board's cell shape, centred both ways.</summary>
     internal static readonly HexLayout Hexes = Centred();
+
+    /// <summary>
+    /// The tile's picture for <paramref name="species"/>, on a surface of its own:
+    /// painted and presented once, as the game's tile art. On the UI thread.
+    /// </summary>
+    public static FrameworkElement Create(ArtBook art, string species)
+    {
+        ArgumentNullException.ThrowIfNull(art);
+        ArgumentNullException.ThrowIfNull(species);
+        var surface = new PixelSurface(Width, Height);
+        Paint(surface.Buffer, art, species);
+        surface.Present();
+        return surface;
+    }
 
     /// <summary>
     /// The tile's picture for <paramref name="species"/> into <paramref name="buffer"/>

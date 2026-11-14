@@ -17,9 +17,9 @@ using BoardScene = PandoraOverlay.Games.Hatchling.Scene;
 /// H29, H39); the predators' numbers (H38); the layout; each stand-in in its colour
 /// at its place; and a frame that allocates nothing.
 ///
-/// <para>The cells you can move to are test data here, not the rules' answer: the
-/// free cells beside you (no rock, no creature), the shape of a walk. The rules'
-/// own (<c>Moves.Targets</c>) come with task H03; the view passes them.</para>
+/// <para>Every scene at rest is made by the scene's one way in (H53), so the cells
+/// to move to and attack are the rules' own (<c>Moves.Targets</c>,
+/// <c>Moves.Attackable</c>).</para>
 /// </summary>
 public class BoardPainterTests
 {
@@ -40,7 +40,7 @@ public class BoardPainterTests
     internal static BoardScene StartScene()
     {
         var run = Runs.Fresh("Dryosaurus", 7);
-        return Rest(run, hover: -1);
+        return BoardScene.Of(run, Stats.Of(run), yourTurn: true, hoverCell: -1);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public class BoardPainterTests
         Assert.True(Sight.InSight(run, stats, inSight));
         Assert.False(run.Seen[unseen]);
         Assert.False(run.Seen[Cell(1, 6)]);
-        return (run, Rest(run, hover: -1));
+        return (run, BoardScene.Of(run, stats, yourTurn: true, hoverCell: -1));
     }
 
     /// <summary>
@@ -111,22 +111,9 @@ public class BoardPainterTests
         Assert.Equal(2, second.Ordinal);
         Assert.False(Sight.InSight(run, stats, apexAt));
         Assert.True(Sight.InSight(run, stats, game));
-        var hover = Steps(run).First();
-        return (run, Rest(run, hover));
+        var hover = Moves.Targets(run, stats).First();
+        return (run, BoardScene.Of(run, stats, yourTurn: true, hover));
     }
-
-    /// <summary>The scene at rest on your turn, with the free cells beside you to move to and the known creatures beside you to attack.</summary>
-    private static BoardScene Rest(RunState run, int hover)
-    {
-        var stats = Stats.Of(run);
-        var beside = Island.Grid.Neighbours(run.You.At);
-        var attackable = run.Creatures.Where(c => beside.Contains(c.At)).ToList();
-        return BoardScene.Of(run, stats, yourTurn: true, hover, Steps(run), attackable);
-    }
-
-    /// <summary>The free cells beside you: the shape of a walk, as test data.</summary>
-    private static List<int> Steps(RunState run) =>
-        Island.Grid.Neighbours(run.You.At).Where(c => run.Tiles[c] != Terrain.Rock && Island.CreatureAt(run, c) is null).ToList();
 
     private static PixelBuffer Painted(BoardScene scene, ArtBook art)
     {
@@ -162,7 +149,8 @@ public class BoardPainterTests
     [Fact]
     public void TheRealArtPaintsTheSameScenesAndDiffersFromTheStandIns()
     {
-        Assert.Contains("creatures", RealArt.Atlases);
+        foreach (var atlas in new[] { "creatures", "terrain", "things" })
+            Assert.Contains(atlas, RealArt.Atlases);
         _output.WriteLine("Atlases embedded: " + string.Join(", ", RealArt.Atlases));
         var scenes = new (string Name, BoardScene Scene)[]
         {
@@ -198,11 +186,13 @@ public class BoardPainterTests
         var stats = Stats.Of(with);
         Assert.False(Sight.Knows(with, stats, stranger));
 
-        // Even handed in as attackable, it is in no list and no pixel.
-        var withScene = BoardScene.Of(with, stats, true, -1, Steps(with), new[] { stranger });
-        var withoutScene = BoardScene.Of(run, Stats.Of(run), true, -1, Steps(run), Array.Empty<Creature>());
+        // It is in no list and no pixel.
+        var withScene = BoardScene.Of(with, stats, true, -1);
+        var withoutScene = BoardScene.Of(run, Stats.Of(run), true, -1);
         Assert.DoesNotContain(withScene.Sprites, s => s.Creature == stranger.Id);
-        Assert.Empty(withScene.AttackCells);
+        Assert.DoesNotContain(far, withScene.AttackCells);
+        Assert.DoesNotContain(far, withScene.MoveCells);
+        Assert.Equal(withoutScene.AttackCells, withScene.AttackCells);
         Assert.Equal(Painted(withoutScene, ArtBook.Empty).Pixels, Painted(withScene, ArtBook.Empty).Pixels);
     }
 
@@ -213,8 +203,7 @@ public class BoardPainterTests
         var apex = run.Creatures.Single(c => c.Type == Tuning.Apex);
         var without = run.Clone();
         without.Creatures.RemoveAll(c => c.Id == apex.Id);
-        var withoutScene = BoardScene.Of(without, Stats.Of(without), true, scene.HoverCell, Steps(without),
-            without.Creatures.Where(c => Island.Grid.Distance(c.At, without.You.At) == 1).ToList());
+        var withoutScene = BoardScene.Of(without, Stats.Of(without), true, scene.HoverCell);
 
         var sprite = scene.Sprites.Single(s => s.Creature == apex.Id);
         Assert.Equal(Ring.Apex, sprite.Ring);
@@ -240,7 +229,7 @@ public class BoardPainterTests
         for (var cell = 1; cell < Tuning.Cells; cell += 4) run.Meat[cell] = 1 + cell % 3;
 
         var stats = Stats.Of(run);
-        var scene = BoardScene.Of(run, stats, true, -1, Array.Empty<int>(), Array.Empty<Creature>());
+        var scene = BoardScene.Of(run, stats, true, -1);
         for (var cell = 0; cell < Tuning.Cells; cell++)
         {
             Assert.Equal(Sight.ShowsFood(run, stats, cell, Food.Plants), scene.Plants[cell]);
@@ -572,37 +561,140 @@ public class BoardPainterTests
         run.You.Growth = 100;
         run.You.LastMove = MoveKind.Rest;   // Freeze: hidden after a rest (H13)
         var stats = Stats.Of(run);
-        var you = BoardScene.Of(run, stats, false, -1, Array.Empty<int>(), Array.Empty<Creature>()).Sprites.Single(s => s.Kind == SpriteKind.You);
+        var you = BoardScene.Of(run, stats, false, -1).Sprites.Single(s => s.Kind == SpriteKind.You);
         Assert.Equal("Hypsilophodon", you.Subject);
         Assert.Equal(Marks.Hidden | Marks.Elder, you.Marks);   // not your turn: no "you"
     }
 
+    /// <summary>The scene's marks of a choice are exactly the rules' answers (H53).</summary>
+    private static void AssertTheRulesCells(RunState run)
+    {
+        var stats = Stats.Of(run);
+        var scene = BoardScene.Of(run, stats, true, -1);
+        Assert.Equal(Moves.Targets(run, stats), scene.MoveCells);
+        Assert.Equal(Moves.Attackable(run, stats).Select(c => c.At), scene.AttackCells);
+    }
+
     [Fact]
-    public void TheMarksOfAChoiceShowOnlyWhenYouChoose()
+    public void ChoosingMarksExactlyTheRulesCellsAtAWalk()
+    {
+        var (run, scene) = HuntedScene();
+        AssertTheRulesCells(run);
+        Assert.Equal(new[] { Cell(6, 5) }, scene.AttackCells);
+    }
+
+    [Fact]
+    public void ChoosingMarksExactlyTheRulesCellsAtASprint()
+    {
+        var run = Runs.Fresh("Dryosaurus", 7);
+        run.Pace = Pace.Sprint;
+        var stats = Stats.Of(run);
+        AssertTheRulesCells(run);
+        Assert.True(BoardScene.Of(run, stats, true, -1).MoveCells.Count > Island.Grid.Neighbours(run.You.At).Count);
+    }
+
+    [Fact]
+    public void ASpittersTargetTwoCellsOffIsMarked()
+    {
+        var middle = Cell(5, 5);
+        var twoOff = Cell(7, 5);
+        var run = Runs.Fresh("Dilophosaurus", 7).Clear().At(middle);
+        run.Tiles[middle] = Terrain.Grass;
+        run.Tiles[twoOff] = Terrain.Grass;
+        Sight.Reveal(run, Stats.Of(run));
+        run = run.Put(PredatorType.Carnotaurus, twoOff, Tuning.AlertSeen);
+        Assert.Equal(2, Island.Grid.Distance(middle, twoOff));
+        Assert.True(Sight.Knows(run, Stats.Of(run), run.Creatures[^1]));
+        AssertTheRulesCells(run);
+        Assert.Contains(twoOff, BoardScene.Of(run, Stats.Of(run), true, -1).AttackCells);   // Spit: "beside you" would not give it
+    }
+
+    [Fact]
+    public void NoChoiceIsMarkedOffYourTurnWithAnOfferOrOnceTheRunIsOver()
     {
         var (run, _) = HuntedScene();
         var stats = Stats.Of(run);
-        var steps = Steps(run);
-        var beside = run.Creatures.Where(c => Island.Grid.Distance(c.At, run.You.At) == 1).ToList();
+        var hover = Moves.Targets(run, stats)[0];
 
-        var choosing = BoardScene.Of(run, stats, true, steps[0], steps, beside);
-        Assert.Equal(steps, choosing.MoveCells);
-        Assert.Equal(steps[0], choosing.HoverCell);
+        var choosing = BoardScene.Of(run, stats, true, hover);
+        Assert.Equal(hover, choosing.HoverCell);
         Assert.True(choosing.ShowYourMark);
-
-        var waiting = BoardScene.Of(run, stats, false, steps[0], steps, beside);
-        Assert.Empty(waiting.MoveCells);
-        Assert.Empty(waiting.AttackCells);
-        Assert.Equal(-1, waiting.HoverCell);
-        Assert.False(waiting.ShowYourMark);
+        Assert.Equal(-1, BoardScene.Of(run, stats, true, Tuning.Cells).HoverCell);   // off the board: none
 
         var offer = run.Clone();
         offer.Offer = new List<Instinct> { Instinct.Eyes, Instinct.Feet, Instinct.Stride };
-        var offered = BoardScene.Of(offer, stats, true, steps[0], steps, beside);
-        Assert.Empty(offered.MoveCells);
-        Assert.Equal(-1, offered.HoverCell);
+        var over = run.Clone();
+        over.Over = new RunOver { Reason = EndReason.Caught };
+        foreach (var scene in new[]
+                 {
+                     BoardScene.Of(run, stats, false, hover),
+                     BoardScene.Of(offer, stats, true, hover),
+                     BoardScene.Of(over, stats, true, hover),
+                 })
+        {
+            Assert.Empty(scene.MoveCells);
+            Assert.Empty(scene.AttackCells);
+            Assert.Equal(-1, scene.HoverCell);
+        }
 
-        Assert.Equal(-1, BoardScene.Of(run, stats, true, Tuning.Cells, steps, beside).HoverCell);   // off the board: none
+        // An open offer keeps mark/you: it is still you who chooses (H53).
+        var offered = BoardScene.Of(offer, stats, true, hover);
+        Assert.True(offered.ShowYourMark);
+        Assert.True(offered.Sprites.Single(s => s.Kind == SpriteKind.You).Marks.HasFlag(Marks.You));
+
+        // A run that is over never shows it, even on "your turn".
+        var ended = BoardScene.Of(over, stats, true, hover);
+        Assert.False(ended.ShowYourMark);
+        Assert.False(ended.Sprites.Single(s => s.Kind == SpriteKind.You).Marks.HasFlag(Marks.You));
+
+        Assert.False(BoardScene.Of(run, stats, false, hover).ShowYourMark);
+    }
+
+    // ---- Every mark above a head has a place of its own (H52) -------------------------------
+
+    /// <summary>The pixels where two frames differ lie all inside the 5 x 5 square centred on (x, y).</summary>
+    private static void DifferOnlyInTheSquareAt(PixelBuffer a, PixelBuffer b, int x, int y)
+    {
+        var differ = Differ(a, b);
+        Assert.Equal(25, differ.Count);
+        Assert.All(differ, p => Assert.True(Math.Abs(p.X - x) <= 2 && Math.Abs(p.Y - y) <= 2, $"({p.X}, {p.Y})"));
+    }
+
+    private static PixelBuffer OneSprite(SpriteKind kind, Ring ring, Marks marks, bool showYourMark, out int x, out int y)
+    {
+        var scene = Blank();
+        (x, y) = BoardLayout.Feet(Cell(5, 5));
+        scene.Sprites.Add(new SceneSprite { Kind = kind, Subject = "x", Ring = ring, Marks = marks, X = x, Y = y, Row = 5 });
+        scene.ShowYourMark = showYourMark;
+        y -= 28;   // the mark's point: the feet minus (0, 28), 19 above the cell's centre
+        return Painted(scene, ArtBook.Empty);
+    }
+
+    [Fact]
+    public void AnAfflictionStandsTenRightOfTheAlertsPlaceWithOrWithoutTheAlert()
+    {
+        var bleeding = OneSprite(SpriteKind.Predator, Ring.Hostile, Marks.Bleed, false, out var x, out var y);
+        Assert.Equal(HatchlingPalette.HostileRing, At(bleeding, x + 10, y));
+        Assert.Equal(HatchlingPalette.Grass, At(bleeding, x, y));   // the alert's place stays empty
+        var hunting = OneSprite(SpriteKind.Predator, Ring.Hostile, Marks.Hunt | Marks.Bleed, false, out _, out _);
+        DifferOnlyInTheSquareAt(bleeding, hunting, x, y);
+    }
+
+    [Fact]
+    public void YourMarksStandOnThePointTenLeftAndTenRight()
+    {
+        var all = OneSprite(SpriteKind.You, Ring.You, Marks.You | Marks.Hidden | Marks.Elder, true, out var x, out var y);
+        Assert.Equal(HatchlingPalette.YouRing, At(all, x, y));
+        Assert.Equal(HatchlingPalette.YouRing, At(all, x - 10, y));   // hidden
+        Assert.Equal(HatchlingPalette.YouRing, At(all, x + 10, y));   // Elder
+        Assert.Equal(HatchlingPalette.Grass, At(all, x - 5, y));
+        Assert.Equal(HatchlingPalette.Grass, At(all, x + 5, y));
+
+        // mark/you switched off by the playback: nothing else moves.
+        var noYou = OneSprite(SpriteKind.You, Ring.You, Marks.You | Marks.Hidden | Marks.Elder, false, out _, out _);
+        DifferOnlyInTheSquareAt(all, noYou, x, y);
+        Assert.Equal(HatchlingPalette.YouRing, At(noYou, x - 10, y));
+        Assert.Equal(HatchlingPalette.YouRing, At(noYou, x + 10, y));
     }
 
     [Fact]
