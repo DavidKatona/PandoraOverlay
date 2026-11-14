@@ -6,7 +6,8 @@ namespace PandoraOverlay.Games.Tests;
 /// <summary>
 /// The buffer's drawing, as exact arrays worked out by hand: the premultiply,
 /// the one blend and its rounding, opacity, clipping on every edge, the flip
-/// about the pivot, and the defects that throw. Every expected value here was
+/// about the pivot, the defects that throw, and the empty rectangles that
+/// draw nothing (A39). Every expected value here was
 /// computed on paper from <c>(c * f + 127) / 255</c>, never by calling the
 /// code under test, so a change to the rounding fails here first.
 /// </summary>
@@ -393,19 +394,23 @@ public class PixelBufferTests
 
     #region Defects
 
-    /// <summary>A rectangle off its sheet, or of no size, is a build defect: it throws, it never clips.</summary>
+    /// <summary>
+    /// A rectangle of 1 x 1 or more off its sheet, or one with a negative
+    /// side, is a build defect: it throws, it never clips. (An empty one draws
+    /// nothing: the region below.)
+    /// </summary>
     [Theory]
     [InlineData(-1, 0, 1, 1)]
     [InlineData(0, -1, 1, 1)]
     [InlineData(0, 0, 4, 1)]
     [InlineData(0, 0, 1, 4)]
     [InlineData(2, 2, 2, 1)]
-    [InlineData(0, 0, 0, 1)]
-    [InlineData(0, 0, 1, 0)]
     [InlineData(0, 0, -1, 1)]
+    [InlineData(0, 0, 1, -1)]
+    [InlineData(0, 0, -1, -1)]
     [InlineData(int.MaxValue, 0, 1, 1)]
     [InlineData(1, 0, int.MaxValue, 1)]
-    public void ARectangleOffItsSheetThrows(int x, int y, int width, int height)
+    public void ARectangleOffItsSheetOrNegativeThrows(int x, int y, int width, int height)
     {
         var target = new PixelBuffer(4, 4);
         var rect = new PixelRect(x, y, width, height);
@@ -414,19 +419,22 @@ public class PixelBufferTests
         Assert.Throws<ArgumentException>(() => target.Draw(Nine(), rect, 0, 0));
         var error = Assert.Throws<ArgumentException>(() => target.Draw(sprite, 0, 0));
         Assert.Contains("'broken'", error.Message);
+        Assert.Throws<ArgumentException>(() => target.Draw(sprite, 0, 0, flip: true));
         Assert.Equal(new uint[16], target.Pixels);
     }
 
     [Theory]
-    [InlineData(0, 1)]
-    [InlineData(1, 0)]
-    [InlineData(-2, 1)]
-    [InlineData(1, -2)]
-    public void AFillOfNoSizeThrows(int width, int height)
+    [InlineData(-1, 1)]
+    [InlineData(1, -1)]
+    [InlineData(-2, -2)]
+    [InlineData(-1, 0)]
+    [InlineData(0, -1)]
+    public void AFillOfANegativeSizeThrows(int width, int height)
     {
         var target = new PixelBuffer(2, 2);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => target.Fill(0, 0, width, height, K));
+        Assert.Equal(new uint[4], target.Pixels);
     }
 
     [Fact]
@@ -437,6 +445,73 @@ public class PixelBufferTests
 
         Assert.Throws<ArgumentException>(() => buffer.Draw(buffer, new PixelRect(0, 0, 1, 1), 1, 1));
         Assert.Throws<ArgumentException>(() => buffer.Draw(sprite, 1, 1));
+    }
+
+    #endregion
+
+    #region Empty rectangles (A39)
+
+    /// <summary>
+    /// A fill with a width or a height of 0 draws nothing and throws nothing:
+    /// a bar drawn as Fill(x, y, (int)(fraction * 40), 3, ...) reaches 0
+    /// exactly when it empties.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 3)]
+    [InlineData(3, 0)]
+    [InlineData(0, 0)]
+    public void AnEmptyFillDrawsNothing(int width, int height)
+    {
+        var target = new PixelBuffer(4, 4);
+        target.Clear(K);
+
+        target.Fill(1, 1, width, height, 0xFFFFFFFF);
+        target.Fill(1, 1, width, height, 0x80143C80);
+
+        Assert.All(target.Pixels, p => Assert.Equal(K, p));
+    }
+
+    /// <summary>
+    /// A source rectangle with a width or a height of 0 draws nothing,
+    /// wherever it lies, on its sheet or far off it (an empty rectangle is
+    /// nowhere): a crop of computed width at zero.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 0, 0, 2)]
+    [InlineData(1, 1, 2, 0)]
+    [InlineData(0, 0, 0, 0)]
+    [InlineData(3, 3, 0, 1)]        // on the sheet's far corner
+    [InlineData(99, 99, 0, 1)]      // off the sheet
+    [InlineData(-5, 0, 3, 0)]       // off the sheet, zero high
+    [InlineData(int.MaxValue, int.MinValue, 0, 0)]
+    public void AnEmptySourceRectangleDrawsNothingWhereverItLies(int x, int y, int width, int height)
+    {
+        var target = new PixelBuffer(4, 4);
+        target.Clear(K);
+        var rect = new PixelRect(x, y, width, height);
+
+        target.Draw(Nine(), rect, 1, 1);
+        target.Draw(Nine(), rect, 1, 1, flip: true, opacity: 128);
+
+        Assert.All(target.Pixels, p => Assert.Equal(K, p));
+    }
+
+    /// <summary>A sprite cropped to a frame with a width or a height of 0 draws nothing, flipped or not, wherever its frame lies.</summary>
+    [Theory]
+    [InlineData(0, 0, 0, 3)]
+    [InlineData(0, 1, 3, 0)]
+    [InlineData(50, 50, 0, 0)]
+    public void AnEmptySpriteFrameDrawsNothing(int x, int y, int width, int height)
+    {
+        var target = new PixelBuffer(4, 4);
+        target.Clear(K);
+        var whole = new Sprite("bar", Nine(), new PixelRect(0, 0, 3, 3), 1, 2);
+        var cropped = whole with { Frame = new PixelRect(x, y, width, height) };
+
+        target.Draw(cropped, 2, 2);
+        target.Draw(cropped, 2, 2, flip: true);
+
+        Assert.All(target.Pixels, p => Assert.Equal(K, p));
     }
 
     #endregion
@@ -454,6 +529,8 @@ public class PixelBufferTests
             target.Fill(i % 50, 3, 20, 20, 0x80143C80);
             target.Draw(sprite, i % 64, 10, flip: i % 2 == 0, opacity: (byte)(i % 256));
             target.Draw(sheet, new PixelRect(1, 1, 2, 2), 60, i % 64);
+            target.Fill(5, 5, i % 2, 4, 0xFF000000);                // a bar at zero half the time (A39)
+            target.Draw(sheet, new PixelRect(9, 9, 0, 1), 0, 0);    // an empty crop
         }
         for (int i = 0; i < 100; i++) DrawAll(i); // warmed up
 

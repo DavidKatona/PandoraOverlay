@@ -30,14 +30,22 @@ namespace PandoraOverlay.Games.Engine;
 /// tests pin it, so a change to the rounding shows as a changed picture, never
 /// as a quiet drift.</para>
 ///
-/// <para><b>Clipping and defects.</b> Everything clips to the buffer silently:
-/// a sprite half off the board draws its other half, one wholly off draws
-/// nothing. What can only be a mistake in the code or the art throws instead,
-/// because a test catches it at once and a player would otherwise see a wrong
-/// picture: a size of zero or less, a source rectangle or a sprite's frame
-/// that leaves its sheet, a colour that isn't premultiplied, a buffer drawn
-/// onto itself, and drawing onto an atlas's sheet (it is shared by every view
-/// for the life of the process: draw onto a buffer of your own).</para>
+/// <para><b>Clipping, empty rectangles and defects.</b> Everything clips to the
+/// buffer silently: a sprite half off the board draws its other half, one
+/// wholly off draws nothing. An EMPTY rectangle, a width or a height of 0, in
+/// a fill, a source rectangle or a sprite's frame, draws nothing and throws
+/// nothing, wherever it lies (A39): a bar drawn as a fill or a crop of
+/// computed width reaches 0 exactly when it empties, and a throw there would
+/// stop the game at that moment in a real session, which no test of a full
+/// bar would ever show. What can only be a mistake in the code or the art
+/// throws instead, because a test catches it at once and a player would
+/// otherwise see a wrong picture: a NEGATIVE size, a source rectangle or a
+/// sprite's frame of 1 x 1 or more that leaves its sheet, a colour that isn't
+/// premultiplied, a buffer drawn onto itself, and drawing onto an atlas's
+/// sheet (it is shared by every view for the life of the process: draw onto a
+/// buffer of your own). Two sizes stay at least 1 x 1, because neither is ever
+/// computed by a game as it draws: a buffer itself (its constructor), and a
+/// frame in an atlas's table (refused at load).</para>
 ///
 /// <para><b>Cost.</b> No allocation per draw: plain loops over the two arrays,
 /// no <c>unsafe</c>, no <c>Marshal</c> (A29). A board is composed this way 30
@@ -46,7 +54,7 @@ namespace PandoraOverlay.Games.Engine;
 /// </summary>
 public sealed class PixelBuffer
 {
-    /// <summary>A transparent buffer of this size. Each side is at least 1.</summary>
+    /// <summary>A transparent buffer of this size. Each side is at least 1: unlike a rectangle drawn (A39), a buffer is never empty.</summary>
     public PixelBuffer(int width, int height)
     {
         if (width <= 0)
@@ -95,12 +103,16 @@ public sealed class PixelBuffer
         Array.Fill(Pixels, colour);
     }
 
-    /// <summary>A premultiplied colour blended over a rectangle, clipped to the buffer.</summary>
+    /// <summary>
+    /// A premultiplied colour blended over a rectangle, clipped to the buffer.
+    /// A width or a height of 0 fills nothing (a bar at zero, A39); a negative
+    /// one throws.
+    /// </summary>
     public void Fill(int x, int y, int width, int height, uint colour)
     {
         ThrowIfFrozen();
-        CheckSize(width, height, "fill");
         CheckPremultiplied(colour, nameof(colour));
+        if (!HasArea(width, height)) return;
         if (!Clip(x, y, width, height, out int x0, out int x1, out int y0, out int y1)) return;
         uint alpha = colour >> 24;
         if (alpha == 0) return; // premultiplied and transparent: it adds nothing
@@ -123,7 +135,10 @@ public sealed class PixelBuffer
     /// right and its top-left goes to <c>(x - (Frame.Width - 1 - PivotX), y - PivotY)</c>,
     /// so the pivot pixel lands on the same point either way (a flipped dino
     /// keeps its feet where they were). An opacity under 255 fades the whole
-    /// sprite. Clipped to the buffer.
+    /// sprite. Clipped to the buffer. A frame with a width or a height of 0 (a
+    /// sprite a game cropped with <c>sprite with { Frame = ... }</c> down to
+    /// nothing) draws nothing; a negative one, or one of 1 x 1 or more that
+    /// leaves its sheet, throws (A39).
     /// </summary>
     public void Draw(Sprite sprite, int x, int y, bool flip = false, byte opacity = 255)
     {
@@ -134,7 +149,7 @@ public sealed class PixelBuffer
         if (ReferenceEquals(sprite.Sheet, this))
             throw new ArgumentException($"The sprite '{sprite.Name}' is on this buffer: a buffer can't be drawn onto itself.", nameof(sprite));
         var frame = sprite.Frame;
-        CheckInside(sprite.Sheet, frame, sprite.Name, nameof(sprite));
+        if (!OnItsSheet(sprite.Sheet, frame, sprite.Name, nameof(sprite))) return;
         long left = flip ? (long)x - ((long)frame.Width - 1 - sprite.PivotX) : (long)x - sprite.PivotX;
         long top = (long)y - sprite.PivotY;
         Blit(sprite.Sheet, frame, left, top, flip, opacity);
@@ -143,7 +158,11 @@ public sealed class PixelBuffer
     /// <summary>
     /// The part <paramref name="from"/> of another buffer drawn with its
     /// top-left on (x, y); flipped, mirrored left to right in the same place.
-    /// An opacity under 255 fades it. Clipped to this buffer.
+    /// An opacity under 255 fades it. Clipped to this buffer. A
+    /// <paramref name="from"/> with a width or a height of 0 draws nothing,
+    /// wherever it lies (an empty rectangle is nowhere: a crop of computed
+    /// width at zero); a negative one, or one of 1 x 1 or more that leaves its
+    /// sheet, throws (A39).
     /// </summary>
     public void Draw(PixelBuffer source, PixelRect from, int x, int y, bool flip = false, byte opacity = 255)
     {
@@ -151,7 +170,7 @@ public sealed class PixelBuffer
         ThrowIfFrozen();
         if (ReferenceEquals(source, this))
             throw new ArgumentException("A buffer can't be drawn onto itself.", nameof(source));
-        CheckInside(source, from, spriteName: null, nameof(from));
+        if (!OnItsSheet(source, from, spriteName: null, nameof(from))) return;
         Blit(source, from, x, y, flip, opacity);
     }
 
@@ -227,24 +246,38 @@ public sealed class PixelBuffer
         return x0 < x1 && y0 < y1;
     }
 
-    private static void CheckSize(int width, int height, string what)
+    /// <summary>
+    /// A fill's size (A39): false for an empty one (a width or a height of 0:
+    /// a bar at zero, nothing to fill); a negative side is a mistake in the
+    /// code and throws.
+    /// </summary>
+    private static bool HasArea(int width, int height)
     {
-        if (width <= 0 || height <= 0)
-            throw new ArgumentOutOfRangeException(width <= 0 ? nameof(width) : nameof(height), $"A {what} of {width} x {height}: each side is at least 1.");
+        if (width < 0 || height < 0)
+            throw new ArgumentOutOfRangeException(
+                width < 0 ? nameof(width) : nameof(height), $"A fill of {width} x {height}: a size is never negative.");
+        return width > 0 && height > 0;
     }
 
     /// <summary>
-    /// A rectangle that must lie wholly on its sheet: anything else is a build
-    /// defect, and throws, naming the sprite when there is one. The message is
-    /// built only when it throws: a check that passes allocates nothing.
+    /// A source rectangle or a sprite's frame, before it is drawn (A39). False
+    /// for an empty one (a width or a height of 0): nothing to draw, wherever
+    /// it lies, since an empty rectangle is nowhere. A negative side, or a
+    /// rectangle of 1 x 1 or more that does not lie wholly on its sheet, is a
+    /// build defect and throws, naming the sprite when there is one. The
+    /// message is built only when it throws: a check that passes allocates
+    /// nothing.
     /// </summary>
-    private static void CheckInside(PixelBuffer sheet, PixelRect rect, string? spriteName, string parameter)
+    private static bool OnItsSheet(PixelBuffer sheet, PixelRect rect, string? spriteName, string parameter)
     {
-        if (rect.Width <= 0 || rect.Height <= 0)
-            throw new ArgumentException($"{What(spriteName)} is {rect.Width} x {rect.Height}: each side is at least 1.", parameter);
+        if (rect.Width < 0 || rect.Height < 0)
+            throw new ArgumentException($"{What(spriteName)} is {rect.Width} x {rect.Height}: a size is never negative.", parameter);
+        if (rect.Width == 0 || rect.Height == 0)
+            return false;
         if (rect.X < 0 || rect.Y < 0 || rect.X > sheet.Width - rect.Width || rect.Y > sheet.Height - rect.Height)
             throw new ArgumentException(
                 $"{What(spriteName)} ({rect.X}, {rect.Y}, {rect.Width} x {rect.Height}) leaves its {sheet.Width} x {sheet.Height} sheet.", parameter);
+        return true;
 
         static string What(string? spriteName) => spriteName is null ? "The rectangle" : $"The sprite '{spriteName}'";
     }
