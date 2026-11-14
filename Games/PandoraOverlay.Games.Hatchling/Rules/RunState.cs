@@ -166,6 +166,12 @@ internal sealed class RunState
     public List<Creature> Creatures { get; set; } = new();
     /// <summary>The next creature's id.</summary>
     public int NextId { get; set; } = 1;
+    /// <summary>
+    /// How many predators of each species have arrived in this run, the defeated
+    /// included; a species not in it has had none. The next one's ordinal is one
+    /// more, so a number is never given twice in a run (H38).
+    /// </summary>
+    public Dictionary<PredatorType, int> Arrived { get; set; } = new();
     /// <summary>The pace chosen.</summary>
     public Pace Pace { get; set; }
     /// <summary>Your dino.</summary>
@@ -203,6 +209,7 @@ internal sealed class RunState
         copy.Plants = (bool[])Plants.Clone();
         copy.Meat = (int[])Meat.Clone();
         copy.Creatures = Creatures.Select(c => c.Clone()).ToList();
+        copy.Arrived = new Dictionary<PredatorType, int>(Arrived);
         copy.You = You.Clone();
         copy.Instincts = new List<Instinct>(Instincts);
         copy.Offer = Offer is null ? null : new List<Instinct>(Offer);
