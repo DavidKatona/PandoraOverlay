@@ -157,13 +157,15 @@ public partial class MainWindow
     /// gave way to the hotkey): the ONLY trigger for a prime check —
     /// user-triggered, never timed (the endpoint is approved on that
     /// condition). Asking for a check implies wanting to see the answer, so
-    /// the widget is shown first.
+    /// the widget is shown first. An open Games window stays, and stays on
+    /// top of the widget, which is made here if it was switched off (A58).
     /// </summary>
     private void CheckPrime()
     {
         CloseBigMap(); // the answer shows on the Prime widget
         if (_overlayHidden || _autoHidden) ToggleOverlayVisibility();
         ShowPrime();
+        RaiseGames(); // a Prime widget that was switched off is made and shown here, a topmost window made last: an open Games window goes back on top of it (A58)
         _ = _poll.CheckPrimeAsync();
     }
 

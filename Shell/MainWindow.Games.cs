@@ -1,3 +1,5 @@
+using System.Windows.Interop;
+
 namespace PandoraOverlay;
 
 /// <summary>
@@ -10,7 +12,9 @@ namespace PandoraOverlay;
 /// that: no tray line, no Settings page, no control-panel button. Opening
 /// locks edit mode first (lock and persist, as the map does) and closes the
 /// map. It works while the overlay is hidden and leaves the widgets hidden
-/// (G16), as the map's hotkey does.
+/// (G16), as the map's hotkey does. Under a modal dialog of ours it does
+/// nothing (A57): Settings suspends the hotkeys itself, and the tray's sign-in
+/// window, which leaves them registered, is answered the same way.
 /// </para>
 /// <para>
 /// <b>What closes it.</b> Its hotkey again, ✕, and Esc or a bare J on their
@@ -28,10 +32,11 @@ namespace PandoraOverlay;
 /// <b>Why the widgets stay.</b> Unlike the map, Games hides nothing (G15):
 /// the stats panel shows your real health, which is the whole point of
 /// playing while a dino grows. So closing it has nothing to show again, and
-/// what shows the widgets while it is open (hide-all showing, a spawn after
-/// the auto-hide) puts the Games window back on top of them
-/// (<see cref="RaiseGames"/>). The auto-hide and the mid-game keys (Check
-/// Prime, the views, the heatmap, the skin) leave it open.
+/// what shows a widget while it is open (hide-all showing, a spawn after the
+/// auto-hide, and Check Prime making the Prime widget that was switched off,
+/// A58) puts the Games window back on top of them (<see cref="RaiseGames"/>):
+/// the widgets sit beside Games, never over it. The auto-hide and the mid-game
+/// keys (Check Prime, the views, the heatmap, the skin) leave it open.
 /// </para>
 /// <para>
 /// <b>Why nothing here asks the website.</b> The games add no request and no
@@ -74,6 +79,15 @@ public partial class MainWindow
 
     private void OpenGames()
     {
+        // One at a time (A13, A57): a modal dialog of ours is up. Settings suspends
+        // the hotkeys itself; the tray's sign-in window leaves them registered, so
+        // the key arrives here and does nothing, as it does while Settings is open.
+        // WPF's own flag for our own thread: true inside every ShowDialog.
+        if (ComponentDispatcher.IsThreadModal)
+        {
+            AppLog.Games.Log("Games not opened: a dialog of the overlay is open");
+            return;
+        }
         if (EditMode) ToggleEditMode(); // lock and persist first, as the map does
         CloseBigMap(); // one of the two at a time (A13)
 
@@ -141,8 +155,9 @@ public partial class MainWindow
 
     /// <summary>
     /// The widgets were shown again (hide-all showing, a spawn after the
-    /// auto-hide) with Games open: a topmost window shown goes to the top of
-    /// the topmost band, over Games, so Games is put back on top of them.
+    /// auto-hide), or Check Prime made the Prime widget that was switched off
+    /// (A58), with Games open: a topmost window shown goes to the top of the
+    /// topmost band, over Games, so Games is put back on top of them.
     /// Our own window only, and no focus change: a Topmost flip moves a window
     /// in the z-order without activating it.
     /// </summary>

@@ -38,7 +38,7 @@ internal enum OverlayEvent
     /// <summary>A spawn after the auto-hide shows the widgets again: Games stays, brought to the front of them.</summary>
     ShownAfterAutoHide,
 
-    /// <summary>The Check Prime key or button: it works as always, and Games stays.</summary>
+    /// <summary>The Check Prime key or button: it works as always, and Games stays, on top of the Prime widget the check may bring up (A58).</summary>
     CheckPrime,
 
     /// <summary>The stats view key: it works as always, and Games stays (the stats panel is what shows your health, G15).</summary>

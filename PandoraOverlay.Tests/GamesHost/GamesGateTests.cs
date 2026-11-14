@@ -1,4 +1,6 @@
+using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace PandoraOverlay.Tests;
@@ -56,5 +58,39 @@ public class GamesGateTests
     public void AnUnknownEventClosesNothing()
     {
         Assert.False(GamesGate.Closes((OverlayEvent)999));
+    }
+
+    /// <summary>A place in MainWindow that asks the table: <c>CloseGamesFor(OverlayEvent.Name)</c>.</summary>
+    private static readonly Regex ClosingPlace = new(@"CloseGamesFor\(\s*OverlayEvent\.([A-Za-z]+)\s*\)", RegexOptions.Compiled);
+
+    /// <summary>The Games part, the one file allowed to close the window without asking the table (it is where the table is asked).</summary>
+    private const string GamesPart = "MainWindow.Games.cs";
+
+    /// <summary>
+    /// The table is the code (A13): read from the source of every
+    /// Shell/MainWindow*.cs, every event the table says closes the window has
+    /// a place in MainWindow that asks it, no place names an event that closes
+    /// nothing, and nothing but the Games part itself calls CloseGames()
+    /// directly, so nothing closes Games past the table.
+    /// </summary>
+    [Fact]
+    public void EveryClosingEventHasItsPlaceInMainWindow()
+    {
+        var shell = Path.Combine(ThemeFileTests.RepoRoot(), "Shell");
+        var files = Directory.GetFiles(shell, "MainWindow*.cs").ToDictionary(f => Path.GetFileName(f), f => File.ReadAllText(f));
+        Assert.Contains(GamesPart, files.Keys); // the walk reaches the Games part
+        Assert.Contains("MainWindow.xaml.cs", files.Keys);
+
+        var placed = files.Values
+            .SelectMany(text => ClosingPlace.Matches(text).Select(m => Enum.Parse<OverlayEvent>(m.Groups[1].Value)))
+            .ToHashSet();
+        var closing = Enum.GetValues<OverlayEvent>().Where(GamesGate.Closes).ToHashSet();
+        Assert.True(placed.SetEquals(closing),
+            "Every event that closes the Games window has a place in MainWindow, and no place names one that closes nothing:\n"
+            + $"without a place: {string.Join(", ", closing.Except(placed))}\n"
+            + $"placed but closing nothing: {string.Join(", ", placed.Except(closing))}");
+
+        var pastTheTable = files.Where(f => f.Key != GamesPart && f.Value.Contains("CloseGames()", StringComparison.Ordinal)).Select(f => f.Key).ToList();
+        Assert.True(pastTheTable.Count == 0, "Only the Games part closes the window without asking the table: " + string.Join(", ", pastTheTable));
     }
 }
