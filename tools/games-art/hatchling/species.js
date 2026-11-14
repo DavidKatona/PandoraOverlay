@@ -161,6 +161,10 @@ function finish(build, o) {
   };
 }
 
+// The young Deinosuchus' trunk (H61): how much deeper its strokes are drawn
+// and how far (in the description's units) it is carried up, by size.
+const YOUNG_CROC = { "-s": { deep: 1.5, lift: 0.9 }, "-m": { deep: 1.25, lift: 0.5 } };
+
 // A frill and the horns on its rim shrink as one, toward the frill's foot.
 const DIABLO_FRILL = [21.2, 14.9];
 const TRIKE_FRILL = [22.0, 15.0];
@@ -472,8 +476,15 @@ const SPECIES = {
 
   // The crawler: four sprawled legs, the body low, the head steady. Its walk is
   // the quadrupeds' diagonal pairs with a short reach (CRAWL in the gaits).
-  Deinosuchus: (g) => {
+  // A young crocodile is short and stout (H61): at a hatchling's and a
+  // juvenile's size its trunk is drawn deeper and carried a little higher
+  // (YOUNG_CROC), or at four or five pixels deep it has no belly row and no lit
+  // back and is mostly outline, a row of dots on a forest tile. The larger
+  // sizes multiply by 1 and add 0: the numbers they always had.
+  Deinosuchus: (g, size) => {
     g = g || STAND;
+    const young = YOUNG_CROC[(size && size.suffix) || ""] || { deep: 1, lift: 0 };
+    const trunk = ([x, y, r]) => [x, y - young.lift, r * young.deep];
     const snout = [[28.2, 17.0, 1.9], [34.4, 17.7, 1.35]];
     const m = mouth(snout, true, 0);
     const foot = (step) => (step.swing ? "swing" : "ground");
@@ -488,9 +499,9 @@ const SPECIES = {
     const parts = [
       ...limb([9.2, 18.8, 1.4], [8.0, 22.0, 1.05], [[7.8, 22.9, 0.85], [10.4, 23.3, 0.7]], g.far, { far: true }),
       ...limb([18.4, 18.8, 1.4], [19.4, 22.0, 1.05], [[19.2, 22.9, 0.85], [22.0, 23.3, 0.7]], g.foreFar, { far: true }),
-      stroke([[8.5, 17.6, 3.0], [4, 16.6, 1.9], [1.4, 15.0, 1.0], [0.5, 14.0, 0.6]], { bone: "tail" }),
-      stroke([[9.5, 17.6, 3.4], [19, 17.4, 3.6]], { belly: true }),
-      stroke([[21.5, 17.2, 3.0], [24.6, 16.8, 2.6]], { belly: true, bone: "neck" }),
+      stroke([trunk([8.5, 17.6, 3.0]), [4, 16.6, 1.9], [1.4, 15.0, 1.0], [0.5, 14.0, 0.6]], { bone: "tail" }),
+      stroke([trunk([9.5, 17.6, 3.4]), trunk([19, 17.4, 3.6])], { belly: true }),
+      stroke([trunk([21.5, 17.2, 3.0]), [24.6, 16.8, 2.6]], { belly: true, bone: "neck" }),
       ellipse(26.6, 16.6, 2.9, 2.3, { belly: true, bone: "head", skull: true }),
       stroke(snout, { belly: true, bone: "snout" }),
       ellipse(34.2, 17.0, 1.25, 1.2, { bone: "snout" }),
@@ -699,7 +710,7 @@ function gaitOf(build, frame, size) {
 function draw(species, size, action, index) {
   const build = BUILD[species] || "biped";
   const frame = action === "walk" ? WALKS[build][index] : null;
-  const spec = SPECIES[species](frame ? gaitOf(build, frame, size) : STAND);
+  const spec = SPECIES[species](frame ? gaitOf(build, frame, size) : STAND, size);
   if (!frame && size.scale === 1) return sprite(spec);
   const offsets = frame ? { body: frame.body, head: frame.head, tail: frame.tail, swing: [0, -LIFT] } : {};
   // The ground line lies 0.4 below the top of the pivot's row at every size,
