@@ -33,6 +33,16 @@ public static class DataFolder
     public static string FileIn(string name) => System.IO.Path.Combine(Path, name);
 
     /// <summary>
+    /// The games' saves (the Games window, A7): user content like
+    /// waypoints.json, kept apart from config.json, with one folder per game
+    /// (games\&lt;id&gt;\save.json, its backup and its kept copies), so no file
+    /// is shared between two games. Only GameSaveStore reads or writes in it.
+    /// Nothing creates it until a game first writes. Not in <see cref="Files"/>:
+    /// the legacy import predates the games.
+    /// </summary>
+    public static string GamesFolder { get; } = System.IO.Path.Combine(Path, "games");
+
+    /// <summary>
     /// The sign-in window's browser folder (v1.31): under %LocalAppData%, not
     /// the roaming data folder — a browser's cache is nobody's content and
     /// should not travel with a profile. Nothing of the sign-in itself lands
