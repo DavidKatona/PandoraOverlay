@@ -225,6 +225,56 @@ function sprite(spec) {
 function image(w, h, fill) {
   return { w, h, px: Array.from({ length: w * h }, () => (fill ? [...hexToRgb(fill), 255] : [0, 0, 0, 0])) };
 }
+
+// A colour as one pixel: "#RRGGBB" is opaque, "#RRGGBBAA" carries its alpha
+// (straight, as a PNG keeps it; the game's atlas premultiplies at load). The
+// one translucent thing the engine draws is source-over, which the game's
+// PixelBuffer has too, so a translucent pixel is no effect the game lacks.
+function pixel(c) {
+  return [...hexToRgb(c), c.length === 9 ? parseInt(c.slice(7, 9), 16) : 255];
+}
+
+// ---- Grids ----
+// Small pieces drawn pixel by pixel: digits, the marks above a head. A grid is
+// rows of characters, each mapped to a colour by `key` ("." and " " are
+// nothing). It is the earlier sample's way of drawing its 12 px icons
+// (pixel-art/earlier-sample), brought into the one engine as ART-BRIEF asks:
+// at 5 x 7 there are no shapes to shade, only pixels to place, so a grid is the
+// honest way to draw them, and outline() below gives them the same dark edge a
+// sprite gets where it meets nothing. Added for task H10; it draws nothing a
+// sprite() draws, so no existing sprite moves.
+function drawn(rows, key) {
+  const h = rows.length;
+  const w = Math.max(...rows.map((r) => r.length));
+  const img = image(w, h);
+  rows.forEach((row, y) =>
+    [...row].forEach((ch, x) => {
+      const c = key[ch];
+      if (c) img.px[y * w + x] = pixel(c);
+    })
+  );
+  return img;
+}
+
+// Every empty pixel that touches an opaque one becomes `colour`: a one-pixel
+// outline round a grid's drawing. `corners` counts the four diagonal
+// neighbours too, so a stroke's ends and a diagonal step are closed as well
+// (what a glyph needs to read over any ground); without it only the four
+// sides count. Stays inside the image: leave a pixel of room round the drawing.
+function outline(img, colour, corners) {
+  const out = { w: img.w, h: img.h, px: img.px.map((p) => [...p]) };
+  const solid = (x, y) => x >= 0 && y >= 0 && x < img.w && y < img.h && img.px[y * img.w + x][3] > 0;
+  const c = pixel(colour);
+  for (let y = 0; y < img.h; y++) {
+    for (let x = 0; x < img.w; x++) {
+      if (solid(x, y)) continue;
+      let touch = solid(x - 1, y) || solid(x + 1, y) || solid(x, y - 1) || solid(x, y + 1);
+      if (!touch && corners) touch = solid(x - 1, y - 1) || solid(x + 1, y - 1) || solid(x - 1, y + 1) || solid(x + 1, y + 1);
+      if (touch) out.px[y * img.w + x] = [...c];
+    }
+  }
+  return out;
+}
 function blit(dst, src, ox, oy, scale) {
   for (let y = 0; y < src.h; y++) {
     for (let x = 0; x < src.w; x++) {
@@ -268,4 +318,4 @@ function textWidth(str, scale) {
   return str.length * 4 * scale - scale;
 }
 
-module.exports = { ramp, darker, ellipse, stroke, poly, sprite, image, blit, text, textWidth, writePng, hexToHsl, hslToHex };
+module.exports = { ramp, darker, ellipse, stroke, poly, sprite, image, pixel, drawn, outline, blit, text, textWidth, writePng, hexToHsl, hslToHex, hexToRgb, rgbToHex };

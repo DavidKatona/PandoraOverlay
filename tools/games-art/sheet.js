@@ -15,7 +15,7 @@
 // engine's tiny font (digits and / - _ . included), so case is lost on a sheet.
 const fs = require("fs");
 const path = require("path");
-const { image, blit, text, textWidth } = require("./engine");
+const { image, text, textWidth } = require("./engine");
 const { writePng, readPng } = require("./png");
 
 const DARK = "#10151B"; // the sheet's ground, as the old species sheet had it
@@ -32,6 +32,29 @@ function rgb(c) {
 }
 function fillRect(dst, x, y, w, h, colour) {
   for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (xx >= 0 && yy >= 0 && xx < dst.w && yy < dst.h) dst.px[yy * dst.w + xx] = colour;
+}
+// Lays a frame on the sheet at a scale, blending a translucent pixel over the
+// ground (source-over, the one blend the game has) so a translucent frame (the
+// fog, a ring's wash, an item's shadow) looks on the sheet as it will on the
+// board; the engine's blit copies pixels as they are, which is right for
+// packing an atlas and wrong for looking at one.
+function blend(dst, src, ox, oy, scale) {
+  for (let y = 0; y < src.h; y++) {
+    for (let x = 0; x < src.w; x++) {
+      const p = src.px[y * src.w + x];
+      if (p[3] === 0) continue;
+      const a = p[3] / 255;
+      for (let dy = 0; dy < scale; dy++) {
+        for (let dx = 0; dx < scale; dx++) {
+          const tx = ox + x * scale + dx;
+          const ty = oy + y * scale + dy;
+          if (tx < 0 || ty < 0 || tx >= dst.w || ty >= dst.h) continue;
+          const d = dst.px[ty * dst.w + tx];
+          dst.px[ty * dst.w + tx] = [0, 1, 2].map((k) => Math.round(p[k] * a + d[k] * (1 - a))).concat([255]);
+        }
+      }
+    }
+  }
 }
 function crop(img, f) {
   const out = image(f.w, f.h);
@@ -76,7 +99,7 @@ function contactSheet(atlas, options) {
     // The ground the pivot stands on (a row of the frame's own, so a pivot on
     // the far edge draws nothing).
     if (f.py < f.h) fillRect(sheet, ox, oy + f.py * scale, f.w * scale, Math.max(1, Math.floor(scale / 4)), LINE);
-    blit(sheet, f.img, ox, oy, scale);
+    blend(sheet, f.img, ox, oy, scale);
     text(sheet, f.name, ox, oy + maxH * scale + 6, 2, LABEL);
   });
 
@@ -88,7 +111,7 @@ function contactSheet(atlas, options) {
     frames.forEach((f, k) => {
       const bx = PAD + (k % perRow) * boxW;
       const by = gy + gap / 2 + Math.floor(k / perRow) * boxH;
-      blit(sheet, f.img, bx + maxPx - f.px, by + maxPy - f.py, 1);
+      blend(sheet, f.img, bx + maxPx - f.px, by + maxPy - f.py, 1);
     });
   });
   return sheet;
