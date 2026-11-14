@@ -156,6 +156,17 @@ public class YourHitTests
     }
 
     [Fact]
+    public void FierceHitsWithItsAttack()
+    {
+        var plain = Facing("Herrerasaurus", PredatorType.Allosaurus, Right(1));
+        var fierce = plain.Picked(Instinct.Fierce);
+        var attack = Stats.Of(fierce).Attack;
+        Assert.Equal(Tuning.Round1(Stats.Of(plain).Attack * Tuning.FierceAttack), attack, 10);
+        var struck = Assert.IsType<Struck>(Turns.Move(fierce, new PlayerAction.Attack(fierce.Creatures[0].Id)).Events.Single());
+        Assert.Equal(Expected(attack, 1, Roll(fierce), fierce.Creatures[0]), struck.Damage);
+    }
+
+    [Fact]
     public void CrushingBiteIgnoresDefense()
     {
         // The Tyrannosaurus's perk against the toughest hide there is (defense 5)...

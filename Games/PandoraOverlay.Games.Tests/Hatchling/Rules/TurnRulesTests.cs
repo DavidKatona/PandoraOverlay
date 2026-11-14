@@ -349,14 +349,18 @@ public class TurnRulesTests
         Assert.Equal(MoveKind.Attack, Turns.Move(run, new PlayerAction.Attack(run.Creatures[0].Id)).After.You.LastMove);
     }
 
-    [Fact]
-    public void AfterAMoveWhatIsInSightIsSeen()
+    [Theory]
+    [InlineData(false, 3)]
+    [InlineData(true, 4)]   // Keen eyes
+    public void AfterAMoveWhatIsInSightIsSeen(bool keenEyes, int sight)
     {
         var run = Turns.Board("Dryosaurus");
+        if (keenEyes) run = run.Picked(Instinct.Eyes);
         Array.Fill(run.Seen, false);
         var to = Turns.Right(1);
         var after = Turns.Must(run, new PlayerAction.Move(to)).After;
-        foreach (var cell in Island.Grid.Within(to, Stats.Of(after).Sight))
+        Assert.Equal(sight, Stats.Of(after).Sight);
+        foreach (var cell in Island.Grid.Within(to, sight))
             Assert.True(after.Seen[cell]);
     }
 
