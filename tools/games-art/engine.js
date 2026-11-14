@@ -221,6 +221,251 @@ function sprite(spec) {
   return img;
 }
 
+// ---- Sizes, ages and poses ----
+// place(spec, look) returns the same sprite spec moved onto another canvas: at
+// another SIZE, at another AGE, or in another POSE. It moves the shapes, before
+// they become pixels; it never resamples a picture. So a smaller sprite is drawn
+// by sprite() like any other: its outline is still one pixel where it meets
+// nothing, its eye is still one pixel, its shading follows the same rule (task
+// H11: a hatchling is drawn, not shrunk).
+//
+// What a part may carry for it (sprite() ignores all of these):
+//   bone: what the part moves with: "body" (the default), "head", "snout",
+//         "neck" and "tail" (graded along their points, from the body's
+//         offset at the first point to the head's or the tail's at the last),
+//         "tailEnd" (all of the tail's offset), "ground" (stays on the ground
+//         line) and "swing" (a lifted foot). A stroke's point may name its
+//         own bone as a fourth element, [x, y, r, "ground"], so a leg's top
+//         rides the body while its foot stays planted.
+//   along: for a part that sits ON a graded part (a spike on the tail), its
+//         place along it, 0 to 1, so it moves as that place does.
+//   orn:  an ornament (a horn, a plate, a spike, a crest, a frill, a claw),
+//         which a young animal has smaller: true shrinks it toward its base
+//         (a stroke's first point; a polygon's two lowest points; an
+//         ellipse's bottom), or [x, y] toward that point (a group that shrinks
+//         as one: a frill with the horns on its rim).
+//
+// look:
+//   w, h          the new canvas
+//   from, to      a point of the old canvas and where it lands (the feet: the
+//                 pivot's ground point)
+//   scale         how much smaller (1 keeps the size)
+//   head          [cx, cy]: the head's centre, about which it grows
+//   grow          { head, snout, neck, orn, spike }: a young animal's head
+//                 (k > 1: larger), its snout's length (k < 1: shorter, on top
+//                 of the head's k), its neck's thickness (k > 1), its plates,
+//                 crests, frills and domes (orn: the ornaments drawn as
+//                 polygons and ellipses) and its horns, spikes and claws
+//                 (spike: those drawn as strokes; missing: orn's), each k < 1:
+//                 smaller. A young animal keeps more of the plates that make
+//                 its kind's outline than of its horns. Missing: 1.
+//   offsets       { body, head, tail, swing }: [dx, dy] in NEW pixels, the
+//                 pose: the body's bob, the head's nod, the tail tip's sway, a
+//                 lifted foot. Whole pixels keep a shape's edge crisp.
+//
+// Marks, tips and extras (pixels, not shapes) go where the part under them
+// went; stripes and ridges are spaced for the new size. An extra tagged "eye"
+// as its fourth element is kept off the edge of a smaller head (an eye on the
+// outline is no eye), and one tagged "pupil" stays beside its eye.
+//
+// Radii shrink with the scale, but never below the smaller of their own size
+// and a half pixel (a stroke thinner than that breaks into dots): so a limb
+// stays whole at 20 x 14 and nothing at full size gets thicker.
+const MIN_STROKE = 0.5;
+const MIN_ELLIPSE = 0.6;
+// The skull (a part tagged `skull`) at a smaller size: its radii never under
+// this, so it holds a row of skin round its eye.
+const MIN_SKULL = 1.9;
+function place(spec, look) {
+  const s = look.scale === undefined ? 1 : look.scale;
+  const [fx, fy] = look.from;
+  const [tx, ty] = look.to;
+  const same = s === 1 && fx === tx && fy === ty;
+  const grow = look.grow || {};
+  const kHead = grow.head || 1;
+  const kSnout = grow.snout || 1;
+  const kOrn = grow.orn || 1;
+  const kSpike = grow.spike || kOrn;
+  const kNeck = grow.neck || 1;
+  const hc = look.head || [0, 0];
+  const off = look.offsets || {};
+  const at = (name) => off[name] || [0, 0];
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  // The head's and the tail tip's offsets are on top of the body's.
+  const body = at("body");
+  const head = [body[0] + at("head")[0], body[1] + at("head")[1]];
+  const tailTip = [body[0] + at("tail")[0], body[1] + at("tail")[1]];
+  // The pose's offset of a bone, t the point's place along a graded part (0 at its first point, 1 at its last).
+  const offsetOf = (bone, t) => {
+    switch (bone) {
+      case "head":
+      case "snout":
+        return head;
+      case "neck":
+        return lerp(body, head, t);
+      case "tail":
+        return lerp(body, tailTip, t);
+      case "tailEnd":
+        return tailTip;
+      case "ground":
+        return [0, 0];
+      case "swing":
+        return at("swing");
+      default:
+        return body;
+    }
+  };
+  const anchorOf = (part) => {
+    if (Array.isArray(part.orn)) return part.orn;
+    if (part.kind === "stroke") return [part.points[0][0], part.points[0][1]];
+    if (part.kind === "ellipse") return [part.cx, part.cy + part.ry];
+    const low = [...part.points].sort((a, b) => b[1] - a[1]).slice(0, 2);
+    return [(low[0][0] + low[1][0]) / 2, (low[0][1] + low[1][1]) / 2];
+  };
+  // Age. A head part grows about the head's centre (a snout's length less).
+  // An ornament keeps its base where the part it stands on put it, and its own
+  // size is its kind's k alone: a horn on a hatchling's large head is still a
+  // stub (with the head's growth on top it was most of an adult's horn).
+  const growsHead = (bone) => (bone === "head" || bone === "snout") && kHead !== 1;
+  const grown = (x, y, bone) =>
+    growsHead(bone) ? [hc[0] + (x - hc[0]) * kHead * (bone === "snout" ? kSnout : 1), hc[1] + (y - hc[1]) * kHead] : [x, y];
+  const ornK = (part) => (part.kind === "stroke" ? kSpike : kOrn);
+  const aged = (part, x, y, bone) => {
+    if (part.orn && (ornK(part) !== 1 || growsHead(bone))) {
+      const [ax, ay] = anchorOf(part);
+      const [gx, gy] = grown(ax, ay, bone);
+      return [gx + (x - ax) * ornK(part), gy + (y - ay) * ornK(part)];
+    }
+    return grown(x, y, bone);
+  };
+  const toCanvas = (x, y) => (same ? [x, y] : [tx + (x - fx) * s, ty + (y - fy) * s]);
+  const mapPoint = (part, x, y, bone, t) => {
+    const [ax, ay] = aged(part, x, y, bone);
+    const [cx, cy] = toCanvas(ax, ay);
+    let [dx, dy] = offsetOf(bone, t);
+    // A part fixed at one place on a graded part (a spike on the tail) moves
+    // by whole pixels, all of it together: moved by a fraction it is drawn
+    // anew each frame, a thin spike a different shape every time, and flickers.
+    if (part.along !== undefined) [dx, dy] = [Math.round(dx), Math.round(dy)];
+    return [cx + dx, cy + dy];
+  };
+  const radiusOf = (part, r, bone, min) => {
+    // An ornament's thickness is its kind's (a frill's size shrinks; a horn's
+    // width does not grow with the head); a head part's grows with the head; a
+    // young neck is a little thicker for its body.
+    let k = s;
+    if (part.orn) k *= part.kind === "ellipse" ? kOrn : 1;
+    else if (growsHead(bone)) k *= kHead;
+    else if (bone === "neck") k *= kNeck;
+    return k === 1 ? r : Math.max(r * k, Math.min(r, min));
+  };
+  const placePart = (part) => {
+    const bone = part.bone || "body";
+    if (part.kind === "ellipse") {
+      const [cx, cy] = mapPoint(part, part.cx, part.cy, bone, part.along !== undefined ? part.along : 1);
+      let rx = radiusOf(part, part.rx, bone, MIN_ELLIPSE);
+      let ry = radiusOf(part, part.ry, bone, MIN_ELLIPSE);
+      // A smaller skull keeps room for an eye inside its outline: a head two
+      // or three pixels tall is all outline, and its eye a dent in it (the
+      // small-headed Beipiaosaurus, Gallimimus and Kentrosaurus, Nov 14).
+      if (part.skull && s < 1) {
+        rx = Math.max(rx, MIN_SKULL);
+        ry = Math.max(ry, MIN_SKULL);
+      }
+      return { ...part, cx, cy, rx, ry };
+    }
+    const n = part.points.length;
+    const points = part.points.map((p, i) => {
+      const b = p[3] || bone;
+      const [x, y] = mapPoint(part, p[0], p[1], b, part.along !== undefined ? part.along : n > 1 ? i / (n - 1) : 0);
+      return part.kind === "stroke" ? [x, y, radiusOf(part, p[2], b, MIN_STROKE), ...p.slice(3)] : [x, y, ...p.slice(2)];
+    });
+    return { ...part, points };
+  };
+  const parts = spec.parts.map(placePart);
+
+  // A pixel of the old canvas goes where the part under it went (the topmost,
+  // as sprite() decides it); a point of a stroke takes the bone and place of
+  // the stroke's nearest point.
+  // A pixel just beside the sprite (a claw at a toe's end) goes with the part
+  // it touches: with the body's bob it would leave the planted foot behind.
+  const topAt = (x, y) => {
+    let found = -1;
+    for (let k = 0; k < spec.parts.length; k++) if (covers(spec.parts[k], x + 0.5, y + 0.5)) found = k;
+    return found;
+  };
+  const under = (x, y) => {
+    for (const [dx, dy] of [[0, 0], [-1, 0], [0, -1], [1, 0], [0, 1]]) {
+      const k = topAt(x + dx, y + dy);
+      if (k >= 0) return k;
+    }
+    return -1;
+  };
+  const movePixel = (x, y) => {
+    const k = under(x, y);
+    const part = k < 0 ? { kind: "ellipse" } : spec.parts[k];
+    let bone = part.bone || "body";
+    let t = part.along !== undefined ? part.along : 1;
+    if (part.points && part.kind === "stroke" && part.along === undefined) {
+      let best = 0;
+      part.points.forEach((p, i) => {
+        const q = part.points[best];
+        if ((p[0] - x - 0.5) ** 2 + (p[1] - y - 0.5) ** 2 < (q[0] - x - 0.5) ** 2 + (q[1] - y - 0.5) ** 2) best = i;
+      });
+      bone = part.points[best][3] || bone;
+      t = part.points.length > 1 ? best / (part.points.length - 1) : 0;
+    }
+    const [nx, ny] = mapPoint(part, x + 0.5, y + 0.5, bone, t);
+    return [Math.floor(nx), Math.floor(ny)];
+  };
+  const movePixels = (list) => list.map((m) => [...movePixel(m[0], m[1]), ...m.slice(2)]);
+
+  // Stripes and ridges are columns of the body: placed by the canvas and the
+  // body's bob, two pixels apart at least so a small body is not a dark mass.
+  const column = (x) => Math.floor(toCanvas(x + 0.5, 0)[0] + body[0]);
+  const stripes = [];
+  for (const st of [...(spec.stripes || [])].sort((a, b) => a.x - b.x)) {
+    const x = column(st.x);
+    if (stripes.length && x - stripes[stripes.length - 1].x < 2) continue;
+    stripes.push({ ...st, x, len: Math.max(1, Math.round((st.len || 2) * s)), skip: Math.round((st.skip || 0) * s) });
+  }
+  const ridges = (spec.ridges || []).map((r) => ({ ...r, from: column(r.from), to: column(r.to), step: Math.max(2, Math.round((r.step || 2) * s)) }));
+
+  let extras = movePixels(spec.extras || []);
+  if (s < 1) extras = keepEyesInside(extras, parts, look.w, look.h, mapPoint({ kind: "ellipse" }, hc[0], hc[1], "head", 0));
+  return {
+    ...spec,
+    w: look.w,
+    h: look.h,
+    parts,
+    marks: movePixels(spec.marks || []),
+    tips: movePixels(spec.tips || []),
+    stripes,
+    ridges,
+    extras
+  };
+}
+
+// An eye on a smaller head can land on its edge, where it would read as a dent
+// in the outline: move it (and its pupil with it) a pixel at a time toward the
+// head's centre until every pixel beside it is the sprite's own.
+function keepEyesInside(extras, parts, w, h, centre) {
+  const inside = (x, y) => x >= 0 && y >= 0 && x < w && y < h && parts.some((p) => covers(p, x + 0.5, y + 0.5));
+  const clear = (x, y) => inside(x, y) && inside(x - 1, y) && inside(x + 1, y) && inside(x, y - 1) && inside(x, y + 1);
+  const eye = extras.find((e) => e[3] === "eye");
+  if (!eye) return extras;
+  const pupil = extras.find((e) => e[3] === "pupil");
+  let [x, y] = eye;
+  for (let tries = 0; tries < 3 && !(clear(x, y) && (!pupil || clear(x + 1, y))); tries++) {
+    const dy = Math.sign(Math.floor(centre[1]) - y);
+    const dx = Math.sign(Math.floor(centre[0]) - x);
+    if (dy !== 0) y += dy;
+    else if (dx !== 0) x += dx;
+    else break;
+  }
+  return extras.map((e) => (e === eye ? [x, y, ...e.slice(2)] : e === pupil ? [x + 1, y, ...e.slice(2)] : e));
+}
+
 // ---- Images ----
 function image(w, h, fill) {
   return { w, h, px: Array.from({ length: w * h }, () => (fill ? [...hexToRgb(fill), 255] : [0, 0, 0, 0])) };
@@ -318,4 +563,4 @@ function textWidth(str, scale) {
   return str.length * 4 * scale - scale;
 }
 
-module.exports = { ramp, darker, ellipse, stroke, poly, sprite, image, pixel, drawn, outline, blit, text, textWidth, writePng, hexToHsl, hslToHex, hexToRgb, rgbToHex };
+module.exports = { ramp, darker, ellipse, stroke, poly, sprite, place, covers, image, pixel, drawn, outline, blit, text, textWidth, writePng, hexToHsl, hslToHex, hexToRgb, rgbToHex };
