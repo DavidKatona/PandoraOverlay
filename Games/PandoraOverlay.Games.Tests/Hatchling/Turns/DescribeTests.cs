@@ -12,9 +12,9 @@ public class DescribeTests
 {
     private static readonly int Here = Row5(2);
 
-    /// <summary>Nothing to move to, nobody there, a plant-eater that hides, the plan's plain gains.</summary>
+    /// <summary>Nothing to move to, nobody there, no food shown, a plant-eater that hides, the plan's plain gains.</summary>
     private static CellFacts Plain(Diet eats = Diet.Plants) =>
-        new(false, 0, null, false, eats, true, false, false, 30, 45, 25, false);
+        new(false, 0, null, false, eats, true, false, false, 30, 45, 25, false, false);
 
     private static RunState Island()
     {
@@ -67,33 +67,66 @@ public class DescribeTests
     // ---- food ---------------------------------------------------------------------------
 
     [Fact]
-    public void APlantOnASeenCell()
+    public void APlantTheBoardShows()
     {
         var run = Island();
         var cell = Row5(4);
         run.Plants[cell] = true;
-        Assert.Equal("Plants · stand here and Eat: +30 food", Describe.Cell(run, cell, Plain(Diet.Plants)));
-        Assert.Equal("Plants", Describe.Cell(run, cell, Plain(Diet.Meat)));
-        Assert.Equal("Plants · stand here and Eat: +45 food", Describe.Cell(run, cell, Plain() with { PlantGain = 45 }));
+        var shows = Plain() with { PlantShows = true };
+        Assert.Equal("Plants · stand here and Eat: +30 food", Describe.Cell(run, cell, shows));
+        Assert.Equal("Plants", Describe.Cell(run, cell, shows with { Eats = Diet.Meat }));
+        Assert.Equal("Plants · stand here and Eat: +45 food", Describe.Cell(run, cell, shows with { PlantGain = 45 }));
+        // Not shown (the view's fact): the line does not name it, seen cell or not.
+        Assert.Equal("Grass", Describe.Cell(run, cell, Plain()));
 
-        // Never seen: fog, unless the board shows its food through it.
+        // A cell never seen whose plant the board shows (Good nose): named.
         run.Seen[cell] = false;
+        Assert.Equal("Plants · stand here and Eat: +30 food", Describe.Cell(run, cell, shows));
         Assert.Equal("Not seen yet", Describe.Cell(run, cell, Plain()));
-        Assert.Equal("Plants · stand here and Eat: +30 food", Describe.Cell(run, cell, Plain() with { FoodThroughFog = true }));
     }
 
     [Fact]
-    public void ACarcassSingularAndPlural()
+    public void ACarcassTheBoardShowsSingularAndPlural()
     {
         var run = Island();
         var cell = Row5(4);
         run.Meat[cell] = 2;
-        Assert.Equal("Carcass · 2 meals", Describe.Cell(run, cell, Plain(Diet.Plants)));
+        var shows = Plain() with { CarcassShows = true };
+        Assert.Equal("Carcass · 2 meals", Describe.Cell(run, cell, shows));
         run.Meat[cell] = 1;
-        Assert.Equal("Carcass · 1 meal · stand here and Eat: +45 food", Describe.Cell(run, cell, Plain(Diet.Meat)));
+        Assert.Equal("Carcass · 1 meal · stand here and Eat: +45 food", Describe.Cell(run, cell, shows with { Eats = Diet.Meat }));
         run.Seen[cell] = false;
+        Assert.Equal("Carcass · 1 meal · stand here and Eat: +45 food", Describe.Cell(run, cell, shows with { Eats = Diet.Meat }));
         Assert.Equal("Not seen yet", Describe.Cell(run, cell, Plain(Diet.Meat)));
-        Assert.Equal("Carcass · 1 meal · stand here and Eat: +45 food", Describe.Cell(run, cell, Plain(Diet.Meat) with { FoodThroughFog = true }));
+    }
+
+    [Fact]
+    public void AFoggedCellNamesOnlyTheFoodTheBoardShows()
+    {
+        // A plant and a carcass in the fog; a Scavenger is shown the carcass only.
+        var run = Island();
+        var cell = Row5(4);
+        run.Plants[cell] = true;
+        run.Meat[cell] = 2;
+        run.Seen[cell] = false;
+        Assert.Equal("Carcass · 2 meals · stand here and Eat: +45 food",
+            Describe.Cell(run, cell, Plain(Diet.Meat) with { CarcassShows = true }));
+        Assert.Equal("Not seen yet", Describe.Cell(run, cell, Plain(Diet.Meat)));
+    }
+
+    [Fact]
+    public void TheFoodFactsAreSightsShowsFood()
+    {
+        // What the view hands in, with the real Sight.ShowsFood: a Ceratosaurus
+        // (Scavenger) is shown a fogged carcass, and not the plant beside it in the fog.
+        var run = Runs.Fresh("Ceratosaurus", 7).Clear();
+        var cell = Enumerable.Range(0, Tuning.Cells).First(c => !run.Seen[c]);
+        run.Plants[cell] = true;
+        run.Meat[cell] = 1;
+        var stats = Stats.Of(run);
+        var facts = new CellFacts(false, 0, null, false, stats.Eats, stats.Hides, stats.Flies, false, 30, 45, 25,
+            Sight.ShowsFood(run, stats, cell, Food.Plants), Sight.ShowsFood(run, stats, cell, Food.Meat));
+        Assert.Equal("Carcass · 1 meal · stand here and Eat: +45 food", Describe.Cell(run, cell, facts));
     }
 
     // ---- the ground ---------------------------------------------------------------------

@@ -459,11 +459,108 @@ public class TurnScriptTests
         Assert.Equal("held", HatchlingText.RowText(PredatorRowOf(new Stayed(1, Idle.Held))));
         Assert.Equal("bit you: 7", HatchlingText.RowText(PredatorRowOf(new Stayed(1, Idle.Waits), new Bit(1, 7, false, false))));
 
-        // Defeated by your spikes or its bleeding: that is what is said of it.
-        var before = Run(Row5(2), Predator(1, PredatorType.Carnotaurus, Row5(3), ordinal: 2));
-        var script = Build(before, Without(before, 1), Rest(),
-            new Stayed(1, Idle.Waits), new Bit(1, 7, false, false), new Hurt(1, Row5(3), 3, HurtBy.Spikes, true), Time());
-        Assert.Equal("defeated", HatchlingText.RowText(Assert.Single(script.Rows, r => r.Actor == RowActor.Predator)));
+    }
+
+    // ---- defeated in its own action (H41): the bite and the defeat, both ------------
+
+    /// <summary>The row of a Carnotaurus 2 beside you that is gone by the end of its action.</summary>
+    private static string DefeatedRow(params TurnEvent[] action)
+    {
+        var before = Run(Row5(2), Predator(1, PredatorType.Carnotaurus, Row5(4), ordinal: 2));
+        var script = Build(before, Without(before, 1), new TurnEvent[] { Rest() }.Concat(action).Append(Time()).ToArray());
+        return HatchlingText.RowText(Assert.Single(script.Rows, r => r.Actor == RowActor.Predator));
+    }
+
+    [Fact]
+    public void ABiteThenADefeatSaysBoth()
+    {
+        Assert.Equal("bit you: 7 · defeated", DefeatedRow(
+            new Noticed(1, Notice.Spotted), Step(1, Gait.Hunt, Row5(4), Row5(3)), new Bit(1, 7, false, false),
+            new Hurt(1, Row5(3), 3, HurtBy.Spikes, true)));
+    }
+
+    [Fact]
+    public void ADodgeThenBleedingOutSaysBoth()
+    {
+        Assert.Equal("missed you · defeated", DefeatedRow(
+            new Stayed(1, Idle.Waits), new Bit(1, 0, true, false), new Hurt(1, Row5(4), 3, HurtBy.Bleed, true)));
+    }
+
+    [Fact]
+    public void ADefeatWithNoBiteSaysDefeatedAlone()
+    {
+        // Spotted you, stepped, bled out: what it noticed is not kept.
+        Assert.Equal("defeated", DefeatedRow(
+            new Noticed(1, Notice.Spotted), Step(1, Gait.Hunt, Row5(4), Row5(3)), new Hurt(1, Row5(3), 3, HurtBy.Bleed, true)));
+        // Lost your trail, then bled out: the defeat is not hidden behind "lost your trail".
+        Assert.Equal("defeated", DefeatedRow(
+            Step(1, Gait.Search, Row5(4), Row5(5)), new Noticed(1, Notice.LostTrail), new Hurt(1, Row5(5), 3, HurtBy.Bleed, true)));
+    }
+
+    [Fact]
+    public void LostYourTrailNeverHidesABite()
+    {
+        // The rules no longer make this pair (H43), but the list must not be able to hide a bite.
+        Assert.Equal("bit you: 7", HatchlingText.RowText(PredatorRowOf(
+            Step(1, Gait.Search, Row5(4), Row5(3)), new Noticed(1, Notice.LostTrail), new Bit(1, 7, false, false))));
+    }
+
+    // ---- never more than eleven rows (H44) ---------------------------------------------
+
+    /// <summary>
+    /// Danger 5: <paramref name="predators"/> predators and the apex, all known, small
+    /// game known and moving, the first predator defeated in its own action (its row
+    /// stays) and a new one arriving in sight.
+    /// </summary>
+    private static TurnScript Crowded(int predators)
+    {
+        var you = Grid.Index(5, 5);
+        var creatures = new List<Creature>();
+        var events = new List<TurnEvent> { Rest() };
+        for (var id = 1; id <= predators; id++)
+        {
+            creatures.Add(Predator(id, PredatorType.Carnotaurus, Grid.Index(id, 3), ordinal: id));
+            events.Add(new Stayed(id, Idle.Waits));
+            if (id == 1) events.Add(new Hurt(1, Grid.Index(1, 3), 9, HurtBy.Bleed, true));
+        }
+        const int apex = 20, game = 21, comer = 22;
+        creatures.Add(Predator(apex, PredatorType.Tyrannosaurus, Grid.Index(10, 0), alert: 4));
+        events.Add(Step(apex, Gait.Hunt, Grid.Index(10, 0), Grid.Index(9, 1)));
+        creatures.Add(Game(game, Grid.Index(5, 7)));
+        events.Add(Step(game, Gait.Roam, Grid.Index(5, 7), Grid.Index(6, 7)));
+        events.Add(Time());
+        events.Add(new Arrived(comer, Grid.Index(9, 9), false));
+
+        var before = Run(you, creatures.ToArray());
+        before.Danger = 5;
+        var after = With(With(Without(before, 1), apex, Grid.Index(9, 1)), game, Grid.Index(6, 7));
+        after.Creatures.Add(Predator(comer, PredatorType.Allosaurus, Grid.Index(9, 9)));
+        return TurnScripts.Build(Turn(before, after, events.ToArray()), (_, _) => true);
+    }
+
+    [Fact]
+    public void ACrowdedTurnLeavesOutTheSmallGamesRow()
+    {
+        var script = Crowded(7);
+        Assert.Equal(TurnScript.MaxRows, script.Rows.Count);
+        Assert.DoesNotContain(script.Rows, r => r.Actor == RowActor.SmallGame);
+        Assert.Equal(9, script.Rows.Count(r => r.Actor == RowActor.Predator));
+        Assert.Equal(-1, One(script, BeatKind.SmallGame).RowIndex);
+
+        // Every other beat's row is still its actor's.
+        foreach (var beat in script.Beats.Where(b => b.Actor == BeatActor.Creature))
+            Assert.Equal(RowActor.Predator, script.Rows[beat.RowIndex].Actor);
+        Assert.Equal(RowActor.Unseen, script.Rows[One(script, BeatKind.Unseen).RowIndex].Actor);
+        Assert.All(script.Beats.Where(b => b.Kind is BeatKind.YouRest), b => Assert.Equal(0, b.RowIndex));
+    }
+
+    [Fact]
+    public void WithOneHunterLessTheSmallGamesRowStays()
+    {
+        var script = Crowded(6);
+        Assert.Equal(TurnScript.MaxRows, script.Rows.Count);
+        var row = Assert.Single(script.Rows, r => r.Actor == RowActor.SmallGame);
+        Assert.Equal(script.Rows.ToList().IndexOf(row), One(script, BeatKind.SmallGame).RowIndex);
     }
 
     [Fact]
@@ -539,6 +636,7 @@ public class TurnScriptTests
     {
         Assert.All(script.Beats, b => Assert.InRange(b.Ticks, 1, TurnScript.MaxBeatTicks));
         Assert.Equal(script.Beats.Sum(b => b.Ticks), script.TotalTicks);
+        Assert.InRange(script.Rows.Count, 1, TurnScript.MaxRows);
     }
 
     /// <summary>

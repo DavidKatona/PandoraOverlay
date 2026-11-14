@@ -28,6 +28,16 @@ internal sealed record TurnScript(IReadOnlyList<Beat> Beats, IReadOnlyList<TurnR
     /// </summary>
     public const int MaxBeatTicks = 60;
 
+    /// <summary>
+    /// The turn list never holds more rows (H44): its card is a fixed box, and a
+    /// frame never grows. Eleven are You, the apex and seven predators, small game
+    /// and out of sight. One turn can ask for twelve (danger 5, all of those known,
+    /// one predator defeated in its own action, whose row stays, and a new one
+    /// arriving in sight): then the small game's row is left out, the least worth
+    /// reading, and a small game beat belongs to no row.
+    /// </summary>
+    public const int MaxRows = 11;
+
     /// <summary>The sum of the beats' ticks: what the playback lasts at speed 1, since one beat is one queued step and the queue plays them back to back (A35).</summary>
     public int TotalTicks => Beats.Sum(b => b.Ticks);
 
@@ -381,7 +391,9 @@ internal static class TurnScripts
             var who = _roster[id];
             var says = Says(id);
             var focus = Add(BeatKind.Focus, BeatActor.Creature, id, BeatTicks.Focus, "", RowOf.Predator, id, null);
-            var bit = false;
+            var noticed = RowCode.None;
+            var bite = RowCode.None;   // Bit or Missed: its first bite of this action
+            var biteDamage = 0;
             var stayed = RowCode.None;
             var stepped = RowCode.None;
             foreach (var e in action)
@@ -390,8 +402,8 @@ internal static class TurnScripts
                 {
                     case Noticed n:
                         Its(BeatKind.Notices, id, BeatTicks.Notices, NoticeBanner(who, n.Kind), n);
-                        if (says.First == RowCode.None)
-                            says.First = n.Kind switch { Notice.Spotted => RowCode.Spotted, Notice.Heard => RowCode.Heard, _ => RowCode.Lost };
+                        if (noticed == RowCode.None)
+                            noticed = n.Kind switch { Notice.Spotted => RowCode.Spotted, Notice.Heard => RowCode.Heard, _ => RowCode.Lost };
                         break;
                     case Stepped s:
                         Its(BeatKind.Steps, id, BeatTicks.StepPerCell * s.Path.Count, StepBanner(who, s.Gait), s);
@@ -409,11 +421,11 @@ internal static class TurnScripts
                         break;
                     case Bit b when b.Dodged:
                         Its(BeatKind.Dodged, id, BeatTicks.Dodge, HatchlingText.YouDodge(who.Type, who.Ordinal), b);
-                        if (!bit) { bit = true; says.Second = RowCode.Missed; }
+                        if (bite == RowCode.None) bite = RowCode.Missed;
                         break;
                     case Bit b:
                         Its(BeatKind.Bites, id, BeatTicks.Bite, HatchlingText.Bites(who.Type, who.Ordinal, b.Damage), b);
-                        if (!bit) { bit = true; says.Second = RowCode.Bit; says.A = b.Damage; }
+                        if (bite == RowCode.None) { bite = RowCode.Bit; biteDamage = b.Damage; }
                         break;
                     case Hurt h:
                         Its(BeatKind.IsHurt, id, BeatTicks.Hurt, h.By == HurtBy.Spikes
@@ -431,10 +443,30 @@ internal static class TurnScripts
             var next = _drafts.IndexOf(focus) + 1;
             focus.Banner = next < _drafts.Count ? _drafts[next].Banner : HatchlingText.Name(who.Type, who.Ordinal);
 
-            // Its row says one thing it did (plan 3.4): defeated, else its bite,
-            // else why it stayed, else how it moved; what it noticed in front.
-            if (defeated) says.Second = RowCode.WasDefeated;
-            else if (!bit) says.Second = stayed != RowCode.None ? stayed : stepped;
+            // Its row (plan 3.4, H41). Defeated in its own action: the bite or the
+            // miss, then "defeated" ("bit you: 12 · defeated"), and nothing it
+            // noticed: after a turn with three hunters the player looks in the list
+            // for where the health went, so the defeat must not hide the bite, nor
+            // the bite the defeat. Otherwise what it noticed goes in front of what
+            // it did (its bite or the miss, else why it stayed, else how it moved),
+            // but never "lost your trail" in front of a bite or a miss: that code
+            // stands alone in the list and would hide the bite.
+            if (defeated)
+            {
+                says.First = bite;
+                says.Second = RowCode.WasDefeated;
+            }
+            else if (bite != RowCode.None)
+            {
+                says.First = noticed == RowCode.Lost ? RowCode.None : noticed;
+                says.Second = bite;
+            }
+            else
+            {
+                says.First = noticed;
+                says.Second = stayed != RowCode.None ? stayed : stepped;
+            }
+            says.A = bite == RowCode.Bit ? biteDamage : 0;
 
             _gapOwed = true;
         }
@@ -671,11 +703,14 @@ internal static class TurnScripts
             }
 
             // Small game has a row when one is known at the start or the end of the
-            // turn, or it had a beat.
+            // turn, or it had a beat; but it is the row that gives way when the list
+            // would be longer than its box (H44: You and Out of sight are always
+            // there, and each predator's row says something about you).
             var gameRow = -1;
-            if (_gameMoved
+            var roomForGame = rows.Count + 2 <= TurnScript.MaxRows;
+            if (roomForGame && (_gameMoved
                 || before.Creatures.Any(c => c.Kind == CreatureKind.SmallGame && _known(before, c))
-                || after.Creatures.Any(c => c.Kind == CreatureKind.SmallGame && _known(after, c)))
+                || after.Creatures.Any(c => c.Kind == CreatureKind.SmallGame && _known(after, c))))
             {
                 var code = _gameMoved ? (_gameFled ? RowCode.Scattered : RowCode.Moved)
                     : _endedEarly ? RowCode.None : RowCode.Still;

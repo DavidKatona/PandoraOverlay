@@ -29,7 +29,7 @@ internal static class Hints
         if (run.Over is not null) return HintCode.None;
 
         var predators = run.Creatures.Where(c => c.Kind == CreatureKind.Predator && known(run, c)).ToList();
-        if (predators.Any(c => Describe.Board.Distance(run.You.At, c.At) == 1)) return HintCode.Beside;
+        if (predators.Any(c => Island.Grid.Distance(run.You.At, c.At) == 1)) return HintCode.Beside;
         if (predators.Any(c => c.Alert >= Tuning.AlertSeen)) return hides ? HintCode.HuntedHide : HintCode.Hunted;
         if (maxHealthPercent < Tuning.HintHurt * 100 && predators.Count == 0) return HintCode.Rest;
         if (run.You.Water < Tuning.HintThirsty) return HintCode.Thirst;

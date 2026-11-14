@@ -11,17 +11,18 @@ namespace PandoraOverlay.Games.Tests;
 /// </summary>
 internal static class Scenes
 {
-    public static readonly HexGrid Grid = new(Tuning.Columns, Tuning.Rows);
+    /// <summary>The island's own grid.</summary>
+    public static readonly HexGrid Grid = Island.Grid;
 
     /// <summary>The sight of the stand-in for Sight.Knows: the base sight, no build or trait added.</summary>
-    public const int Sight = 3;
+    public const int SeesAsFar = 3;
 
     /// <summary>
     /// A stand-in for <c>Sight.Knows</c> (task H02's): a creature is known when its
-    /// cell is within <see cref="Sight"/> of yours, and the apex always (H6).
+    /// cell is within <see cref="SeesAsFar"/> of yours, and the apex always (H6).
     /// </summary>
     public static readonly Known Sees = (run, c) =>
-        (c.Kind == CreatureKind.Predator && c.Type == Tuning.Apex) || Grid.Distance(run.You.At, c.At) <= Sight;
+        (c.Kind == CreatureKind.Predator && c.Type == Tuning.Apex) || Grid.Distance(run.You.At, c.At) <= SeesAsFar;
 
     /// <summary>The cell at <paramref name="column"/> of row 5.</summary>
     public static int Row5(int column) => Grid.Index(column, 5);
