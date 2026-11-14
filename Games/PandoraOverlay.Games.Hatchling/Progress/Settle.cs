@@ -10,8 +10,8 @@ namespace PandoraOverlay.Games.Hatchling;
 /// again changes nothing, so a view, a reload or a bug that calls this twice can't
 /// pay twice. A run pays only for what it gained (H8): its pay lines were worked
 /// out by the rules from <c>Start</c> and <c>Best</c>, and the stage achievements
-/// here read the same two, so leaving a run at its first turn pays nothing and
-/// earns no stage.</para>
+/// here read the same two; and a run left before its first turn earns no
+/// achievement at all (H47).</para>
 /// </summary>
 internal static class Settle
 {
@@ -105,6 +105,11 @@ internal static class Settle
         var over = run.Over!;
         var won = over.Won;
 
+        // A run left before its first turn earns nothing at all (H47): starting a
+        // run and leaving it at once must not pay for two clicks (H8's rule, in small).
+        // It is still settled, counted and its seed moved.
+        if (run.Turn <= 0) yield break;
+
         yield return AchievementList.First;
         if (CrossedInRun(run.You, Tuning.StageLines[0])) yield return AchievementList.Juvenile;
         if (CrossedInRun(run.You, Tuning.StageLines[2])) yield return AchievementList.Adult;
@@ -117,8 +122,11 @@ internal static class Settle
         if (Builds.All.All(b => state.Totals.BuildsWon.Contains(b.Build))) yield return AchievementList.Shapes;
         if (won && run.Danger >= AchievementList.IntoDanger) yield return AchievementList.Danger3;
         if (won && run.Danger >= Dangers.Highest) yield return AchievementList.Danger5;
-        if (CrossedInRun(run.You, Tuning.StageLines[2]) && !run.You.Bitten) yield return AchievementList.Unseen;
-        if (won && run.Kills == 0) yield return AchievementList.Gentle;
+        // Decided at the crossing, not at the end (H46): a bite after Adult, the
+        // apex's usually, does not take back what was earned unseen.
+        if (CrossedInRun(run.You, Tuning.StageLines[2]) && run.You.AdultUnbitten) yield return AchievementList.Unseen;
+        // The apex is a predator too, though Kills does not count it (H45).
+        if (won && run.Kills == 0 && over.Reason != EndReason.DefeatedApex) yield return AchievementList.Gentle;
         if (SpeciesTable.All.All(s => state.Totals.SpeciesWon.Contains(s.Name))) yield return AchievementList.All21;
     }
 }

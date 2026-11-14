@@ -88,6 +88,8 @@ internal sealed class You
     public int LatchStreak { get; set; }
     /// <summary>A bite has landed on you this run (the "unseen" achievement asks).</summary>
     public bool Bitten { get; set; }
+    /// <summary>You crossed Adult in this run before any bite had landed on you: set by the world's turn at the crossing and never cleared (H46). The "unseen" achievement reads it.</summary>
+    public bool AdultUnbitten { get; set; }
 
     /// <summary>A copy that shares nothing with this one.</summary>
     public You Clone() => (You)MemberwiseClone();   // every field is a value

@@ -48,12 +48,35 @@ public class SettleTests
     }
 
     [Fact]
-    public void ARunLeftAtItsFirstTurnPaysOnlyItsTotalAndNoStage()
+    public void ARunLeftBeforeItsFirstTurnEarnsNothingButIsStillSettled()
     {
-        var left = Ended(reason: EndReason.Left, start: 30, best: 30, total: 0);
+        var left = Ended(reason: EndReason.Left, start: 30, best: 30, total: 0, turn: 0);
+        var seed = left.NextSeed;
+        var next = Settled(left);
+        Assert.Empty(next.Run!.Over!.Earned);   // H47: two clicks pay nothing
+        Assert.Empty(next.Achievements.Unlocked);
+        Assert.Equal(0, next.Wallet.Earned);
+        Assert.True(next.Run.Over.Settled);
+        Assert.Equal(1, next.Totals.Runs);
+        Assert.Equal(1, next.Record("Dryosaurus").Runs);
+        Assert.Equal(unchecked(seed + Tuning.SeedStep), next.NextSeed);
+    }
+
+    [Fact]
+    public void TheSameRunLeftAtTurnOneEarnsFirstAndNoStage()
+    {
+        var left = Ended(reason: EndReason.Left, start: 30, best: 30, total: 0, turn: 1);
         var next = Settled(left);
         Assert.Equal(new[] { AchievementList.First }, next.Run!.Over!.Earned);
         Assert.Equal(PayOf(AchievementList.First), next.Wallet.Earned);
+    }
+
+    [Fact]
+    public void ARunWithNoTurnEarnsNoneOfItsOtherAchievementsEither()
+    {
+        // Even a run that somehow ended won at turn 0 earns nothing: the rule is the turn, not the reason.
+        var next = Settled(Ended(won: true, best: 100, turn: 0, total: 0));
+        Assert.Empty(next.Run!.Over!.Earned);
     }
 
     [Fact]
@@ -156,7 +179,12 @@ public class SettleTests
     // ---- Each run achievement, and its near miss -------------------------------------------
 
     [Fact]
-    public void FirstIsAnyRunSettled() => Assert.True(Earns(Ended(), AchievementList.First));
+    public void FirstIsAnyRunInWhichATurnPassed()
+    {
+        Assert.True(Earns(Ended(), AchievementList.First));   // the samples' runs end at turn 40
+        Assert.True(Earns(Ended(turn: 1), AchievementList.First));
+        Assert.False(Earns(Ended(turn: 0), AchievementList.First));
+    }
 
     [Theory]
     [InlineData(0, 25, true)]
@@ -271,19 +299,27 @@ public class SettleTests
         Assert.Equal(earned, Earns(Ended(danger: danger, won: won, best: 100), AchievementList.Danger5));
 
     [Fact]
-    public void UnseenIsAdultCrossedInTheRunWithoutABite()
+    public void UnseenIsAdultCrossedInTheRunBeforeAnyBite()
     {
-        Assert.True(Earns(Ended(start: 0, best: 80, bitten: false), AchievementList.Unseen));
-        Assert.False(Earns(Ended(start: 0, best: 80, bitten: true), AchievementList.Unseen));
-        Assert.False(Earns(Ended(start: 0, best: 74, bitten: false), AchievementList.Unseen));
-        Assert.False(Earns(Ended(start: 75, best: 100, bitten: false), AchievementList.Unseen));   // not crossed in the run
+        // H46: decided at the crossing. Unbitten there, and bitten later (the apex, say): earned.
+        Assert.True(Earns(Ended(start: 0, best: 80, adultUnbitten: true), AchievementList.Unseen));
+        Assert.True(Earns(Ended(start: 0, best: 100, bitten: true, adultUnbitten: true), AchievementList.Unseen));
+        // Bitten before the crossing (the world's turn did not set it), or never marked: not earned.
+        Assert.False(Earns(Ended(start: 0, best: 80, bitten: true, adultUnbitten: false), AchievementList.Unseen));
+        Assert.False(Earns(Ended(start: 0, best: 80, bitten: false, adultUnbitten: false), AchievementList.Unseen));
+        // Marked, but Adult not crossed IN this run: not earned.
+        Assert.False(Earns(Ended(start: 0, best: 74, adultUnbitten: true), AchievementList.Unseen));
+        Assert.False(Earns(Ended(start: 75, best: 100, adultUnbitten: true), AchievementList.Unseen));
     }
 
     [Fact]
-    public void GentleIsAWinWithNoPredatorDefeated()
+    public void GentleIsAWinWithNoPredatorDefeatedTheApexIncluded()
     {
-        Assert.True(Earns(Ended(won: true, kills: 0, best: 100), AchievementList.Gentle));
-        Assert.False(Earns(Ended(won: true, kills: 1, best: 100), AchievementList.Gentle));
+        Assert.True(Earns(Ended(won: true, reason: EndReason.Outlasted, kills: 0, best: 100), AchievementList.Gentle));
+        // H45: the apex is a predator too, though Kills does not count it.
+        Assert.False(Earns(Ended(won: true, reason: EndReason.DefeatedApex, kills: 0, best: 100), AchievementList.Gentle));
+        Assert.False(Earns(Ended(won: true, reason: EndReason.Outlasted, kills: 1, best: 100), AchievementList.Gentle));
+        Assert.False(Earns(Ended(won: true, reason: EndReason.DefeatedApex, kills: 1, best: 100), AchievementList.Gentle));
         Assert.False(Earns(Ended(won: false, kills: 0, best: 100), AchievementList.Gentle));
     }
 
@@ -308,7 +344,7 @@ public class SettleTests
     [Fact]
     public void AFreshWinPaysItsTotalAndItsAchievementsInTheTablesOrder()
     {
-        var ended = Ended("Dryosaurus", won: true, reason: EndReason.Outlasted, start: 0, best: 100, kills: 0, total: 135);
+        var ended = Ended("Dryosaurus", won: true, reason: EndReason.Outlasted, start: 0, best: 100, kills: 0, total: 135, adultUnbitten: true);
         var next = Settled(ended);
 
         var expected = new[]

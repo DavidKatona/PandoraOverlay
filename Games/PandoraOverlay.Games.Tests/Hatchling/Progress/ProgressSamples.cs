@@ -48,28 +48,33 @@ internal static class ProgressSamples
     /// <summary>
     /// A fresh save whose run has just ended, not yet settled: the given species
     /// and danger, its growth from <paramref name="start"/> to <paramref name="best"/>,
-    /// paying <paramref name="total"/>. MaxDanger is raised to the danger played, as
-    /// it must have been for the run to begin.
+    /// paying <paramref name="total"/>, ended at <paramref name="turn"/> (40 unless a
+    /// test asks: a run with no turn earns nothing, H47). <paramref name="adultUnbitten"/>
+    /// is what the world's turn would have set at an unbitten crossing of Adult (H46).
+    /// MaxDanger is raised to the danger played, as it must have been for the run to begin.
     /// </summary>
     public static GameState Ended(string species = "Dryosaurus", int danger = 1, bool won = false,
-        EndReason? reason = null, double start = 0, double best = 10, int kills = 0, bool bitten = false, int total = 5)
+        EndReason? reason = null, double start = 0, double best = 10, int kills = 0, bool bitten = false, int total = 5,
+        bool adultUnbitten = false, int turn = 40)
     {
         var state = GameState.Fresh(Moment);
         state.MaxDanger = Math.Max(state.MaxDanger, danger);
         state.Danger = danger;
-        state.Run = EndedRun(species, danger, won, reason, start, best, kills, bitten, total);
+        state.Run = EndedRun(species, danger, won, reason, start, best, kills, bitten, total, adultUnbitten, turn);
         return state;
     }
 
     /// <summary>An ended, unsettled run, to put into a state of a test's own.</summary>
     public static RunState EndedRun(string species = "Dryosaurus", int danger = 1, bool won = false,
-        EndReason? reason = null, double start = 0, double best = 10, int kills = 0, bool bitten = false, int total = 5)
+        EndReason? reason = null, double start = 0, double best = 10, int kills = 0, bool bitten = false, int total = 5,
+        bool adultUnbitten = false, int turn = 40)
     {
-        var run = new RunState { Species = species, Danger = danger, Kills = kills, Turn = 40 };
+        var run = new RunState { Species = species, Danger = danger, Kills = kills, Turn = turn };
         run.You.Start = start;
         run.You.Best = best;
         run.You.Growth = best;
         run.You.Bitten = bitten;
+        run.You.AdultUnbitten = adultUnbitten;   // the world's turn sets it at the crossing (H46); here by hand
         run.Over = new RunOver
         {
             Won = won,
