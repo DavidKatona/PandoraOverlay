@@ -12,7 +12,7 @@ internal enum Perk
 
 /// <summary>A species of the server, as the game plays it.</summary>
 /// <param name="Name">Spelled as the server spells it, so a reading's species finds it (A23).</param>
-/// <param name="Threat">The species' own factor on the predators' threat, on top of the build's (H17). 1.00 for every one in the first pass; the balance work retunes them from the C# bot (H33).</param>
+/// <param name="Threat">The species' own factor on the predators' threat, on top of the build's (H17): tuned by the C# bot so that a fresh run of each species reaches Adult in about 40% of the bot's runs at danger 1 (test B1, H32), within 0.70 to 1.40 (H33).</param>
 internal sealed record SpeciesInfo(string Name, Build Build, Perk Perk, double Threat);
 
 /// <summary>
@@ -26,27 +26,27 @@ internal static class SpeciesTable
     /// <summary>The 21, in the order of <c>Assets/rules.json</c>'s pack-limit table (herbivores, carnivores, omnivores).</summary>
     public static IReadOnlyList<SpeciesInfo> All { get; } = new[]
     {
-        new SpeciesInfo("Dryosaurus", Build.Runner, Perk.Tireless, 1.00),
-        new SpeciesInfo("Hypsilophodon", Build.Runner, Perk.Freeze, 1.00),
-        new SpeciesInfo("Kentrosaurus", Build.Grazer, Perk.Spikes, 1.00),
-        new SpeciesInfo("Pachycephalosaurus", Build.Grazer, Perk.Headbutt, 1.00),
-        new SpeciesInfo("Tenontosaurus", Build.Grazer, Perk.Braced, 1.00),
-        new SpeciesInfo("Diabloceratops", Build.Grazer, Perk.Charge, 1.00),
-        new SpeciesInfo("Maiasaura", Build.Grazer, Perk.BigBites, 1.00),
-        new SpeciesInfo("Stegosaurus", Build.Tank, Perk.Thagomizer, 1.00),
-        new SpeciesInfo("Triceratops", Build.Tank, Perk.Frill, 1.00),
-        new SpeciesInfo("Pteranodon", Build.Flyer, Perk.HighView, 1.00),
-        new SpeciesInfo("Troodon", Build.Hunter, Perk.Venom, 1.00),
-        new SpeciesInfo("Herrerasaurus", Build.Hunter, Perk.Pounce, 1.00),
-        new SpeciesInfo("Omniraptor", Build.Hunter, Perk.Latch, 1.00),
-        new SpeciesInfo("Carnotaurus", Build.Stalker, Perk.Fleet, 1.00),
-        new SpeciesInfo("Ceratosaurus", Build.Stalker, Perk.Scavenger, 1.00),
-        new SpeciesInfo("Dilophosaurus", Build.Hunter, Perk.Spit, 1.00),
-        new SpeciesInfo("Deinosuchus", Build.Swimmer, Perk.Lunge, 1.00),
-        new SpeciesInfo("Allosaurus", Build.Stalker, Perk.Bleeder, 1.00),
-        new SpeciesInfo("Tyrannosaurus", Build.Apex, Perk.CrushingBite, 1.00),
-        new SpeciesInfo("Beipiaosaurus", Build.Forager, Perk.Wader, 1.00),
-        new SpeciesInfo("Gallimimus", Build.Forager, Perk.Evasive, 1.00),
+        new SpeciesInfo("Dryosaurus", Build.Runner, Perk.Tireless, 1.10),
+        new SpeciesInfo("Hypsilophodon", Build.Runner, Perk.Freeze, 1.09),
+        new SpeciesInfo("Kentrosaurus", Build.Grazer, Perk.Spikes, 1.10),
+        new SpeciesInfo("Pachycephalosaurus", Build.Grazer, Perk.Headbutt, 1.06),
+        new SpeciesInfo("Tenontosaurus", Build.Grazer, Perk.Braced, 1.11),
+        new SpeciesInfo("Diabloceratops", Build.Grazer, Perk.Charge, 1.05),
+        new SpeciesInfo("Maiasaura", Build.Grazer, Perk.BigBites, 0.98),
+        new SpeciesInfo("Stegosaurus", Build.Tank, Perk.Thagomizer, 1.05),
+        new SpeciesInfo("Triceratops", Build.Tank, Perk.Frill, 1.03),
+        new SpeciesInfo("Pteranodon", Build.Flyer, Perk.HighView, 1.35),
+        new SpeciesInfo("Troodon", Build.Hunter, Perk.Venom, 1.07),
+        new SpeciesInfo("Herrerasaurus", Build.Hunter, Perk.Pounce, 1.09),
+        new SpeciesInfo("Omniraptor", Build.Hunter, Perk.Latch, 1.11),
+        new SpeciesInfo("Carnotaurus", Build.Stalker, Perk.Fleet, 1.15),
+        new SpeciesInfo("Ceratosaurus", Build.Stalker, Perk.Scavenger, 1.08),
+        new SpeciesInfo("Dilophosaurus", Build.Hunter, Perk.Spit, 1.10),
+        new SpeciesInfo("Deinosuchus", Build.Swimmer, Perk.Lunge, 1.25),
+        new SpeciesInfo("Allosaurus", Build.Stalker, Perk.Bleeder, 1.15),
+        new SpeciesInfo("Tyrannosaurus", Build.Apex, Perk.CrushingBite, 1.04),
+        new SpeciesInfo("Beipiaosaurus", Build.Forager, Perk.Wader, 1.21),
+        new SpeciesInfo("Gallimimus", Build.Forager, Perk.Evasive, 1.20),
     };
 
     private static readonly Dictionary<string, SpeciesInfo> ByName =
