@@ -189,7 +189,7 @@ public sealed class GamesHostTests : IDisposable
         Assert.Equal(GameCondition.Faulted, hosted.Condition);
         Assert.NotNull(hosted.Defect);
         host.AttachAll();
-        host.StartAgain(hosted);
+        Assert.True(host.StartAgain(hosted)); // nothing to start, nothing left unsaved
         Assert.Equal(0, made);
         Assert.Equal(GameCondition.Faulted, hosted.Condition);
     }
@@ -681,6 +681,36 @@ public sealed class GamesHostTests : IDisposable
         Assert.Equal("fresh", OnDisk());
     }
 
+    /// <summary>
+    /// Item 3c of the A10 verdict (A49): the pending write fails while the
+    /// copy could still be made. The store's write is made to fail by holding
+    /// its temp file, <c>save.json.tmp</c>, open with no sharing: the copy to
+    /// <c>save.before-reset.json</c> touches only <c>save.json</c>, so it alone
+    /// would have worked.
+    /// </summary>
+    [Fact]
+    public void AResetWhosePendingSaveCantBeWrittenFirstResetsNothingAndKeepsIt()
+    {
+        var game = new FakeGame { DuringAttach = h => h.Storage.Write(1, "turn 1", SaveUrgency.Now) };
+        var hosted = Attached(game, out var host);
+        game.Host!.Storage.Write(1, "accrued since", SaveUrgency.Soon);
+        _events.Clear();
+
+        bool answer;
+        using (Lock(GameSaveStore.TempFile)) answer = host.StartFresh(hosted);
+
+        Assert.False(answer);
+        Assert.DoesNotContain("Reset", game.Calls);
+        Assert.False(File.Exists(_temp.FileOf(Id, GameSaveStore.BeforeResetFile))); // not even the copy
+        Assert.Equal("turn 1", OnDisk());
+        Assert.Equal(GameCondition.Ready, hosted.Condition);
+        Assert.Empty(_events);
+        Assert.Contains("not reset: its last pending save could not be written first", LogOf(Id).Warnings);
+
+        host.Flush(); // the failure released: the pending text was kept
+        Assert.Equal("accrued since", OnDisk());
+    }
+
     [Fact]
     public void AHeldSaveThatCantBeSetAsideStaysHeldAndResetsNothing()
     {
@@ -758,7 +788,7 @@ public sealed class GamesHostTests : IDisposable
         host.Fault(hosted, new InvalidOperationException("made up"));
         _events.Clear();
 
-        host.StartAgain(hosted);
+        Assert.True(host.StartAgain(hosted));
 
         Assert.Equal(2, made.Count);
         Assert.NotSame(made[0], made[1]);
@@ -780,7 +810,7 @@ public sealed class GamesHostTests : IDisposable
         var hosted = host.Games[0];
         var oldHost = made[0].Host!;
         host.Fault(hosted, new InvalidOperationException("made up"));
-        host.StartAgain(hosted);
+        Assert.True(host.StartAgain(hosted));
         made[1].Host!.Storage.Write(1, "the new one's", SaveUrgency.Now);
         _events.Clear();
 
@@ -802,8 +832,8 @@ public sealed class GamesHostTests : IDisposable
         var host = Host(Maker(made, (game, _) => game.Answer = AttachResult.SaveUnreadable), Maker(made, id: "second-game"));
         host.AttachAll();
 
-        host.StartAgain(host.Games[0]);
-        host.StartAgain(host.Games[1]);
+        Assert.True(host.StartAgain(host.Games[0]));
+        Assert.True(host.StartAgain(host.Games[1]));
 
         Assert.Equal(2, made.Count);
         Assert.Empty(_events);
@@ -818,7 +848,7 @@ public sealed class GamesHostTests : IDisposable
         host.Fault(host.Games[0], new InvalidOperationException("made up"));
         _events.Clear();
 
-        host.StartAgain(host.Games[0]);
+        Assert.True(host.StartAgain(host.Games[0])); // it failed again, and nothing was left unsaved
 
         Assert.Equal(2, calls);
         Assert.Equal(GameCondition.Faulted, host.Games[0].Condition);
@@ -834,7 +864,7 @@ public sealed class GamesHostTests : IDisposable
         var hosted = host.Games[0];
         Assert.Equal((GameCondition.Faulted, Id), (hosted.Condition, hosted.Title));
 
-        host.StartAgain(hosted);
+        Assert.True(host.StartAgain(hosted));
 
         Assert.Equal((GameCondition.Ready, "Fake game"), (hosted.Condition, hosted.Title));
         Assert.Contains("Attach", ((FakeGame)hosted.Instance!).Calls);
@@ -851,9 +881,83 @@ public sealed class GamesHostTests : IDisposable
         host.Fault(host.Games[0], new InvalidOperationException("made up"));
         _events.Clear();
 
-        host.StartAgain(host.Games[0]);
+        Assert.True(host.StartAgain(host.Games[0]));
 
         Assert.Equal(GameCondition.Faulted, host.Games[0].Condition);
         Assert.Equal(new[] { $"{Id} Faulted" }, _events);
+    }
+
+    /// <summary>
+    /// Item 3a of the A10 verdict (A49): save first, start again second. The
+    /// stopped instance's pending save can't be written (the store's temp file
+    /// held open with no sharing), so nothing is started and nothing is lost;
+    /// once the disk works, the new instance reads exactly that pending text.
+    /// </summary>
+    [Fact]
+    public void StartAgainWhosePendingSaveCantBeWrittenStartsNothingAndLosesNothing()
+    {
+        var made = new List<FakeGame>();
+        var host = Host(Maker(made, (game, index) =>
+        {
+            if (index == 0) game.DuringAttach = h => h.Storage.Write(1, "turn 1", SaveUrgency.Now);
+        }));
+        host.AttachAll();
+        var hosted = host.Games[0];
+        made[0].Host!.Storage.Write(1, "handed over", SaveUrgency.Soon); // pending at the fault
+        host.Fault(hosted, new InvalidOperationException("made up"));
+        _events.Clear();
+
+        bool answer;
+        using (Lock(GameSaveStore.TempFile)) answer = host.StartAgain(hosted);
+
+        Assert.False(answer);
+        Assert.Equal(GameCondition.Faulted, hosted.Condition);
+        Assert.Single(made); // the catalog made no new instance
+        Assert.Same(made[0], hosted.Instance);
+        Assert.Empty(_events);
+        Assert.Contains("not started again: its last pending save could not be written first", LogOf(Id).Warnings);
+        Assert.Equal("turn 1", OnDisk());
+
+        Assert.True(host.StartAgain(hosted)); // the failure released: the player clicks again
+
+        Assert.Equal(2, made.Count);
+        Assert.Same(made[1], hosted.Instance);
+        Assert.Contains("Attach", made[1].Calls);
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "handed over"), made[1].ReadAtAttach);
+        Assert.Equal(GameCondition.Ready, hosted.Condition);
+        Assert.Equal(new[] { $"{Id} Ready" }, _events);
+    }
+
+    /// <summary>
+    /// Item 3b of the A10 verdict (A49): false means only "the pending save
+    /// could not be written". Every other case answers true: a new instance
+    /// that plays, one whose constructor or Attach throws again, a game that is
+    /// not stopped, a catalog defect.
+    /// </summary>
+    [Fact]
+    public void StartAgainAnswersTrueWheneverNothingWasLeftUnsaved()
+    {
+        var plays = new List<FakeGame>();
+        var constructorAgain = 0;
+        var attachAgain = new List<FakeGame>();
+        var host = Host(
+            Maker(plays, id: "plays-game"),
+            new GameEntry("constructor-game", () => ++constructorAgain == 1 ? new FakeGame("constructor-game") : throw new InvalidOperationException("made up")),
+            Maker(attachAgain, (game, index) => { if (index == 1) game.Throws = FakeThrows.Attach; }, id: "attach-game"),
+            Maker(new List<FakeGame>(), id: "ready-game"),
+            new GameEntry("Bad Id", () => new FakeGame("Bad Id")));
+        host.AttachAll();
+        for (var i = 0; i < 3; i++) host.Fault(host.Games[i], new InvalidOperationException("made up"));
+
+        Assert.True(host.StartAgain(host.Games[0]));
+        Assert.True(host.StartAgain(host.Games[1]));
+        Assert.True(host.StartAgain(host.Games[2]));
+        Assert.True(host.StartAgain(host.Games[3]));
+        Assert.True(host.StartAgain(host.Games[4]));
+
+        Assert.Equal(
+            new[] { GameCondition.Ready, GameCondition.Faulted, GameCondition.Faulted, GameCondition.Ready, GameCondition.Faulted },
+            host.Games.Select(g => g.Condition));
+        Assert.Equal((2, 2, 2), (plays.Count, constructorAgain, attachAgain.Count));
     }
 }

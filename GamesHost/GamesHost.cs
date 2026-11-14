@@ -29,8 +29,14 @@ namespace PandoraOverlay;
 /// <b>Saved (A7, A8).</b> Each game writes through its own
 /// <see cref="GameStorage"/> over the one <see cref="GameSaveStore"/>. A save
 /// a game can't take is held, and only the player's armed "Start fresh" sets
-/// it aside (<see cref="StartFresh"/>); a Reset keeps the save it replaces
-/// first, and resets nothing when it can't (A38).
+/// it aside (<see cref="StartFresh"/>). The tile's two buttons that replace a
+/// game's state SAVE FIRST: a Reset writes what is pending and keeps the save
+/// it replaces before it forgets anything, and resets nothing when it can't
+/// (A38); "Start it again" writes what the stopped instance had pending before
+/// it makes a new one, and starts nothing when it can't (A49). Each then
+/// answers false, the tile says why, and the player can click again: a refusal
+/// costs a click while the disk is failing, where going ahead would lose what
+/// the player would miss without a word on screen.
 /// </para>
 /// <para>
 /// <b>No IO until <see cref="AttachAll"/>.</b> The constructor only makes the
@@ -80,6 +86,10 @@ internal sealed class GamesHost
 
     /// <summary>The listed games, in the catalog's order (G1).</summary>
     public IReadOnlyList<HostedGame> Games { get; }
+
+    // A subscriber of either event is the app's own code (the window,
+    // MainWindow): one that throws is the app's own bug, and is not caught here
+    // (A50). The three layers of A10 contain a game's code, never the app's.
 
     /// <summary>A game's tile texts changed (the game said so, or the host reset it): the window redraws that tile in place.</summary>
     public event Action<HostedGame>? TileChanged;
@@ -237,19 +247,22 @@ internal sealed class GamesHost
 
     /// <summary>
     /// The armed second click on a tile's "Start fresh" (a held save) or
-    /// "Reset" (a Ready game). KEEP FIRST, RESET SECOND (A38): the old save is
-    /// put aside before anything is forgotten, and when it can't be, nothing
-    /// is reset and the answer is false; the tile says so, and the player can
-    /// click again. A Reset that throws stops the game as any call does, and
-    /// the answer is false.
+    /// "Reset" (a Ready game). SAVE AND KEEP FIRST, RESET SECOND (A38, A49):
+    /// the old state is written and put aside before anything is forgotten,
+    /// and when it can't be, nothing is reset and the answer is false; the tile
+    /// says so, and the player can click again. A Reset that throws stops the
+    /// game as any call does, and the answer is false.
     /// <para>
     /// A held save: its files are set aside (<c>unreadable-&lt;n&gt;.*</c>,
     /// never deleted), which releases the hold; then the game's Reset writes
     /// its fresh state, and the game is Ready. A Ready game: what is pending
-    /// is written first, so the copy is its newest state; that save is copied
-    /// to <c>save.before-reset.json</c>, the player's way back from a Reset by
-    /// mistake; then the Reset. A Faulted game has nothing to reset ("Start it
-    /// again" is its button): false.
+    /// is written first, so the copy is its newest state, and when that write
+    /// fails nothing is reset and the pending text is kept for the next flush
+    /// (A49: what is pending can be a failed Now write, a committed turn); then
+    /// that save is copied to <c>save.before-reset.json</c>, the player's way
+    /// back from a Reset by mistake, and when the copy fails nothing is reset;
+    /// then the Reset. A Faulted game has nothing to reset ("Start it again" is
+    /// its button): false.
     /// </para>
     /// </summary>
     public bool StartFresh(HostedGame game)
@@ -268,6 +281,11 @@ internal sealed class GamesHost
 
             case GameCondition.Ready:
                 host.OwnStorage.Flush();
+                if (host.OwnStorage.HasPending)
+                {
+                    host.Log.Warning("not reset: its last pending save could not be written first");
+                    return false;
+                }
                 if (!KeepBeforeReset(game))
                 {
                     host.Log.Warning("not reset: its save could not be kept first");
@@ -311,31 +329,51 @@ internal sealed class GamesHost
     }
 
     /// <summary>
-    /// The tile's "Start it again", for a Faulted game: the old instance is
-    /// detached (nothing it still does reaches the host or the disk), what it
-    /// handed over before it failed is written, and a new instance from the
-    /// catalog is attached to that last save, as at <see cref="AttachAll"/>.
-    /// Raises <see cref="ConditionChanged"/> once, unless the new instance
-    /// failed in its constructor (the game is still Faulted, as it was).
+    /// The tile's "Start it again", for a Faulted game. SAVE FIRST, START AGAIN
+    /// SECOND (A49): what the stopped instance handed over before it failed (a
+    /// whole state) is written BEFORE anything is made. Then the old instance
+    /// is detached (nothing it still does reaches the host or the disk), and a
+    /// new instance from the catalog is attached to that last save, as at
+    /// <see cref="AttachAll"/>, raising <see cref="ConditionChanged"/> once
+    /// (unless the new instance failed in its constructor: the game is then
+    /// still Faulted, as it was, and the log has it; an <c>Attach</c> that
+    /// throws stops it through the guard, which raises the event).
+    /// <para>
+    /// False means one thing only: the pending save could not be written, so
+    /// nothing was started and nothing is lost. The text stays pending (the
+    /// next flush tries again), the old instance is not detached, the game is
+    /// still Faulted, no event is raised; the tile says so and the player can
+    /// click again. What is pending is not only a minute of accrual: a Now write
+    /// that failed (a committed turn, a purchase) is kept pending too, and a new
+    /// instance started from the older save would write over it. True in every
+    /// other case: a game that is not Faulted (nothing to do), a catalog defect
+    /// (a Warning, nothing to start), and a new instance that failed again (it
+    /// is stopped as before).
+    /// </para>
     /// </summary>
-    public void StartAgain(HostedGame game)
+    public bool StartAgain(HostedGame game)
     {
-        if (game.Condition != GameCondition.Faulted) return;
+        if (game.Condition != GameCondition.Faulted) return true;
         if (game.Defect is not null)
         {
             AppLog.Games.Warning($"{game.Id}: can't be started again: {game.Defect}");
-            return;
+            return true;
         }
         if (game.Host is { } old)
         {
-            old.Detach();
             old.OwnStorage.Flush();
-            if (old.OwnStorage.HasPending) old.Log.Warning("its last pending save could not be written before it started again");
+            if (old.OwnStorage.HasPending)
+            {
+                old.Log.Warning("not started again: its last pending save could not be written first");
+                return false;
+            }
+            old.Detach();
         }
-        if (!Make(game)) return; // a constructor that threw again: still Faulted, as it was
-        if (_attached && !Attach(game)) return; // Attach threw: Stop raised ConditionChanged
+        if (!Make(game)) return true; // a constructor that threw again: still Faulted, as it was
+        if (_attached && !Attach(game)) return true; // Attach threw: Stop raised ConditionChanged
         game.Host?.Log.Log("started again after an error");
         ConditionChanged?.Invoke(game);
+        return true;
     }
 
     // ---- Faults (A10) ------------------------------------------------------------
