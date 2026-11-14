@@ -11,7 +11,7 @@
 // the shapes to the size, the age and the pose before they become pixels. The
 // adult standing frame is the description with no gait and no place(): exactly
 // the 36 x 25 sprite it always was.
-const { ellipse, stroke, poly, sprite, place } = require("../engine");
+const { ellipse, stroke, poly, sprite, place, flash } = require("../engine");
 
 const W = 36;
 const H = 25;
@@ -63,6 +63,69 @@ function mouth(snout, teeth, from) {
   return { marks, tips };
 }
 
+// Open jaws (task H12: a strike's second frame, a crocodile's meal): the snout
+// drawn as two jaws hinged at its first point, the upper lifted a little, the
+// lower dropped more, by `open` at the tip (the description's units), so a
+// wedge opens between them toward the tip: open jaws are a change of
+// SILHOUETTE, the one thing that survives at 1x. Inside the wedge, the maw: a
+// dark red no ground and no dino has, so the open mouth reads on the dark
+// ground (where a gap alone showed nothing) and on the green ones; each jaw
+// keeps a dark line where it lies over it (`sep`). A meat eater's teeth stand
+// on the upper jaw's edge, every other pixel, and one at the lower jaw's tip.
+// The jaws and the maw are bone "snout": they go wherever the head goes.
+// `withMaw` false (a thin beak, which has no outline to keep a line with)
+// leaves the wedge open to the ground.
+function jaws(snout, open, more, teeth, withMaw) {
+  const x0 = snout[0][0];
+  const x1 = snout[snout.length - 1][0];
+  const along = (x) => Math.max(0, Math.min(1, (x - x0) / (x1 - x0)));
+  // The snout's middle line and thickness at x, along its points.
+  const at = (x) => {
+    for (let i = 1; i < snout.length; i++) {
+      const [ax, ay, ar] = snout[i - 1];
+      const [bx, by, br] = snout[i];
+      if (x <= bx || i === snout.length - 1) {
+        const t = bx === ax ? 0 : Math.max(0, Math.min(1, (x - ax) / (bx - ax)));
+        return [ay + (by - ay) * t, ar + (br - ar) * t];
+      }
+    }
+    return [snout[0][1], snout[0][2]];
+  };
+  const upperOf = (x, y, r) => [x, y - r * JAW.upperSit - open * JAW.upperLift * along(x), Math.max(0.5, r * JAW.upperR)];
+  const lowerOf = (x, y, r) => [x, y + r * JAW.lowerSit + open * JAW.lowerDrop * along(x), Math.max(0.45, r * JAW.lowerR)];
+  const upper = snout.map(([x, y, r]) => upperOf(x, y, r));
+  const lower = snout.map(([x, y, r]) => lowerOf(x, y, r));
+  const parts = [];
+  if (withMaw !== false) {
+    const [ty, tr] = at(x1);
+    const [, uy, ur] = upperOf(x1, ty, tr);
+    const [, ly, lr] = lowerOf(x1, ty, tr);
+    const [hy] = at(x0);
+    parts.push(poly([[x0 + 0.4, hy - 0.4], [x1 - 0.2, uy + ur * 0.4], [x1 - 0.6, ly - lr * 0.4], [x0 + 0.4, hy + 0.8]], { ramp: "maw", thin: "base", bone: "snout" }));
+  }
+  const jaw = { ...more, sep: withMaw !== false };
+  parts.push(stroke(lower, jaw), stroke(upper, jaw));
+  const tips = [];
+  if (teeth) {
+    let last = null;
+    for (let x = Math.ceil(x0 + 1); x <= Math.floor(x1 - 0.4); x++) {
+      const [y, r] = at(x + 0.5);
+      const [, uy, ur] = upperOf(x + 0.5, y, r);
+      const [, ly, lr] = lowerOf(x + 0.5, y, r);
+      if (ly - lr - (uy + ur) < 0.8) continue; // no gap here yet: no teeth to show
+      if ((x - Math.ceil(x0)) % 2 === 1) tips.push([x, Math.floor(uy + ur - 0.5), TOOTH]);
+      last = [x, Math.floor(ly - lr + 0.5), TOOTH];
+    }
+    if (last) tips.push(last);
+  }
+  return { parts, tips, lift: (x) => -at(x)[1] * JAW.upperSit - open * JAW.upperLift * along(x) };
+}
+// How the jaws part: where each sits on the closed snout's line (a part of its
+// thickness), its thickness (a part of the snout's), and its share of `open`.
+const JAW = { upperSit: 0.25, upperR: 0.8, upperLift: 0.3, lowerSit: 0.45, lowerR: 0.62, lowerDrop: 0.7 };
+// The inside of an open mouth.
+const MAW = "#6A2228";
+
 // A two-legged build: hip and chest set the body, the rest hangs off them.
 // g is the gait: g.near and g.far the hind feet, g.foreNear and g.foreFar the
 // hands of the builds that walk on them too (Tenontosaurus, Maiasaura).
@@ -87,7 +150,9 @@ function biped(o, g) {
   parts.push(stroke([[hx, hy, o.girth[0]], [cx, cy, o.girth[1]]], { belly: true }));
   parts.push(stroke(o.neck, { belly: true, bone: "neck" }));
   parts.push(ellipse(o.head[0], o.head[1], o.head[2], o.head[3], { bone: "head", skull: true }));
-  if (o.snout) parts.push(stroke(o.snout, { ramp: o.snoutRamp, bone: "snout" }));
+  const open = o.snout && g.jaw ? jaws(o.snout, g.jaw, { ramp: o.snoutRamp, bone: "snout" }, o.teeth) : null;
+  if (open) parts.push(...open.parts);
+  else if (o.snout) parts.push(stroke(o.snout, { ramp: o.snoutRamp, bone: "snout" }));
   (o.onTop || []).forEach((p) => parts.push(p));
   parts.push(...leg(hx, hy, L, { sep: true }, near));
   if (o.arm) parts.push(stroke(armPts(cx, cy + 1.1, o.arm), { limb: true, sep: true }));
@@ -100,8 +165,8 @@ function biped(o, g) {
   const eye = [Math.floor(o.head[0] + o.head[2] * 0.2), Math.ceil(o.head[1] - o.head[3] - 0.5) + 2];
   const tips = [[Math.floor(hx + 0.5 + L.f + 0.55 + near.dx), Math.floor(G - 1.1), BONE]];
   if (o.arm) tips.push([Math.floor(cx + o.arm.len * 0.5 + 0.35), Math.floor(cy + 1.1 + o.arm.len * 0.85 + 0.25), BONE]);
-  const m = o.snout && o.mouth !== false ? mouth(o.snout, o.teeth, o.mouthFrom) : { marks: [], tips: [] };
-  return { parts, eye, head: [o.head[0], o.head[1]], tips: [...tips, ...m.tips], marks: m.marks };
+  const m = open ? { marks: [], tips: open.tips } : o.snout && o.mouth !== false ? mouth(o.snout, o.teeth, o.mouthFrom) : { marks: [], tips: [] };
+  return { parts, eye, head: [o.head[0], o.head[1]], skull: o.head, hip: o.hip, tips: [...tips, ...m.tips], marks: m.marks };
 }
 
 // A four-legged build: rump and shoulder set the body. g.near and g.far are
@@ -128,15 +193,17 @@ function quad(o, g) {
   if (o.neck) parts.push(stroke(o.neck, { belly: true, bone: "neck" }));
   (o.mid || []).forEach((p) => parts.push(p));
   parts.push(ellipse(o.head[0], o.head[1], o.head[2], o.head[3], { bone: "head", skull: true }));
-  if (o.snout) parts.push(stroke(o.snout, { ramp: o.snoutRamp, bone: "snout" }));
+  const open = o.snout && g.jaw ? jaws(o.snout, g.jaw, { ramp: o.snoutRamp, bone: "snout" }, false) : null;
+  if (open) parts.push(...open.parts);
+  else if (o.snout) parts.push(stroke(o.snout, { ramp: o.snoutRamp, bone: "snout" }));
   (o.onTop || []).forEach((p) => parts.push(p));
   parts.push(...post(o.hindX, o.rump[1] + 1.2, o.legW[0], { sep: true }, share(g.near, -1)));
   parts.push(...post(o.foreX, o.shoulder[1] + 1.2, o.legW[1], { sep: true }, share(g.foreNear, -1)));
   (o.front || []).forEach((p) => parts.push(p));
   // Two rows under the top of the head, so a lighter row always sits above it.
   const eye = [Math.floor(o.head[0] + o.head[2] * 0.2), Math.ceil(o.head[1] - o.head[3] - 0.5) + 2];
-  const m = o.snout && o.mouth !== false ? mouth(o.snout, false, o.mouthFrom) : { marks: [], tips: [] };
-  return { parts, eye, head: [o.head[0], o.head[1]], tips: m.tips, marks: m.marks };
+  const m = open ? { marks: [], tips: [] } : o.snout && o.mouth !== false ? mouth(o.snout, false, o.mouthFrom) : { marks: [], tips: [] };
+  return { parts, eye, head: [o.head[0], o.head[1]], skull: o.head, hip: [o.rump[0], o.rump[1]], tips: m.tips, marks: m.marks };
 }
 
 // The description as the engine takes it (a sprite spec), not yet pixels: the
@@ -151,7 +218,9 @@ function finish(build, o) {
     w: W,
     h: H,
     head: build.head,
-    ramps: { bone: BONE, ...o.ramps },
+    skull: build.skull,
+    hip: build.hip,
+    ramps: { bone: BONE, maw: MAW, ...o.ramps },
     parts: build.parts,
     stripes: o.stripes || [],
     marks: [...build.marks, ...(o.marks || [])],
@@ -171,6 +240,8 @@ const TRIKE_FRILL = [22.0, 15.0];
 
 const stripes = (xs, len, more) => xs.map((x) => ({ x, len, ...(more || {}) }));
 const AMBER = "#FFC864";
+// The Pteranodon's beak, closed (its strike opens it: jaws()).
+const BEAK = [[27.0, 11.8, 1.3], [34.2, 13.4, 0.45]];
 
 const SPECIES = {
   Dryosaurus: (g) =>
@@ -203,7 +274,7 @@ const SPECIES = {
         rump: [12.5, 13, 4.4], shoulder: [20, 14.2, 3.6], hindX: 12, foreX: 20.6, legW: [1.8, 1.5],
         tail: [[10, 13, 3.0], [5.5, 13, 1.9], [2, 12.6, 1.0], [0.6, 12.4, 0.6]],
         neck: [[22.6, 14.6, 2.2], [25.8, 15.8, 1.7]],
-        head: [28, 16.4, 2.3, 1.6], snout: [[29, 16.7, 1.3], [31.4, 17.2, 0.9]],
+        head: [28, 16.4, 2.3, 1.9], snout: [[29, 16.7, 1.3], [31.4, 17.2, 0.9]],
         onTop: [
           poly([[20.4, 11.6], [21.6, 8.0], [22.9, 11.8]], { ramp: "plate", sep: true, orn: true }),
           poly([[17.4, 10.8], [18.8, 6.6], [20.3, 11.0]], { ramp: "plate", sep: true, orn: true }),
@@ -347,7 +418,7 @@ const SPECIES = {
       stroke([[20.2, 14.4, 1.6], [23.4, 12.2, 1.4]], { bone: "neck" }),
       stroke([[24.0, 10.4, 1.2], [20.6, 7.6, 0.8], [17.6, 6.2, 0.45]], { ramp: "crest", thin: true, bone: "head", orn: true }),
       ellipse(25.2, 11.4, 2.5, 2.0, { bone: "head", skull: true }),
-      stroke([[27.0, 11.8, 1.3], [34.2, 13.4, 0.45]], { ramp: "beak", thin: true, bone: "snout" }),
+      ...(g && g.jaw ? jaws(BEAK, g.jaw, { ramp: "beak", thin: true, bone: "snout" }, false, false).parts : [stroke(BEAK, { ramp: "beak", thin: true, bone: "snout" })]),
       stroke([[16.4, 16.6, 0.8], [12.6, 19.2, 0.5]], { limb: true })
     ];
     const edge = [[17, 7], [15, 5], [12, 4], [9, 3], [7, 2]].map(([x, y]) => {
@@ -357,6 +428,8 @@ const SPECIES = {
     return {
       w: W, h: H,
       head: [25.2, 11.4],
+      skull: [25.2, 11.4, 2.5, 2.0],
+      hip: [17.6, 15.2],
       ramps: { body: "#D2CAB6", belly: "#F1ECDD", wing: "#7F92A3", crest: "#D9762B", beak: "#E3BD55", bone: BONE },
       parts,
       marks: edge,
@@ -486,7 +559,8 @@ const SPECIES = {
     const young = YOUNG_CROC[(size && size.suffix) || ""] || { deep: 1, lift: 0 };
     const trunk = ([x, y, r]) => [x, y - young.lift, r * young.deep];
     const snout = [[28.2, 17.0, 1.9], [34.4, 17.7, 1.35]];
-    const m = mouth(snout, true, 0);
+    const open = g.jaw ? jaws(snout, g.jaw, { belly: true, bone: "snout" }, true) : null;
+    const m = open ? { marks: [], tips: open.tips } : mouth(snout, true, 0);
     const foot = (step) => (step.swing ? "swing" : "ground");
     // A sprawled leg: its upper end on the body, its lower end and its foot moved by the step.
     const limb = (top, low, toe, step, more) => {
@@ -503,8 +577,9 @@ const SPECIES = {
       stroke([trunk([9.5, 17.6, 3.4]), trunk([19, 17.4, 3.6])], { belly: true }),
       stroke([trunk([21.5, 17.2, 3.0]), [24.6, 16.8, 2.6]], { belly: true, bone: "neck" }),
       ellipse(26.6, 16.6, 2.9, 2.3, { belly: true, bone: "head", skull: true }),
-      stroke(snout, { belly: true, bone: "snout" }),
-      ellipse(34.2, 17.0, 1.25, 1.2, { bone: "snout" }),
+      ...(open ? open.parts : [stroke(snout, { belly: true, bone: "snout" })]),
+      // The nose's knob rides the upper jaw.
+      ellipse(34.2, 17.0 + (open ? open.lift(34.2) : 0), 1.25, 1.2, { bone: "snout" }),
       ellipse(26.0, 14.8, 1.3, 1.05, { bone: "head" }),
       ...limb([11.2, 19.2, 1.6], [10.0, 22.0, 1.15], [[9.8, 22.9, 0.9], [12.8, 23.3, 0.75]], g.near, { limb: true, sep: true }),
       ...limb([20.2, 19.2, 1.6], [21.2, 22.0, 1.15], [[21.0, 22.9, 0.9], [24.0, 23.3, 0.75]], g.foreNear, { limb: true, sep: true })
@@ -512,7 +587,9 @@ const SPECIES = {
     return {
       w: W, h: H,
       head: [26.6, 16.6],
-      ramps: { body: "#50623F", belly: "#C9BC84", bone: BONE },
+      skull: [26.6, 16.6, 2.9, 2.3],
+      hip: [9.5, 17.6],
+      ramps: { body: "#50623F", belly: "#C9BC84", bone: BONE, maw: MAW },
       parts,
       stripes: stripes([2, 4, 6, 9, 12, 15, 18, 21], 2, { tone: "shadow" }),
       marks: m.marks,
@@ -585,7 +662,7 @@ const SPECIES = {
         hip: [14, 12.8], chest: [20, 11.4], girth: [3.9, 3.3],
         tail: [[12, 12.4, 2.8], [6.5, 11.2, 1.7], [2.4, 10, 0.9], [0.6, 9.6, 0.5]],
         neck: [[21, 10.2, 2.2], [23.4, 6.4, 1.6], [24.6, 3.8, 1.4]],
-        head: [26.2, 3.2, 2.4, 1.7], snout: [[27.2, 3.5, 1.3], [30.8, 4.2, 0.75]], snoutRamp: "beak", mouth: false,
+        head: [26.2, 3.2, 2.4, 1.9], snout: [[27.2, 3.5, 1.3], [30.8, 4.2, 0.75]], snoutRamp: "beak", mouth: false,
         front: [poly([[19.2, 12.2], [23.0, 13.2], [21.8, 16.6], [18.4, 14.8]], { ramp: "feather", sep: true })],
         leg: { T: 5.6, w: 2.9, f: 3.4 }
       }, g),
@@ -704,30 +781,179 @@ function gaitOf(build, frame, size) {
   return { near: step("A"), foreFar: step("A"), far: step("B"), foreNear: step("B"), wing: 0, walking: true };
 }
 
-// One frame of a species: its size (a SIZES entry), its action ("stand" or
-// "walk") and the frame's index. The adult standing frame is the description
-// drawn as it is, so it is the 36 x 25 sprite it always was, to the pixel.
+// ---- Acting (task H12, PLAN-HATCHLING 6.3, G9) ----
+// Every action must say what it is before a word is read: a predator that
+// lunges and a dino that flinches say "it bit you". The frames are the
+// standing description posed by place(), never redrawn: the feet stay on the
+// ground line in every frame (a strike, a hurt and a meal are done standing).
+//
+// A STRIKE is two frames: the wind-up (the head drawn back and up, the body
+// leaning back a pixel), then the blow. Its kind is the animal's weapon:
+//   bite   the head thrust forward with the jaws open (every species not
+//          named below; a plant eater bites too, and the jaws are what reads)
+//   butt   the Pachycephalosaurus: the head turned down so the dome leads
+//   horns  the horned dinos: the head lowered, the horns brought forward
+//   tail   the Stegosaurus and the Kentrosaurus: the tail swung up, its
+//          spikes high, the head kept
+//   croc   the Deinosuchus: low, the jaws wide
+//   beak   the Pteranodon: a stab with the beak open
+// Offsets are whole pixels of the full-size frame (smaller sizes scale them,
+// a moving part always moves at least a pixel); nod and pitch are turns in
+// radians (place(): positive nose down). `forward` marks the blow: its head
+// goes forward only as far as the frame has room in front of the standing
+// animal, so a long snout (the Tyrannosaurus' fills the frame) is never cut by
+// the frame's edge; its wind-up still draws it back.
+const STRIKES = {
+  bite: [
+    { body: [-1, 0], head: [-3, 0], tail: [1, 0], nod: -0.2 },
+    { body: [1, 0], head: [1, 1], nod: 0.08, jaw: 3.6, forward: true }
+  ],
+  butt: [
+    { body: [-1, 0], head: [-2, 0], tail: [1, 0], nod: -0.25 },
+    { body: [1, 0], head: [1, 2], nod: 0.8, forward: true }
+  ],
+  horns: [
+    { body: [-1, 0], head: [-1, 0], tail: [1, 0], nod: -0.25 },
+    { body: [1, 0], head: [1, 2], nod: 0.12, nodAt: "centre", forward: true }
+  ],
+  tail: [
+    { body: [1, 0], tail: [-1, 2] },
+    { body: [-1, 0], tail: [1, -7] }
+  ],
+  croc: [
+    { body: [-1, 0], head: [-1, -1], tail: [1, 0], nod: -0.15 },
+    { body: [1, 0], head: [0, 0], jaw: 3.4, forward: true }
+  ],
+  beak: [
+    { body: [-1, 0], head: [-2, -1], tail: [1, 0], nod: -0.2 },
+    { body: [1, 0], head: [1, 1], nod: 0.15, jaw: 2.4, forward: true }
+  ]
+};
+const STRIKE_KIND = {
+  Pachycephalosaurus: "butt", Triceratops: "horns", Diabloceratops: "horns",
+  Stegosaurus: "tail", Kentrosaurus: "tail", Deinosuchus: "croc", Pteranodon: "beak"
+};
+
+// A MEAL is two frames, looping: the head down to the ground, then half up.
+// A biped bends at the hip (`pitch`: its tail rises as its head falls, by
+// `tailK` of the turn, or it stood on end); a
+// quadruped only lowers its neck; the flyer bows its head on its neck (a
+// pitch would turn its raised wings out of the frame); the
+// crocodile dips its head with the jaws open. How far the head goes down is
+// not a number per species: it is measured, so the lowest point of the head
+// lands on the feet's row (`drop`, a part of the way: 1 down, 0.5 half up).
+const EATS = {
+  biped: [{ pitch: 0.55, tailK: 0.4, drop: 1 }, { pitch: 0.28, tailK: 0.4, drop: 0.5 }],
+  quad: [{ drop: 1, nod: 0.15 }, { drop: 0.5 }],
+  crawl: [{ drop: 1, jaw: 2.6 }, { drop: 0.5 }],
+  fly: [{ drop: 1, nod: 0.6 }, { drop: 0.5, nod: 0.3 }]
+};
+
+// The flash of a hit (`hurt/0`): the standing frame lit near white inside its
+// outline (engine flash()).
+const HURT_TO = "#FFFDF6";
+const HURT_K = 0.8;
+
+// How much of a full-size offset each size moves (a smaller animal moves
+// fewer pixels; a part that moves moves at least one).
+const ACT_AMP = { "": 1, "-l": 1, "-m": 0.75, "-s": 0.6 };
+
+// The actions a creature has, with their frames' ticks and whether they loop
+// (A39; the plan's 6.2 and 6.3). build.js makes the atlas from this list.
+const ACTIONS = [
+  { action: "stand", ticks: [1], loops: true },
+  { action: "walk", ticks: [3, 3, 3, 3], loops: true },
+  { action: "strike", ticks: [3, 6], loops: false },
+  { action: "hurt", ticks: [4], loops: false },
+  { action: "eat", ticks: [4, 4], loops: true }
+];
+
+// The pivot point of a nod: the back of the skull, low, where the neck meets it.
+const nodAbout = (skull) => [skull[0] - skull[2] * 0.6, skull[1] + skull[3] * 0.3];
+
+const scaled = (v, k) => (v === 0 ? 0 : Math.sign(v) * Math.max(1, Math.round(Math.abs(v) * k)));
+const scaledPair = (p, k) => (p ? [scaled(p[0], k), scaled(p[1], k)] : [0, 0]);
+
+// The rightmost opaque column of an image.
+function rightmost(img) {
+  let best = -1;
+  for (let y = 0; y < img.h; y++) for (let x = img.w - 1; x > best; x--) if (img.px[y * img.w + x][3] > 0) best = x;
+  return best;
+}
+
+// The lowest edge of the head (its skull, snout and whatever rides them), in
+// the new frame's pixels, after place().
+function headBottom(placed) {
+  let low = -Infinity;
+  for (const p of placed.parts) {
+    const bone = p.bone || "body";
+    if (bone !== "head" && bone !== "snout") continue;
+    if (p.kind === "ellipse") low = Math.max(low, p.cy + p.ry);
+    else if (p.kind === "stroke") for (const q of p.points) low = Math.max(low, q[1] + q[2]);
+    else for (const q of p.points) low = Math.max(low, q[1]);
+  }
+  return low;
+}
+
+// One frame of a species: its size (a SIZES entry), its action (ACTIONS) and
+// the frame's index. The adult standing frame is the description drawn as it
+// is, so it is the 36 x 25 sprite it always was, to the pixel.
 function draw(species, size, action, index) {
   const build = BUILD[species] || "biped";
+  if (action === "hurt") return flash(draw(species, size, "stand", 0), HURT_TO, HURT_K);
+  if (action === "strike" || action === "eat") return act(species, build, size, action, index);
   const frame = action === "walk" ? WALKS[build][index] : null;
   const spec = SPECIES[species](frame ? gaitOf(build, frame, size) : STAND, size);
   if (!frame && size.scale === 1) return sprite(spec);
   const offsets = frame ? { body: frame.body, head: frame.head, tail: frame.tail, swing: [0, -LIFT] } : {};
-  // The ground line lies 0.4 below the top of the pivot's row at every size,
-  // as G does on the 36 x 25 canvas; at full size the same point, exactly.
-  const to = size.scale === 1 ? [W / 2, G] : [size.px, size.py + 0.4];
-  return sprite(
-    place(spec, {
-      w: size.w,
-      h: size.h,
-      from: [W / 2, G],
-      to,
-      scale: size.scale,
-      head: spec.head,
-      grow: size.grow,
-      offsets
-    })
-  );
+  return sprite(place(spec, lookOf(spec, size, offsets)));
 }
 
-module.exports = { SPECIES, ORDER, SIZES, BUILD, W, H, draw };
+// The ground line lies 0.4 below the top of the pivot's row at every size,
+// as G does on the 36 x 25 canvas; at full size the same point, exactly.
+function lookOf(spec, size, offsets, more) {
+  const to = size.scale === 1 ? [W / 2, G] : [size.px, size.py + 0.4];
+  return { w: size.w, h: size.h, from: [W / 2, G], to, scale: size.scale, head: spec.head, grow: size.grow, offsets, ...(more || {}) };
+}
+
+function act(species, build, size, action, index) {
+  const pose = action === "strike" ? STRIKES[STRIKE_KIND[species] || "bite"][index] : EATS[build][index];
+  const k = ACT_AMP[size.suffix];
+  const spec = SPECIES[species](pose.jaw ? { ...STAND, jaw: pose.jaw } : STAND, size);
+  const body = scaledPair(pose.body, k);
+  const head = scaledPair(pose.head, k);
+  const tail = scaledPair(pose.tail, k);
+  if (pose.forward) {
+    // Room in front of the standing animal: the blow's head (on top of the
+    // body's lean) goes no further forward than that.
+    const room = size.w - 1 - rightmost(draw(species, size, "stand", 0));
+    const ahead = Math.max(0, Math.min(body[0] + head[0], room));
+    head[0] = ahead - body[0];
+  }
+  const more = {};
+  if (pose.nod) more.nod = { about: pose.nodAt === "centre" ? [spec.skull[0], spec.skull[1]] : nodAbout(spec.skull), angle: pose.nod };
+  if (pose.pitch) more.pitch = { about: spec.hip, angle: pose.pitch, tail: pose.tailK };
+  if (more.nod || more.pitch) more.keepEyes = true;
+  if (pose.drop) {
+    // Measured: where the head's lowest edge is with the turns alone, and how
+    // far it must come down to reach the feet's row (its edge 0.1 above the
+    // pivot's row, so it covers the row above it and not the pivot's own).
+    const bare = place(spec, lookOf(spec, size, { body, head: [0, 0], tail }, more));
+    const down = Math.max(0, size.py - 0.1 - headBottom(bare));
+    head[1] += Math.round(down * pose.drop);
+  }
+  // The feet stay on the ground line and nothing goes under it: a head
+  // brought down (a horned dino's blow at a hatchling's size) that reaches
+  // the pivot's row is raised until it does not.
+  for (let lift = 0; ; lift++) {
+    const img = sprite(place(spec, lookOf(spec, size, { body, head: [head[0], head[1] - lift], tail }, more)));
+    if (lift >= 3 || !rowUsed(img, size.py)) return img;
+  }
+}
+
+function rowUsed(img, y) {
+  for (let x = 0; x < img.w; x++) if (y < img.h && img.px[y * img.w + x][3] > 0) return true;
+  return false;
+}
+
+module.exports = { SPECIES, ORDER, SIZES, BUILD, ACTIONS, W, H, draw };

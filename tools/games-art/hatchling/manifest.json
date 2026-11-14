@@ -1,10 +1,10 @@
 {
   "sources": {
-    "tools/games-art/engine.js": "d3d4ba3419fda23ed16bf06173fd4456bbe5f6e085531ed848bafece85db17d1",
-    "tools/games-art/hatchling/build.js": "3da6ed7ee4afade3484044cf734aab4588b270f6d1b2b0d716c1bb7e146bd5b4",
-    "tools/games-art/hatchling/species.js": "331114d01d443d1b13a521a2613fdb2801f0417665fdb2d83ddcb8b6728ee0cd",
+    "tools/games-art/engine.js": "dc9037166d3894ac9959aa5a098d43050eb9696021c4bd6c8928333a92833d59",
+    "tools/games-art/hatchling/build.js": "e39c449fdaccf9b65cd88a89bec696f1dfc47d062149249e2a53826d4076ba6d",
+    "tools/games-art/hatchling/species.js": "a0dc0566ea82e8f04d4b75fcdda7791e7aab94e257753a8452b7a487fb9572a5",
     "tools/games-art/hatchling/terrain.js": "f7a2bc5c6f6a4968ae1542ab2e7a9529a144dd3cf86f34a5f0ae136784513b12",
-    "tools/games-art/hatchling/things.js": "00431aca1ed1d2d2775908d0968f6bb91904cf504d33a8502678e2a6edb70085",
+    "tools/games-art/hatchling/things.js": "7dba8f9fde8fb6be68e00f86ad062a54aa5b6cb22922649803104d64821274ff",
     "tools/games-art/hex.js": "33c2663f00cf9348be75a5550ccfaa5480a0cfadcd487b80ed7612c0c6267044",
     "tools/games-art/manifest.js": "bc7565fb69c36f621eafb89904e234bbb2645c61d5d684cb11e4b4fcc312acb4",
     "tools/games-art/pack.js": "5de302628e9d3d01e5795fe63a60d5250bf47d36be897de81e30d642586f1210",
@@ -12,11 +12,13 @@
     "tools/games-art/sheet.js": "0432e1eeeba6b80f5f84e6c76281ae7a2cc4a94b28c15316aef671d226548fd4"
   },
   "outputs": {
-    "Games/PandoraOverlay.Games.Hatchling/Art/creatures.json": "026e85f7a352dd4ddea153161e24d7e2ec6be585b5cc0b7073321630e4d9b21c",
-    "Games/PandoraOverlay.Games.Hatchling/Art/creatures.png": "e4da1061f1994dcb87ec640a3a1f9a58388877430db86add694b2717398c2af9",
+    "Games/PandoraOverlay.Games.Hatchling/Art/creatures.json": "117d8a99ea05693acbecf1f53faa5fc1710c3e5f4c645f54ce557bfc33ff6ce8",
+    "Games/PandoraOverlay.Games.Hatchling/Art/creatures.png": "855aea7dc6b049c5cecb27f462a032cb6316665ee289a03fba23d2f6ca853f87",
+    "Games/PandoraOverlay.Games.Hatchling/Art/portraits.json": "1746fc15601c36a0920bfebc5aa8c62440885910db5cd95ae595f7b439257ef4",
+    "Games/PandoraOverlay.Games.Hatchling/Art/portraits.png": "f3e9886874e3c923fc51d06db6d2ad67e54ca41aaa2e0671c48b8d40a15f8602",
     "Games/PandoraOverlay.Games.Hatchling/Art/terrain.json": "9fbc776b9cf953366292d8e63ebe252b6d843cee9532aa3f2cafc0eb155c6d60",
     "Games/PandoraOverlay.Games.Hatchling/Art/terrain.png": "e086916e105e3a0980830bc8296c664820a1ca67bf748390bd7f008818c487e7",
-    "Games/PandoraOverlay.Games.Hatchling/Art/things.json": "94abf99ff7835602efff33fdf0f9e6c7738f755998dbe4d5b9a40ea1d29e7d04",
-    "Games/PandoraOverlay.Games.Hatchling/Art/things.png": "98cca8a1a352959261f18500793811715b0d36ec9eeed03e5a7201e6b1cefed3"
+    "Games/PandoraOverlay.Games.Hatchling/Art/things.json": "8b9a74c34360c443f05512e74aea2acb373bda6f192666d3f619c49ce60df9c1",
+    "Games/PandoraOverlay.Games.Hatchling/Art/things.png": "740e92cbc67c58596b27578bdc27e5037c88fb135d2d378f80f33482e98b59e6"
   }
 }

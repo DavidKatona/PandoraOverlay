@@ -7,6 +7,7 @@
 //   smallgame/stand    16 x 11, (8, 10)   a small lizard-like animal; walk 0, 1
 //   ring/you, hostile, apex, acting 0..1   36 x 14, (18, 7): under the feet
 //   mark/hunt, search, you 0..1            9 x 9, (4, 4): above a head
+//   mark/dazed, slow, bleed, hidden, elder 9 x 9, (4, 4): above a head (task H12)
 //   num-hurt, num-good, ordinal digits and signs   5 x 7, (0, 0)
 //
 // Made two ways, both the engine's:
@@ -258,6 +259,84 @@ function lower(rows) {
   return [rows[rows.length - 1], ...rows.slice(0, -1)];
 }
 
+// The five marks of task H12 (6.3; where they stand, 2.7 and H52: an
+// affliction 10 to the right of its predator's alert mark; `hidden` 10 to the
+// left of `mark/you` and `elder` 10 to its right, on one line 28 above the
+// feet, which is a cell's slanted edge, where a gold move rim or a salmon
+// attack rim runs on your turn). Each is a shape in one colour of its own,
+// none the gold of `you` and `search`, the red of `hunt` or the mint of the
+// gains, with the dark outline every grid piece has, so it holds on a rim as
+// on grass, forest, water and rock. A single pixel between two strokes is
+// left empty on purpose: the outline fills it, and the dark line is what
+// keeps the strokes apart at 1x.
+//
+// Dazed: three small stars over the head, the oldest picture of it.
+const DAZED = [
+  ".........",
+  "....+....",
+  "...###...",
+  ".#..#..#.",
+  "###...###",
+  ".#.....#.",
+  ".........",
+  ".........",
+  "........."
+];
+// Slow (a Dilophosaurus' venom): a snail shell's spiral.
+const SLOW = [
+  ".........",
+  "..####...",
+  ".#....#..",
+  ".#.##.#..",
+  ".#.#..#..",
+  ".#..##...",
+  "..#......",
+  "...###...",
+  "........."
+];
+// Bleeding: a drop, deep red, a glint on its shoulder.
+const BLEED = [
+  ".........",
+  "....#....",
+  "...###...",
+  "...###...",
+  "..#+###..",
+  "..#####..",
+  "..#####..",
+  "...###...",
+  "........."
+];
+// Hidden: a closed eye, the lid's curve and its lashes.
+const HIDDEN = [
+  ".........",
+  ".........",
+  ".#.....#.",
+  "..#...#..",
+  "...###...",
+  ".#..#..#.",
+  ".........",
+  ".........",
+  "........."
+];
+// Elder: a small crest, three points on a band, pale as bone with one warm
+// glint: it stays above an Elder for the rest of its run, so it is quiet.
+const ELDER = [
+  ".........",
+  ".........",
+  "....+....",
+  "..#.#.#..",
+  "..#####..",
+  "...###...",
+  ".........",
+  ".........",
+  "........."
+];
+const DAZED_COLOUR = "#FFE38A";
+const SLOW_COLOUR = "#B9A2FF";
+const BLEED_COLOUR = "#D9283A";
+const HIDDEN_COLOUR = "#BFD9E6";
+const ELDER_COLOUR = "#E9DFC4";
+
 // 3 x 5 digits in a 5 x 7 frame: the outline is the frame's other pixels, so
 // two digits 6 pixels apart (H38: "12") keep a one-pixel gap.
 const DIGITS = [
@@ -301,6 +380,11 @@ function frames() {
   add("mark", "search", 0, glyph(SEARCH, "#FFC864", 9, 9), 4, 4);
   add("mark", "you", 0, glyph(YOU, "#FFC864", 9, 9), 4, 4);
   add("mark", "you", 1, glyph(lower(YOU), "#FFC864", 9, 9), 4, 4);
+  add("mark", "dazed", 0, glyph(DAZED, DAZED_COLOUR, 9, 9), 4, 4);
+  add("mark", "slow", 0, glyph(SLOW, SLOW_COLOUR, 9, 9), 4, 4);
+  add("mark", "bleed", 0, glyph(BLEED, BLEED_COLOUR, 9, 9), 4, 4);
+  add("mark", "hidden", 0, glyph(HIDDEN, HIDDEN_COLOUR, 9, 9), 4, 4);
+  add("mark", "elder", 0, glyph(ELDER, ELDER_COLOUR, 9, 9), 4, 4);
   DIGITS.forEach((d, i) => {
     add("num-hurt", "digit", i, glyph(framed(d), HURT, 5, 7), 0, 0);
     add("num-good", "digit", i, glyph(framed(d), GOOD, 5, 7), 0, 0);
