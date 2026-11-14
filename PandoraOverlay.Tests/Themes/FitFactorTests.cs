@@ -199,6 +199,12 @@ public class FitFactorTests
         foreach (var (where, root) in DialogLayoutTests.CardsAndSignIn())
             if (DialogLayoutTests.LineProblems(where, root).FirstOrDefault() is { } problem)
                 return problem;
+        // The Games window, its grid in every state and every listed game's every
+        // layout state (A26): its frame, no line cut off, nothing clipped. It never
+        // moves a theme's factor: when it would, the window gives way.
+        foreach (var (where, root) in GamesLayoutTests.EveryView())
+            if (GamesLayoutTests.Problems(where, root).FirstOrDefault() is { } problem)
+                return problem;
         return null;
     }
 

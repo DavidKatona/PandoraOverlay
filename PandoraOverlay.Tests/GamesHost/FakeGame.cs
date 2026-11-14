@@ -52,6 +52,12 @@ internal sealed class FakeGame : IGame
     /// <summary>Run on each reading, after it is counted.</summary>
     public Action<IGameHost, DinoReading>? WhenRead { get; set; }
 
+    /// <summary>Run inside CreateView, after its view is made: a game reporting a fault of its own (through its host) and still handing the view back.</summary>
+    public Action<IGameHost>? DuringCreateView { get; set; }
+
+    /// <summary>When set, CreateTileArt hands back this one element every time, as a game that keeps its picture would (the Contract allows it).</summary>
+    public FrameworkElement? KeptTileArt { get; set; }
+
     /// <summary>What Reset writes, Now, at version 1.</summary>
     public string ResetPayload { get; set; } = "fresh";
 
@@ -119,7 +125,7 @@ internal sealed class FakeGame : IGame
     {
         Calls.Add(nameof(CreateTileArt));
         ThrowIf(FakeThrows.CreateTileArt);
-        return new Border { Width = GameFrame.TileArtWidth, Height = GameFrame.TileArtHeight };
+        return KeptTileArt ?? new Border { Width = GameFrame.TileArtWidth, Height = GameFrame.TileArtHeight };
     }
 
     public IGameView CreateView()
@@ -128,6 +134,7 @@ internal sealed class FakeGame : IGame
         ThrowIf(FakeThrows.CreateView);
         var view = new FakeGameView();
         Views.Add(view);
+        DuringCreateView?.Invoke(Host!);
         return view;
     }
 

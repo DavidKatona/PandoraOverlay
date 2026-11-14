@@ -87,6 +87,8 @@ public class ThemedWindowsTests
         "Settings/SettingsWindow.Storage.cs", "Settings/SettingsWindow.StorageDetail.cs", "Settings/SettingsWindow.Rules.cs",
         "Updates/UpdateCardWindow.xaml", "Updates/UpdateCardWindow.xaml.cs",
         "Account/SignInWindow.xaml", "Account/SignInWindow.xaml.cs",
+        // The Games window (A11, A32): no token of its own, every look the map window's, the cards' and the controls'.
+        "GamesHost/GamesWindow.xaml", "GamesHost/GamesWindow.xaml.cs", "GamesHost/GamesWindow.Tiles.cs",
     };
 
     private static readonly Regex XamlColour = new(@"=""#[0-9A-Fa-f]{6,8}""", RegexOptions.Compiled);
