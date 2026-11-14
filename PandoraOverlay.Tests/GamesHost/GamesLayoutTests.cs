@@ -94,6 +94,39 @@ public class GamesLayoutTests
         Assert.Contains(Clipped(LaidOut(window)), c => c.StartsWith("StackPanel") || c.StartsWith("DockPanel"));
     });
 
+    /// <summary>
+    /// The window's own words fit their room whole (A52), in Default: the
+    /// compiled base they are written for. This holds the WORDS, not a theme:
+    /// in a wider font the ellipsis is the rule, but a word too long for every
+    /// theme was simply written too long. Every <see cref="GamesText"/>
+    /// constant is read by reflection, so a new word joins by itself; the views
+    /// are those that show the longest of them.
+    /// </summary>
+    [Fact]
+    public void TheWindowsOwnWordsShowWholeInDefault() => OnScreen(Theme.DefaultId, () =>
+    {
+        var words = typeof(GamesText).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(f => f.IsLiteral && f.FieldType == typeof(string))
+            .ToDictionary(f => (string)f.GetRawConstantValue()!, f => f.Name);
+        var views = new[] { "grid, every condition, one armed", "grid, both refusals", "grid, under the warning", "a game, under the warning, not signed in" };
+        var found = new HashSet<string>();
+        var cut = new List<string>();
+        foreach (var (where, root) in EveryView())
+        {
+            if (!views.Contains(where)) continue;
+            var shown = Visible(root).OfType<TextBlock>().Where(t => words.ContainsKey(t.Text)).Select(t => t.Text).ToHashSet();
+            found.UnionWith(shown.Select(text => words[text]));
+            cut.AddRange(FitProbe.LongLines(root).Where(l => shown.Contains(l.Text)).Select(l => FormattableString.Invariant($"{where}: \"{l.Text}\" {l.Natural:0.0} px in {l.Room:0.0}")));
+        }
+
+        Assert.Superset(new HashSet<string>
+        {
+            nameof(GamesText.UnreadableDetail), nameof(GamesText.ResetRefused), nameof(GamesText.StartAgainRefused), nameof(GamesText.StartFreshArmed),
+            nameof(GamesText.FaultedDetail), nameof(GamesText.NewerDetail), nameof(GamesText.WatchSignedOut), nameof(GamesText.WarningHint),
+        }, found);
+        Assert.True(cut.Count == 0, string.Join("; ", cut));
+    });
+
     // ---- What a view must hold to ------------------------------------------------------
 
     /// <summary>Every problem of one laid-out view: not the frame, a line cut off, an element clipped by layout.</summary>
@@ -171,7 +204,7 @@ public class GamesLayoutTests
         using (var bench = Conditions())
         {
             var window = bench.Window();
-            GamesBench.Click(GamesBench.Tile(window, 0).Button); // the Reset, armed
+            GamesBench.Click(GamesBench.Tile(window, 3).Button); // "Start fresh" armed: the longest label there is (A52)
             yield return ("grid, every condition, one armed", LaidOut(window));
         }
 

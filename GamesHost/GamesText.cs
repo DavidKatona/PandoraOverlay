@@ -53,6 +53,9 @@ internal static class GamesText
     };
 
     // ---- A tile's button and the host's words -------------------------------------
+    // Each written to fit its line whole (A52): a tile's line is 230 px, and the
+    // ellipsis is for a font wider than Default's, never for words too long for
+    // any theme. GamesLayoutTests holds them whole in Default.
 
     public const string Reset = "Reset";
 
@@ -70,17 +73,17 @@ internal static class GamesText
 
     public const string UnreadableStatus = "Its save could not be read";
 
-    public const string UnreadableDetail = "The file is kept. Nothing is replaced until you say so.";
+    public const string UnreadableDetail = "The file is kept, even if you start fresh.";
 
     public const string NewerStatus = "Its save is from a newer overlay";
 
     public const string NewerDetail = "Update the overlay to keep playing it.";
 
     /// <summary>The detail line after an armed Reset or Start fresh the host refused (A38): nothing was reset.</summary>
-    public const string ResetRefused = "It could not be reset: its save could not be put aside first.";
+    public const string ResetRefused = "Not reset: its save could not be kept first.";
 
     /// <summary>The detail line after a "Start it again" the host refused (A49): nothing was started, nothing is lost.</summary>
-    public const string StartAgainRefused = "It could not be started again: its progress could not be saved first.";
+    public const string StartAgainRefused = "Not started: it could not be saved first.";
 
     // ---- The health warning (G18, A15) -------------------------------------------
 

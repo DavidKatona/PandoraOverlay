@@ -77,8 +77,13 @@ public static class GamesFrame
     /// <summary>The tiles' panel: a row of tiles, each with the gap at its right (the last one's falls inside the right padding), left-aligned after the side padding.</summary>
     public const double GridPanelWidth = Columns * (TileWidth + TileGap);
 
-    /// <summary>The tile's button: fixed, so a label that changes on arming moves nothing (.claude/rules/settings.md).</summary>
-    public const double TileButtonWidth = 150;
+    /// <summary>
+    /// The tile's button: fixed, so a label that changes on arming moves
+    /// nothing (.claude/rules/settings.md), and wide enough that the longest
+    /// label, "Click again to start fresh", shows whole in every bundled
+    /// theme's font (A52: 147 px in the widest against 138 of room at 150).
+    /// </summary>
+    public const double TileButtonWidth = 170;
 
     /// <summary>The tile's button row, at its bottom: fixed, so a font with a taller line box shows as clipped in the layout tests instead of moving the button.</summary>
     public const double TileButtonRowHeight = 24;

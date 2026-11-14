@@ -89,6 +89,7 @@ internal partial class GamesWindow : Window
             _host.TileChanged -= OnTileChanged;
             _host.ConditionChanged -= OnConditionChanged;
             CloseView(); // GamesView is kept: where you left off (G14)
+            LetGoOfArt(); // a game's kept art element is free for the next window's tile
         };
 
         // Where you left off (G14, A31): the game the config names, if it is
@@ -159,6 +160,14 @@ internal partial class GamesWindow : Window
         if (root is null)
         {
             if (game.Condition == GameCondition.Ready) _host.Stop(game, "Root (its view gave none)", null);
+            GameGuard.Run(game, "Dispose", view.Dispose);
+            return false;
+        }
+        // A game can report a fault of its own while it makes its view (through
+        // its host, with no throw) and still hand the view back: it is stopped,
+        // so nothing of it goes on screen.
+        if (!game.Plays)
+        {
             GameGuard.Run(game, "Dispose", view.Dispose);
             return false;
         }
@@ -276,7 +285,13 @@ internal partial class GamesWindow : Window
     /// <summary>Esc and a bare J: remembered on their first press here, the press marked handled (GamesKeys).</summary>
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (_keys.Down(KeyOf(e), Keyboard.Modifiers, e.IsRepeat)) e.Handled = true;
+        // A repeat by Windows' own flag too, not only WPF's (A53): the J of the
+        // Ctrl+J that opened the window never reached WPF, so WPF would call its
+        // first bare repeat a first press. The message is our own window's, the
+        // one WPF raises this event for (empty in a test's raised event).
+        var m = ComponentDispatcher.CurrentKeyboardMessage;
+        var isRepeat = e.IsRepeat || GamesKeys.HeldBefore(m.message, m.lParam.ToInt64());
+        if (_keys.Down(KeyOf(e), Keyboard.Modifiers, isRepeat)) e.Handled = true;
     }
 
     /// <summary>Their release closes the window, marked handled too, so the game sees neither (.claude/rules/shell.md).</summary>

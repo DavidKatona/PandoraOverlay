@@ -77,6 +77,7 @@ internal partial class GamesWindow
         _building = true;
         try
         {
+            LetGoOfArt();
             Tiles.Children.Clear();
             _tiles.Clear();
             foreach (var game in _host.Games)
@@ -103,6 +104,7 @@ internal partial class GamesWindow
         _building = true;
         try
         {
+            _tiles[at].Well.Child = null; // before the new tile asks for the art: it may be the very element this one holds
             var tile = MakeTile(game);
             Tiles.Children.RemoveAt(at);
             Tiles.Children.Insert(at, tile.Card);
@@ -115,6 +117,17 @@ internal partial class GamesWindow
     }
 
     private TileView? TileOf(HostedGame game) => _tiles.FirstOrDefault(t => t.Game == game);
+
+    /// <summary>
+    /// Every tile lets go of its art: before the grid is built again, and when
+    /// the window closes. The Contract does not say CreateTileArt makes a new
+    /// element each time; a game that hands back one it keeps would otherwise be
+    /// stopped at the next build, its element still another tile's child.
+    /// </summary>
+    private void LetGoOfArt()
+    {
+        foreach (var tile in _tiles) tile.Well.Child = null;
+    }
 
     /// <summary>A tile's one-line text at a body size (the theme's, at its fit factor), trimmed: a game's long words end in an ellipsis, never grow the tile.</summary>
     private static TextBlock Line(string sizeKey)
@@ -301,13 +314,26 @@ internal partial class GamesWindow
         t.Card.SetResourceReference(Border.BorderBrushProperty, key);
     }
 
-    /// <summary>The game said its tile changed: its texts in place. A tile that faults on the way has been rebuilt as a stopped game's.</summary>
+    /// <summary>
+    /// The game said its tile changed: its texts in place. A tile that faults
+    /// on the way has been rebuilt as a stopped game's.
+    /// <para>
+    /// A redraw does not disarm (A54): a game's tile can change by itself while
+    /// the player's dino grows ("5 of 21 species · 1,240 amber"), so between the
+    /// two clicks of a Reset the label would fall back and the second click arm
+    /// again. An armed tile that still offers its button stays armed; one whose
+    /// button went (CanReset false) is armed no more. A refusal line still goes.
+    /// </para>
+    /// </summary>
     private void RedrawTile(TileView t)
     {
         if (!t.Opens || t.Game.Tile() is not { } tile) return;
         if (TileOf(t.Game) != t) return; // rebuilt meanwhile (the game faulted answering)
-        if (_armed == t) Disarm();
+        var wasArmed = _armed == t;
         ShowTexts(t, tile);
+        if (!wasArmed) return;
+        if (t.Arms && t.Label.Length > 0) ShowArmed(t);
+        else _armed = null;
     }
 
     // ---- The button -----------------------------------------------------------------
@@ -355,6 +381,12 @@ internal partial class GamesWindow
         Disarm();
         ShowDetail(t, t.DetailText); // armed again: a refusal shown there is gone
         _armed = t;
+        ShowArmed(t);
+    }
+
+    /// <summary>The armed look: the label saying what the second click does, the Danger family.</summary>
+    private static void ShowArmed(TileView t)
+    {
         t.ButtonText.Text = t.ArmedLabel;
         t.Button.SetResourceReference(StyleProperty, "DangerButtonStyle");
     }

@@ -68,6 +68,22 @@ public class GamesKeysTests
         Assert.True(keys.Up(Key.Escape));
     }
 
+    /// <summary>
+    /// Windows' own repeat (A53): a key-down or system-key-down message whose
+    /// lParam has bit 30 set (the key was already down). A repeat count alone,
+    /// a key-up (which always has bits 30 and 31) and no message at all are not.
+    /// </summary>
+    [Theory]
+    [InlineData(0x0100, 0x4000_0000L, true)]
+    [InlineData(0x0104, 0x4000_0000L, true)]
+    [InlineData(0x0100, 0x4000_0001L, true)]
+    [InlineData(0x0100, 0L, false)]
+    [InlineData(0x0100, 1L, false)]
+    [InlineData(0x0101, 0xC000_0000L, false)]
+    [InlineData(0, 0x4000_0000L, false)]
+    public void HeldBeforeReadsWindowsPreviousKeyState(int message, long lParam, bool held) =>
+        Assert.Equal(held, GamesKeys.HeldBefore(message, lParam));
+
     [Fact]
     public void ForgetDropsWhatWasPressedHere()
     {

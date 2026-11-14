@@ -104,7 +104,7 @@ public class GamesWindowTests
 
         Assert.Equal(("Stopped after an error", "Nothing is lost: it starts from its last save.", "Start it again"),
                      (tiles[2].Status.Text, tiles[2].Detail.Text, tiles[2].Label));
-        Assert.Equal(("Its save could not be read", "The file is kept. Nothing is replaced until you say so.", "Start fresh"),
+        Assert.Equal(("Its save could not be read", "The file is kept, even if you start fresh.", "Start fresh"),
                      (tiles[3].Status.Text, tiles[3].Detail.Text, tiles[3].Label));
         Assert.Equal(("Its save is from a newer overlay", "Update the overlay to keep playing it.", "Start fresh"),
                      (tiles[4].Status.Text, tiles[4].Detail.Text, tiles[4].Label));
@@ -388,11 +388,11 @@ public class GamesWindowTests
 
         refuse(window);
 
-        Assert.Equal("It could not be reset: its save could not be put aside first.", reset.Detail.Text);
+        Assert.Equal("Not reset: its save could not be kept first.", reset.Detail.Text);
         Assert.Same(Resource(window, "Theme.Text.Caution"), reset.Detail.Foreground);
         Assert.Equal("Reset", reset.Label); // disarmed
         Assert.Equal(GameCondition.Ready, bench.Host.Games[0].Condition);
-        Assert.Equal("It could not be started again: its progress could not be saved first.", again.Detail.Text);
+        Assert.Equal("Not started: it could not be saved first.", again.Detail.Text);
         Assert.Equal(GameCondition.Faulted, bench.Host.Games[1].Condition);
         Assert.Same(again.Card, GamesBench.Tile(window, 1).Card); // nothing changed, nothing rebuilt
 
@@ -435,6 +435,88 @@ public class GamesWindowTests
         Assert.Same(before.Status, after.Status);
         Assert.Equal(("Run 4 in progress", "Hungry", "Run"), (after.Status.Text, after.Detail.Text, after.Tag.Text));
         Assert.Equal(Visibility.Hidden, after.Button.Visibility);
+    });
+
+    /// <summary>A redraw does not disarm (A54): the game's tile changing by itself between the two clicks keeps the Reset armed, and the next click resets.</summary>
+    [Fact]
+    public void ARedrawKeepsAnArmedResetArmed() => Run(() =>
+    {
+        var game = new FakeGame();
+        using var bench = new GamesBench(game);
+        var window = bench.Window();
+        var tile = GamesBench.Tile(window, 0);
+        GamesBench.Click(tile.Button);
+
+        game.TileToShow = new GameTile("5 of 21 species", GameTileTone.Neutral, "1,240 amber", "New", CanReset: true);
+        game.Host!.TileChanged();
+
+        Assert.Equal("Click again to reset", tile.Label);
+        Assert.Same(Resource(window, "DangerButtonStyle"), tile.Button.Style);
+        Assert.Equal("5 of 21 species", tile.Status.Text);
+
+        GamesBench.Click(tile.Button);
+
+        Assert.Single(game.Calls, "Reset");
+    });
+
+    /// <summary>A redraw that takes the button away disarms: when the tile offers it again, it is a first click again.</summary>
+    [Fact]
+    public void ARedrawWithoutTheButtonDisarms() => Run(() =>
+    {
+        var game = new FakeGame();
+        using var bench = new GamesBench(game);
+        var window = bench.Window();
+        var tile = GamesBench.Tile(window, 0);
+        GamesBench.Click(tile.Button);
+
+        game.TileToShow = new GameTile("Mid-run", GameTileTone.Neutral, null, null, CanReset: false);
+        game.Host!.TileChanged();
+        Assert.Equal(Visibility.Hidden, tile.Button.Visibility);
+
+        game.TileToShow = new GameTile("Ready to play", GameTileTone.Neutral, null, null, CanReset: true);
+        game.Host!.TileChanged();
+        Assert.Equal("Reset", tile.Label);
+        Assert.Same(Resource(window, "NeutralButtonStyle"), tile.Button.Style);
+
+        GamesBench.Click(tile.Button);
+        Assert.Equal("Click again to reset", tile.Label); // only armed
+        Assert.DoesNotContain("Reset", game.Calls);
+    });
+
+    /// <summary>A game that reports a fault of its own while making its view, and still hands the view back: nothing of it goes on screen.</summary>
+    [Fact]
+    public void AGameThatFaultsWhileMakingItsViewStaysOnTheGrid() => Run(() =>
+    {
+        var game = new FakeGame { DuringCreateView = host => host.Fault(new InvalidOperationException("made up")) };
+        using var bench = new GamesBench(game);
+        var window = bench.Window();
+
+        GamesBench.ClickCard(GamesBench.Tile(window, 0).Card);
+
+        Assert.Null(window.OnScreen);
+        Assert.Null(window.GameHost.Child);
+        Assert.Equal(new[] { "Dispose" }, Assert.Single(game.Views).Calls);
+        Assert.Equal("Stopped after an error", GamesBench.Tile(window, 0).Status.Text);
+        Assert.Equal("", bench.Config.GamesView);
+    });
+
+    /// <summary>A game that keeps its tile's picture and hands back the same element every time: every tile lets go of it, so a second build and a second window show it again.</summary>
+    [Fact]
+    public void ATileLetsGoOfItsArt() => Run(() =>
+    {
+        var art = new Border { Width = GameFrame.TileArtWidth, Height = GameFrame.TileArtHeight };
+        var game = new FakeGame { KeptTileArt = art };
+        using var bench = new GamesBench(game);
+        var first = bench.Window();
+        GamesBench.ClickCard(GamesBench.Tile(first, 0).Card);
+        GamesBench.Click(first.BackButton);
+        Assert.Same(art, GamesBench.Tile(first, 0).Well.Child);
+        first.Close();
+
+        var second = bench.Window();
+
+        Assert.Equal(GameCondition.Ready, bench.Host.Games[0].Condition);
+        Assert.Same(art, GamesBench.Tile(second, 0).Well.Child);
     });
 
     [Fact]
@@ -558,6 +640,41 @@ public class GamesWindowTests
             foreach (var state in view.LayoutStates) view.ShowLayoutState(state);
             window.Close();
             Assert.Equal(0, EngineLoop.LiveTimers());
+        }
+    });
+
+    /// <summary>
+    /// Every listed game in two windows in a row, grid and game and grid
+    /// again: it stays Ready after every step, and the last grid shows its tile
+    /// with its art (a game may hand back a new picture or one it keeps; a view
+    /// is always new). Empty until a game is listed: it then runs by itself.
+    /// </summary>
+    [Fact]
+    public void EveryListedGameSurvivesTwoWindowsInARow() => Run(() =>
+    {
+        foreach (var entry in GameCatalog.All)
+        {
+            using var bench = new GamesBench(new[] { entry });
+            var game = bench.Host.Games[0];
+            void Ready(string step) => Assert.True(game.Condition == GameCondition.Ready, $"{entry.Id} is {game.Condition} after {step}");
+
+            var first = bench.Window();
+            first.ShowGame(game);
+            Ready("the first ShowGame");
+            Assert.Same(game, first.OnScreen);
+            first.ShowGrid();
+            Ready("ShowGrid");
+            first.ShowGame(game);
+            Ready("the second ShowGame");
+            first.Close();
+            Ready("Close");
+
+            var second = bench.Window();
+            Assert.Same(game, second.OnScreen); // reopened where it was, by GamesView
+            second.ShowGrid();
+            Ready("the second window's ShowGrid");
+            Assert.NotNull(GamesBench.Tile(second, 0).Well.Child as FrameworkElement);
+            Assert.IsNotType<TextBlock>(GamesBench.Tile(second, 0).Well.Child); // its art, not its title
         }
     });
 }
