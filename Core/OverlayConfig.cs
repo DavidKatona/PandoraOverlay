@@ -226,6 +226,35 @@ public sealed class OverlayConfig
     public bool BigMapPatrolZones { get; set; }
     public bool BigMapSanctuaries { get; set; }
 
+    // ---- Games ------------------------------------------------------------------
+    // Where the Games window was when it last closed (A31), so reopening it
+    // shows where you left off (G14), across a restart and an update too: the
+    // window itself keeps nothing between openings (it is made when opened and
+    // destroyed when closed), and a game keeps its own state in its own save,
+    // never here. Its size and position are never saved (G15). Both are game
+    // ids, or "" (a value from a hand-edited file that is null reads as "").
+
+    private string _gamesView = "";
+    private string _gamesLastPlayed = "";
+
+    /// <summary>
+    /// The id of the game on screen when the Games window last closed, "" for
+    /// the grid (G14, A31). A game no longer listed, or not ready to play,
+    /// opens the grid instead.
+    /// </summary>
+    public string GamesView
+    {
+        get => _gamesView;
+        set => _gamesView = value ?? "";
+    }
+
+    /// <summary>The id of the game played last, "" for none: its tile on the grid is the one marked (A31).</summary>
+    public string GamesLastPlayed
+    {
+        get => _gamesLastPlayed;
+        set => _gamesLastPlayed = value ?? "";
+    }
+
     // ---- Minimap (v1.1) ---------------------------------------------------
 
     /// <summary>

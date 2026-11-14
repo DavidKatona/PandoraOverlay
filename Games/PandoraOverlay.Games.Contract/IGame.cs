@@ -29,9 +29,11 @@ public interface IGame
 {
     /// <summary>
     /// Stable for ever: the save folder's name. Lower-case a-z, 0-9 and '-',
-    /// 1 to 32 characters. The window also remembers it in the config, as the
-    /// game on screen and the game played last (A31), so a changed id strands
-    /// the player's save and the window's memory of it.
+    /// 1 to 32 characters, not starting or ending with '-', and not a Windows
+    /// device name (con, nul, com1 ...): the host refuses any other id (A37).
+    /// The window also remembers it in the config, as the game on screen and
+    /// the game played last (A31), so a changed id strands the player's save
+    /// and the window's memory of it.
     /// </summary>
     string Id { get; }
 

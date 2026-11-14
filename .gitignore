@@ -17,3 +17,10 @@ config.json
 # The site's access header, scrambled (CLAUDE.md hard constraint #4): made by
 # tools/overlay-access/make-access.ps1, embedded by the build, never committed.
 Assets/overlay-access.bin
+
+# A golden frame test that failed writes what it drew beside the golden picture
+# (Games/PandoraOverlay.Games.Tests, FrameGolden): looked at, never committed.
+*.actual.png
+
+# The games' art tool's scratch: contact sheets for LOOKING at art (tools/games-art/sheet.js).
+tools/games-art/out/

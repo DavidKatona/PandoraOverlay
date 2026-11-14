@@ -28,6 +28,8 @@
          barred from the engine (A2), not its tests. -->
     <ProjectReference Include="..\Games\PandoraOverlay.Games.Contract\PandoraOverlay.Games.Contract.csproj" />
     <ProjectReference Include="..\Games\PandoraOverlay.Games.Engine\PandoraOverlay.Games.Engine.csproj" />
+    <!-- Hatchling, directly: its species table against Assets/rules.json (A23). -->
+    <ProjectReference Include="..\Games\PandoraOverlay.Games.Hatchling\PandoraOverlay.Games.Hatchling.csproj" />
   </ItemGroup>
 
 </Project>

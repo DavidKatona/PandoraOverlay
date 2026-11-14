@@ -8,6 +8,6 @@ namespace PandoraOverlay.Games;
 /// host keeps it untouched.
 /// </summary>
 /// <param name="State">What the host found.</param>
-/// <param name="Version">The version the payload was written with.</param>
+/// <param name="Version">The version the payload was written with, 1 or more; 0 when there is no save to give (None, Unreadable) (A34).</param>
 /// <param name="Payload">The game's own text, as it was written; none when there is no save to give (None, Unreadable).</param>
 public readonly record struct SaveRead(SaveReadState State, int Version, string? Payload);
