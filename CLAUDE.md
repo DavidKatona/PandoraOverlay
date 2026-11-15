@@ -369,9 +369,13 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   and its feeds, the area journal, the trail, the map menu's actions.
 - The games are fed, never asking (Nov 2026): `MainWindow.OnSnapshot` hands
   every successful poll to `GamesHost.Feed`, which gives each game four values
-  (in game, species, gender, growth), window open or not. A game → the Engine →
+  (in game, species, gender, growth; the gender only to tell one life from the
+  next), window open or not. A game → the Engine →
   the Contract; the app → the Contract and each game; nothing under `Games/` can
-  see `PollService`, the client, the config or the session, and the games add no
+  reference `PollService`, the client, the config or the session (the compiler
+  holds that), and the forbidden list refuses the plain ways round it
+  (networking, reflection by name, a picture fetched by address): a guard
+  against an API reached for by accident, not a sandbox. The games add no
   request and no request trigger (constraints 1 to 4 stand as they are).
 
 ## Runtime expectations
@@ -408,14 +412,20 @@ all) — say so when it matters:
   and 200%, 2.3 ms at 150%, not WPF's own composition over the game); pixel art at
   fractional display scales (the arithmetic is tested, the placement is not); the
   six themes (renders: the window and every Hatchling screen fit in each, and no
-  theme's `Fit` moved); the health warning (a pure rule; up to 15 s late after a
-  spawn (60 s after ten minutes not in game), since opening Games nudges no poll,
-  which constraint 2 leaves to the owner); saves across an update, Exit and a Windows shutdown (temp folders only,
+  theme's `Fit` moved); the health warning (a pure rule: a hit, or a fall of 2
+  points within 2 minutes, so a drain slower than a point a minute is not
+  caught, and whether anything harmless falls that fast is unknown; up to 15 s
+  late after a spawn (60 s after ten minutes not in game), since opening Games
+  nudges no poll, which constraint 2 leaves to the owner); saves across an
+  update, Exit and a Windows shutdown (temp folders only,
   the real data folder never written by a test); growth seen against a storage
-  swap (the rule, not the server's real growth); nothing seen moving (the walk,
+  swap (the rule, not the server's real growth); the API's spelling of the 21
+  species against Hatchling's table (only "Deinosuchus" seen in a sample; a name
+  the table doesn't know pays nothing, logged once each time the game is
+  started, without the name); nothing seen moving (the walk,
   a bite, a turn's pace); Hatchling's balance, which is a bot's: nobody has
-  played its rules by hand. Guards: 1857 tests in the app's project and 2193 in
-  the games' (4050, 0 failed); the golden renders: the minimap's identical in
+  played its rules by hand. Guards: 1877 tests in the app's project and 2205 in
+  the games' (4082, 0 failed); the golden renders: the minimap's identical in
   every theme, the windows mode differing only on Settings › Hotkeys in every
   theme (the new Games row; no baseline re-recorded), plus two one-off
   differences that did not repeat (three pixels of About's render once, one

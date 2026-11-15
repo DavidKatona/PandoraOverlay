@@ -89,7 +89,11 @@ internal sealed class GamesHost
 
     // A subscriber of either event is the app's own code (the window,
     // MainWindow): one that throws is the app's own bug, and is not caught here
-    // (A50). The three layers of A10 contain a game's code, never the app's.
+    // (A50). Raised from the host's own code (a Reset, StartAgain, Stop in a
+    // guard's catch), it crashes as any app bug. Raised inside a game's call (a
+    // TileChanged from a game's Commit during Feed, a fault a view's handler
+    // reported), the throw is on that game's stack, and A10's layers contain it
+    // as the game's: nothing is lost, and the log keeps the app's frames (A63).
 
     /// <summary>A game's tile texts changed (the game said so, or the host reset it): the window redraws that tile in place.</summary>
     public event Action<HostedGame>? TileChanged;
@@ -259,10 +263,10 @@ internal sealed class GamesHost
     /// is written first, so the copy is its newest state, and when that write
     /// fails nothing is reset and the pending text is kept for the next flush
     /// (A49: what is pending can be a failed Now write, a committed turn); then
-    /// that save is copied to <c>save.before-reset.json</c>, the player's way
-    /// back from a Reset by mistake, and when the copy fails nothing is reset;
-    /// then the Reset. A Faulted game has nothing to reset ("Start it again" is
-    /// its button): false.
+    /// that save is copied to a new <c>save.before-reset-&lt;n&gt;.json</c>
+    /// (A62), the player's way back from a Reset by mistake, and when the copy
+    /// fails nothing is reset; then the Reset. A Faulted game has nothing to
+    /// reset ("Start it again" is its button): false.
     /// </para>
     /// </summary>
     public bool StartFresh(HostedGame game)

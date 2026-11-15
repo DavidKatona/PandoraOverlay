@@ -10,8 +10,12 @@ namespace PandoraOverlay;
 /// by A12). An exception whose stack passes through a games assembly (one
 /// named <c>PandoraOverlay.Games.*</c>: a game, the engine or the Contract)
 /// is marked handled there, logged, and the game it came from stopped; any
-/// other exception crashes the overlay exactly as before, so an app bug is
-/// never hidden as a game's.
+/// other exception crashes the overlay exactly as before (A50). What counts is
+/// the stack, not whose code threw: the app's own handler of a host event that
+/// runs inside a game's call (the window's redraw of a tile a game said
+/// changed, its close of a view whose handler reported a fault) is on that
+/// game's stack, so a throw there is contained as the game's, and its log
+/// line's stack shows the app's frames on top (A63).
 /// <para>
 /// Which game: the listed game whose OWN assembly is in the stack, the
 /// throw's side first (each game is its own project, so its assembly names
