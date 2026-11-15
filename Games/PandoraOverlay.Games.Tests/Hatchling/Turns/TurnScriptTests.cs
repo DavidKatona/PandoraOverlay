@@ -183,34 +183,76 @@ public class TurnScriptTests
     [Fact]
     public void TwoActorsAreNeverBackToBack()
     {
-        foreach (var script in new[] { BriefScript(), Worst().Script })
+        AssertNoTwoActorsBackToBack(BriefScript(), "the brief's turn");
+        AssertNoTwoActorsBackToBack(Worst().Script, "the worst turn");
+    }
+
+    /// <summary>
+    /// G9's "one at a time", at the script's level, for ONE script (H91): the hand-built
+    /// turns here and each of the 200 seeded turns of <c>SkipEqualsRunForTwoHundredSeededTurns</c>
+    /// call it. Whose action a beat is part of is its row (you, a predator, small game,
+    /// out of sight). A beat of one row right after a beat of another, with no Gap
+    /// between, would be two actors back to back. Time's beats and the end belong to no
+    /// row. Nor does a Gap come first, last or twice running. (The tick-by-tick check
+    /// that no two creatures MOVE at once stays on the hand-built three-hunter turn,
+    /// whose exceptions are its to pin.)
+    /// </summary>
+    internal static void AssertNoTwoActorsBackToBack(TurnScript script, string what)
+    {
+        var beats = script.Beats;
+        for (var i = 1; i < beats.Count; i++)
         {
-            var beats = script.Beats;
-            // Whose action a beat is part of is its row (you, a predator, small game,
-            // out of sight). A beat of one row right after a beat of another, with
-            // no Gap between, would be two actors back to back. Time's beats and
-            // the end belong to no row.
-            for (var i = 1; i < beats.Count; i++)
-            {
-                var (a, b) = (beats[i - 1].RowIndex, beats[i].RowIndex);
-                Assert.False(a >= 0 && b >= 0 && a != b, $"beats {i - 1} and {i}: rows {a} then {b} with no Gap");
-            }
-            Assert.NotEqual(BeatKind.Gap, beats[0].Kind);
-            Assert.NotEqual(BeatKind.Gap, beats[^1].Kind);
-            for (var i = 1; i < beats.Count; i++)
-                Assert.False(beats[i - 1].Kind == BeatKind.Gap && beats[i].Kind == BeatKind.Gap, $"two Gaps at {i}");
+            var (a, b) = (beats[i - 1].RowIndex, beats[i].RowIndex);
+            Assert.False(a >= 0 && b >= 0 && a != b, $"{what}: beats {i - 1} and {i}: rows {a} then {b} with no Gap");
         }
+        Assert.False(beats.Count > 0 && beats[0].Kind == BeatKind.Gap, $"{what}: beat 0 is a Gap");
+        Assert.False(beats.Count > 0 && beats[^1].Kind == BeatKind.Gap, $"{what}: beat {beats.Count - 1}, the last, is a Gap");
+        for (var i = 1; i < beats.Count; i++)
+            Assert.False(beats[i - 1].Kind == BeatKind.Gap && beats[i].Kind == BeatKind.Gap, $"{what}: two Gaps at {i - 1} and {i}");
     }
 
     [Fact]
     public void TheListIsTheOrder()
     {
-        // Rows above the marker have acted, rows below have not: until the world's
-        // turn, the rows the beats mark only go down the list.
         var script = BriefScript();
+        AssertTheListIsTheOrder(script, "the brief's turn");
+        // Every row is marked: true of the brief's turn, where each row has a beat. In a
+        // seeded turn a row can have no beat (H28), so this half is not the helper's.
         var marked = script.Beats.TakeWhile(b => b.Kind != BeatKind.TimePasses).Where(b => b.RowIndex >= 0).Select(b => b.RowIndex).ToList();
-        Assert.Equal(marked.OrderBy(r => r), marked);
         Assert.Equal(Enumerable.Range(0, script.Rows.Count), marked.Distinct());
+    }
+
+    /// <summary>
+    /// The turn list is the order (H1, H91), for ONE script: rows above the marker have
+    /// acted, rows below have not, so until the world's turn (the first Time passes beat;
+    /// all the beats if there is none) the rows the beats mark only go down the list.
+    /// </summary>
+    internal static void AssertTheListIsTheOrder(TurnScript script, string what)
+    {
+        var marked = new List<(int Beat, int Row)>();
+        for (var i = 0; i < script.Beats.Count && script.Beats[i].Kind != BeatKind.TimePasses; i++)
+            if (script.Beats[i].RowIndex >= 0) marked.Add((i, script.Beats[i].RowIndex));
+        for (var i = 1; i < marked.Count; i++)
+            Assert.True(marked[i - 1].Row <= marked[i].Row,
+                $"{what}: beat {marked[i].Beat} marks row {marked[i].Row} after beat {marked[i - 1].Beat} marked row {marked[i - 1].Row}: the list went back up");
+    }
+
+    /// <summary>
+    /// Predators act in the order they arrived, their id (H1, H91), for ONE script: the
+    /// Focus beats whose row is a predator's name a creature id that rises strictly, in
+    /// the order the beats come. (The apex is a predator's row too: <see cref="RowActor"/>
+    /// has no member of its own for it.)
+    /// </summary>
+    internal static void AssertPredatorsActInIdOrder(TurnScript script, string what)
+    {
+        var last = int.MinValue;
+        for (var i = 0; i < script.Beats.Count; i++)
+        {
+            var beat = script.Beats[i];
+            if (beat.Kind != BeatKind.Focus || beat.RowIndex < 0 || script.Rows[beat.RowIndex].Actor != RowActor.Predator) continue;
+            Assert.True(beat.Creature > last, $"{what}: beat {i} focuses predator {beat.Creature} after predator {last}: not in id order");
+            last = beat.Creature;
+        }
     }
 
     [Fact]
@@ -223,6 +265,7 @@ public class TurnScriptTests
         var script = Build(before, before, Rest(), new Stayed(1, Idle.Waits), new Stayed(2, Idle.Waits), Time());
         var order = script.Beats.Where(b => b.Kind == BeatKind.Focus).Select(b => b.Creature).ToArray();
         Assert.Equal(new[] { 1, 2 }, order);
+        AssertPredatorsActInIdOrder(script, "two hunters, the far one first");
         Assert.Equal(new[] { "Carnotaurus", "Troodon" }, script.Rows.Where(r => r.Actor == RowActor.Predator).Select(HatchlingText.RowName));
     }
 
