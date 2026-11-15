@@ -5,12 +5,14 @@
      from HatchlingText by x:Static or from code (A24); nothing here opens a
      surface of its own or takes the keyboard (A33, A42). The rows of the turn
      list, the offer's cards and the summary's lines are made in code
-     (RunPage.Panel.cs), from the same tokens. -->
+     (RunPage.Panel.cs), from the same tokens. The engine's mapping is for
+     its click rule's one mark here, "Back to camp" (H102). -->
 <Grid x:Class="PandoraOverlay.Games.Hatchling.RunPage"
       x:ClassModifier="internal"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:h="clr-namespace:PandoraOverlay.Games.Hatchling"
+      xmlns:engine="clr-namespace:PandoraOverlay.Games.Engine;assembly=PandoraOverlay.Games.Engine"
       Width="798" Height="476" Background="Transparent">
 
     <!-- The turn bar, 12, 40, 508 x 30: the banner, the context line, Fast. The
@@ -100,6 +102,7 @@
                                Foreground="{DynamicResource Theme.Text.Good}"
                                FontSize="{DynamicResource Theme.Size.12}"/>
                     <Button x:Name="BackButton" Focusable="False" Margin="0,8,0,0" Height="34"
+                            engine:GameClicks.Cue="Back"
                             Style="{DynamicResource SaveButtonStyle}"
                             Content="{x:Static h:HatchlingText.BackToCamp}"/>
                 </StackPanel>

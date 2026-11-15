@@ -48,20 +48,38 @@ public class ContractTests
 
     /// <summary>
     /// The sound's door (A77): the host's one new member, after the log, and
-    /// its one call; and both new types are the Contract's public ones, so the
-    /// namespace test below holds them too.
+    /// its two calls, a Play of the game's own sound and, since A105 amended
+    /// A77's "one member", a Click of the host's own; and the types are the
+    /// Contract's public ones, so the namespace test below holds them too.
     /// </summary>
     [Fact]
-    public void TheHostHasASoundWithOnePlay()
+    public void TheHostHasASoundWithAPlayAndAClick()
     {
         Assert.Equal(typeof(IGameSound), typeof(IGameHost).GetProperty(nameof(IGameHost.Sound))!.PropertyType);
-        var play = Assert.Single(typeof(IGameSound).GetMethods());
+        var methods = typeof(IGameSound).GetMethods();
+        Assert.Equal(2, methods.Length);
+        var play = Assert.Single(methods, m => m.Name == nameof(IGameSound.Play));
         Assert.Equal((nameof(IGameSound.Play), typeof(void)), (play.Name, play.ReturnType));
         Assert.Equal(typeof(GameSound), Assert.Single(play.GetParameters()).ParameterType);
+        var click = Assert.Single(methods, m => m.Name == nameof(IGameSound.Click));
+        Assert.Equal(typeof(void), click.ReturnType);
+        Assert.Equal(typeof(GameClick), Assert.Single(click.GetParameters()).ParameterType);
 
         var types = typeof(IGame).Assembly.GetExportedTypes();
         Assert.Contains(typeof(IGameSound), types);
         Assert.Contains(typeof(GameSound), types);
+        Assert.Contains(typeof(GameClick), types);
+    }
+
+    /// <summary>
+    /// A click's kinds are the host's six (A105, <c>PLAN-CLICKS.md</c> 3.3), the
+    /// names the app's own cues have, in their order: a game names the kind, never
+    /// a sound.
+    /// </summary>
+    [Fact]
+    public void AClickIsOneOfTheHostsSix()
+    {
+        Assert.Equal(new[] { "Press", "Select", "ToggleOn", "ToggleOff", "Arm", "Back" }, Enum.GetNames<GameClick>());
     }
 
     /// <summary>The Contract is one namespace, PandoraOverlay.Games (G20): nothing public of it lives elsewhere.</summary>

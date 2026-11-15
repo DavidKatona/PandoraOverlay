@@ -91,6 +91,19 @@ internal sealed class GameHost : IGameHost
             _host._owner.Sound.Play(_host, sound);
         }
 
+        /// <summary>
+        /// A game's click (G27, A105): dropped for now. C06 hands it to the games'
+        /// gate, <c>GamesSound.Click(_host, click)</c>, which plays it only for the
+        /// instance heard (A79's second layer) through the click gate in the Games
+        /// scope (the Settings switch, the window's mute and step, the gap); a closed
+        /// door will reach nothing, as its <see cref="Play"/> does. Until then every
+        /// game's click is silence, which the Contract allows: the host decides, the
+        /// game never learns which, and nothing here throws.
+        /// </summary>
+        public void Click(GameClick click)
+        {
+        }
+
         public void Close() => _closed = true;
     }
 }
