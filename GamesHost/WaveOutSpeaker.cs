@@ -64,7 +64,7 @@ namespace PandoraOverlay;
 /// or since the device last worked, is a Warning in the games' log (the step
 /// and winmm's code, or the exception's type and stack, never its message:
 /// constraint 4); the same again at Verbose; a success after a failure one
-/// Log line. An exception never leaves the thread: unhandled on a thread of
+/// Log line (A90). An exception never leaves the thread: unhandled on a thread of
 /// our own it would end the process (A50 is about the UI thread's handlers;
 /// this one is ours to contain, like a failed request).
 /// </para>
@@ -238,6 +238,8 @@ internal sealed class WaveOutSpeaker : ISpeaker
     /// The overlay exiting: no sound is taken any more, the thread is asked to
     /// leave (it closes its device on the way out) and joined for at most
     /// <see cref="JoinMilliseconds"/>, so a stuck driver never holds the exit.
+    /// It does not fade (A90): a sound still playing is ended by the device's
+    /// reset; the window's close just before it has only queued its stop.
     /// Idempotent; never throws.
     /// </summary>
     public void Dispose()
@@ -457,7 +459,7 @@ internal sealed class WaveOutSpeaker : ISpeaker
     private void Failure(string step, int code) =>
         _write(FailureLevel(), $"Games sound: the device could not be {step} (code {code.ToString(CultureInfo.InvariantCulture)})");
 
-    /// <summary>The first failure since the launch or since the device last worked is a Warning, the same again Verbose.</summary>
+    /// <summary>The first failure since the launch or since the device last worked is a Warning, the same again Verbose (A90).</summary>
     private LogVerbosity FailureLevel()
     {
         lock (_lock)
