@@ -714,9 +714,17 @@ public class BoardPainterTests
 
     // ---- Cost -----------------------------------------------------------------------------
 
+    /// <summary>
+    /// A frame allocates nothing. Bound as the pixels' twin (0dca9a7) and the feed's cost
+    /// test are, not as an exact zero: the runtime's tiering can allocate a few KB once on
+    /// the test's own thread while the whole suite runs (seen: 2,656 bytes over ten paints,
+    /// S01's review). Under 16 bytes a paint over a thousand paints passes such a blip and
+    /// fails any real allocation, since the smallest object costs 24 bytes on every paint.
+    /// </summary>
     [Fact]
     public void AFrameAllocatesNothing()
     {
+        const int Paints = 1000;
         var (_, scene) = HuntedScene();
         scene.Numbers.Add(new SceneNumber { Value = 12, X = 200, Y = 200 });
         var buffer = new PixelBuffer(BoardLayout.Width, BoardLayout.Height);
@@ -724,8 +732,9 @@ public class BoardPainterTests
         {
             for (var warm = 0; warm < 3; warm++) BoardPainter.Paint(buffer, scene, art);
             var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < 10; i++) BoardPainter.Paint(buffer, scene, art);
-            Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+            for (var i = 0; i < Paints; i++) BoardPainter.Paint(buffer, scene, art);
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.True(allocated < 16L * Paints, $"{allocated} bytes over {Paints} paints");
         }
     }
 }
