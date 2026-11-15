@@ -57,11 +57,13 @@ internal sealed partial class LineagePage : Grid, IHatchlingPage
     }
 
     /// <inheritdoc />
-    public void Refresh()
-    {
-        _press.Forget();
-        Draw();
-    }
+    /// <remarks>
+    /// A redraw in place keeps a card's press (H85): a reading that changes the state
+    /// redraws the page shown about every 3 s while the player's dino grows, and a press
+    /// and a release straddling one would otherwise lose the click. The release still
+    /// asks the game (<see cref="BuyClicked"/>: <c>CanBuy</c>, then <c>BuyTrait</c>).
+    /// </remarks>
+    public void Refresh() => Draw();
 
     /// <inheritdoc />
     public void Hide()

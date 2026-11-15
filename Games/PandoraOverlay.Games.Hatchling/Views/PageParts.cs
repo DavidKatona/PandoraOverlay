@@ -131,7 +131,8 @@ internal static class PageParts
 /// A card that is a click (H79): the left button pressed on it and released on the
 /// same card. A release alone picks nothing, nor does a press on one card released
 /// on another; the press is forgotten when the mouse leaves the card it began on and
-/// when the cards are redrawn. One per page: a page's cards share it.
+/// when the page is shown or left; a redraw in place keeps it (H85). One per page: a
+/// page's cards share it.
 /// </summary>
 /// <typeparam name="T">What names a card: a species, a trait.</typeparam>
 internal sealed class CardPress<T> where T : notnull
@@ -160,7 +161,7 @@ internal sealed class CardPress<T> where T : notnull
         if (_down && EqualityComparer<T>.Default.Equals(_pressed!, card)) Forget();
     }
 
-    /// <summary>No press is remembered (the cards were redrawn, or the page left).</summary>
+    /// <summary>No press is remembered (the page shown or left).</summary>
     public void Forget()
     {
         _pressed = default;

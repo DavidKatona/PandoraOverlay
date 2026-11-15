@@ -144,6 +144,32 @@ public class LineagePageTests
         Assert.Equal(writes, Writes(host));
     });
 
+    /// <summary>
+    /// H85: a reading that changes the state redraws the page shown about every 3 s
+    /// while the player's dino grows, and a press and a release straddling one keep
+    /// the purchase (the release still asks the game: <c>CanBuy</c>, then <c>BuyTrait</c>).
+    /// </summary>
+    [Fact]
+    public void APressSurvivesAReadingThatRedrawsThePage() => Sta.Run(() =>
+    {
+        var (game, host) = ViewHarness.Attached(WithWallet(100));   // Deep stomach's first rank
+        using var view = ViewHarness.ViewOf(game);
+        var page = PageHarness.Open<LineagePage>(view, PageKind.Lineage);
+        var before = game.State.Wallet.Balance;
+
+        page.CardPressed(Trait.DeepStomach);
+        game.OnReading(new DinoReading(true, "Dryosaurus", "Male", 0.300));
+        host.ManualClock.Advance(TimeSpan.FromSeconds(30));
+        game.OnReading(new DinoReading(true, "Dryosaurus", "Male", 0.310));
+        Assert.True(game.State.Wallet.Balance > before, $"{game.State.Wallet.Balance} after {before}");
+        Assert.Equal(HatchlingText.Money(game.State.Wallet.Balance), view.WalletShown);   // the view redrew
+        Assert.Equal(PageKind.Lineage, view.Shown);
+
+        page.CardReleased(Trait.DeepStomach);
+        Assert.Equal(1, game.State.Rank(Trait.DeepStomach));
+        Assert.Empty(host.Faults);
+    });
+
     [Fact]
     public void ATraitBoughtDuringARunLeavesTheRunAlone() => Sta.Run(() =>
     {

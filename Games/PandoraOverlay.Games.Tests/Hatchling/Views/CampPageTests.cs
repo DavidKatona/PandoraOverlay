@@ -265,6 +265,33 @@ public class CampPageTests
         Assert.Equal("Maiasaura", game.State.Selected);
     });
 
+    /// <summary>
+    /// H85: a reading that changes the state redraws the page shown about every 3 s
+    /// while the player's dino grows, and a press and a release straddling one keep
+    /// the click. A step of 1% in 30 s is under the fastest growth <c>SeenGrowth</c>
+    /// allows and pays at any freshness.
+    /// </summary>
+    [Fact]
+    public void APressSurvivesAReadingThatRedrawsThePage() => Sta.Run(() =>
+    {
+        var (game, host) = ViewHarness.Attached(Rich());
+        using var view = ViewHarness.ViewOf(game);
+        var page = PageHarness.Shown<CampPage>(view);
+        var before = game.State.Wallet.Balance;
+
+        page.CardPressed("Maiasaura");
+        game.OnReading(new DinoReading(true, "Dryosaurus", "Male", 0.300));
+        host.ManualClock.Advance(TimeSpan.FromSeconds(30));
+        game.OnReading(new DinoReading(true, "Dryosaurus", "Male", 0.310));
+        Assert.True(game.State.Wallet.Balance > before, $"{game.State.Wallet.Balance} after {before}");
+        Assert.Equal(HatchlingText.Money(game.State.Wallet.Balance), view.WalletShown);   // the view redrew
+        Assert.Equal(PageKind.Camp, view.Shown);
+
+        page.CardReleased("Maiasaura");
+        Assert.Equal("Maiasaura", game.State.Selected);
+        Assert.Empty(host.Faults);
+    });
+
     [Fact]
     public void TheChosenCardKeepsItsLineUnderTheMouseAndTheOthersTakeTheHoverLine() => Sta.Run(() =>
     {
