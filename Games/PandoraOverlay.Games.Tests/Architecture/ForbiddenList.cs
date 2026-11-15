@@ -80,9 +80,14 @@ internal readonly record struct Finding(string Assembly, string Subject, Forbidd
 /// <para>
 /// It guards against a convenient API reached for by accident. It is not a
 /// sandbox and does not claim to be: the games are compiled in and reviewed.
-/// Fine on purpose: <c>System.IO.Stream</c>, <c>MemoryStream</c>, the readers
-/// and writers (the engine's atlas reads the streams of the game's own embedded
-/// art), and WPF's own drawing, layout and mouse input.
+/// Fine on purpose: <c>System.IO.Stream</c>, <c>MemoryStream</c>, the readers and
+/// writers that take only a stream or a string (<c>BinaryReader</c>,
+/// <c>StringReader</c>, <c>TextReader</c> and their writers; the engine's atlas
+/// hands the art's streams to <c>JsonDocument</c> and its PNG reader), and WPF's own
+/// drawing, layout and mouse input. <c>StreamReader</c> and <c>StreamWriter</c>
+/// are refused whole, since their path constructors share the stream ones' name,
+/// and so is every other way of opening a file by its path that a game would reach
+/// for (A69).
 /// </para>
 /// <para>
 /// What it still can't see, written down so nobody reads more into it (A60):
@@ -90,13 +95,18 @@ internal readonly record struct Finding(string Assembly, string Subject, Forbidd
 /// XAML's own conversion (a string property bound to an <c>Image</c>'s
 /// <c>Source</c>, or a game's string read there by an <c>x:Static</c>, is
 /// turned into a picture fetched by WPF, with no imaging type in the game's
-/// code), or through
-/// a decoder's <c>Uri</c> constructor (<c>PngBitmapDecoder</c> takes a
-/// <c>Uri</c> as well as the stream the engine gives it, and the two are one
-/// name in the metadata); and memory reinterpreted (an object read as another
-/// type's layout). The address scan (A45) keeps the address out of the source,
-/// and review keeps the rest: the metadata says what an assembly names, never
-/// what a string it builds will hold.
+/// code), or through a decoder's <c>Uri</c> constructor
+/// (<c>PngBitmapDecoder</c> takes a <c>Uri</c> as well as the stream the engine
+/// gives it, and the two are one name in the metadata); and memory
+/// reinterpreted (an object read as another type's layout). The address scan
+/// (A45) keeps the address out of the source, and review keeps the rest: the
+/// metadata says what an assembly names, never what a string it builds will
+/// hold. A file named by a <c>Uri</c> reaching WPF (a decoder's or a font's)
+/// is the address's gap above, and WPF's fonts read from a folder by its path
+/// (<c>Fonts.GetFontFamilies</c>, <c>GetTypefaces</c>, which only read) sit
+/// with it (A70); and a door no game would reach for by accident (a certificate
+/// or a temporary-file collection by its path, a file's version information)
+/// is review's (A69).
 /// </para>
 /// </summary>
 internal static class ForbiddenList
@@ -148,7 +158,7 @@ internal static class ForbiddenList
     private static ForbiddenEntry Member(string type, string member, string reason, params string[] except) =>
         new(ForbiddenKind.Member, type, reason) { Member = member, Except = except };
 
-    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member and A60's reflection and picture doors sit in their groups.</summary>
+    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member, A60's reflection and picture doors, A69's path doors and A70's two assemblies sit in their groups.</summary>
     public static IReadOnlyList<ForbiddenEntry> All { get; } = new[]
     {
         // ---- Assembly references ------------------------------------------------
@@ -162,6 +172,13 @@ internal static class ForbiddenList
         // turns it into calls on this assembly's run-time binder, and names no member
         // of the target at all.
         Assembly("Microsoft.CSharp", NoReflection),
+        // A70: the two framework assemblies behind A69's ConfigurationManager and EventLog,
+        // whole: a settings class (ApplicationSettingsBase, then Save()) writes user.config
+        // under the user's AppData naming neither type, and EventLogReader reads a log file
+        // by its path. Nothing a game needs is in either; the type entries below stay for
+        // their words.
+        Assembly("System.Configuration.ConfigurationManager", StorageIsTheHosts),
+        Assembly("System.Diagnostics.EventLog", ReachingOut),
 
         // ---- Namespaces, and every namespace below them ----------------------------
         Namespace("System.Net", ReachingOut),
@@ -185,6 +202,30 @@ internal static class ForbiddenList
         // (Expression.Field(target, "name")), and compiles to a delegate that does it
         // for real.
         Namespace("System.Linq.Expressions", NoReflection),
+        // A69, a file or a folder by its path, with no File, FileStream or Path named:
+        // the XML readers, writers and documents open and save the file a path names,
+        // and their loaders fetch an address too (XmlReader.Create, XmlWriter.Create,
+        // XmlDocument.Load and Save; below it, System.Xml.Linq's XDocument and XElement
+        // Load and Save); a DataSet reads and writes its XML the same way (ReadXml,
+        // WriteXml); a package, a memory-mapped file, a folder's walk, a tar archive and
+        // an XPS document each open what their path names (Package.Open,
+        // MemoryMappedFile.CreateFromFile, FileSystemEnumerable, TarFile, XpsDocument).
+        // Nothing shipped names any of them: the atlas reads JSON with System.Text.Json.
+        Namespace("System.Xml", StorageIsTheHosts),
+        Namespace("System.Data", StorageIsTheHosts),
+        Namespace("System.IO.Packaging", StorageIsTheHosts),
+        Namespace("System.IO.MemoryMappedFiles", StorageIsTheHosts),
+        Namespace("System.IO.Enumeration", StorageIsTheHosts),
+        Namespace("System.Formats.Tar", StorageIsTheHosts),
+        Namespace("System.Windows.Xps", StorageIsTheHosts),
+        // A69: XAML read from a file at run time (XamlServices.Load(path),
+        // XamlXmlReader(path)), as XamlReader below does. The namespace, not the
+        // assembly: System.Xaml.dll also holds System.Windows.Markup's types, which a
+        // view's generated code names (IComponentConnector).
+        Namespace("System.Xaml", NothingLoaded),
+        // A69: VisualBasic's FileIO.FileSystem reads, writes and walks files by their
+        // paths, and Interaction.Shell starts a program.
+        Namespace("Microsoft.VisualBasic", ReachingOut),
 
         // ---- Types ----------------------------------------------------------------
         Type("System.IO.File", StorageIsTheHosts),
@@ -195,6 +236,26 @@ internal static class ForbiddenList
         Type("System.IO.Path", StorageIsTheHosts),
         Type("System.IO.DriveInfo", StorageIsTheHosts),
         Type("System.IO.FileSystemWatcher", StorageIsTheHosts),
+        // A69, a file by its path. StreamReader and StreamWriter whole: their path
+        // constructors share the name .ctor with their stream ones, so
+        // new StreamWriter("debug.txt") names no File and no FileStream (the readers
+        // and writers that take only a stream or a string stay, see below). The trace
+        // listeners that write the file their path names; a .resources file read or
+        // written by its path; the exe's own config file, read and written by
+        // ConfigurationManager (the type, not its namespace: System.Configuration.Assemblies
+        // is a framework enum's, AssemblyHashAlgorithm).
+        Type("System.IO.StreamReader", StorageIsTheHosts),
+        Type("System.IO.StreamWriter", StorageIsTheHosts),
+        Type("System.Diagnostics.TextWriterTraceListener", StorageIsTheHosts),
+        Type("System.Diagnostics.DelimitedListTraceListener", StorageIsTheHosts),
+        Type("System.Diagnostics.XmlWriterTraceListener", StorageIsTheHosts),
+        Type("System.Resources.ResourceReader", StorageIsTheHosts),
+        Type("System.Resources.ResourceWriter", StorageIsTheHosts),
+        Type("System.Configuration.ConfigurationManager", StorageIsTheHosts),
+        // A69: the PC's event logs, read and written by a log's name (and another
+        // machine's, given its name). In the WPF framework a game builds against, so
+        // within a game's reach with no package.
+        Type("System.Diagnostics.EventLog", ReachingOut),
         // Process* as A29's list has it: Process and ProcessStartInfo, and
         // the rest of the family (ProcessModule, ProcessThread ...) that only a
         // Process hands out.
@@ -290,6 +351,19 @@ internal static class ForbiddenList
         //   with it (its Uri overload is the same name: see the summary's gaps).
         // - System.Windows.Input.KeyboardNavigation: a view may switch tab navigation
         //   off with it.
+        // - The readers and writers that take only a stream or a string (BinaryReader,
+        //   StringReader, TextReader and their writers), System.Text.Json (the atlas's
+        //   JsonDocument, the saves' JsonSerializer), Debug and Trace, and
+        //   DefaultTraceListener and ResourceManager as types (A69): none opens a file
+        //   by its path; the two members that do are refused below, and
+        //   ForbiddenApiTests.TheStreamsStayAllowed holds the rest allowed.
+        // - System.Drawing (Image.FromFile, Save; A69): left out. Its imaging is in
+        //   System.Drawing.Common, which the WPF framework the games build against
+        //   (Games/Directory.Build.props: UseWPF) does not hold, only Windows Forms'
+        //   does: Image.FromFile does not compile in the games' tests (CS1069), which
+        //   build as a game does. A game's project that switched Windows Forms on
+        //   would reach it, and ProjectRulesTests.NoProjectSwitchesOnAnotherFramework
+        //   refuses that switch and any other framework (A70).
         // Watch: a game whose XAML places an element of one of its own INTERNAL types
         // (<local:Board/> where Board is internal) gets WPF's GeneratedInternalTypeHelper
         // compiled in, and that helper calls PropertyInfo.GetValue and SetValue,
@@ -323,6 +397,12 @@ internal static class ForbiddenList
         Member("System.Windows.FrameworkContentElement", "ToolTipProperty", LeavingTheFrame),
         Member("System.Windows.FrameworkContentElement", "set_ContextMenu", LeavingTheFrame),
         Member("System.Windows.FrameworkContentElement", "ContextMenuProperty", LeavingTheFrame),
+        // A69, a file by its path, on types that otherwise stay: the default listener
+        // (the one Debug and Trace write to) also writes a file once its LogFileName is
+        // set, and a file-based resource manager reads the .resources files of a folder
+        // its path names (ResourceManager's GetString on the game's own resources stays).
+        Member("System.Diagnostics.DefaultTraceListener", "set_LogFileName", StorageIsTheHosts),
+        Member("System.Resources.ResourceManager", "CreateFileBasedResourceManager", StorageIsTheHosts),
 
         // A60, reflection by name. Every way to a member by its name (the lookups), and
         // every way to use one found so (read, write, call, hook, make a delegate of),

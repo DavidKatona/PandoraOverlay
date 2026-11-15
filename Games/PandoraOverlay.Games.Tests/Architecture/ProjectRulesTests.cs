@@ -24,7 +24,8 @@ internal sealed record ProjectFile(string Path, XDocument Xml)
 /// <summary>
 /// The dependency rule as the project files write it (A2, A30): one way only,
 /// a game → Engine → Contract, nothing under Games/ reaching the app, another
-/// game or a package, every project seen by the tests' scans, warnings errors.
+/// game, a package or a framework but WPF's (A70), every project seen by the
+/// tests' scans, warnings errors.
 /// The compiler is what then keeps a game from the app's website client, its
 /// cookie and its config: a type a project can't reference is a type it can't
 /// name. The rules are pure functions over the files (so each is shown failing
@@ -68,6 +69,10 @@ public class ProjectRulesTests
     [Fact]
     public void NoPackageButTheTestsThree() =>
         AssertNone(Packages(RepoProjects(), RepoBuildFiles()), "No package under Games/ but the tests' xUnit (A2, A29)");
+
+    [Fact]
+    public void NoProjectSwitchesOnAnotherFramework() =>
+        AssertNone(OtherFrameworks(RepoProjects(), RepoBuildFiles()), "A game builds against the WPF framework alone (A70): no UseWindowsForms and no FrameworkReference under Games/, so no other framework's doors (System.Drawing's imaging, a web server) are within a game's reach");
 
     [Fact]
     public void TheReferencesRunOneWay() =>
@@ -141,6 +146,29 @@ public class ProjectRulesTests
                 foreach (var package in packages)
                     problems.Add($"{file.FileName} has the package {package}: no package under Games/ but the tests' (A2)");
             }
+        }
+        return problems;
+    }
+
+    /// <summary>
+    /// A game builds against the WPF framework alone (A70): no project or build file
+    /// under Games/ switches Windows Forms on or names a FrameworkReference. A
+    /// framework switched on is a reference like a package (the rule above), with no
+    /// package to see: Windows Forms' brings System.Drawing.Common within a game's
+    /// reach (Image.FromFile and Save, a file by its path), ASP.NET Core's a web
+    /// server, and the forbidden list names neither's namespaces. One rule keeps
+    /// every framework's doors out, not one entry at a time. A Directory.Build
+    /// file's switch would reach every project under it, so those are held too.
+    /// </summary>
+    internal static IReadOnlyList<string> OtherFrameworks(IReadOnlyList<ProjectFile> projects, IReadOnlyList<ProjectFile> buildFiles)
+    {
+        var problems = new List<string>();
+        foreach (var file in projects.Concat(buildFiles))
+        {
+            foreach (var _ in file.Elements("UseWindowsForms").Where(IsTrue))
+                problems.Add($"{file.FileName}: UseWindowsForms is on: a game builds against the WPF framework alone (A70)");
+            foreach (var reference in file.Elements("FrameworkReference"))
+                problems.Add($"{file.FileName}: a FrameworkReference to \"{ProjectFile.ItemName(reference)}\": a game builds against the WPF framework alone (A70)");
         }
         return problems;
     }
@@ -255,6 +283,7 @@ public class ProjectRulesTests
 
         Assert.Empty(ReferencesLeavingGames(SampleGames, projects));
         Assert.Empty(Packages(projects, build));
+        Assert.Empty(OtherFrameworks(projects, build));
         Assert.Empty(OneWay(projects));
         Assert.Empty(NotReferencedByTheTests(projects));
         Assert.Empty(WarningsAsErrors(SampleGames, projects, build));
@@ -287,6 +316,29 @@ public class ProjectRulesTests
         // And a DLL by path dodges nothing.
         Assert.Single(Packages(GoodProjects(References("PandoraOverlay.Games.Contract", "PandoraOverlay.Games.Engine")
             + "<ItemGroup><Reference Include=\"PandoraOverlay\"><HintPath>..\\..\\bin\\PandoraOverlay.dll</HintPath></Reference></ItemGroup>"), new[] { GoodProps }));
+    }
+
+    /// <summary>
+    /// A70's rule on samples: Windows Forms switched on in a game's project (in
+    /// any case), a FrameworkReference there, and Windows Forms switched on in a
+    /// Directory.Build file each give exactly one problem; Windows Forms switched
+    /// off, and the good shape, give none.
+    /// </summary>
+    [Fact]
+    public void AnotherFrameworkIsCaught()
+    {
+        var game = References("PandoraOverlay.Games.Contract", "PandoraOverlay.Games.Engine");
+
+        var forms = Assert.Single(OtherFrameworks(GoodProjects(game + "<PropertyGroup><UseWindowsForms>true</UseWindowsForms></PropertyGroup>"), new[] { GoodProps }));
+        Assert.StartsWith(SampleGame + ".csproj: UseWindowsForms is on", forms);
+        Assert.Single(OtherFrameworks(GoodProjects(game + "<PropertyGroup><UseWindowsForms>TRUE</UseWindowsForms></PropertyGroup>"), new[] { GoodProps }));
+        var web = Assert.Single(OtherFrameworks(GoodProjects(game + "<ItemGroup><FrameworkReference Include=\"Microsoft.AspNetCore.App\" /></ItemGroup>"), new[] { GoodProps }));
+        Assert.Contains("a FrameworkReference to \"Microsoft.AspNetCore.App\"", web);
+        // In a Directory.Build file it would reach every project, so it is caught there too.
+        Assert.Single(OtherFrameworks(GoodProjects(), new[] { Props("<PropertyGroup><UseWindowsForms>true</UseWindowsForms></PropertyGroup>") }));
+
+        Assert.Empty(OtherFrameworks(GoodProjects(game + "<PropertyGroup><UseWindowsForms>false</UseWindowsForms></PropertyGroup>"), new[] { GoodProps }));
+        Assert.Empty(OtherFrameworks(GoodProjects(), new[] { GoodProps }));
     }
 
     [Fact]
