@@ -84,6 +84,18 @@ internal readonly record struct Finding(string Assembly, string Subject, Forbidd
 /// and writers (the engine's atlas reads the streams of the game's own embedded
 /// art), and WPF's own drawing, layout and mouse input.
 /// </para>
+/// <para>
+/// What it still can't see, written down so nobody reads more into it (A60):
+/// an address computed at run time that reaches WPF through a binding (a
+/// string property bound to an <c>Image</c>'s <c>Source</c> is turned into a
+/// picture fetched by WPF, with no imaging type in the game's code), or through
+/// a decoder's <c>Uri</c> constructor (<c>PngBitmapDecoder</c> takes a
+/// <c>Uri</c> as well as the stream the engine gives it, and the two are one
+/// name in the metadata); and memory reinterpreted (an object read as another
+/// type's layout). The address scan (A45) keeps the address out of the source,
+/// and review keeps the rest: the metadata says what an assembly names, never
+/// what a string it builds will hold.
+/// </para>
 /// </summary>
 internal static class ForbiddenList
 {
@@ -116,16 +128,25 @@ internal static class ForbiddenList
     private const string NoNativeCall = "never a native call (A29)";
     private const string GamesTickThroughTheLoop =
         "games tick through GameLoop (A19): the engine's loop is the one timer, and it exists only while a view has something to move";
+    // A60, after the constraint review's N2: the compiler keeps the app's types from
+    // a game (A2), but a view can walk its visual tree up to the Games window, and a
+    // member read by its name needs no type named; and WPF fetches a picture given by
+    // its address with no System.Net type in the game's code (A45).
+    private const string NoReflection =
+        "a game calls what it can name: reading or calling a member by its name is how a view could walk to the window and read what the compiler keeps from it (A2, A60)";
+    private const string NoAddress =
+        "a game makes no request: WPF fetches a picture given by its address itself, with no System.Net type to see, so no way of making one from an address is a game's (A45, A60)";
 
     private const string EngineAssembly = "PandoraOverlay.Games.Engine";
 
-    private static ForbiddenEntry Assembly(string name) => new(ForbiddenKind.Assembly, name, TheApp);
+    private static ForbiddenEntry Assembly(string name) => Assembly(name, TheApp);
+    private static ForbiddenEntry Assembly(string name, string reason) => new(ForbiddenKind.Assembly, name, reason);
     private static ForbiddenEntry Namespace(string name, string reason) => new(ForbiddenKind.Namespace, name, reason);
     private static ForbiddenEntry Type(string name, string reason) => new(ForbiddenKind.Type, name, reason);
     private static ForbiddenEntry Member(string type, string member, string reason, params string[] except) =>
         new(ForbiddenKind.Member, type, reason) { Member = member, Except = except };
 
-    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions and A44's Environment by member sit in their groups.</summary>
+    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member and A60's reflection and picture doors sit in their groups.</summary>
     public static IReadOnlyList<ForbiddenEntry> All { get; } = new[]
     {
         // ---- Assembly references ------------------------------------------------
@@ -135,6 +156,10 @@ internal static class ForbiddenList
         Assembly("Microsoft.Web.WebView2*"),
         Assembly("System.Security.Cryptography.ProtectedData"),
         Assembly("System.Net*"),
+        // A60: `dynamic` is reflection by name written as a member call: the compiler
+        // turns it into calls on this assembly's run-time binder, and names no member
+        // of the target at all.
+        Assembly("Microsoft.CSharp", NoReflection),
 
         // ---- Namespaces, and every namespace below them ----------------------------
         Namespace("System.Net", ReachingOut),
@@ -154,6 +179,10 @@ internal static class ForbiddenList
         // load context is one the build never saw.
         Namespace("System.Windows.Navigation", LeavingTheFrame),
         Namespace("System.Runtime.Loader", NothingLoaded),
+        // A60: an expression tree reads a field or calls a method given by its name
+        // (Expression.Field(target, "name")), and compiles to a delegate that does it
+        // for real.
+        Namespace("System.Linq.Expressions", NoReflection),
 
         // ---- Types ----------------------------------------------------------------
         Type("System.IO.File", StorageIsTheHosts),
@@ -222,9 +251,47 @@ internal static class ForbiddenList
         // A43, nothing loaded: another domain, or XAML read at run time.
         Type("System.AppDomain", NothingLoaded),
         Type("System.Windows.Markup.XamlReader", NothingLoaded),
-        // Not on the list, on purpose (A43): System.Activator and System.Uri (the XAML
-        // compiler's generated code uses both), System.Windows.Input.KeyboardNavigation
-        // (a view may switch tab navigation off with it).
+        // A60, reflection by name: the extension methods that hand out a type's fields,
+        // properties, methods and events by name (GetRuntimeField, GetRuntimeMethods ...).
+        Type("System.Reflection.RuntimeReflectionExtensions", NoReflection),
+        // A60, a picture by address: each of these turns an address into a picture WPF
+        // fetches by itself (BitmapImage's UriSource, the converter XAML and bindings
+        // use for "Source"), or builds the address (UriBuilder) with no "://" written.
+        Type("System.Windows.Media.Imaging.BitmapImage", NoAddress),
+        Type("System.Windows.Media.ImageSourceConverter", NoAddress),
+        Type("System.UriBuilder", NoAddress),
+        // Not on the list, on purpose (A43, A60), and held so by
+        // ForbiddenApiTests.TheHarmlessReflectionStaysAllowed:
+        // - System.Activator: `new T()` on a type parameter compiles to
+        //   Activator.CreateInstance<T>(), and WPF's markup compiler writes it into the
+        //   GeneratedInternalTypeHelper (see "Watch" below). It makes a new object and
+        //   reads nothing of one that exists. Kept whole (A43): with it stay its
+        //   overloads that make an object from a type's name
+        //   (CreateInstance(assemblyName, typeName), the same name in the metadata as
+        //   CreateInstance<T>) and from an assembly's file (CreateInstanceFrom).
+        // - System.Uri and its constructor: a view's generated InitializeComponent makes
+        //   a relative Uri ("/<assembly>;component/views/x.xaml") for LoadComponent.
+        //   Its scheme names are refused below, and an address in the source by the
+        //   address scan (A45).
+        // - typeof (Type.GetTypeFromHandle), Type.Assembly, a member's Name,
+        //   Object.GetType and Exception.GetType (a fault names its type, never its
+        //   message): each names what the code already holds, and none reaches a member
+        //   by its name.
+        // - The assembly's manifest resources (Assembly.GetManifestResourceStream and
+        //   GetManifestResourceNames): the game's own embedded art, read by the engine's
+        //   atlas.
+        // - PngBitmapDecoder's constructor: the engine decodes the art's PNG streams
+        //   with it (its Uri overload is the same name: see the summary's gaps).
+        // - System.Windows.Input.KeyboardNavigation: a view may switch tab navigation
+        //   off with it.
+        // Watch: a game whose XAML places an element of one of its own INTERNAL types
+        // (<local:Board/> where Board is internal) gets WPF's GeneratedInternalTypeHelper
+        // compiled in, and that helper calls PropertyInfo.GetValue and SetValue,
+        // Type.InvokeMember and EventInfo.AddEventHandler, which A60 refuses below: the
+        // scan then fails the game for code it never wrote (seen on a probe library,
+        // Nov 15 2026). Make that element's type public. An x:Static of an internal
+        // class and a view's own x:ClassModifier="internal" bring no helper (the same
+        // probe; Hatchling has both and none).
 
         // ---- Members ----------------------------------------------------------------
         Member("System.DateTime", "get_Now", TheHostsTime),
@@ -248,6 +315,86 @@ internal static class ForbiddenList
         Member("System.Windows.FrameworkContentElement", "ToolTipProperty", LeavingTheFrame),
         Member("System.Windows.FrameworkContentElement", "set_ContextMenu", LeavingTheFrame),
         Member("System.Windows.FrameworkContentElement", "ContextMenuProperty", LeavingTheFrame),
+
+        // A60, reflection by name. Every way to a member by its name (the lookups), and
+        // every way to use one found so (read, write, call, hook, make a delegate of),
+        // so a door missed on one side is still shut on the other. Exact names on
+        // System.Type: a GetType* prefix would catch GetTypeFromHandle, the typeof every
+        // game writes. A call is written against the type that DECLARES the member, so
+        // MethodInfo.Invoke reaches the metadata as MethodBase::Invoke; both are listed.
+        Member("System.Type", "GetField", NoReflection),
+        Member("System.Type", "GetFields", NoReflection),
+        Member("System.Type", "GetProperty", NoReflection),
+        Member("System.Type", "GetProperties", NoReflection),
+        Member("System.Type", "GetMethod", NoReflection),
+        Member("System.Type", "GetMethods", NoReflection),
+        Member("System.Type", "GetMember", NoReflection),
+        Member("System.Type", "GetMembers", NoReflection),
+        Member("System.Type", "GetConstructor", NoReflection),
+        Member("System.Type", "GetConstructors", NoReflection),
+        Member("System.Type", "GetEvent", NoReflection),
+        Member("System.Type", "GetEvents", NoReflection),
+        Member("System.Type", "GetNestedType", NoReflection),
+        Member("System.Type", "GetNestedTypes", NoReflection),
+        Member("System.Type", "GetDefaultMembers", NoReflection),
+        Member("System.Type", "FindMembers", NoReflection),
+        Member("System.Type", "InvokeMember", NoReflection),
+        // The static lookup of a type by its name (Type.GetType("PandoraOverlay.X")).
+        Member("System.Type", "GetType", NoReflection),
+        Member("System.Type", "GetTypeFromProgID", NoReflection),
+        Member("System.Type", "GetTypeFromCLSID", NoReflection),
+        Member("System.Type", "ReflectionOnlyGetType", NoReflection),
+        // GetDeclaredField, GetDeclaredMethod(s), GetDeclaredProperty, GetDeclaredEvent,
+        // GetDeclaredNestedType; DeclaredFields, DeclaredMethods, DeclaredMembers ...
+        Member("System.Reflection.TypeInfo", "GetDeclared*", NoReflection),
+        Member("System.Reflection.TypeInfo", "get_Declared*", NoReflection),
+        // GetValue and GetValueDirect, SetValue and SetValueDirect.
+        Member("System.Reflection.FieldInfo", "GetValue*", NoReflection),
+        Member("System.Reflection.FieldInfo", "SetValue*", NoReflection),
+        Member("System.Reflection.PropertyInfo", "GetValue", NoReflection),
+        Member("System.Reflection.PropertyInfo", "SetValue", NoReflection),
+        Member("System.Reflection.PropertyInfo", "GetGetMethod", NoReflection),
+        Member("System.Reflection.PropertyInfo", "GetSetMethod", NoReflection),
+        Member("System.Reflection.PropertyInfo", "get_GetMethod", NoReflection),
+        Member("System.Reflection.PropertyInfo", "get_SetMethod", NoReflection),
+        Member("System.Reflection.PropertyInfo", "GetAccessors", NoReflection),
+        Member("System.Reflection.MethodBase", "Invoke", NoReflection),
+        Member("System.Reflection.MethodInfo", "Invoke", NoReflection),
+        Member("System.Reflection.MethodInfo", "CreateDelegate", NoReflection),
+        Member("System.Reflection.ConstructorInfo", "Invoke", NoReflection),
+        Member("System.Reflection.EventInfo", "AddEventHandler", NoReflection),
+        Member("System.Reflection.EventInfo", "RemoveEventHandler", NoReflection),
+        // Delegate.CreateDelegate(type, target, "MethodName"): a call by name.
+        Member("System.Delegate", "CreateDelegate", NoReflection),
+        // Beside Load* and UnsafeLoad* above: the app's own assembly (the entry one), and
+        // the lookups of an assembly's types by name, or of all of them.
+        Member("System.Reflection.Assembly", "GetEntryAssembly", NoReflection),
+        Member("System.Reflection.Assembly", "GetCallingAssembly", NoReflection),
+        Member("System.Reflection.Assembly", "GetType", NoReflection),
+        Member("System.Reflection.Assembly", "GetTypes", NoReflection),
+        Member("System.Reflection.Assembly", "GetExportedTypes", NoReflection),
+        Member("System.Reflection.Assembly", "GetForwardedTypes", NoReflection),
+        Member("System.Reflection.Assembly", "get_DefinedTypes", NoReflection),
+        Member("System.Reflection.Assembly", "get_ExportedTypes", NoReflection),
+        Member("System.Reflection.Assembly", "CreateInstance", NoReflection),
+        Member("System.Reflection.Assembly", "get_EntryPoint", NoReflection),
+        // GetField(s), GetMethod(s), and ResolveField, ResolveMethod, ResolveMember,
+        // ResolveType, ResolveString, ResolveSignature (a member by its token).
+        Member("System.Reflection.Module", "GetType", NoReflection),
+        Member("System.Reflection.Module", "GetTypes", NoReflection),
+        Member("System.Reflection.Module", "FindTypes", NoReflection),
+        Member("System.Reflection.Module", "GetField*", NoReflection),
+        Member("System.Reflection.Module", "GetMethod*", NoReflection),
+        Member("System.Reflection.Module", "Resolve*", NoReflection),
+
+        // A60, a picture by address. Create is held by name, every overload: the Uri
+        // ones fetch, and the stream ones are not the engine's way (it decodes through
+        // PngBitmapDecoder's constructor). The scheme names build "https://" with no
+        // "://" in the source (UriSchemeHttp, UriSchemeHttps, UriSchemeFile ...).
+        Member("System.Windows.Media.Imaging.BitmapFrame", "Create", NoAddress),
+        Member("System.Windows.Media.Imaging.BitmapDecoder", "Create", NoAddress),
+        Member("System.Uri", "UriScheme*", NoAddress),
+        Member("System.Uri", "SchemeDelimiter", NoAddress),
 
         // ---- Native calls -------------------------------------------------------------
         new(ForbiddenKind.PInvoke, "any", NoNativeCall),

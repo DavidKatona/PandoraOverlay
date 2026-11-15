@@ -10,8 +10,10 @@ namespace PandoraOverlay.Games.Tests;
 /// (A21); a game's chrome holds no literal colour, corner, font, size or text
 /// (A24, A25); its XAML, all of it under Views/, names nothing that leaves the
 /// frame or takes the keyboard, which the compiled BAML would hide from the
-/// forbidden list (A33, A42); and no source under Games/ holds an address
-/// (A45). The files are read where they are, a
+/// forbidden list (A33, A42), and opens none of XAML's own doors: no data
+/// provider, no namespace mapped but the games' own, no x:Static but through one
+/// (A60); and no source under Games/ holds an address, a bare scheme included
+/// (A45, A60). The files are read where they are, a
 /// build's output and these tests' own folder left out. With no game yet the
 /// chrome scans find no file, which is expected: each rule's self-test, a bad
 /// line and a good one, is what proves it today, as the app's own
@@ -152,12 +154,19 @@ public class SourceScanTests
     private static readonly Regex AttributeOf = new(@"([^\s=""'/<>]+)\s*=\s*(?:""([^""]*)""|'([^']*)')", RegexOptions.Compiled);
     private static readonly Regex BetweenTags = new(@">([^<]*)(?=<)", RegexOptions.Compiled);
 
-    /// <summary>Elements that open a surface of their own, play, animate or take the keyboard (A33, A42): any part of an element's name (Button.ToolTip is ToolTip).</summary>
+    /// <summary>
+    /// Elements that open a surface of their own, play, animate or take the keyboard
+    /// (A33, A42), and XAML's own doors out (A60): an ObjectDataProvider calls any
+    /// method by its name, a framework type's static included, and an
+    /// XmlDataProvider fetches its Source. Any part of an element's name counts
+    /// (Button.ToolTip is ToolTip).
+    /// </summary>
     internal static readonly HashSet<string> ForbiddenElements = new(StringComparer.Ordinal)
     {
         "Window", "NavigationWindow", "Popup", "ToolTip", "ContextMenu", "Menu", "MenuItem", "ComboBox", "DatePicker", "Frame",
         "WebBrowser", "MediaElement", "SoundPlayerAction", "KeyBinding", "TextBox", "PasswordBox", "RichTextBox",
         "Storyboard", "BeginStoryboard", "EventTrigger", "VisualStateManager",
+        "ObjectDataProvider", "XmlDataProvider",
     };
 
     /// <summary>The endings of the effects' and the animations' type names: DropShadowEffect, DoubleAnimation, ColorAnimationUsingKeyFrames.</summary>
@@ -224,7 +233,7 @@ public class SourceScanTests
         {
             var element = tag.Groups[1].Value;
             if (IsForbiddenElement(element))
-                problems.Add($"an element that leaves the frame or takes the keyboard: <{element}>");
+                problems.Add($"an element that leaves the frame, takes the keyboard or reaches out: <{element}>");
             var attributes = AttributeOf.Matches(tag.Groups[2].Value)
                 .Select(a => (Name: a.Groups[1].Value, Value: a.Groups[2].Success ? a.Groups[2].Value : a.Groups[3].Value))
                 .ToList();
@@ -290,13 +299,201 @@ public class SourceScanTests
         Assert.True(XamlIsUnderViews("Games/PandoraOverlay.Games.Sample/Views/Pages/Camp.xaml"));
     }
 
+    // ---- XAML's own doors (A60) ----
+    // The metadata never sees what XAML resolves by itself: a clr-namespace mapping
+    // makes every type of a namespace, the framework's included, writable as an
+    // element or an extension's argument, and {x:Static} reads a static member of any
+    // type it can name ({x:Static Application.Current} through the default namespace,
+    // {x:Static sys:Environment.UserName} through a mapping) with no member reference
+    // in the compiled code. So a game's XAML maps only the games' own namespaces, and
+    // every x:Static names its member through one of those mappings.
+
+    // Every namespace declaration, the default one included (prefix ""), with its value.
+    private static readonly Regex XmlnsMapping = new(@"\bxmlns(?::([^\s=]+))?\s*=\s*(?:""([^""]*)""|'([^']*)')", RegexOptions.Compiled);
+
+    // The one form a clr-namespace mapping of a game may take, exactly: a namespace under
+    // PandoraOverlay.Games., and, when an assembly is named, one of the games' own.
+    // Anything else that maps a CLR namespace (another namespace, another assembly,
+    // spaces, an empty assembly) is refused rather than read generously.
+    private static readonly Regex GameClrNamespace = new(@"^clr-namespace:PandoraOverlay\.Games\.[A-Za-z0-9_.]+(?:;assembly=PandoraOverlay\.Games\.[A-Za-z0-9_.]+)?$", RegexOptions.Compiled);
+
+    // {x:Static ...} or {x:StaticExtension ...}, under any prefix or none (the language
+    // namespace may be mapped to another prefix): its arguments, up to the first '}',
+    // so a nested extension inside (MemberType={x:Type ...}) is read as a bad argument
+    // instead of hiding the outer one.
+    private static readonly Regex StaticExtension = new(@"\{\s*(?:[^\s{}:=,]+:)?(?:Static|StaticExtension)(?=[\s}])([^}]*)\}", RegexOptions.Compiled);
+
+    // The one argument an x:Static may have: <prefix>:<Type>.<Member>, after an optional "Member=".
+    private static readonly Regex StaticMember = new(@"^(?:Member\s*=\s*)?([^\s:=,{}]+):([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)$", RegexOptions.Compiled);
+
+    /// <summary>Every namespace declaration in <paramref name="xaml"/> (comments not read): its prefix, "" for the default one, and its value.</summary>
+    internal static IReadOnlyList<(string Prefix, string Value)> XamlMappings(string xaml) =>
+        XmlnsMapping.Matches(XamlComment.Replace(xaml, ""))
+            .Select(m => (m.Groups[1].Value, m.Groups[2].Success ? m.Groups[2].Value : m.Groups[3].Value))
+            .ToList();
+
+    private static bool MapsAClrNamespace(string value) => value.TrimStart().StartsWith("clr-namespace", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The prefixes <paramref name="xaml"/> maps to a game's own namespace, by the one form a game's mapping may take.</summary>
+    internal static IReadOnlySet<string> GamePrefixes(string xaml) =>
+        XamlMappings(xaml).Where(m => m.Prefix.Length > 0 && GameClrNamespace.IsMatch(m.Value)).Select(m => m.Prefix).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>Every clr-namespace mapping in a game's XAML that is not the games' own (A60): each as the scan names it. Comments are not read.</summary>
+    internal static IReadOnlyList<string> ClrNamespaceProblems(string xaml) =>
+        XamlMappings(xaml)
+            .Where(m => MapsAClrNamespace(m.Value) && !GameClrNamespace.IsMatch(m.Value))
+            .Select(m => $"a namespace that is not a game's: xmlns{(m.Prefix.Length > 0 ? ":" + m.Prefix : "")}=\"{m.Value}\"")
+            .ToList();
+
+    /// <summary>Every x:Static in a game's XAML that does not name its member through one of the file's own game mappings (A60), the extension and the element form: each as the scan names it. Comments are not read.</summary>
+    internal static IReadOnlyList<string> StaticProblems(string xaml)
+    {
+        var text = XamlComment.Replace(xaml, "");
+        var prefixes = GamePrefixes(text);
+        var problems = new List<string>();
+
+        bool ThroughAGame(string argument)
+        {
+            var m = StaticMember.Match(argument.Trim());
+            return m.Success && prefixes.Contains(m.Groups[1].Value);
+        }
+
+        foreach (Match use in StaticExtension.Matches(text))
+            if (!ThroughAGame(use.Groups[1].Value))
+                problems.Add("an x:Static not through a game's namespace: " + use.Value);
+
+        // The element form, <x:Static Member="..."/>: the same extension, written as a tag.
+        foreach (Match tag in StartTag.Matches(text))
+        {
+            var raw = tag.Groups[1].Value;
+            var colon = raw.IndexOf(':');
+            var local = colon >= 0 ? raw[(colon + 1)..] : raw;
+            var head = local.Split('.')[0];
+            if (head != "Static" && head != "StaticExtension") continue;
+            var member = AttributeOf.Matches(tag.Groups[2].Value)
+                .Where(a => a.Groups[1].Value == "Member")
+                .Select(a => a.Groups[2].Success ? a.Groups[2].Value : a.Groups[3].Value)
+                .FirstOrDefault();
+            if (local.Contains('.') || member is null || !ThroughAGame(member))
+                problems.Add($"an x:Static not through a game's namespace: <{raw}{tag.Groups[2].Value}>");
+        }
+        return problems;
+    }
+
+    /// <summary>
+    /// A game's XAML maps no namespace but the games' own (A60): a mapping of
+    /// System, System.Diagnostics or any framework namespace would make its types
+    /// writable in XAML, where the metadata never sees them.
+    /// </summary>
+    [Fact]
+    public void EveryGameXamlMapsOnlyTheGamesNamespaces()
+    {
+        var files = GamesSources(".xaml").ToList();
+        Assert.NotEmpty(files); // Hatchling's views are there to read
+
+        var problems = files.SelectMany(f => ClrNamespaceProblems(File.ReadAllText(f)).Select(p => $"{Repo.Relative(f)}: {p}")).ToList();
+        Assert.True(problems.Count == 0,
+            "A game's XAML maps only the games' own namespaces (A60): clr-namespace:PandoraOverlay.Games.<...>, with no assembly or one of PandoraOverlay.Games.*; the metadata never sees a type XAML resolves by itself:\n"
+            + string.Join("\n", problems));
+    }
+
+    /// <summary>
+    /// Every x:Static of a game names its member through a mapping of the games'
+    /// own (A60): an x:Static of an unprefixed WPF type ({x:Static
+    /// Application.Current}) or of a mapped framework one reads what no game may,
+    /// with no member reference for the forbidden list to see.
+    /// </summary>
+    [Fact]
+    public void EveryGameXStaticNamesAGamesMember()
+    {
+        var files = GamesSources(".xaml").ToList();
+        Assert.NotEmpty(files);
+
+        var problems = files.SelectMany(f => StaticProblems(File.ReadAllText(f)).Select(p => $"{Repo.Relative(f)}: {p}")).ToList();
+        Assert.True(problems.Count == 0,
+            "Every x:Static of a game is <prefix>:<Type>.<Member>, the prefix mapped in the same file to a game's own namespace (A60), as Hatchling's {x:Static h:HatchlingText...} are:\n"
+            + string.Join("\n", problems));
+    }
+
+    [Fact]
+    public void TheNamespaceRuleFindsWhatItIsFor()
+    {
+        foreach (var bad in new[]
+                 {
+                     """<Grid xmlns:sys="clr-namespace:System;assembly=mscorlib"/>""",
+                     """<Grid xmlns:d="clr-namespace:System.Diagnostics;assembly=System.Diagnostics.Process"/>""",
+                     """<Grid xmlns:w="clr-namespace:System.Windows;assembly=PresentationFramework"/>""",
+                     """<Grid xmlns="clr-namespace:System;assembly=System.Runtime"/>""",
+                     """<Grid xmlns:app="clr-namespace:PandoraOverlay"/>""",
+                     """<Grid xmlns:app="clr-namespace:PandoraOverlay;assembly=PandoraOverlay"/>""",
+                     """<Grid xmlns:g="clr-namespace:PandoraOverlay.GamesX"/>""",
+                     """<Grid xmlns:g="clr-namespace:PandoraOverlay.Games.Sample;assembly=PandoraOverlay"/>""",
+                     """<Grid xmlns:g="clr-namespace:PandoraOverlay.Games.Sample;assembly=mscorlib"/>""",
+                     """<Grid xmlns:g='clr-namespace: System'/>""",
+                     """<Grid><Border xmlns:sys="clr-namespace:System;assembly=mscorlib"/></Grid>""",
+                 })
+            Assert.True(ClrNamespaceProblems(bad).Count > 0, bad + " should be found");
+        foreach (var good in new[]
+                 {
+                     """<Grid xmlns:h="clr-namespace:PandoraOverlay.Games.Hatchling"/>""",
+                     """<Grid xmlns:e="clr-namespace:PandoraOverlay.Games.Engine;assembly=PandoraOverlay.Games.Engine"/>""",
+                     """<Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"/>""",
+                     """<!-- xmlns:sys="clr-namespace:System;assembly=mscorlib" --><Grid/>""",
+                 })
+            Assert.True(ClrNamespaceProblems(good).Count == 0, good + " should pass, but: " + string.Join("; ", ClrNamespaceProblems(good)));
+    }
+
+    [Fact]
+    public void TheStaticRuleFindsWhatItIsFor()
+    {
+        const string Mapped = """<Grid xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:h="clr-namespace:PandoraOverlay.Games.Hatchling" xmlns:sys="clr-namespace:System;assembly=mscorlib">""";
+        foreach (var bad in new[]
+                 {
+                     """<TextBlock Text="{x:Static Application.Current}"/>""",
+                     """<TextBlock Text="{x:Static sys:Environment.UserName}"/>""",
+                     """<TextBlock Text="{x:Static Member=sys:Environment.UserName}"/>""",
+                     """<TextBlock Text="{x:StaticExtension sys:Environment.UserName}"/>""",
+                     """<TextBlock Text="{x:Static SystemParameters.PrimaryScreenWidth}"/>""",
+                     """<TextBlock Text="{x:Static MemberType={x:Type Application}, Member=Current}"/>""",
+                     """<TextBlock Text="{Binding Source={x:Static Application.Current}, Path=MainWindow}"/>""",
+                     """<TextBlock Text="{lang:Static sys:Environment.UserName}"/>""",
+                     """<TextBlock Text="{x:Static q:HatchlingText.TabCamp}"/>""", // q is mapped nowhere
+                     """<TextBlock Text="{x:Static h:HatchlingText}"/>""",
+                     """<x:Static Member="sys:Environment.UserName"/>""",
+                     "<x:Static/>",
+                     "<x:Static.Member>",
+                 })
+            Assert.True(StaticProblems(Mapped + bad + "</Grid>").Count > 0, bad + " should be found");
+        foreach (var good in new[]
+                 {
+                     """<TextBlock Text="{x:Static h:HatchlingText.TabCamp}"/>""",
+                     """<TextBlock Text="{x:Static Member=h:HatchlingText.TabCamp}"/>""",
+                     """<TextBlock Text="{x:Static  h:HatchlingText.TabCamp }"/>""",
+                     """<Setter Property="Content" Value="{x:Static h:HatchlingText.Back}"/>""",
+                     """<x:Static Member="h:HatchlingText.TabCamp"/>""",
+                     """<TextBlock Text="{DynamicResource Theme.Text.Primary}" Tag="{x:Null}"/>""",
+                     """<!-- {x:Static Application.Current} --><Border/>""",
+                 })
+            Assert.True(StaticProblems(Mapped + good + "</Grid>").Count == 0, good + " should pass, but: " + string.Join("; ", StaticProblems(Mapped + good + "</Grid>")));
+
+        // The prefix counts only when this file maps it to a game: the same use with no
+        // mapping, or with h mapped to a framework namespace, is refused.
+        Assert.NotEmpty(StaticProblems("""<TextBlock Text="{x:Static h:HatchlingText.TabCamp}"/>"""));
+        Assert.NotEmpty(StaticProblems("""<Grid xmlns:h="clr-namespace:System;assembly=mscorlib"><TextBlock Text="{x:Static h:Environment.UserName}"/></Grid>"""));
+    }
+
     // ---- No address under Games/ (A45) ----
 
     // XAML's namespace declarations are names, never fetched: they are taken out first.
     private static readonly Regex XmlnsDeclaration = new(@"\bxmlns(?::[^\s=]+)?\s*=\s*(?:""[^""]*""|'[^']*')", RegexOptions.Compiled);
-    private static readonly Regex Address = new(@"[^\s""'<>()]*://[^\s""'<>()]*", RegexOptions.Compiled);
+    // A "://", or the web's two schemes with their colon in any case (A60): an address
+    // split as "https:" + "//" + host has no "://" in it, and "HTTPS:" works as well as
+    // "https:". The scheme must start a word, so HttpStatusCode and a bare "http" (a
+    // word, with no colon) are not addresses. One match per address: the run of
+    // characters round what it found, so "https://x" is reported once.
+    private static readonly Regex Address = new(@"[^\s""'<>()]*(?:://|\bhttps?:)[^\s""'<>()]*", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    /// <summary>Every "://" in a source text, with what stands round it; in XAML, after its namespace declarations are taken out.</summary>
+    /// <summary>Every "://", "http:" or "https:" (any case) in a source text, with what stands round it; in XAML, after its namespace declarations are taken out.</summary>
     internal static IReadOnlyList<string> AddressesIn(string text, bool xaml)
     {
         if (xaml) text = XmlnsDeclaration.Replace(text, "");
@@ -304,10 +501,11 @@ public class SourceScanTests
     }
 
     /// <summary>
-    /// No source under Games/ holds an address, comments included (A45). A game
-    /// makes no request, and WPF itself fetches an http address given to an
-    /// Image, a BitmapImage, a Frame or a MediaElement, with no System.Net type
-    /// for the forbidden list to see.
+    /// No source under Games/ holds an address, comments included (A45): no
+    /// "://", and no "http:" or "https:" in any case (A60). A game makes no
+    /// request, and WPF itself fetches an http address given to an Image, a
+    /// BitmapImage, a Frame or a MediaElement, with no System.Net type for the
+    /// forbidden list to see.
     /// </summary>
     [Fact]
     public void NoSourceUnderGamesHoldsAnAddress()
@@ -319,7 +517,7 @@ public class SourceScanTests
             .SelectMany(f => AddressesIn(File.ReadAllText(f.File), f.Xaml).Select(a => $"{Repo.Relative(f.File)}: {a}"))
             .ToList();
         Assert.True(problems.Count == 0,
-            "No address under Games/ (A45): a game makes no request, and WPF itself fetches an http address given to an Image, a BitmapImage, a Frame or a MediaElement, with no System.Net type for the forbidden list to see. A comment cites a page without its scheme (example.org/page):\n"
+            "No address under Games/ (A45, A60): no \"://\", \"http:\" or \"https:\" in any case, XAML namespace declarations aside. A game makes no request, and WPF itself fetches an http address given to an Image, a BitmapImage, a Frame or a MediaElement, with no System.Net type for the forbidden list to see. A comment cites a page without its scheme (example.org/page):\n"
             + string.Join("\n", problems));
     }
 
@@ -330,9 +528,23 @@ public class SourceScanTests
         Assert.NotEmpty(AddressesIn("""<Image Source="pack://siteoforigin:,,,/a.png"/>""", xaml: true));
         Assert.NotEmpty(AddressesIn("""var u = new Uri("http://example.org");""", xaml: false));
         Assert.NotEmpty(AddressesIn("// see https://example.org/hexes", xaml: false));
+        // An address is reported once, not once for its "://" and again for its scheme.
+        Assert.Equal(new[] { "https://example.org/hexes" }, AddressesIn("// see https://example.org/hexes", xaml: false));
+
+        // A60: the schemes alone, in any case, so a split address is found (C# and XAML).
+        Assert.Equal(new[] { "https:" }, AddressesIn("""var s = "https:" + "//" + host;""", xaml: false));
+        Assert.Equal(new[] { "HTTP:" }, AddressesIn("""var s = "HTTP:" + rest;""", xaml: false));
+        Assert.Equal(new[] { "https:" }, AddressesIn("// https: see the page", xaml: false));
+        Assert.NotEmpty(AddressesIn("""var s = "Https:" + "//" + host;""", xaml: false));
+        Assert.NotEmpty(AddressesIn("""<TextBlock Tag="http:example.org"/>""", xaml: true));
+
         Assert.Empty(AddressesIn("""<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:PandoraOverlay.Games.Sample.Views"/>""", xaml: true));
         Assert.Empty(AddressesIn("""new Uri("/PandoraOverlay.Games.Sample;component/views/camp.xaml", UriKind.Relative)""", xaml: false));
         Assert.Empty(AddressesIn("// see example.org/hexes", xaml: false));
+        // A word is not a scheme: no colon, or a longer word before it.
+        Assert.Empty(AddressesIn("if (code == HttpStatusCode.OK) return;", xaml: false));
+        Assert.Empty(AddressesIn("""var word = "http"; // the word http, no colon""", xaml: false));
+        Assert.Empty(AddressesIn("""case "https": break;""", xaml: false));
     }
 
     /// <summary>What a game's view code holds that it may not: a colour built in code.</summary>
@@ -360,7 +572,7 @@ public class SourceScanTests
             .ToList();
 
         Assert.True(problems.Count == 0,
-            "A game's chrome is the theme's and stays in its view (A24, A25, A33, A42): read a token by {DynamicResource Theme....}, a size by Theme.Size.N, a string from the game's text class; no popup, tooltip, menu, effect, animation, sound or keyboard:\n"
+            "A game's chrome is the theme's and stays in its view (A24, A25, A33, A42, A60): read a token by {DynamicResource Theme....}, a size by Theme.Size.N, a string from the game's text class; no popup, tooltip, menu, effect, animation, sound, keyboard or data provider:\n"
             + string.Join("\n", problems));
     }
 
@@ -433,6 +645,10 @@ public class SourceScanTests
                      "<ColorAnimationUsingKeyFrames>", """<EventTrigger RoutedEvent="Loaded">""", "<VisualStateManager.VisualStateGroups>",
                      """<KeyBinding Key="Space" Command="{x:Static local:Cmd.Go}"/>""", "<MediaElement/>", "<TextBox/>", "<ComboBox/>",
                      "<controls:WebBrowser/>",
+                     // A60: XAML's own doors, a call by name and a fetch.
+                     """<ObjectDataProvider x:Key="p" ObjectType="{x:Type sys:Environment}" MethodName="GetEnvironmentVariable"/>""",
+                     """<ObjectDataProvider.MethodParameters>""",
+                     """<XmlDataProvider x:Key="feed" Source="example.org/feed.xml"/>""",
                  })
             Assert.True(XamlProblems(bad).Count > 0, bad + " should be found");
         foreach (var good in new[]
