@@ -19,6 +19,7 @@ public class ConfigDefaultsTests
         Assert.Equal(1.0, cfg.ActivityScale);
         Assert.Equal(1.0, cfg.ControlPanelScale);
         Assert.Equal(1.0, cfg.PackScale);
+        Assert.Equal(1.0, cfg.GamesScale); // the owner, Nov 15 2026 (A75): the Games window's own, a plain 1.0
         Assert.False(cfg.PackEnabled); // the owner, Nov 10 2026: off until the control panel's Pack button turns it on
         Assert.Null(cfg.PackX);
         Assert.Equal("small", cfg.PackFrame); // the owner, Nov 8 2026: small by default, large a choice

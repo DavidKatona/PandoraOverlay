@@ -98,7 +98,12 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   currency's name is in one file (A24). What is chosen wears `Theme.Text.Highlight`
   (A46). No tooltip, popup, window or keyboard handling in a game (A33, A42).
 - **The frames are fixed and the themes' numbers do not move** (A26): the window is
-  `GamesFrame` (800 x 552), a game's view `GameFrame` (798 x 510). Every screen of
+  `GamesFrame` (800 x 552), a game's view `GameFrame` (798 x 510). The whole window
+  is drawn at the player's `GamesScale` (Settings → Widgets, 75% to 200%; A75, the
+  owner reversing G15's "no size slider"), clamped to its monitor's work area less
+  `ScreenMargin` (`GamesFrame.FitScale`): one transform over the layout, which stays
+  800 x 552 logical, so no frame number changes and a board stays on whole device
+  pixels (the presenter reads the transform, A17). Every screen of
   every game is a `LayoutState` and is laid out in every theme by `GamesLayoutTests`
   and the fit-factor walk. If a theme's computed `Fit` changes, the screen is wrong:
   give the text room or an ellipsis. Never edit a theme file for a game. A game that
@@ -154,6 +159,9 @@ and `WORKER-RULES.md` barred starting it); say so when it matters.
 - Pixel art sharp at a real display scale, 125% and 150% included, and the window on
   a second monitor or a screen smaller than the frame (A17: the arithmetic is tested,
   the placement is not).
+- The window at a `GamesScale` above 100% on a real screen, 200% and the clamp to a
+  1080p monitor included, and the board's sharpness at a fractional total (125% x 1.5,
+  say): the arithmetic and the transform are tested (A75), nothing was seen.
 - The six themes on a real screen, and every picture of a game: stills only. Nobody
   has seen the walk, a strike, a bite, the fade or a turn's pace move (PLAN-HATCHLING.md, section 10).
 - The window against hide-all, edit mode, the map, Settings, the tray, Check Prime and

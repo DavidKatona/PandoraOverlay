@@ -439,6 +439,20 @@
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="ControlPanelScaleSlider_ValueChanged"/>
             </DockPanel>
+
+            <!-- The Games window's own Scale (the owner, Nov 15 2026, A75): last,
+                 since it is no control-panel widget; up to 200%, the point being
+                 to draw it larger. The window is closed while Settings is open
+                 (A13), so its next opening uses the value. -->
+            <TextBlock Style="{StaticResource SectionCaption}" Text="GAMES"/>
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="GamesScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider Style="{DynamicResource Theme.SliderStyle}" x:Name="GamesScaleSlider" Minimum="0.75" Maximum="2"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="GamesScaleSlider_ValueChanged"/>
+            </DockPanel>
             </StackPanel>
 
             <!-- ============================ Maps =========================== -->

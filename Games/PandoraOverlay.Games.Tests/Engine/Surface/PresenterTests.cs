@@ -349,6 +349,50 @@ public class PresenterTests
         Assert.Equal(placed.DeviceWidth, placed.DrawWidth * 1.35, 9);
     }
 
+    /// <summary>
+    /// The Games window drawn larger (GamesScale, A75): the board's device size
+    /// is its logical size times the display scale times the window's scale,
+    /// rounded per side, its origin lands on a whole device pixel and it is
+    /// drawn 1:1, at every display scale, whole totals (100% x 2.0) and
+    /// fractional ones (125% x 1.5) alike.
+    /// </summary>
+    [Theory]
+    [InlineData(1.5, 1.0, 12.4, 7.9)]
+    [InlineData(1.5, 1.25, 12.4, 7.9)]
+    [InlineData(1.5, 1.5, 133.5, 47.25)]
+    [InlineData(1.5, 2.0, 0.3, 0.7)]
+    [InlineData(2.0, 1.0, 12.4, 7.9)]
+    [InlineData(2.0, 1.25, 134.3, 48.7)]
+    [InlineData(2.0, 1.5, 133.5, 47.25)]
+    [InlineData(2.0, 1.75, 134, 48.1)]
+    public void AWindowScaleAboveOneIsPartOfTheRealScale(double window, double dpi, double left, double top)
+    {
+        var toRoot = new Matrix(window, 0, 0, window, left, top);
+        var placed = Presenter.Place(532, 456, toRoot, dpi, dpi);
+
+        Assert.Equal(dpi * window, placed.ScaleX, 12);
+        Assert.Equal(dpi * window, placed.ScaleY, 12);
+        var expected = ((int)Math.Round(532 * dpi * window, MidpointRounding.AwayFromZero),
+                        (int)Math.Round(456 * dpi * window, MidpointRounding.AwayFromZero));
+        Assert.Equal(expected, (placed.DeviceWidth, placed.DeviceHeight));
+
+        var deviceX = (left + placed.OffsetX * window) * dpi;
+        var deviceY = (top + placed.OffsetY * window) * dpi;
+        Assert.Equal(Math.Round(deviceX), deviceX, 9);
+        Assert.Equal(Math.Round(deviceY), deviceY, 9);
+        Assert.Equal(placed.DeviceWidth, placed.DrawWidth * dpi * window, 9);
+        Assert.Equal(placed.DeviceHeight, placed.DrawHeight * dpi * window, 9);
+    }
+
+    [Fact]
+    public void AtTwoHundredPercentAWholeTotalIsABlockOfThree()
+    {
+        // 150% display x a window at 2.0 = 3: every logical pixel a 3 x 3 block, exact.
+        var placed = Presenter.Place(532, 456, new Matrix(2, 0, 0, 2, 0, 0), 1.5, 1.5);
+        Assert.Equal((1596, 1368), (placed.DeviceWidth, placed.DeviceHeight));
+        Assert.Equal(3, new ScalePlan(532, 456, placed.DeviceWidth, placed.DeviceHeight).Block);
+    }
+
     [Fact]
     public void AMirrorOrATurnDoesNotGiveANegativeScale()
     {

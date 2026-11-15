@@ -46,9 +46,10 @@ namespace PandoraOverlay;
 /// <para>
 /// Not an OverlayWindowBase (it is no click-through widget): a plain opaque
 /// Window like the map, topmost, a tool window (no Alt-Tab entry), centred on
-/// the HUD's monitor at its drawn size, never remembered (G15). On a screen
-/// too small for the frame the whole window is drawn smaller by one layout
-/// scale (<see cref="GamesFrame.FitScale"/>). The grid and its tiles:
+/// the HUD's monitor at its drawn size, never remembered (G15). The whole
+/// window is drawn at one layout scale (<see cref="GamesFrame.FitScale"/>):
+/// the player's GamesScale (A75), less on a screen too small for it. The grid
+/// and its tiles:
 /// GamesWindow.Tiles.cs.
 /// </para>
 /// </summary>
@@ -72,11 +73,14 @@ internal partial class GamesWindow : Window
         _host = host;
         _config = config;
 
-        // Drawn smaller on a small screen, never cut off (A11); centred on the
-        // HUD's monitor at the size it is drawn, on whole units.
-        var scale = GamesFrame.FitScale(monitor.Size);
-        if (scale is > 0 and < 1) RootPanel.LayoutTransform = new ScaleTransform(scale, scale);
-        var drawn = scale is > 0 and < 1 ? scale : 1;
+        // Drawn at the player's scale (GamesScale, A75), smaller on a screen
+        // too small for it, never cut off (A11): one transform over the fixed
+        // layout, read once. Settings closes the window (A13), so the scale
+        // can't change while it is open; the next opening reads the new one.
+        // Centred on the HUD's monitor at the size it is drawn, on whole units.
+        var scale = GamesFrame.FitScale(monitor.Size, _config.GamesScale);
+        var drawn = scale > 0 ? scale : 1;
+        if (drawn != 1) RootPanel.LayoutTransform = new ScaleTransform(drawn, drawn);
         Left = Math.Round(monitor.Left + (monitor.Width - GamesFrame.Width * drawn) / 2);
         Top = Math.Round(monitor.Top + (monitor.Height - GamesFrame.Height * drawn) / 2);
 
