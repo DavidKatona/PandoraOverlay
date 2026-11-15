@@ -30,19 +30,19 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   `MainWindow.Games.cs` names `PollService`, `PandoraClient`, a cookie or a process:
   the games add no request and no trigger, and opening Games nudges no poll
   (CLAUDE.md, constraints 1 to 4; a scan holds it).
-- **The forbidden list** (`ForbiddenApiTests`, A29, A43, A44, A60): no networking, files,
-  processes, native calls, windows, popups, tooltips, keyboard, WPF animation, effects,
-  threads, timers, `System.Random`, wall-clock time, reflection by name (`GetField`,
-  `Invoke` and the rest, `dynamic`, LINQ expressions) or a picture by address
-  (`BitmapImage`, `UriBuilder`, the `Uri` schemes) or an assembly loaded from a file by
-  `Activator` (A68) in the Contract, the Engine or a game, and no address (`://`,
-  `http:`, `https:`) in a source file (A45, A60); and in a game's XAML no
-  `ObjectDataProvider` or `XmlDataProvider`, no CLR namespace or `x:Static` outside the
-  games' own (A42, A60), and no element of an internal type of the game's own, which
-  makes WPF compile a helper that reflects by name (A67: make the type public). It
-  guards against an API reached for by accident, not a sandbox: the games are compiled
-  in and reviewed. Storage is `IGameStorage`, time
-  is `IGameClock`, dice are the Engine's `Rng`, the only timer is the Engine's
+- **The forbidden list** (`ForbiddenApiTests`, A29, A43, A44, A60): no networking,
+  files, processes, native calls, windows, popups, tooltips, keyboard, WPF animation,
+  effects, threads, timers, `System.Random`, wall-clock time, reflection by name
+  (`GetField`, `Invoke` and the rest, `dynamic`, LINQ expressions) or a picture by
+  address (`BitmapImage`, `UriBuilder`, the `Uri` schemes) or an object made by
+  `Activator` from an assembly and a type given as text (A68) in the Contract, the
+  Engine or a game, and no address (`://`, `http:`, `https:`) in a source file (A45,
+  A60); and in a game's XAML no `ObjectDataProvider` or `XmlDataProvider`, no CLR
+  namespace or `x:Static` outside the games' own (A42, A60), and no element of an
+  internal type of the game's own, which makes WPF compile a helper that reflects by
+  name (A67: make the type public). It guards against an API reached for by accident,
+  not a sandbox: the games are compiled in and reviewed. Storage is `IGameStorage`,
+  time is `IGameClock`, dice are the Engine's `Rng`, the only timer is the Engine's
   `GameLoop` (the one `DispatcherTimer`). The host is not bound by the list: it is
   where the clock and the files are. The list is never edited to make a test pass.
 - **A new game** is a project under `Games/` (`Games/Directory.Build.props` gives it
@@ -71,12 +71,13 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   player's armed "Start fresh", which sets the files aside and deletes nothing, and a
   Reset or a restart after a fault saves and keeps the old file FIRST, or does nothing
   (A38, A49); each Reset's copy is a numbered `save.before-reset-<n>.json`, never
-  overwritten (A62). A game's own shape is a `SaveSchema<T>`: an upgrade step when a meaning
-  changes, and a fixture of every version that ever shipped, kept in the tests for ever
-  (A9), with `AssertRoundTrips` on a fresh, a mid-run and a finished state (A51). Until
-  the owner releases, Hatchling's version stays 1 and a changed shape is handled as
-  `Corrupt` (held); from the first release on, every shape change is a version, a step
-  and a fixture. `Now` for a turn or a purchase, `Soon` for accrual from readings (A8).
+  overwritten (A62). A game's own shape is a `SaveSchema<T>`: an upgrade step when a
+  meaning changes, and a fixture of every version that ever shipped, kept in the tests
+  for ever (A9), with `AssertRoundTrips` on a fresh, a mid-run and a finished state
+  (A51). Until the owner releases, Hatchling's version stays 1 and a changed shape is
+  handled as `Corrupt` (held); from the first release on, every shape change is a
+  version, a step and a fixture. `Now` for a turn or a purchase, `Soon` for accrual
+  from readings (A8).
 - **Growth counts only when the overlay saw it** (A6, the Engine's `SeenGrowth`): two
   consecutive in-game readings of one launch, same species and gender, not lower, at
   most 120 s apart, no faster than 100% in ten minutes. Nothing bridges a restart, a
@@ -119,9 +120,10 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   (`GamesGateTests`). The widgets stay up (G15), under it: whatever shows a widget while
   Games may be open ends in `RaiseGames()` (A58). Its hotkey does nothing while a modal
   dialog of ours is up (A57: the tray's sign-in leaves the hotkeys registered). It
-  nudges no poll. The health warning is the window's (`HealthWatch`, G18, A15, A59, A66:
-  a hit between two polls, or a fall of 2 points within 2 minutes, a fall already won
-  back not counted again), never a game's; the header says when health is not watched (A16).
+  nudges no poll. The health warning is the window's (`HealthWatch`, G18, A15, A59,
+  A66: a hit between two polls, or a fall of 2 points within 2 minutes, a fall already
+  won back not counted again), never a game's; the header says when health is not
+  watched (A16).
 - **Art is code** (`tools/games-art/`, A28): every sprite goes through the one
   generator; its atlases are checked in under the game's `Art/` and embedded; no
   build runs Node; `ArtInStepTests` fails when a source changed without a rebuild
