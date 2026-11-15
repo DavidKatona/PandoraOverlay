@@ -262,9 +262,26 @@ function sprite(spec) {
 //   offsets       { body, head, tail, swing }: [dx, dy] in NEW pixels, the
 //                 pose: the body's bob, the head's nod, the tail tip's sway, a
 //                 lifted foot. Whole pixels keep a shape's edge crisp.
+//   pitch         { about: [x, y], angle }: the whole animal (every bone but
+//                 "ground" and "swing") turned about a point of the OLD canvas
+//                 (the hip), angle in radians, positive nose down: a biped
+//                 bending to the ground to eat, its tail rising as its head
+//                 falls (task H12). A leg's foot stays planted, its top goes
+//                 with the body, so the leg bends instead of the foot sliding.
+//                 `tail` (0 to 1, optional): the tail's share of the turn.
+//   nod           { about: [x, y], angle }: the head and the snout (and what
+//                 rides them: horns, frills, crests) turned about a point of
+//                 the old canvas (the back of the skull), positive nose down: a
+//                 horned dino lowering its horns, a Pachycephalosaurus putting
+//                 its dome forward. Turned before the pitch.
+//                 An ellipse turns its centre only (its axes stay level); at
+//                 these sizes that is all a turn of a head can show.
+//   keepEyes      true: the tagged eye is kept off the head's edge at full size
+//                 too (a turned head can carry it onto the outline). Sizes
+//                 under 1 always keep it.
 //
 // Marks, tips and extras (pixels, not shapes) go where the part under them
-// went; stripes and ridges are spaced for the new size. An extra tagged "eye"
+// went (a tip tagged "fine" is left out under FINE_MIN); stripes and ridges are spaced for the new size. An extra tagged "eye"
 // as its fourth element is kept off the edge of a smaller head (an eye on the
 // outline is no eye), and one tagged "pupil" stays beside its eye.
 //
@@ -276,6 +293,10 @@ const MIN_ELLIPSE = 0.6;
 // The skull (a part tagged `skull`) at a smaller size: its radii never under
 // this, so it holds a row of skin round its eye.
 const MIN_SKULL = 1.9;
+// A tip tagged "fine" as its fourth element (a feather's pale end) is drawn
+// only at a scale of at least this: at a hatchling's size it was a scatter of
+// loose dots (H12).
+const FINE_MIN = 0.6;
 function place(spec, look) {
   const s = look.scale === undefined ? 1 : look.scale;
   const [fx, fy] = look.from;
@@ -339,8 +360,30 @@ function place(spec, look) {
     return grown(x, y, bone);
   };
   const toCanvas = (x, y) => (same ? [x, y] : [tx + (x - fx) * s, ty + (y - fy) * s]);
+  // The turns (task H12), in the old canvas's units, after the age and before
+  // the size: the nod for the head's bones, then the pitch for every bone but
+  // the ground's. No turn asked, no number changes (a frame with neither is
+  // drawn exactly as before).
+  const turnAbout = (x, y, turn) => {
+    const c = Math.cos(turn.angle);
+    const sn = Math.sin(turn.angle);
+    const [ox, oy] = turn.about;
+    return [ox + (x - ox) * c - (y - oy) * sn, oy + (x - ox) * sn + (y - oy) * c];
+  };
+  const turned = (x, y, bone) => {
+    let p = [x, y];
+    if (look.nod && (bone === "head" || bone === "snout")) p = turnAbout(p[0], p[1], look.nod);
+    if (look.pitch && bone !== "ground" && bone !== "swing") {
+      // The tail turns by its own share of the pitch (`tail`, 1 when not
+      // given): a bending animal's tail rises, but less than its head falls.
+      const k = (bone === "tail" || bone === "tailEnd") && look.pitch.tail !== undefined ? look.pitch.tail : 1;
+      p = turnAbout(p[0], p[1], { about: look.pitch.about, angle: look.pitch.angle * k });
+    }
+    return p;
+  };
   const mapPoint = (part, x, y, bone, t) => {
-    const [ax, ay] = aged(part, x, y, bone);
+    let [ax, ay] = aged(part, x, y, bone);
+    if (look.nod || look.pitch) [ax, ay] = turned(ax, ay, bone);
     const [cx, cy] = toCanvas(ax, ay);
     let [dx, dy] = offsetOf(bone, t);
     // A part fixed at one place on a graded part (a spike on the tail) moves
@@ -432,14 +475,14 @@ function place(spec, look) {
   const ridges = (spec.ridges || []).map((r) => ({ ...r, from: column(r.from), to: column(r.to), step: Math.max(2, Math.round((r.step || 2) * s)) }));
 
   let extras = movePixels(spec.extras || []);
-  if (s < 1) extras = keepEyesInside(extras, parts, look.w, look.h, mapPoint({ kind: "ellipse" }, hc[0], hc[1], "head", 0));
+  if (s < 1 || look.keepEyes) extras = keepEyesInside(extras, parts, look.w, look.h, mapPoint({ kind: "ellipse" }, hc[0], hc[1], "head", 0));
   return {
     ...spec,
     w: look.w,
     h: look.h,
     parts,
     marks: movePixels(spec.marks || []),
-    tips: movePixels(spec.tips || []),
+    tips: movePixels((spec.tips || []).filter((t) => !(t[3] === "fine" && s < FINE_MIN))),
     stripes,
     ridges,
     extras
@@ -469,6 +512,31 @@ function keepEyesInside(extras, parts, w, h, centre) {
 // ---- Images ----
 function image(w, h, fill) {
   return { w, h, px: Array.from({ length: w * h }, () => (fill ? [...hexToRgb(fill), 255] : [0, 0, 0, 0])) };
+}
+
+// The flash of a hit (task H12, PLAN-HATCHLING 6.3: `hurt/0`): a finished
+// sprite with everything inside its outline taken most of the way to `to`
+// (near white), the outline itself left as it is. The outline is what a
+// sprite has where it meets nothing: an opaque pixel with an empty pixel (or
+// the frame's edge) on one of its four sides, as sprite() decides it. So the
+// animal keeps its silhouette, dark-edged, on every ground, and is lit from
+// inside for the beat of the hit: "it bit you" before a word is read. The
+// lines inside it (a near leg over the body, a plate's edge) go light grey,
+// lighter than the edge and darker than the flash, so the shape stays one
+// animal. Works on any image, so every sprite flashes by the one rule.
+function flash(img, to, k) {
+  const target = hexToRgb(to);
+  const solid = (x, y) => x >= 0 && y >= 0 && x < img.w && y < img.h && img.px[y * img.w + x][3] > 0;
+  const out = { w: img.w, h: img.h, px: img.px.map((p) => [...p]) };
+  for (let y = 0; y < img.h; y++) {
+    for (let x = 0; x < img.w; x++) {
+      if (!solid(x, y)) continue;
+      if (!solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1)) continue;
+      const p = img.px[y * img.w + x];
+      out.px[y * img.w + x] = [0, 1, 2].map((i) => Math.round(p[i] + (target[i] - p[i]) * k)).concat([p[3]]);
+    }
+  }
+  return out;
 }
 
 // A colour as one pixel: "#RRGGBB" is opaque, "#RRGGBBAA" carries its alpha
@@ -563,4 +631,4 @@ function textWidth(str, scale) {
   return str.length * 4 * scale - scale;
 }
 
-module.exports = { ramp, darker, ellipse, stroke, poly, sprite, place, covers, image, pixel, drawn, outline, blit, text, textWidth, writePng, hexToHsl, hslToHex, hexToRgb, rgbToHex };
+module.exports = { ramp, darker, ellipse, stroke, poly, sprite, place, covers, image, flash, pixel, drawn, outline, blit, text, textWidth, writePng, hexToHsl, hslToHex, hexToRgb, rgbToHex };
