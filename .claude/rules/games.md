@@ -11,8 +11,8 @@ paths:
 # Writing code for the games
 
 The plan, the decisions and the briefs: `Desktop\Pandora Overlay Files\pandora-games\`
-(`PLAN-ARCHITECTURE.md`, `PLAN-HATCHLING.md`, `PLAN-SOUND.md`, `DECISIONS.md`: G = the
-owner's, A = the architecture's, H = Hatchling's, R = the art's and the sound's
+(`PLAN-ARCHITECTURE.md`, `PLAN-HATCHLING.md`, `PLAN-SOUND.md`, `PLAN-CLICKS.md`,
+`DECISIONS.md`: G = the owner's, A = the architecture's, H = Hatchling's, R = the art's and the sound's
 recipes). Built Nov 2026 by an unattended run, on
 the branch `games`. The code comments cite these numbers; look one up there before
 changing what it guards. Hatchling's own rules, numbers and reasons are the comments in
@@ -49,8 +49,8 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   not a sandbox: the games are compiled in and reviewed. Storage is `IGameStorage`,
   time is `IGameClock`, dice are the Engine's `Rng`, the only timer is the Engine's
   `GameLoop` (the one `DispatcherTimer`), sound is the host's (below). The host is
-  not bound by the list: it is where the clock, the files and the speaker are. The
-  list is never edited to make a test pass.
+  not bound by the list: it is where the clock, the files and the speaker (the app's,
+  in `Sound/`, A101) are. The list is never edited to make a test pass.
 - **A new game** is a project under `Games/` (`Games/Directory.Build.props` gives it
   its settings, warnings as errors included, A30), a `ProjectReference` in the
   app's `PandoraOverlay.csproj` and in `PandoraOverlay.Games.Tests`
@@ -147,13 +147,22 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   five pips and `+`, the same on the grid and in a game. Five steps 6 dB apart (−24
   to 0 dB), the third the default, sound on; `GamesSoundVolume` and `GamesSoundMuted`
   in `config.json`, plain values, no Settings mirror (the overlay's chimes are
-  General → Sounds, another thing); a click on `−`, `+` or an unmuting speaker plays
-  the host's own preview blip at the new step, a mute stops every sound at once. A
+  General → Sounds, another thing; so is the clicks' own row, A103); a click on `−`, `+`
+  or an unmuting speaker plays the host's own preview blip at the new step, a mute stops
+  every sound at once, and the window's clicks obey both (below). A
   pip's corner is the theme's, held to a quarter of its width, and an unlit pip is
   `Theme.Storage.SlotsTrack` (A89). The group's sizes are `GamesFrame` constants and
   the title gets what is left of the header (`TitleMaxWidth`, measured in the widest
   theme), held in every theme by the layout tests: a new part on the header is
-  measured there first.
+  measured there first. The window's own clicks are the app's class handler's (A104,
+  C06): its root is in the `Games` scope (`UiClicks.Scope`: its mute and its step) and
+  its view container, `GameHost`, in the `Game` scope, which the app's handler leaves to
+  the Engine's rule (below); "‹ Games" and ✕ are marked `Back`, the speaker, `−` and `+`
+  `None` (they play the preview or fall silent), the health warning's button plays
+  `press` by type; a tile's card `select` (`UiClicks.Clicked`, only on a release whose
+  press began on it) and a tile's button is marked `Arm` with `UiClicks.Armed` in its
+  arming branch (Reset and Start fresh: `arm`, then `press`; Start it again never arms,
+  so it presses).
 - **Sound is the host's** (A77 to A81, A85): a game cannot make a sound (the
   forbidden list refuses every audio API), so the door is `IGameHost.Sound.Play(GameSound)`,
   as storage is a door: the game names one of its own, the host plays it or drops it,
@@ -169,21 +178,54 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   instance, is heard stops what plays, faded over 5 ms. A detached instance reaches
   nothing. The gate's limits (A81): at most 6 sounds at once, the same sound not twice
   within 40 ms, an empty or longer-than-2 s sound refused with one Warning; the mix
-  holds 8 voices behind it. Behind the gate is `ISpeaker`: `WaveOutSpeaker` (winmm
-  `waveOut`, one stream mixed by `SpeakerMix`, on a thread of its own that exists
-  only while something plays and ends 3 s after the last sound; A80) and
-  `NullSpeaker`. It never calls `waveOutSetVolume` or any other volume setter
-  (the app's volume in Windows' mixer, the player's: a scan holds it, A93), never
-  starts a process or a timer, and fails soft: one rule for every failure, a
-  device that hands no buffer back for 3 s included (A91), the first a Warning,
-  the same again Verbose (A90). The host's native calls are its thirteen, on its
-  own window, its own event and Windows' default output, held by a scan (A92): a
-  new one is the architecture's call first. **Never for a reading** (A85): a game
+  holds 8 voices behind it. Behind the gate is the app's ONE speaker, in `Sound/`
+  (A101, since the clicks share it; `.claude/rules/sound.md`): `ISpeaker`, with
+  `WaveOutSpeaker` (winmm `waveOut`, one stream mixed by `SpeakerMix`, on a thread of
+  its own that exists only while something plays and ends 3 s after the last sound;
+  A80) and `NullSpeaker`. The gate plays on its Games channel, so its stops fade
+  only the games' voices and never a click. The speaker never calls `waveOutSetVolume`
+  or any other volume setter (the app's volume in Windows' mixer, the player's: a scan
+  holds it, A93), never starts a process or a timer, and fails soft: one rule for
+  every failure, a device that hands no buffer back for 3 s included (A91), the first
+  a Warning, the same again Verbose (A90). The thirteen native calls (ten in
+  `Sound/WaveOut.cs`, three on the Games window itself) go to the window, the device's
+  own event and Windows' default output, held by a scan (A92, A102): a new one is the
+  architecture's call first. **Never for a reading** (A85): a game
   sounds for the player's own clicks and the playback of what they did, never for
   what a poll brought (the
   overlay's chimes already mark the real dino's moments, and the Games mute never
   touches them; the health warning is silent). Hatchling's 29 cues and where they
   fall are its `Turns/BeatSounds` and the comments beside it (H95 to H101).
+- **Clicks are the Engine's rule** (G27: A105, A110, H102, H103; the app's own side is
+  `.claude/rules/sound.md`). A game's own buttons sound a click with no line of its own:
+  `GameViewBase` wires one rule on the view's root the first time the host asks for it
+  through `IGameView.Root`, and within one left release decides, after the game's own
+  handlers ran, nothing when the view is paused or disposed, a playback was running at the
+  release or runs after it (a click during one is a skip, whose sound is H98's), the view
+  handed the host any sound during the release (a control's own cue is its sound), or the
+  control's `GameClicks.Cue` is `None`; else ONE `IGameSound.Click`: `Arm` when the
+  game called `Arming()` during the release, else the control's mark, else by type (a
+  check on or off, a radio or a tab `select`, any other button `press`; the same
+  six `GameClick`s as the app's cues). A click is output only and never throws, as
+  `Play`, and the game never learns whether it sounded. Hatchling's part (H102): `Arming()`
+  in the three arming branches (Leave, the unlock, the journal's swap), `Clicked(
+  GameClick.Select)` when a species card, a trait card or an offer's card is released on
+  itself, "Back to camp" marked `Back`; nothing else. A refusal plays no cue of its own
+  and the generic click (`press`, `select` for a card) says the press registered, never
+  that it worked (H103). **Three conventions keep the rule whole** (A110; no scan, as
+  "a game plays only through `GameViewBase.Play`" has none): (1) a game adds every handler
+  of its own on its view's root BEFORE the host first asks for the root, in the view's
+  constructor (the rule decides in the root's `MouseLeftButtonUp`, which WPF runs after the
+  handlers added before it and not after one added later, so a cue it plays would land on
+  top of the click); (2) its view is a `GameViewBase` that never lists `IGameView` again
+  among its own interfaces (that maps `IGameView.Root` to the public `Root` and leaves
+  the rule unwired); (3) it never calls `IGameSound.Click` itself (the rule does; a sound
+  is handed over only through `GameViewBase.Play`, and a call of its own would skip the
+  turn and own-cue conditions). The host plays it only for the instance heard
+  (`GamesSound.Click`, the same layer as a sound, A79), through the app's click gate in the
+  `Games` scope, which is where the switch (Settings › General), the window's mute and
+  step and the 80 ms gap are applied: the Games window's clicks play on the Clicks channel,
+  at ITS step, and its mute silences them.
 - **Art is code** (`tools/games-art/`, A28): every sprite goes through the one
   generator; its atlases are checked in under the game's `Art/` and embedded; no
   build runs Node; `ArtInStepTests` fails when a source changed without a rebuild
@@ -206,12 +248,17 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   other than A, or a note, from the board is a recipe change, a new R line and a rebuild
   (R5). `build.js --board` writes `sound-board-v2.html` and takes B and C of each new cue
   into the git-ignored `out/`: the board is how the owner listens, and nobody else can
-  judge a sound. Where the tool is exact, see its `README.md`.
+  judge a sound. One set of the tool is not a game: `clicks/`, the six click sounds
+  (G27, A106, R8 to R11), written to the app's `Assets/Clicks/` and not a game's
+  `Sound/`, with bounds of their own (a click 15 to 80 ms, −24 to −14 dBFS) held by the
+  same test; take A of each is the owner's (G29). Where the tool is exact, see its
+  `README.md`.
 - **Where the tests are, and what runs without the app**: `PandoraOverlay.Games.Tests`
   (the Contract, the Engine, the architecture, Hatchling) builds and runs with the
   overlay running: `dotnet test Games/PandoraOverlay.Games.Tests`. What needs both sides
   (the window, the layout in every theme, the host, a game's species against
-  `Assets/rules.json`, A23) is in `PandoraOverlay.Tests/GamesHost/`. Tests never touch
+  `Assets/rules.json`, A23) is in `PandoraOverlay.Tests/GamesHost/`; the speaker's and
+  the click layer's tests are in `PandoraOverlay.Tests/Sound/` (since A101). Tests never touch
   the real data folder: `AttachAll` runs from `Loaded`, never from a constructor.
 - **What the public was promised** (the Suggestions post, Nov 2026) is binding on
   every game: nothing to buy, no streaks, timers or reminders, no rewards inside The
@@ -290,11 +337,31 @@ and `WORKER-RULES.md` barred starting it); say so when it matters.
   - MainWindow making the speaker and disposing it: compiled, lazy by test, never run.
   - Whether the gate's 40 ms and six-at-once limits ever drop one of Hatchling's cues
     at Fast: by reasoning, not by a test against the gate.
+- **The click sounds** (G27; checked by tests with a fake click sink, a fake speaker and
+  the input manager driven with a MouseUp of the test's own; nobody has heard one in the
+  app and no real mouse click has been made in a test, A107):
+  - A real left click in the Games window and in a game: its tiles, "‹ Games", ✕ and the
+    warning's button, a tile's Reset and Start fresh (`arm`, then `press`), Hatchling's
+    table (`PLAN-CLICKS.md` 1.6) above all: nothing during a turn, and no double with
+    `hatch`, `choose`, `shuffle`, `unlock` or `reward`.
+  - The window's mute silencing its clicks, its step setting their level (a click
+    against Hatchling's cues, and a `back` over the stage's stop), and Settings' switch
+    silencing them too: the gate's rules by test, none heard.
+  - The six by ear, the default (on, step 3) against The Isle, the first click after a
+    launch (it waits for the device's first open), a Bluetooth headset (which may swallow a
+    short click whole), the overlay's one entry in Windows' mixer.
+  - The three conventions of A110 are held by no scan (a game that breaks one is
+    unwired or doubles a cue, silently).
+  - MainWindow making the click gate, attaching the layer and detaching it at the exit:
+    compiled, never run.
 - The golden renders: Settings › Hotkeys differs in every theme (the new row), and
   Settings › Widgets should too (A75's GAMES group, by reading: the harness was not
-  run after the Games window's scale); the baselines are the owner's to record
-  after his look. The harness draws no Games window and makes MainWindow without
-  running its constructor, so no sound's gate or speaker exists there.
+  run after the Games window's scale; in Default's one run after the click layer it did,
+  with Hotkeys, at 1x and 2x); Settings › General differs too (the click row and a longer
+  hint under SOUNDS: Default at 1x and 2x as run, the other themes by reading); the
+  baselines are the owner's to record after his look. The harness draws no Games window
+  and makes MainWindow without running its constructor, so no sound's gate or speaker
+  exists there, and it never attaches the click layer.
 - CI's SDK 8.0.x: every build here was SDK 9 compiling `net8.0-windows`.
 - Saves belong to the Windows user, not the website account: two accounts on one PC
   share a game's progress (risk 9, left on purpose).

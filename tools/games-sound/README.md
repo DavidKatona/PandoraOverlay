@@ -1,8 +1,9 @@
 # games-sound
 
-The games' sound tool. Not part of the app: plain Node (24), no dependency, no
-`package.json`. It renders each cue from its recipe, writes it where a game embeds
-it, and writes the sound board the owner listens on. **Never run by a build or a
+The sound tool, for the games' sounds and the click sounds. Not part of the app: plain
+Node (24), no dependency, no `package.json`. It renders each cue from its recipe,
+writes it where the game (or, for the clicks, the app) embeds it, and writes the sound
+board the owner listens on. **Never run by a build or a
 test**: the WAVs are checked in, so a build needs no Node (A84).
 
 ```
@@ -26,8 +27,8 @@ stale (PLAN-SOUND 5.1).
 |---|---|
 | `synth.js` | a recipe to samples, by WebAudio's own definitions (R2): band-limited oscillators, the biquads, the automation, the first board's seeded noise; 44,100 Hz, peak-normalised, rounded to 16 bits |
 | `wav.js` | WAV out (RIFF/WAVE, PCM, mono, 44,100 Hz, 16 bits, no other chunk) and in, for the board |
-| `manifest.js` | writes a game's manifest |
-| `board.js` | the sound board: every take from the WAVs that ship, the picks' match figures (under a pick that misses a bar, the figures of a corrected render and a line saying why, R6), the window's five volume steps and a mute, the demo turns |
+| `manifest.js` | writes a set's manifest (a game's, or the clicks') |
+| `board.js` | the games' sound board (the clicks' is `clicks/board.js`): every take from the WAVs that ship, the picks' match figures (under a pick that misses a bar, the figures of a corrected render and a line saying why, R6), the window's five volume steps and a mute, the demo turns |
 | `<game>/` | one folder per game: its `cues.js`, its `build.js` and its `manifest.json`; and `clicks/`, the click sounds, a set that is not a game (below) |
 
 ## The recipe
