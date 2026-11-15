@@ -665,6 +665,281 @@ public class GamesWindowTests
         Assert.Equal(note.Length > 0 ? Visibility.Visible : Visibility.Collapsed, window.WatchNote.Visibility);
     });
 
+    // ---- The sound group (A82) --------------------------------------------------------------
+
+    /// <summary>The pips lit (the growth bar's fill) up to the step and unlit (its track) above it, every one unlit while muted.</summary>
+    private static void AssertPips(GamesWindow window, int lit)
+    {
+        var pips = window.SoundPips.Children.Cast<Border>().ToList();
+        Assert.Equal(GamesFrame.SoundPips, pips.Count);
+        for (var i = 0; i < pips.Count; i++)
+            Assert.Same(Resource(window, i < lit ? "Theme.Storage.Growth" : "Theme.Storage.BarTrack"), pips[i].Background);
+    }
+
+    /// <summary>A fresh config: sound on at step 3, the speaker's glyph, both steps enabled, three pips lit; the pips' shapes are the frame's.</summary>
+    [Fact]
+    public void TheGroupShowsTheLevelItOpensWith() => Run(() =>
+    {
+        using var bench = new GamesBench(Fakes(1));
+        var window = bench.Window();
+
+        Assert.Equal(GamesText.SoundOn, window.SoundToggle.Content);
+        Assert.True(window.SoundDown.IsEnabled);
+        Assert.True(window.SoundUp.IsEnabled);
+        AssertPips(window, 3);
+        var pips = window.SoundPips.Children.Cast<Border>().ToList();
+        Assert.Equal(new double[] { 4, 6, 8, 10, 12 }, pips.Select(p => p.Height));
+        Assert.All(pips, p => Assert.Equal((GamesFrame.SoundPipWidth, VerticalAlignment.Bottom), (p.Width, p.VerticalAlignment)));
+        Assert.All(new[] { window.SoundToggle, window.SoundDown, window.SoundUp }, b => Assert.False(b.Focusable)); // Esc and J stay the window's
+    });
+
+    [Fact]
+    public void AWindowOpenedMutedShowsTheMutedSpeakerAndNoPip() => Run(() =>
+    {
+        using var bench = new GamesBench(Fakes(1));
+        bench.Config.GamesSoundMuted = true;
+        var window = bench.Window();
+
+        Assert.Equal(GamesText.SoundOff, window.SoundToggle.Content);
+        AssertPips(window, 0);
+    });
+
+    /// <summary>The speaker (PLAN-SOUND 4.3): on → muted, every sound stopped, nothing previewed; muted → on, the preview at the step.</summary>
+    [Fact]
+    public void TheSpeakerMutesAndUnmutes() => Run(() =>
+    {
+        using var bench = new GamesBench(Fakes(1));
+        var window = bench.Window();
+        var stops = bench.Speaker.Stops;
+
+        GamesBench.Click(window.SoundToggle);
+
+        Assert.True(bench.Config.GamesSoundMuted);
+        Assert.Equal(stops + 1, bench.Speaker.Stops);
+        Assert.Empty(bench.Speaker.Played);
+        Assert.Equal(GamesText.SoundOff, window.SoundToggle.Content);
+        AssertPips(window, 0);
+
+        GamesBench.Click(window.SoundToggle);
+
+        Assert.False(bench.Config.GamesSoundMuted);
+        var (samples, gain) = Assert.Single(bench.Speaker.Played);
+        Assert.Equal(GamesSound.Preview.Samples.ToArray(), samples);
+        Assert.Equal(GamesSound.GainOf(3), gain);
+        Assert.Equal(GamesText.SoundOn, window.SoundToggle.Content);
+        AssertPips(window, 3);
+    });
+
+    /// <summary>`−` and `+` (4.3): a step each way, sound on, the preview at the new step; `−` disabled at 1 and `+` at 5.</summary>
+    [Fact]
+    public void TheStepsMoveOneAtATimeAndStopAtTheEnds() => Run(() =>
+    {
+        using var bench = new GamesBench(Fakes(1));
+        var window = bench.Window();
+        void Click(Button button)
+        {
+            GamesBench.Click(button);
+            bench.Clock.Advance(TimeSpan.FromSeconds(1)); // past the preview's own 40 ms
+        }
+
+        Click(window.SoundDown);
+        Assert.Equal(2, bench.Config.GamesSoundVolume);
+        AssertPips(window, 2);
+        Click(window.SoundDown);
+        Assert.Equal(1, bench.Config.GamesSoundVolume);
+        AssertPips(window, 1);
+        Assert.False(window.SoundDown.IsEnabled);
+        Assert.True(window.SoundUp.IsEnabled);
+
+        for (var i = 0; i < 4; i++) Click(window.SoundUp);
+        Assert.Equal(5, bench.Config.GamesSoundVolume);
+        AssertPips(window, 5);
+        Assert.False(window.SoundUp.IsEnabled);
+        Assert.True(window.SoundDown.IsEnabled);
+
+        Assert.Equal(new[] { 2, 1, 2, 3, 4, 5 }.Select(GamesSound.GainOf), bench.Speaker.Played.Select(p => p.Gain));
+    });
+
+    /// <summary>Muted, `−` or `+` unmutes (4.3), and previews at the new step.</summary>
+    [Fact]
+    public void AStepWhileMutedUnmutes() => Run(() =>
+    {
+        using var bench = new GamesBench(Fakes(1));
+        bench.Config.GamesSoundMuted = true;
+        var window = bench.Window();
+
+        GamesBench.Click(window.SoundUp);
+
+        Assert.Equal((4, false), (bench.Config.GamesSoundVolume, bench.Config.GamesSoundMuted));
+        Assert.Equal(GamesText.SoundOn, window.SoundToggle.Content);
+        AssertPips(window, 4);
+        Assert.Equal(GamesSound.GainOf(4), Assert.Single(bench.Speaker.Played).Gain);
+    });
+
+    /// <summary>A hand-edited step out of range shows as the nearest, and is not written back by opening the window.</summary>
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(9, 5)]
+    public void AStepOutOfRangeShowsAsTheNearest(int stored, int shown) => Run(() =>
+    {
+        using var bench = new GamesBench(Fakes(1));
+        bench.Config.GamesSoundVolume = stored;
+        var window = bench.Window();
+
+        AssertPips(window, shown);
+        Assert.Equal(shown > 1, window.SoundDown.IsEnabled);
+        Assert.Equal(shown < 5, window.SoundUp.IsEnabled);
+        Assert.Equal(stored, bench.Config.GamesSoundVolume);
+    });
+
+    // ---- The stage: a game is heard only on screen and not covered (A79) ------------------------
+
+    private static GameSound Cue(string name) => new(name, new short[] { 1, 2, 3 });
+
+    /// <summary>
+    /// A game that plays from its view: its sound reaches the speaker only
+    /// while it is on screen and not covered, through the window's every
+    /// change: the grid, the game shown, the warning, "Keep playing", back to
+    /// the grid, the window closed. Every change that leaves it unheard stops
+    /// what plays.
+    /// </summary>
+    [Fact]
+    public void AGameIsHeardOnlyWhileOnScreenAndNotCovered() => Run(() =>
+    {
+        var game = new FakeGame();
+        using var bench = new GamesBench(game);
+        var window = bench.Window();
+        var heard = 0;
+        void Plays(bool expected, string cue)
+        {
+            game.Host!.Sound.Play(Cue(cue));
+            if (expected) heard++;
+            Assert.True(heard == bench.Speaker.Played.Count, $"{cue}: {(expected ? "not heard" : "heard")}");
+        }
+
+        Plays(false, "on the grid");
+
+        GamesBench.ClickCard(GamesBench.Tile(window, 0).Card);
+        var view = game.Views[^1];
+        view.Play(Cue("shown"));
+        heard++;
+        Assert.Equal(heard, bench.Speaker.Played.Count);
+
+        var stops = bench.Speaker.Stops;
+        window.ShowHealthWarning(60);
+        Assert.Equal(stops + 1, bench.Speaker.Stops);
+        Plays(false, "under the warning");
+
+        GamesBench.Click(window.WarningButton); // "Keep playing"
+        Plays(true, "kept playing");
+
+        stops = bench.Speaker.Stops;
+        GamesBench.Click(window.BackButton);
+        Assert.Equal(stops + 1, bench.Speaker.Stops);
+        Plays(false, "back on the grid");
+
+        window.ShowGame(bench.Host.Games[0]);
+        Plays(true, "shown again");
+        stops = bench.Speaker.Stops;
+        window.Close();
+        Assert.Equal(stops + 1, bench.Speaker.Stops);
+        Plays(false, "after the window closed");
+    });
+
+    /// <summary>A window opened on a game under a warning already up: the game is not heard until "Keep playing".</summary>
+    [Fact]
+    public void AGameShownUnderTheWarningIsNotHeard() => Run(() =>
+    {
+        var game = new FakeGame();
+        using var bench = new GamesBench(game);
+        var window = bench.Window();
+        window.ShowHealthWarning(30);
+        window.ShowGame(bench.Host.Games[0]);
+
+        game.Views[^1].Play(Cue("paused"));
+        Assert.Empty(bench.Speaker.Played);
+
+        GamesBench.Click(window.WarningButton);
+        game.Views[^1].Play(Cue("resumed"));
+        Assert.Single(bench.Speaker.Played);
+    });
+
+    /// <summary>The game on screen faulting (its own handler reported it): the window's close goes through the grid, which stops it and hears it no more.</summary>
+    [Fact]
+    public void AGameThatFaultsOnScreenIsHeardNoMore() => Run(() =>
+    {
+        var game = new FakeGame();
+        using var bench = new GamesBench(game);
+        var window = bench.Window();
+        window.ShowGame(bench.Host.Games[0]);
+        var stops = bench.Speaker.Stops;
+
+        game.Host!.Fault(new InvalidOperationException("made up"));
+
+        Assert.Null(window.OnScreen);
+        Assert.Equal(stops + 1, bench.Speaker.Stops);
+        game.Views[^1].Play(Cue("after its fault"));
+        Assert.Empty(bench.Speaker.Played);
+    });
+
+    /// <summary>A game that throws in its view's Root never reaches the screen, and is never heard: the window stays on the grid, which it tells the gate.</summary>
+    [Fact]
+    public void AGameThatThrowsInRootIsNeverHeard() => Run(() =>
+    {
+        var game = new ThrowsInRoot();
+        using var bench = new GamesBench(new[] { new GameEntry(game.Id, () => game) });
+        var window = bench.Window();
+        var stops = bench.Speaker.Stops;
+
+        GamesBench.ClickCard(GamesBench.Tile(window, 0).Card);
+
+        Assert.Null(window.OnScreen);
+        Assert.Equal(GameCondition.Faulted, bench.Host.Games[0].Condition);
+        Assert.Equal(stops + 1, bench.Speaker.Stops); // the grid again, told
+        game.Host!.Sound.Play(Cue("from a game that threw"));
+        Assert.Empty(bench.Speaker.Played);
+    });
+
+    /// <summary>The preview plays on the grid too: the volume is set before playing, and the click is on the open window.</summary>
+    [Fact]
+    public void ThePreviewPlaysOnTheGrid() => Run(() =>
+    {
+        using var bench = new GamesBench(Fakes(2));
+        var window = bench.Window();
+
+        GamesBench.Click(window.SoundUp);
+
+        Assert.Null(window.OnScreen);
+        Assert.Single(bench.Speaker.Played);
+    });
+
+    /// <summary>A FakeGame in all but its view, whose Root throws: a broken view (A10).</summary>
+    private sealed class ThrowsInRoot : IGame
+    {
+        private readonly FakeGame _inner = new("throws-in-root");
+
+        public string Id => _inner.Id;
+        public string Title => _inner.Title;
+        public string Pitch => _inner.Pitch;
+        public IGameHost? Host => _inner.Host;
+        public AttachResult Attach(IGameHost host) => _inner.Attach(host);
+        public void OnReading(DinoReading reading) => _inner.OnReading(reading);
+        public GameTile Tile() => _inner.Tile();
+        public FrameworkElement CreateTileArt() => _inner.CreateTileArt();
+        public IGameView CreateView() => new BrokenView();
+        public void Reset() => _inner.Reset();
+
+        private sealed class BrokenView : IGameView
+        {
+            public FrameworkElement Root => throw new InvalidOperationException("made up: a view with no root");
+            public IReadOnlyList<string> LayoutStates { get; } = new[] { "only" };
+            public void Pause() { }
+            public void Resume() { }
+            public void ShowLayoutState(string state) { }
+            public void Dispose() { }
+        }
+    }
+
     // ---- Nothing runs once a view is gone (A19) ------------------------------------------------
 
     /// <summary>

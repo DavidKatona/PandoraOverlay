@@ -97,4 +97,33 @@ public sealed class GameHostTests : IDisposable
         Assert.False(host.Current);
         Assert.Null(_temp.SavedPayload("sample-game"));
     }
+
+    /// <summary>
+    /// A detached instance's sound reaches nothing (A79), as its storage
+    /// doesn't: the game is on screen and heard, its instance is detached, and
+    /// what it plays then, through its door or the door it kept, is dropped.
+    /// </summary>
+    [Fact]
+    public void ADetachedHostsSoundReachesNothing()
+    {
+        var clock = new TestGameClock();
+        var speaker = new FakeSpeaker();
+        var game = new FakeGame("sample-game");
+        var store = new GameSaveStore(_temp.Root, () => clock.UtcNow);
+        var games = new GamesHost(store, new[] { new GameEntry("sample-game", () => game) }, clock, _ => new TestGameLog(),
+            new GamesSound(speaker, new OverlayConfig(), clock));
+        games.AttachAll();
+        var hosted = games.Games[0];
+        var host = hosted.Host!;
+        var door = host.Sound;
+        games.Sound.Stage(hosted, paused: false);
+        door.Play(new GameSound("before", new short[] { 1 }));
+        Assert.Single(speaker.Played);
+
+        host.Detach();
+        door.Play(new GameSound("kept door", new short[] { 1 }));
+        host.Sound.Play(new GameSound("its door", new short[] { 1 }));
+
+        Assert.Single(speaker.Played);
+    }
 }

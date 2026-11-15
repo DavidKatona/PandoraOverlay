@@ -218,6 +218,49 @@ public class GamesArchitectureTests
             + string.Join("\n", problems));
     }
 
+    // ---- The games' sound never sets the app's volume (A80, A86) -------------------------------
+
+    /// <summary>
+    /// winmm's call that sets a wave-out handle's volume: measured, it sets the
+    /// whole app's session volume in Windows' own mixer (every handle's at once),
+    /// which is the player's level for the overlay, never the games' to move. The
+    /// games' level is their own mix's gain (GamesSound's steps).
+    /// </summary>
+    internal static readonly string[] AppVolumeWords = { "waveOutSetVolume" };
+
+    internal static IReadOnlyList<string> AppVolumeWordsIn(string text) =>
+        AppVolumeWords.Where(w => text.Contains(w, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    /// <summary>
+    /// Nothing in GamesHost/ or MainWindow.Games.cs names the call that sets the
+    /// overlay's own volume in Windows' mixer (A80): the speaker's files come with
+    /// a later task and are read as every file there is, comments included.
+    /// </summary>
+    [Fact]
+    public void TheGamesHostNeverSetsTheAppsVolume()
+    {
+        var root = ThemeFileTests.RepoRoot();
+        var files = RepoFiles(root).Select(f => Relative(root, f)).Where(IsGamesHostFile).ToList();
+        Assert.Contains("GamesHost/GamesSound.cs", files); // the walk reaches the sound's files
+        Assert.Contains("GamesHost/ISpeaker.cs", files);
+
+        var problems = files
+            .SelectMany(f => AppVolumeWordsIn(File.ReadAllText(Path.Combine(root, f))).Select(w => $"{f}: {w}"))
+            .ToList();
+
+        Assert.True(problems.Count == 0,
+            "The games' level is their own mix's gain; the overlay's volume in Windows' mixer is the player's (A80):\n" + string.Join("\n", problems));
+    }
+
+    [Fact]
+    public void TheAppVolumeScanFindsWhatItIsFor()
+    {
+        Assert.Equal(new[] { "waveOutSetVolume" }, AppVolumeWordsIn("_ = waveOutSetVolume(handle, 0x80008000);"));
+        Assert.Equal(new[] { "waveOutSetVolume" }, AppVolumeWordsIn("[DllImport(\"winmm.dll\")] static extern int WaveOutSetVolume(IntPtr h, uint v);"));
+        Assert.Empty(AppVolumeWordsIn("_speaker.Play(samples, GamesSound.GainOf(step)); // the games' own gain"));
+        Assert.Empty(AppVolumeWordsIn("[DllImport(\"winmm.dll\")] static extern int waveOutWrite(IntPtr h, IntPtr hdr, uint size);"));
+    }
+
     [Fact]
     public void TheRequestScanFindsWhatItIsFor()
     {

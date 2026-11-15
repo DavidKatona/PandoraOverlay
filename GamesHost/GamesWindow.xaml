@@ -30,20 +30,45 @@
         <DockPanel>
             <!-- The header, always (G13): its bottom line inside its 40. -->
             <Border x:Name="Header" DockPanel.Dock="Top" Height="{x:Static local:GamesFrame.HeaderHeight}"
-                    BorderBrush="{DynamicResource Theme.Separator}" BorderThickness="0,0,0,1" Padding="12,0,8,0">
+                    BorderBrush="{DynamicResource Theme.Separator}" BorderThickness="0,0,0,1" Padding="{x:Static local:GamesFrame.HeaderPadding}">
                 <DockPanel>
-                    <!-- Right-aligned: the watch note (A16), the hint and ✕ (the update card's). -->
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Right-aligned: the watch note (A16), the sound group (A82), the hint and ✕ (the update card's). -->
+                    <StackPanel x:Name="HeaderRight" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock x:Name="WatchNote" FontSize="{DynamicResource Theme.Size.11}" Foreground="{DynamicResource Theme.Text.Caution}"
                                    FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center" Margin="0,0,14,0"
                                    TextTrimming="CharacterEllipsis" Visibility="Collapsed"/>
-                        <TextBlock Text="{x:Static local:GamesText.Hint}" FontSize="{DynamicResource Theme.Size.11}" Foreground="{DynamicResource Theme.Text.Dim}"
+                        <!-- The games' mute and volume (A82, A83): the speaker, −, five
+                             level pips, +. Before the hint, so the watch note grows to its
+                             left and the group never moves. Every size a GamesFrame
+                             constant; the buttons not focusable, as the header's others,
+                             so Esc and J keep working. The pips are built in code
+                             (GamesWindow.xaml.cs), a meter, not a click. The glyphs at
+                             body size 13: the speaker is 17.3 to 17.9 wide and 15.8 to
+                             17.3 high in every bundled body font at its fit factor
+                             (measured Nov 15 2026), inside the 22 x 22 with room to
+                             spare; the planner's glyph render was at 13 too. -->
+                        <StackPanel x:Name="SoundGroup" Orientation="Horizontal" VerticalAlignment="Center" Margin="{x:Static local:GamesFrame.SoundGroupMargin}">
+                            <Button x:Name="SoundToggle" Click="SoundToggle_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
+                                    Width="{x:Static local:GamesFrame.SoundButtonSize}" Height="{x:Static local:GamesFrame.SoundButtonSize}" Padding="0"
+                                    FontSize="{DynamicResource Theme.Size.13}" VerticalAlignment="Center"/>
+                            <Button x:Name="SoundDown" Click="SoundDown_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
+                                    Content="{x:Static local:GamesText.SoundDown}" Margin="{x:Static local:GamesFrame.SoundGapBefore}"
+                                    Width="{x:Static local:GamesFrame.SoundButtonSize}" Height="{x:Static local:GamesFrame.SoundButtonSize}" Padding="0"
+                                    FontSize="{DynamicResource Theme.Size.13}" VerticalAlignment="Center"/>
+                            <StackPanel x:Name="SoundPips" Orientation="Horizontal" VerticalAlignment="Center" Margin="{x:Static local:GamesFrame.SoundGapBefore}"
+                                        Width="{x:Static local:GamesFrame.SoundPipsWidth}" Height="{x:Static local:GamesFrame.SoundPipsHeight}"/>
+                            <Button x:Name="SoundUp" Click="SoundUp_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
+                                    Content="{x:Static local:GamesText.SoundUp}" Margin="{x:Static local:GamesFrame.SoundGapBefore}"
+                                    Width="{x:Static local:GamesFrame.SoundButtonSize}" Height="{x:Static local:GamesFrame.SoundButtonSize}" Padding="0"
+                                    FontSize="{DynamicResource Theme.Size.13}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock x:Name="HintText" Text="{x:Static local:GamesText.Hint}" FontSize="{DynamicResource Theme.Size.11}" Foreground="{DynamicResource Theme.Text.Dim}"
                                    FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center" Margin="0,0,10,0"/>
                         <Button x:Name="CloseButton" Content="{x:Static local:GamesText.Close}" Click="Close_Click" Focusable="False"
                                 Style="{StaticResource DangerButtonStyle}" Width="22" Height="22" Padding="0" FontSize="{DynamicResource Theme.Size.10}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <!-- Left: "‹ Games" in a game, the title (a title's literal size, as the map's), the dim subtitle. -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel x:Name="HeaderLeft" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button x:Name="BackButton" Click="Back_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
                                 Padding="8,2" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="Collapsed">
                             <TextBlock Text="{x:Static local:GamesText.Back}"/>

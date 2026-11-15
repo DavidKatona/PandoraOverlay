@@ -5,14 +5,15 @@ namespace PandoraOverlay;
 /// <summary>
 /// What one instance of a game is given at <see cref="IGame.Attach"/> (the
 /// Contract's <see cref="IGameHost"/>): its whole world. The host's clock, its
-/// own storage over the store, its own log lines, and two ways back to
+/// own storage over the store, its own log lines, its own door to the window's
+/// speaker (the host's gate, <see cref="GamesSound"/>, A77), and two ways back to
 /// <see cref="GamesHost"/>: its tile changed, or it caught an exception of its
 /// own (the second layer of containment, A10: a view's handler, the engine's
 /// loop).
 /// <para>
 /// One per instance. When <see cref="GamesHost.StartAgain"/> replaces a
 /// stopped instance, this one is detached: whatever the old instance still
-/// does with it (a write, a fault, a tile change) reaches nothing, so it can
+/// does with it (a write, a sound, a fault, a tile change) reaches nothing, so it can
 /// never touch the instance that replaced it.
 /// </para>
 /// <para>
@@ -26,6 +27,8 @@ internal sealed class GameHost : IGameHost
     private readonly GamesHost _owner;
     private readonly GameStorage _storage;
 
+    private readonly SoundDoor _sound;
+
     public GameHost(GamesHost owner, HostedGame game, IGameClock clock, GameStorage storage, IGameLog log)
     {
         _owner = owner;
@@ -33,6 +36,7 @@ internal sealed class GameHost : IGameHost
         Clock = clock;
         _storage = storage;
         Log = log;
+        _sound = new SoundDoor(this);
     }
 
     public IGameClock Clock { get; }
@@ -40,6 +44,9 @@ internal sealed class GameHost : IGameHost
     public IGameStorage Storage => _storage;
 
     public IGameLog Log { get; }
+
+    /// <summary>This instance's door to the window's speaker (A77): its Play asks the host's gate (<see cref="GamesSound"/>) with this instance, and reaches nothing once the instance is detached.</summary>
+    public IGameSound Sound => _sound;
 
     /// <summary>The game this instance plays.</summary>
     internal HostedGame Game { get; }
@@ -59,6 +66,32 @@ internal sealed class GameHost : IGameHost
     {
         Current = false;
         _storage.Stop();
+        _sound.Close();
+    }
+
+    /// <summary>
+    /// One instance's <see cref="IGameSound"/> (A77, A79): what it is handed goes
+    /// to the gate with the instance that handed it, so the gate can tell the
+    /// instance on screen from any other. Closed by <see cref="Detach"/>, as the
+    /// storage is stopped: a replaced instance's sound reaches nothing (the gate
+    /// would drop it too, by <see cref="Current"/>; two locks on one door).
+    /// Never throws, as the Contract promises: the gate drops what it doesn't
+    /// play.
+    /// </summary>
+    private sealed class SoundDoor : IGameSound
+    {
+        private readonly GameHost _host;
+        private bool _closed;
+
+        public SoundDoor(GameHost host) => _host = host;
+
+        public void Play(GameSound sound)
+        {
+            if (_closed) return;
+            _host._owner.Sound.Play(_host, sound);
+        }
+
+        public void Close() => _closed = true;
     }
 }
 

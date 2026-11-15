@@ -38,6 +38,24 @@ internal static class GamesText
     /// <summary>The grid's subtitle: how many games are listed (0 included: the library exists from day one, G19).</summary>
     public static string GameCount(int count) => count == 1 ? "1 game" : $"{count} games";
 
+    // ---- The sound group (A82) ------------------------------------------------------
+    // Font glyphs, never image files (CLAUDE.md, Conventions): WPF draws the two
+    // speakers through its font fallback, in the button's own colour, the same in
+    // every bundled body font. Written as escapes, so the source holds no
+    // character an editor might mangle: U+1F50A, U+1F507 and U+2212.
+
+    /// <summary>The speaker button while sound is on: a speaker with sound waves (a click mutes).</summary>
+    public const string SoundOn = "\U0001F50A";
+
+    /// <summary>The speaker button while muted: a speaker struck through (a click turns sound on).</summary>
+    public const string SoundOff = "\U0001F507";
+
+    /// <summary>One step quieter: a minus sign, as wide as the plus.</summary>
+    public const string SoundDown = "−";
+
+    /// <summary>One step louder.</summary>
+    public const string SoundUp = "+";
+
     // ---- The watch note (A16) ---------------------------------------------------
 
     public const string WatchDisconnected = "Disconnected · health not watched";

@@ -37,6 +37,11 @@ public sealed class FakeHost : IGameHost
 
     public IGameLog Log => Collected;
 
+    /// <summary>The speaker: every sound the game handed the host, in order, played or not (the host's gate is the app's, A79).</summary>
+    public FakeSound Sound { get; } = new();
+
+    IGameSound IGameHost.Sound => Sound;
+
     /// <summary>How many times the game said its tile changed.</summary>
     public int TileChanges { get; private set; }
 

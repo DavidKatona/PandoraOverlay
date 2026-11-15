@@ -25,7 +25,8 @@ namespace PandoraOverlay.Tests;
 /// <para>
 /// The views: the empty grid, nine tiles whose every text is far too long,
 /// one tile of each condition with one armed, the two refusals, the grid and
-/// a game under the health warning, a game with the watch note, and every
+/// a game under the health warning, a game with the watch note, the header's
+/// sound group muted and at both ends of the volume (A82), and every
 /// listed game's every layout state (none until a game is listed: it joins by
 /// being listed). Fresh objects each time over a temporary games folder,
 /// never the real one; windows never shown.
@@ -125,6 +126,102 @@ public class GamesLayoutTests
             nameof(GamesText.FaultedDetail), nameof(GamesText.NewerDetail), nameof(GamesText.WatchSignedOut), nameof(GamesText.WarningHint),
         }, found);
         Assert.True(cut.Count == 0, string.Join("; ", cut));
+    });
+
+    // ---- The header's room (A83) ----------------------------------------------------------
+
+    /// <summary>The watch note that runs wider in the theme on screen: "Disconnected" or "Not signed in", whichever its font draws longer.</summary>
+    internal static GamesWatch LongerWatchNote(GamesWindow window)
+    {
+        double Width(GamesWatch watch)
+        {
+            window.SetWatch(watch);
+            LaidOut(window);
+            return FitProbe.NaturalWidth(window.WatchNote) ?? 0;
+        }
+        return Width(GamesWatch.Disconnected) >= Width(GamesWatch.SignedOut) ? GamesWatch.Disconnected : GamesWatch.SignedOut;
+    }
+
+    private static double LeftOf(FrameworkElement element, FrameworkElement root) => element.TranslatePoint(new Point(0, 0), root).X;
+
+    private static double RightOf(FrameworkElement element, FrameworkElement root) => element.TranslatePoint(new Point(element.ActualWidth, 0), root).X;
+
+    /// <summary>
+    /// The header in every theme at its own fit factor with every optional part
+    /// shown at its widest (A83): in a game, under the warning ("Paused"), the
+    /// longer watch note, the sound group, the hint and ✕, and a title of wide
+    /// letters far longer than <see cref="GamesFrame.TitleMaxWidth"/>. Nothing
+    /// cut and nothing clipped: the title trims at its room with its ellipsis
+    /// showing, the left side ends before the watch note begins, and every part
+    /// stays inside the header's padding.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Themes))]
+    public void TheHeaderHoldsEveryPartWithATitleTooLongForIt(string id) => OnScreen(id, () =>
+    {
+        using var bench = new GamesBench(new FakeGame("fake-game") { TitleText = new string('W', 40) });
+        var window = bench.Window();
+        window.ShowGame(bench.Host.Games[0]);
+        window.SetWatch(LongerWatchNote(window));
+        window.ShowHealthWarning(100);
+        var root = LaidOut(window);
+
+        var parts = new FrameworkElement[] { window.BackButton, window.TitleText, window.SubtitleText, window.WatchNote, window.SoundGroup, window.HintText, window.CloseButton };
+        Assert.All(parts, p => Assert.True(p.IsVisible || p.Visibility == Visibility.Visible, $"{p.Name} is not shown"));
+        Assert.Equal(GamesText.Paused, window.SubtitleText.Text);
+
+        // The title is longer than its room and trims there, its ellipsis on screen.
+        Assert.True(FitProbe.NaturalWidth(window.TitleText) > GamesFrame.TitleMaxWidth);
+        Assert.Equal(GamesFrame.TitleMaxWidth, window.TitleText.MaxWidth);
+        Assert.True(window.TitleText.ActualWidth <= GamesFrame.TitleMaxWidth + 1e-6); // the trimmed line, the ellipsis's room kept inside
+        var title = Assert.Single(FitProbe.LongLines(root), l => l.Text == window.TitleText.Text);
+        Assert.True(title.Trims);
+        Assert.False(title.CutOff, $"{id}: the title's ellipsis is cut off");
+
+        // Nothing else cut, nothing clipped, the frame kept.
+        var problems = Problems($"{id}, the header", root).ToList();
+        Assert.True(problems.Count == 0, string.Join("; ", problems));
+
+        // Left of the watch note, inside the padding on both sides.
+        Assert.True(RightOf(window.SubtitleText, root) <= LeftOf(window.WatchNote, root) + FitProbe.Slack,
+            FormattableString.Invariant($"{id}: the left side ends at {RightOf(window.SubtitleText, root):0.##}, the watch note begins at {LeftOf(window.WatchNote, root):0.##}"));
+        Assert.True(LeftOf(window.BackButton, root) >= 1 + GamesFrame.HeaderPaddingLeft - FitProbe.Slack);
+        Assert.True(RightOf(window.CloseButton, root) <= GamesFrame.Width - 1 - GamesFrame.HeaderPaddingRight + FitProbe.Slack);
+    });
+
+    /// <summary>
+    /// The group never moves (A83): its edges are the same with the watch note
+    /// hidden and shown (it grows to the group's left), on the grid and in a
+    /// game, in every theme, and it is exactly its frame width.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Themes))]
+    public void TheSoundGroupStaysPutWhenTheWatchNoteShows(string id) => OnScreen(id, () =>
+    {
+        using var bench = new GamesBench(new FakeGame("fake-game"));
+        var window = bench.Window();
+        var longer = LongerWatchNote(window);
+        (double Left, double Right) Edges(GamesWatch watch)
+        {
+            window.SetWatch(watch);
+            var root = LaidOut(window);
+            return (LeftOf(window.SoundGroup, root), RightOf(window.SoundGroup, root));
+        }
+
+        void Same((double Left, double Right) expected, (double Left, double Right) actual, string when)
+        {
+            Assert.True(Math.Abs(expected.Left - actual.Left) < 1e-6 && Math.Abs(expected.Right - actual.Right) < 1e-6,
+                FormattableString.Invariant($"{id}, {when}: the group is at {actual.Left:0.###} to {actual.Right:0.###}, not {expected.Left:0.###} to {expected.Right:0.###}"));
+        }
+
+        var onTheGrid = Edges(GamesWatch.Watching);
+        Same(onTheGrid, Edges(longer), "the grid with the watch note");
+        window.ShowGame(bench.Host.Games[0]);
+        Same(onTheGrid, Edges(GamesWatch.Watching), "a game");
+        Same(onTheGrid, Edges(longer), "a game with the watch note");
+
+        Assert.Equal(GamesFrame.SoundGroupWidth, onTheGrid.Right - onTheGrid.Left, 6);
+        Assert.Equal(GamesFrame.SoundGroupWidth, window.SoundGroup.ActualWidth, 6);
     });
 
     // ---- What a view must hold to ------------------------------------------------------
@@ -245,6 +342,38 @@ public class GamesLayoutTests
             yield return ("a game, under the warning, not signed in", LaidOut(window));
         }
 
+        // The grid muted, with the watch note: the speaker struck through, no pip lit (A82).
+        using (var bench = new GamesBench(new FakeGame("first"), new FakeGame("second")))
+        {
+            bench.Config.GamesSoundMuted = true;
+            var window = bench.Window();
+            window.SetWatch(GamesWatch.Disconnected);
+            yield return ("grid, muted, disconnected", LaidOut(window));
+        }
+
+        // A game muted at the lowest step (`−` disabled), with the watch note.
+        using (var bench = new GamesBench(new FakeGame("fake-game") { TitleText = "A game whose title is far longer than any header could hold" }))
+        {
+            bench.Config.GamesSoundMuted = true;
+            bench.Config.GamesSoundVolume = 1;
+            var window = bench.Window();
+            window.ShowGame(bench.Host.Games[0]);
+            GamesBench.Dress(bench.Games[0].Views[^1]);
+            window.SetWatch(GamesWatch.SignedOut);
+            yield return ("a game, muted, at step 1, not signed in", LaidOut(window));
+        }
+
+        // A game at the top step (`+` disabled, every pip lit), with the watch note.
+        using (var bench = new GamesBench(new FakeGame("fake-game") { TitleText = "Hatchling" }))
+        {
+            bench.Config.GamesSoundVolume = 5;
+            var window = bench.Window();
+            window.ShowGame(bench.Host.Games[0]);
+            GamesBench.Dress(bench.Games[0].Views[^1]);
+            window.SetWatch(GamesWatch.Disconnected);
+            yield return ("a game, at step 5, disconnected", LaidOut(window));
+        }
+
         // Every listed game, each of its layout states (A26). None until one is listed.
         foreach (var entry in GameCatalog.All)
         {
@@ -357,11 +486,19 @@ internal sealed class GamesBench : IDisposable
     public GamesBench(IReadOnlyList<GameEntry> entries)
     {
         Store = new GameSaveStore(_temp.Root, () => Clock.UtcNow);
-        Host = new GamesHost(Store, entries, Clock, id => Logs.TryGetValue(id, out var log) ? log : Logs[id] = new TestGameLog());
+        // The games' sound gate over a speaker that records, the bench's clock and
+        // the config the bench was made with (A79, A82). A test that replaces the
+        // whole Config by its initializer (the scale's) leaves the gate on the
+        // first one; the sound's tests set the bench's own Config's keys instead.
+        Host = new GamesHost(Store, entries, Clock, id => Logs.TryGetValue(id, out var log) ? log : Logs[id] = new TestGameLog(),
+            new GamesSound(Speaker, Config, Clock));
         Host.AttachAll();
     }
 
     public TestGameClock Clock { get; } = new();
+
+    /// <summary>The games' speaker: what the gate passed on, and every stop (nothing is played).</summary>
+    public FakeSpeaker Speaker { get; } = new();
 
     public GameSaveStore Store { get; }
 
@@ -397,6 +534,7 @@ internal sealed class GamesBench : IDisposable
     public void Dispose()
     {
         foreach (var window in _windows) window.Close();
+        Host.Sound.Dispose();
         _temp.Dispose();
     }
 

@@ -59,6 +59,9 @@ public class GameViewBaseTests
         /// <summary>A handler of the view's own, as a button's click would run.</summary>
         public void Handle(Action action) => Guard(action);
 
+        /// <summary>A sound, as a step or a handler of the view plays one (A79's first layer).</summary>
+        public void Sound(GameSound sound) => base.Play(sound);
+
         /// <summary>Enqueues and plays, as a view does after a turn.</summary>
         public void Play(params IStep[] steps)
         {
@@ -296,6 +299,85 @@ public class GameViewBaseTests
 
         Assert.IsType<InvalidOperationException>(Assert.Single(host.Faults));
         Assert.True(view.ThePlayback.Idle);
+        view.Dispose();
+    });
+
+    // ---- Play: the first of A79's three layers ----------------------------------------------
+
+    private static readonly GameSound Bite = new("bite", new short[] { 1, 2, 3 });
+    private static readonly GameSound Thud = new("thud", new short[] { 4 });
+
+    /// <summary>A sound reaches the host once per play, in order: the host decides the rest (the app's gate).</summary>
+    [Fact]
+    public void APlayReachesTheHostOnce() => Sta.Run(() =>
+    {
+        var host = new FakeHost();
+        var view = new TestView(host);
+
+        view.Sound(Bite);
+        view.Sound(Thud);
+
+        Assert.Equal(new[] { "bite", "thud" }, host.Sound.Played);
+        Assert.Same(Bite, host.Sound.Sounds[0]); // the object itself: the host goes by it
+        view.Dispose();
+    });
+
+    /// <summary>A paused view plays nothing, as it takes no input (A19, A56); resumed, it plays again.</summary>
+    [Fact]
+    public void APausedViewPlaysNothingAndResumedItPlaysAgain() => Sta.Run(() =>
+    {
+        var host = new FakeHost();
+        var view = new TestView(host);
+
+        view.Pause();
+        view.Sound(Bite);
+        Assert.Empty(host.Sound.Played);
+
+        view.Resume();
+        view.Sound(Bite);
+        Assert.Equal(new[] { "bite" }, host.Sound.Played);
+        view.Dispose();
+    });
+
+    /// <summary>A disposed view plays nothing ever again: a step of a closed window's view is silence.</summary>
+    [Fact]
+    public void ADisposedViewNeverPlays() => Sta.Run(() =>
+    {
+        var host = new FakeHost();
+        var view = new TestView(host);
+        view.Sound(Bite);
+
+        view.Dispose();
+        view.Sound(Bite);
+        view.Resume();
+        view.Sound(Thud);
+
+        Assert.Equal(new[] { "bite" }, host.Sound.Played);
+    });
+
+    /// <summary>A step that plays, as a game's beat will: it reaches the host while the playback runs, and a paused playback reaches no cue.</summary>
+    [Fact]
+    public void AStepsSoundReachesTheHostOnlyWhileThePlaybackRuns() => Sta.Run(() =>
+    {
+        var host = new FakeHost();
+        var view = new TestView(host);
+        view.Play(Steps.Wait(3), Steps.Call(() => view.Sound(Bite)));
+
+        view.Pause();
+        After(host, view, 500);
+        Assert.Empty(host.Sound.Played);
+
+        view.Resume();
+        for (var i = 0; i < 10; i++) After(host, view, 100);
+        Assert.Equal(new[] { "bite" }, host.Sound.Played);
+        view.Dispose();
+    });
+
+    [Fact]
+    public void ASoundIsRequired() => Sta.Run(() =>
+    {
+        var view = new TestView(new FakeHost());
+        Assert.Throws<ArgumentNullException>(() => view.Sound(null!));
         view.Dispose();
     });
 

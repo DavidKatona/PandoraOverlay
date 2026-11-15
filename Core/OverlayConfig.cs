@@ -279,6 +279,27 @@ public sealed class OverlayConfig
     /// </summary>
     public double GamesScale { get; set; } = 1.0;
 
+    // The games' sound (G26, A82): the mute and the volume on the Games
+    // window's header, and nowhere else (no Settings mirror: one control on
+    // two surfaces is what the Conventions turn down). Plain values, never
+    // seeded from anything and no migration: the games were never released,
+    // so nobody has a value to carry. Set on this object by the window's
+    // controls (through GamesSound) as GamesView is, and saved with it. The
+    // overlay's own chimes (General → Sounds) are other keys, untouched by
+    // these (A85).
+
+    /// <summary>
+    /// The games' volume step, 1 to 5, 6 dB apart (1 = −24 dB up to 5 = 0 dB):
+    /// the third by default, well under The Isle's own sound, which is the
+    /// player's warning (A82). A value out of range (a hand-edited file) is READ
+    /// as the nearest step by the games' sound and never written back by it;
+    /// only the window's `−` and `+` write here.
+    /// </summary>
+    public int GamesSoundVolume { get; set; } = 3;
+
+    /// <summary>The games' sounds muted from the Games window's header (A82): off by default, since a muted default is a feature nobody hears.</summary>
+    public bool GamesSoundMuted { get; set; }
+
     // ---- Minimap (v1.1) ---------------------------------------------------
 
     /// <summary>

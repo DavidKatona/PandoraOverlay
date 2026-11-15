@@ -132,7 +132,7 @@ internal sealed class FakeGame : IGame
     {
         Calls.Add(nameof(CreateView));
         ThrowIf(FakeThrows.CreateView);
-        var view = new FakeGameView();
+        var view = new FakeGameView(Host);
         Views.Add(view);
         DuringCreateView?.Invoke(Host!);
         return view;
@@ -153,10 +153,21 @@ internal sealed class FakeGame : IGame
     }
 }
 
-/// <summary>A view that records Pause, Resume and Dispose; its root, a plain Grid, is made on first use.</summary>
+/// <summary>A view that records Pause, Resume and Dispose; its root, a plain Grid, is made on first use; it plays a sound through its game's host when a test says so.</summary>
 internal sealed class FakeGameView : IGameView
 {
+    private readonly IGameHost? _host;
     private FrameworkElement? _root;
+
+    /// <param name="host">The host its game was attached with, the one its sounds go through (none: a view made outside a host).</param>
+    public FakeGameView(IGameHost? host = null) => _host = host;
+
+    /// <summary>
+    /// A sound, handed straight to the host as a game's view would hand one
+    /// (no engine here, so no paused-view layer: what decides is the host's
+    /// gate, A79). A view made with no host plays nothing.
+    /// </summary>
+    public void Play(GameSound sound) => _host?.Sound.Play(sound);
 
     public List<string> Calls { get; } = new();
 
