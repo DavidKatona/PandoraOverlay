@@ -133,10 +133,17 @@ internal sealed partial class LineagePage : Grid, IHatchlingPage
     /// <summary>The left button went down on a trait's card (H79).</summary>
     internal void CardPressed(Trait trait) => _press.Press(trait);
 
-    /// <summary>The left button came up on a trait's card: a purchase when the press began on that same card (H79).</summary>
+    /// <summary>
+    /// The left button came up on a trait's card: a purchase when the press began on that
+    /// same card (H79), and a click (H102): <c>select</c> when the card buys nothing (a
+    /// rank complete, blocked or short of the wallet, H103), its rank's <c>choose</c> or
+    /// <c>reward</c> in place of the click when it buys one.
+    /// </summary>
     internal void CardReleased(Trait trait)
     {
-        if (_press.Release(trait)) BuyClicked(trait);
+        if (!_press.Release(trait)) return;
+        _view.Clicked(GameClick.Select);
+        BuyClicked(trait);
     }
 
     /// <summary>The mouse came onto a trait's card.</summary>

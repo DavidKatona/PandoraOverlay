@@ -255,6 +255,7 @@ internal sealed partial class JournalPage : Grid, IHatchlingPage
             _armed = index;
             _armedSpecies = state.Journal.Open[index].Species;
             SetSwap(_entries[index], armed: true);
+            _view.Arming();   // H102: the first click plays no cue of its own (H99), and its click says it asks
             return;
         }
         Disarm();

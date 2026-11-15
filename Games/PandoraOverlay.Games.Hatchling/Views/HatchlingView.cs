@@ -330,6 +330,24 @@ internal sealed class HatchlingView : GameViewBase
     /// </summary>
     internal void Did(Cue own, int earnedBefore) => Sound(Earned > earnedBefore ? Cue.Reward : own);
 
+    // ===== Clicks (G27, A105, H102, H103) ===============================================================
+    //
+    // Every control of the game clicks by the engine's rule, with no line here: a button
+    // by its type (a tab, a pace, a danger and a Guide section select, Fast toggles on or
+    // off, any other button presses), nothing while a turn plays or when the click began
+    // one, and nothing when the click played a cue of its own (hatch, choose, shuffle,
+    // unlock, reward: H99's cue is the click's sound, H102). The pages say only what the
+    // rule can't see: which click ARMED (Leave, the unlock, the journal's swap), and which
+    // card was released on itself (a species, a trait, an offer's card, H79). A refusal
+    // plays no cue of its own and so gets the generic click (H103): the press registered,
+    // and the unchanged screen says nothing happened.
+
+    /// <summary>The click being released armed (H102): the engine's <c>Arming</c>, for the pages' three arming branches. Nothing outside a left release.</summary>
+    internal new void Arming() => base.Arming();
+
+    /// <summary>A card was released on itself (H102, H79): the engine's <c>Clicked</c>, for the pages' cards, called where the page acts on the release so a cue it plays claims the click. Nothing outside a left release.</summary>
+    internal new void Clicked(GameClick click) => base.Clicked(click);
+
     // ===== Handlers =====================================================================================
 
     /// <summary>A handler of the view's pages, through the view's guard (A10): nothing when paused or disposed, an exception to the host's Fault.</summary>

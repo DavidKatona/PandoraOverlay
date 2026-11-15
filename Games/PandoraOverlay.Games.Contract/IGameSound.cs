@@ -21,9 +21,25 @@ namespace PandoraOverlay.Games;
 /// <see cref="GameSound"/>'s rules refused with one line in the log. None of
 /// it is the game's to know: a dropped sound is silence, never an error.
 /// </para>
+/// <para>
+/// Beside a game's own sounds, the host's own clicks (A105, amending A77's
+/// one member): <see cref="Click"/> asks for the overlay's click of a kind,
+/// which only the host has. A game never calls it itself: the engine's view
+/// base decides, for every game alike, which left click on a view sounds and
+/// as what.
+/// </para>
 /// </summary>
 public interface IGameSound
 {
     /// <summary>One of the game's own sounds, from now, or nothing: the host decides (A79, A81). Never throws.</summary>
     void Play(GameSound sound);
+
+    /// <summary>
+    /// One of the host's click sounds, of <paramref name="click"/>'s kind, from
+    /// now, or nothing (G27, A105): the host decides, by A79's rules (the game on
+    /// screen in the Games window, not paused, not muted) and the player's switch
+    /// for clicks (A103). Never throws; the game never learns which. A game calls
+    /// it only through the engine (its view base's click rule), never by itself.
+    /// </summary>
+    void Click(GameClick click);
 }

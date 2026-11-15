@@ -295,10 +295,12 @@ internal sealed partial class CampPage : Grid, IHatchlingPage
     /// <summary>The left button went down on a species' card (H79): the first half of a click.</summary>
     internal void CardPressed(string species) => _press.Press(species);
 
-    /// <summary>The left button came up on a species' card: a choice when the press began on that same card (H79).</summary>
+    /// <summary>The left button came up on a species' card: a choice when the press began on that same card (H79), and a click (H102: <c>select</c>, the chosen one's card included).</summary>
     internal void CardReleased(string species)
     {
-        if (_press.Release(species)) SpeciesClicked(species);
+        if (!_press.Release(species)) return;
+        _view.Clicked(GameClick.Select);
+        SpeciesClicked(species);
     }
 
     /// <summary>The mouse left a species' card: its hover line goes, and a press begun on it is forgotten (H79).</summary>
@@ -358,7 +360,8 @@ internal sealed partial class CampPage : Grid, IHatchlingPage
         }
         if (!UnlockArmed)
         {
-            Arm();   // the first click of anything armed is silent (H99)
+            Arm();   // the first click of anything armed plays no cue of its own (H99) ...
+            if (UnlockArmed) _view.Arming();   // ... and its click says it asks (H102: arm)
             return;
         }
         var species = _armedFor!;

@@ -150,6 +150,7 @@ internal sealed partial class RunPage
             LeaveArmed = true;
             LeaveButton.Content = HatchlingText.LeaveArmed;
             LeaveButton.SetResourceReference(StyleProperty, "DangerButtonStyle");
+            _view.Arming();   // H102: the first click asks, and its click says so (arm, not press)
             return;
         }
         Disarm();
@@ -193,12 +194,20 @@ internal sealed partial class RunPage
     /// </summary>
     internal void CardPressed(int index) => _pressedCard = index;
 
-    /// <summary>The left button came up on card <paramref name="index"/>: a pick when the press began on that same card (H79); anything else picks nothing and forgets the press.</summary>
+    /// <summary>
+    /// The left button came up on card <paramref name="index"/>: a pick when the press
+    /// began on that same card (H79); anything else picks nothing and forgets the press.
+    /// A card released on itself is a click (H102): <c>select</c>, unless the pick plays
+    /// its own cue (<c>choose</c>, or <c>reward</c>), which then is the click's sound;
+    /// the release of the press that skipped a playback is no click at all.
+    /// </summary>
     internal void CardReleased(int index)
     {
         var pressed = _pressedCard;
         _pressedCard = NoCard;
-        if (pressed == index) PickClicked(index);
+        if (pressed != index) return;
+        _view.Clicked(GameClick.Select);
+        PickClicked(index);
     }
 
     /// <summary>The mouse left card <paramref name="index"/>: a press begun on it is forgotten (H79).</summary>
