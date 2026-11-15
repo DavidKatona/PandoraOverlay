@@ -212,6 +212,11 @@ public class ForbiddenApiTests
 
         // A94: an assembly asked for its embedded files outside the engine.
         AssertFound(findings, ForbiddenKind.Member, "System.Reflection.Assembly", "the member System.Reflection.Assembly::GetManifestResourceStream");
+
+        // A95: reflection by name through IReflect, and .NET 8's invokers.
+        AssertFound(findings, ForbiddenKind.Type, "System.Reflection.IReflect", "the type System.Reflection.IReflect");
+        AssertFound(findings, ForbiddenKind.Type, "System.Reflection.MethodInvoker", "the type System.Reflection.MethodInvoker");
+        AssertFound(findings, ForbiddenKind.Type, "System.Reflection.ConstructorInvoker", "the type System.Reflection.ConstructorInvoker");
     }
 
     private static void AssertFound(IReadOnlyList<Finding> findings, ForbiddenKind kind, string pattern, string subject) =>
@@ -667,6 +672,25 @@ public class ForbiddenApiTests
 
     /// <summary>The start of A94's reason (ForbiddenList's TheEnginesResources).</summary>
     private const string ResourcesReason = "a game's embedded files are read by the engine alone";
+
+    /// <summary>
+    /// Reflection by name through the interface every Type implements, and calls through
+    /// .NET 8's invokers (A95): each type is one finding under A60's reason, for a game
+    /// and for the engine, so a member reached past System.Type's entries is still refused.
+    /// </summary>
+    [Fact]
+    public void ReflectionThroughIReflectAndTheInvokersIsRefused()
+    {
+        foreach (var type in new[] { T("System.Reflection", "IReflect"), T("System.Reflection", "MethodInvoker"), T("System.Reflection", "ConstructorInvoker") })
+        {
+            foreach (var who in new[] { AGame, Engine })
+            {
+                var findings = ForbiddenList.Check(Made(who, types: new[] { type }));
+                Assert.True(findings.Count == 1, $"{type.FullName} in {who} should give exactly one finding");
+                Assert.StartsWith(ReflectionReason, findings[0].Entry.Reason);
+            }
+        }
+    }
 
     /// <summary>The wall clock and the unseeded id are refused; building a DateTime or reading its parts is not.</summary>
     [Fact]

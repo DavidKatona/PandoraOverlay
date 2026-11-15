@@ -174,7 +174,7 @@ internal static class ForbiddenList
     private static ForbiddenEntry Member(string type, string member, string reason, params string[] except) =>
         new(ForbiddenKind.Member, type, reason) { Member = member, Except = except };
 
-    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member, A60's reflection and picture doors, A69's path doors, A70's two assemblies, A71 to A74's doors and A94's embedded files sit in their groups.</summary>
+    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member, A60's reflection and picture doors, A69's path doors, A70's two assemblies, A71 to A74's doors, A94's embedded files and A95's IReflect and invokers sit in their groups.</summary>
     public static IReadOnlyList<ForbiddenEntry> All { get; } = new[]
     {
         // ---- Assembly references ------------------------------------------------
@@ -356,6 +356,18 @@ internal static class ForbiddenList
         // A60, reflection by name: the extension methods that hand out a type's fields,
         // properties, methods and events by name (GetRuntimeField, GetRuntimeMethods ...).
         Type("System.Reflection.RuntimeReflectionExtensions", NoReflection),
+        // A95, after the F10 verdict: the interface every Type implements, whose members
+        // are System.Type's lookups and InvokeMember again under its own name. A call
+        // through it is written against IReflect, the type that declares it, so the
+        // System.Type entries below never see it: ((IReflect)typeof(Assembly))
+        // .InvokeMember("GetManifestResourceStream", ...) read the app's embedded files
+        // past A94 with every member allowed. And .NET 8's invokers, which call a
+        // MethodBase or a ConstructorInfo as MethodBase.Invoke and ConstructorInfo.Invoke
+        // do, so a member found by IReflect.GetMethod, or got without a lookup
+        // (Delegate.Method, Type.GetInterfaceMap), is still shut on the other side.
+        Type("System.Reflection.IReflect", NoReflection),
+        Type("System.Reflection.MethodInvoker", NoReflection),
+        Type("System.Reflection.ConstructorInvoker", NoReflection),
         // A60, a picture by address: each of these turns an address into a picture WPF
         // fetches by itself (BitmapImage's UriSource, the converter XAML and bindings
         // use for "Source"), or builds the address (UriBuilder) with no "://" written.

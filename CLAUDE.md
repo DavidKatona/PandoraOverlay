@@ -474,7 +474,7 @@ all) — say so when it matters:
   MainWindow making the speaker and disposing it (compiled and tested lazy, never
   run); whether the gate's 40 ms and six-at-once limits ever drop one of
   Hatchling's cues at Fast (reasoning, not a test). Guards: 2048 tests in the
-  app's project and 2343 in the games' (4391, 0 failed); the golden renders: the
+  app's project and 2344 in the games' (4392, 0 failed); the golden renders: the
   minimap's identical in every theme, the windows mode differing only on
   Settings › Hotkeys in every theme (the new Games row; no baseline
   re-recorded), plus two one-off differences that did not repeat (three pixels

@@ -377,7 +377,9 @@ internal sealed class WaveOutSpeaker : ISpeaker
 
         // The last look that found a buffer handed back (N18, A91). Judged only
         // after a look that found none, so a thread kept from running (a busy PC,
-        // a PC asleep) is never a stall: its first look finds the buffers back.
+        // a PC asleep) is no stall when its device answered meanwhile: its first
+        // look finds the buffers back (A91; A96: a device that resumes after the
+        // thread, waking from sleep, can be taken for stalled once).
         var answeredAt = Stopwatch.GetTimestamp();
         long? idleSince = null;
         while (!_disposed)

@@ -355,14 +355,16 @@ public class GamesArchitectureTests
     /// <summary>
     /// The host's other ways to native code, or to another process or window, none of
     /// which it uses (constraint 1; A92): a COM class declared in code, a library loaded
-    /// by hand, a function pointer made or called, a COM type found by its id; and in
-    /// managed code the Process family (Process, ProcessStartInfo ...), UI Automation's
-    /// walk of the desktop's windows, the performance counters' list of processes (the
-    /// forbidden list refuses the same three to a game, A74). Case counts: "the process"
-    /// in a comment is prose.
+    /// by hand, a function pointer made or called, a COM type found by its id, a COM
+    /// object made by its moniker's name (A96: WMI's "winmgmts:" lists every process);
+    /// and in managed code the Process family (Process, ProcessStartInfo ...), UI
+    /// Automation's walk of the desktop's windows, the performance counters' list of
+    /// processes (the forbidden list refuses the same three to a game, A74), and
+    /// WinForms' SendKeys, keystrokes to whatever window has the focus, the game's
+    /// when ours lost it (A96). Case counts: "the process" in a comment is prose.
     /// </summary>
     private static readonly Regex HostReach = new(
-        @"\bComImport\b|\bNativeLibrary\b|\bGetDelegateForFunctionPointer\b|\bGetTypeFromCLSID\b|\bGetTypeFromProgID\b|\bdelegate\s*\*\s*unmanaged|\bProcess\w*|\bAutomationElement\b|\bPerformanceCounter\w*",
+        @"\bComImport\b|\bNativeLibrary\b|\bGetDelegateForFunctionPointer\b|\bGetTypeFromCLSID\b|\bGetTypeFromProgID\b|\bBindToMoniker\b|\bdelegate\s*\*\s*unmanaged|\bProcess\w*|\bAutomationElement\b|\bPerformanceCounter\w*|\bSendKeys\b",
         RegexOptions.Compiled);
 
     internal static IReadOnlyList<string> HostReachIn(string text) => HostReach.Matches(text).Select(m => m.Value).ToList();
@@ -441,6 +443,9 @@ public class GamesArchitectureTests
         Assert.Equal(new[] { "GetDelegateForFunctionPointer" }, HostReachIn("var f = Marshal.GetDelegateForFunctionPointer<Fn>(pointer);"));
         Assert.Equal(new[] { "delegate* unmanaged" }, HostReachIn("delegate* unmanaged<int, int> f = &X;"));
         Assert.Equal(new[] { "GetTypeFromCLSID" }, HostReachIn("var t = Type.GetTypeFromCLSID(id);"));
+        Assert.Equal(new[] { "GetTypeFromProgID" }, HostReachIn("var t = Type.GetTypeFromProgID(name);"));
+        Assert.Equal(new[] { "BindToMoniker" }, HostReachIn("var wmi = Marshal.BindToMoniker(name);"));
+        Assert.Equal(new[] { "SendKeys" }, HostReachIn("System.Windows.Forms.SendKeys.SendWait(keys);"));
         Assert.Equal(new[] { "Process" }, HostReachIn("var p = new Process { StartInfo = info };"));
         Assert.Equal(new[] { "ProcessStartInfo" }, HostReachIn("var info = new ProcessStartInfo(name);"));
         Assert.Equal(new[] { "Process" }, HostReachIn("foreach (var p in Process.GetProcesses()) { }"));
