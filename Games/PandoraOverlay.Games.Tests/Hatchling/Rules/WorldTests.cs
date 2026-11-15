@@ -976,8 +976,8 @@ public class WorldTests
     [InlineData(1, false, 15)]
     [InlineData(1, true, 10)]
     [InlineData(3, false, 17)]
-    [InlineData(5, false, 21)]
-    [InlineData(5, true, 16)]
+    [InlineData(5, false, 25)]
+    [InlineData(5, true, 20)]
     public void TheApexIsOutlastedAfterTheDangersTurns(int danger, bool patience, int turns)
     {
         RunState Waiting(int waited)

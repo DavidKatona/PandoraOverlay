@@ -49,35 +49,34 @@ public class TablesTests
         Assert.Equal(21, SpeciesTable.All.Select(s => s.Name).Distinct(StringComparer.Ordinal).Count());
         // Each perk used exactly once (H13), in the perk enum's order.
         Assert.Equal(Enum.GetValues<Perk>(), SpeciesTable.All.Select(s => s.Perk));
-        Assert.All(SpeciesTable.All, s => Assert.Equal(1.00, s.Threat));
     }
 
     [Theory]
-    [InlineData("Dryosaurus", Build.Runner, Perk.Tireless)]
-    [InlineData("Hypsilophodon", Build.Runner, Perk.Freeze)]
-    [InlineData("Kentrosaurus", Build.Grazer, Perk.Spikes)]
-    [InlineData("Pachycephalosaurus", Build.Grazer, Perk.Headbutt)]
-    [InlineData("Tenontosaurus", Build.Grazer, Perk.Braced)]
-    [InlineData("Diabloceratops", Build.Grazer, Perk.Charge)]
-    [InlineData("Maiasaura", Build.Grazer, Perk.BigBites)]
-    [InlineData("Stegosaurus", Build.Tank, Perk.Thagomizer)]
-    [InlineData("Triceratops", Build.Tank, Perk.Frill)]
-    [InlineData("Pteranodon", Build.Flyer, Perk.HighView)]
-    [InlineData("Troodon", Build.Hunter, Perk.Venom)]
-    [InlineData("Herrerasaurus", Build.Hunter, Perk.Pounce)]
-    [InlineData("Omniraptor", Build.Hunter, Perk.Latch)]
-    [InlineData("Carnotaurus", Build.Stalker, Perk.Fleet)]
-    [InlineData("Ceratosaurus", Build.Stalker, Perk.Scavenger)]
-    [InlineData("Dilophosaurus", Build.Hunter, Perk.Spit)]
-    [InlineData("Deinosuchus", Build.Swimmer, Perk.Lunge)]
-    [InlineData("Allosaurus", Build.Stalker, Perk.Bleeder)]
-    [InlineData("Tyrannosaurus", Build.Apex, Perk.CrushingBite)]
-    [InlineData("Beipiaosaurus", Build.Forager, Perk.Wader)]
-    [InlineData("Gallimimus", Build.Forager, Perk.Evasive)]
-    public void EachSpeciesHasThePlansBuildAndPerk(string name, object build, object perk)
+    [InlineData("Dryosaurus", Build.Runner, Perk.Tireless, 1.10)]
+    [InlineData("Hypsilophodon", Build.Runner, Perk.Freeze, 1.09)]
+    [InlineData("Kentrosaurus", Build.Grazer, Perk.Spikes, 1.10)]
+    [InlineData("Pachycephalosaurus", Build.Grazer, Perk.Headbutt, 1.06)]
+    [InlineData("Tenontosaurus", Build.Grazer, Perk.Braced, 1.11)]
+    [InlineData("Diabloceratops", Build.Grazer, Perk.Charge, 1.05)]
+    [InlineData("Maiasaura", Build.Grazer, Perk.BigBites, 0.98)]
+    [InlineData("Stegosaurus", Build.Tank, Perk.Thagomizer, 1.05)]
+    [InlineData("Triceratops", Build.Tank, Perk.Frill, 1.05)]
+    [InlineData("Pteranodon", Build.Flyer, Perk.HighView, 1.35)]
+    [InlineData("Troodon", Build.Hunter, Perk.Venom, 1.07)]
+    [InlineData("Herrerasaurus", Build.Hunter, Perk.Pounce, 1.09)]
+    [InlineData("Omniraptor", Build.Hunter, Perk.Latch, 1.11)]
+    [InlineData("Carnotaurus", Build.Stalker, Perk.Fleet, 1.15)]
+    [InlineData("Ceratosaurus", Build.Stalker, Perk.Scavenger, 1.08)]
+    [InlineData("Dilophosaurus", Build.Hunter, Perk.Spit, 1.10)]
+    [InlineData("Deinosuchus", Build.Swimmer, Perk.Lunge, 1.10)]
+    [InlineData("Allosaurus", Build.Stalker, Perk.Bleeder, 1.15)]
+    [InlineData("Tyrannosaurus", Build.Apex, Perk.CrushingBite, 1.04)]
+    [InlineData("Beipiaosaurus", Build.Forager, Perk.Wader, 1.21)]
+    [InlineData("Gallimimus", Build.Forager, Perk.Evasive, 1.20)]
+    public void EachSpeciesHasThePlansBuildAndPerk(string name, object build, object perk, double threat)
     {
         Assert.True(SpeciesTable.TryGet(name, out var species));
-        Assert.Equal(new SpeciesInfo(name, (Build)build, (Perk)perk, 1.00), species);
+        Assert.Equal(new SpeciesInfo(name, (Build)build, (Perk)perk, threat), species);
     }
 
     [Theory]
@@ -178,10 +177,10 @@ public class TablesTests
 
     [Theory]
     [InlineData(1, 1.00, 7, 2, 5, 15, 1.00)]
-    [InlineData(2, 1.20, 6, 2, 5, 15, 1.25)]
+    [InlineData(2, 1.30, 6, 2, 5, 15, 1.25)]
     [InlineData(3, 1.40, 6, 3, 6, 17, 1.50)]
     [InlineData(4, 1.60, 5, 3, 6, 19, 1.75)]
-    [InlineData(5, 1.85, 5, 4, 7, 21, 2.00)]
+    [InlineData(5, 2.00, 5, 4, 7, 25, 2.00)]
     public void EachDangerHasThePlansNumbers(int level, double threat, int every, int mostBase, int mostCap, int outlast, double pay)
     {
         Assert.Equal(new DangerInfo(level, threat, every, mostBase, mostCap, outlast, pay), Dangers.Of(level));

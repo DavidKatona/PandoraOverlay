@@ -226,8 +226,8 @@ internal static class Tuning
     public const double BigBitesMeal = 1.5;
     /// <summary>Thagomizer: every other creature beside you takes this share of your attack.</summary>
     public const double SweepShare = 0.6;
-    /// <summary>Frill: no bite takes more than this share of your full health.</summary>
-    public const double FrillMost = 0.15;
+    /// <summary>Frill: no bite takes more than this share of your full health (H65).</summary>
+    public const double FrillMost = 0.07;
     /// <summary>High view: sight, one hex further.</summary>
     public const int HighViewSight = 1;
     /// <summary>Venom: a creature you hit takes one step less in each of its next this many actions.</summary>
