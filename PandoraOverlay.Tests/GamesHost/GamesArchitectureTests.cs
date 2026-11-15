@@ -224,9 +224,18 @@ public class GamesArchitectureTests
     /// winmm's call that sets a wave-out handle's volume: measured, it sets the
     /// whole app's session volume in Windows' own mixer (every handle's at once),
     /// which is the player's level for the overlay, never the games' to move. The
-    /// games' level is their own mix's gain (GamesSound's steps).
+    /// games' level is their own mix's gain (GamesSound's steps). With it (A93, after
+    /// the constraint review r4's N20), every other way to that level or the device's:
+    /// winmm's other setters and its mixer's, and the Core Audio interfaces and their
+    /// setters, which a move to WASAPI (PLAN-SOUND 2.1's runner-up) would reach for
+    /// first (ISimpleAudioVolume is the session's own volume). No word here is part of
+    /// another, so each finds only itself.
     /// </summary>
-    internal static readonly string[] AppVolumeWords = { "waveOutSetVolume" };
+    internal static readonly string[] AppVolumeWords =
+    {
+        "waveOutSetVolume", "midiOutSetVolume", "auxSetVolume", "mixerSetControlDetails",
+        "ISimpleAudioVolume", "IAudioEndpointVolume", "IChannelAudioVolume", "IAudioStreamVolume", "SetMasterVolume", "SetChannelVolume",
+    };
 
     internal static IReadOnlyList<string> AppVolumeWordsIn(string text) =>
         AppVolumeWords.Where(w => text.Contains(w, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -259,6 +268,187 @@ public class GamesArchitectureTests
         Assert.Equal(new[] { "waveOutSetVolume" }, AppVolumeWordsIn("[DllImport(\"winmm.dll\")] static extern int WaveOutSetVolume(IntPtr h, uint v);"));
         Assert.Empty(AppVolumeWordsIn("_speaker.Play(samples, GamesSound.GainOf(step)); // the games' own gain"));
         Assert.Empty(AppVolumeWordsIn("[DllImport(\"winmm.dll\")] static extern int waveOutWrite(IntPtr h, IntPtr hdr, uint size);"));
+
+        // A93: the other setters, each found as itself alone.
+        Assert.Equal(new[] { "midiOutSetVolume" }, AppVolumeWordsIn("_ = midiOutSetVolume(handle, 0);"));
+        Assert.Equal(new[] { "auxSetVolume" }, AppVolumeWordsIn("_ = auxSetVolume(0, 0x80008000);"));
+        Assert.Equal(new[] { "mixerSetControlDetails" }, AppVolumeWordsIn("_ = mixerSetControlDetails(mixer, ref details, 0);"));
+        Assert.Equal(new[] { "ISimpleAudioVolume" }, AppVolumeWordsIn("[ComImport] interface ISimpleAudioVolume { }"));
+        Assert.Equal(new[] { "IAudioEndpointVolume" }, AppVolumeWordsIn("IAudioEndpointVolume endpoint = Activate();"));
+        Assert.Equal(new[] { "IChannelAudioVolume" }, AppVolumeWordsIn("IChannelAudioVolume channels = Session();"));
+        Assert.Equal(new[] { "IAudioStreamVolume" }, AppVolumeWordsIn("IAudioStreamVolume stream = Client();"));
+        Assert.Equal(new[] { "SetMasterVolume" }, AppVolumeWordsIn("session.SetMasterVolume(0.5f, Guid.Empty);"));
+        Assert.Equal(new[] { "SetMasterVolume" }, AppVolumeWordsIn("endpoint.SetMasterVolumeLevelScalar(0.2f, Guid.Empty);"));
+        Assert.Equal(new[] { "SetChannelVolume" }, AppVolumeWordsIn("channels.SetChannelVolume(0, 0.5f, Guid.Empty);"));
+        Assert.Empty(AppVolumeWordsIn("public int Step => StepOf(_config.GamesSoundVolume);"));
+    }
+
+    // ---- The host's native calls: its own window, its own event, the default device (A92) ----
+
+    /// <summary>
+    /// Every native entry point the games host declares (constraint 1; A80, A86; A92,
+    /// after the constraint review r4's N19), as (library in lower case, entry point):
+    /// the Games window's own style and corners (GamesWindow, as BigMapWindow's), and
+    /// the speaker's wave-out stream and the event it sleeps on (WaveOut.cs, A80). None
+    /// finds, lists or opens another window, process or device. A new one is the
+    /// architecture's call first, then a line here.
+    /// </summary>
+    internal static readonly (string Library, string EntryPoint)[] HostNativeCalls =
+    {
+        ("user32.dll", "GetWindowLongPtrW"), ("user32.dll", "SetWindowLongPtrW"), ("dwmapi.dll", "DwmSetWindowAttribute"),
+        ("winmm.dll", "waveOutOpen"), ("winmm.dll", "waveOutPrepareHeader"), ("winmm.dll", "waveOutUnprepareHeader"),
+        ("winmm.dll", "waveOutWrite"), ("winmm.dll", "waveOutReset"), ("winmm.dll", "waveOutClose"), ("winmm.dll", "waveOutGetPosition"),
+        ("kernel32.dll", "CreateEventW"), ("kernel32.dll", "WaitForSingleObject"), ("kernel32.dll", "CloseHandle"),
+    };
+
+    // A native declaration as the host writes one: [DllImport("lib.dll")] or
+    // [LibraryImport("lib.dll")], the library as a string (a constant would hide what it
+    // names), an EntryPoint as a string if it has one, other attributes after it, then
+    // the method's modifiers, its return type and its name.
+    private static readonly Regex NativeDeclaration = new(
+        @"\[\s*(?:System\.Runtime\.InteropServices\.)?(?:DllImport|LibraryImport)(?:Attribute)?\s*\(\s*""(?<library>[^""]+)""(?<rest>[^\]]*)\)\s*\](?:\s*\[[^\]]*\])*\s*(?:(?:public|private|internal|protected|static|extern|partial|unsafe|new)\s+)+[\w.<>\[\]?*]+\s+(?<name>\w+)\s*\(",
+        RegexOptions.Compiled);
+    private static readonly Regex EntryPointArgument = new(@"\bEntryPoint\s*=\s*""(?<entry>[^""]+)""", RegexOptions.Compiled);
+    private static readonly Regex NativeWord = new(@"\b(?:DllImport|LibraryImport)", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Every native declaration in a source text, as (library in lower case, entry
+    /// point: the EntryPoint if one is written, else the method's name); and what the
+    /// scan can't read, each a problem, never a pass: an EntryPoint not written as a
+    /// string, and any mention of DllImport or LibraryImport (a comment's included)
+    /// that is not a declaration it reads.
+    /// </summary>
+    internal static (IReadOnlyList<(string Library, string EntryPoint)> Declared, IReadOnlyList<string> Unread) NativeCallsIn(string text)
+    {
+        var declared = new List<(string Library, string EntryPoint)>();
+        var unread = new List<string>();
+        var matches = NativeDeclaration.Matches(text);
+        foreach (Match m in matches)
+        {
+            var rest = m.Groups["rest"].Value;
+            var entry = EntryPointArgument.Match(rest);
+            if (!entry.Success && rest.Contains("EntryPoint", StringComparison.Ordinal))
+                unread.Add($"an EntryPoint not written as a string: {m.Value.Split('\n')[0].Trim()}");
+            else
+                declared.Add((m.Groups["library"].Value.ToLowerInvariant(), entry.Success ? entry.Groups["entry"].Value : m.Groups["name"].Value));
+        }
+        var mentions = NativeWord.Matches(text).Count - matches.Count;
+        if (mentions > 0)
+            unread.Add($"{mentions} mention(s) of DllImport or LibraryImport the scan can't read: write each as [DllImport(\"lib.dll\")] (an EntryPoint as a string) on the method it imports, and never name one in a comment");
+        return (declared, unread);
+    }
+
+    // A call of waveOutOpen and the device it names, its second argument as written
+    // (the declaration, "extern int waveOutOpen(", is not a call).
+    private static readonly Regex WaveOutOpenCall = new(@"(?<!\bextern\s+int\s+)\bwaveOutOpen\s*\(\s*out\s+[^,()]+,\s*(?<device>[^,()]+?)\s*,", RegexOptions.Compiled);
+    private static readonly Regex WaveOutOpenDeclaration = new(@"\bextern\s+int\s+waveOutOpen\s*\(", RegexOptions.Compiled);
+    private static readonly Regex WaveOutOpenWord = new(@"\bwaveOutOpen\b", RegexOptions.Compiled);
+
+    /// <summary>The device each call of waveOutOpen in a source text opens, as written; and how many mentions of waveOutOpen are neither its declaration nor a call the scan reads.</summary>
+    internal static (IReadOnlyList<string> Devices, int Unread) DevicesOpenedIn(string text)
+    {
+        var devices = WaveOutOpenCall.Matches(text).Select(m => m.Groups["device"].Value).ToList();
+        var unread = WaveOutOpenWord.Matches(text).Count - WaveOutOpenDeclaration.Matches(text).Count - devices.Count;
+        return (devices, unread);
+    }
+
+    /// <summary>
+    /// The host's other ways to native code, or to another process or window, none of
+    /// which it uses (constraint 1; A92): a COM class declared in code, a library loaded
+    /// by hand, a function pointer made or called, a COM type found by its id; and in
+    /// managed code the Process family (Process, ProcessStartInfo ...), UI Automation's
+    /// walk of the desktop's windows, the performance counters' list of processes (the
+    /// forbidden list refuses the same three to a game, A74). Case counts: "the process"
+    /// in a comment is prose.
+    /// </summary>
+    private static readonly Regex HostReach = new(
+        @"\bComImport\b|\bNativeLibrary\b|\bGetDelegateForFunctionPointer\b|\bGetTypeFromCLSID\b|\bGetTypeFromProgID\b|\bdelegate\s*\*\s*unmanaged|\bProcess\w*|\bAutomationElement\b|\bPerformanceCounter\w*",
+        RegexOptions.Compiled);
+
+    internal static IReadOnlyList<string> HostReachIn(string text) => HostReach.Matches(text).Select(m => m.Value).ToList();
+
+    /// <summary>
+    /// The games host makes only its own native calls (constraint 1; A80, A86, A92):
+    /// every DllImport or LibraryImport under GamesHost/ and in MainWindow.Games.cs is
+    /// one of the thirteen above, and each of the thirteen is there; the one device it
+    /// opens is Windows' default output (Winmm.WaveMapper), never one picked from a
+    /// list; and it names no other way to native code, a process or another window.
+    /// Read as every file there is, comments included.
+    /// </summary>
+    [Fact]
+    public void TheGamesHostMakesOnlyItsOwnNativeCalls()
+    {
+        var root = ThemeFileTests.RepoRoot();
+        var files = RepoFiles(root).Select(f => Relative(root, f)).Where(IsGamesHostFile).ToList();
+        Assert.Contains("GamesHost/WaveOut.cs", files); // the walk reaches the native calls' files
+        Assert.Contains("GamesHost/GamesWindow.xaml.cs", files);
+
+        var problems = new List<string>();
+        var declared = new List<(string Library, string EntryPoint)>();
+        var devices = 0;
+        foreach (var f in files)
+        {
+            var text = File.ReadAllText(Path.Combine(root, f));
+            var (calls, unread) = NativeCallsIn(text);
+            declared.AddRange(calls);
+            problems.AddRange(calls.Where(c => !HostNativeCalls.Contains(c)).Select(c => $"{f}: {c.EntryPoint} in {c.Library}, not one of the host's own"));
+            problems.AddRange(unread.Select(u => $"{f}: {u}"));
+            var (opened, unreadOpens) = DevicesOpenedIn(text);
+            devices += opened.Count;
+            problems.AddRange(opened.Where(d => d != "Winmm.WaveMapper").Select(d => $"{f}: waveOutOpen on the device {d}, not Windows' default output (Winmm.WaveMapper)"));
+            if (unreadOpens > 0) problems.Add($"{f}: {unreadOpens} mention(s) of waveOutOpen that are neither its declaration nor a call the scan reads");
+            problems.AddRange(HostReachIn(text).Select(w => $"{f}: {w}"));
+        }
+        problems.AddRange(HostNativeCalls.Except(declared).Select(c => $"{c.EntryPoint} in {c.Library} is no longer found: the scan stopped reading it, or it was removed (then take it off the list)"));
+        if (devices == 0) problems.Add("no call of waveOutOpen was found: the scan stopped reading it");
+
+        Assert.Equal(0xFFFFFFFFu, Winmm.WaveMapper); // WAVE_MAPPER: Windows' default output
+        Assert.True(problems.Count == 0,
+            "The games host calls native code only for its own window, its own event and Windows' default audio output, and never reaches another process or window (constraint 1; A80, A92):\n"
+            + string.Join("\n", problems));
+    }
+
+    [Fact]
+    public void TheNativeCallScanFindsWhatItIsFor()
+    {
+        // Read as the host writes them: the library in lower case, an EntryPoint over the method's name.
+        Assert.Equal(new[] { ("user32.dll", "GetWindowLongPtrW") }, NativeCallsIn("[DllImport(\"user32.dll\", EntryPoint = \"GetWindowLongPtrW\")]\n    private static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);").Declared);
+        Assert.Equal(new[] { ("kernel32.dll", "CreateEventW") }, NativeCallsIn("[DllImport(\"kernel32.dll\", SetLastError = true)]\n    public static extern IntPtr CreateEventW(IntPtr a, bool m, bool i, IntPtr n);").Declared);
+        // What it is for: a new one, renamed or not, in any of the forms.
+        Assert.Equal(new[] { ("user32.dll", "FindWindowW") }, NativeCallsIn("[DllImport(\"User32.dll\", EntryPoint = \"FindWindowW\", CharSet = CharSet.Unicode)]\n[return: MarshalAs(UnmanagedType.SysInt)]\nprivate static extern IntPtr Harmless(string c, string w);").Declared);
+        Assert.Equal(new[] { ("kernel32.dll", "OpenProcess") }, NativeCallsIn("[LibraryImport(\"kernel32.dll\")]\ninternal static partial IntPtr OpenProcess(uint access, int inherit, uint id);").Declared);
+        Assert.Equal(new[] { ("winmm.dll", "waveOutGetNumDevs") }, NativeCallsIn("[System.Runtime.InteropServices.DllImportAttribute(\"winmm.dll\")] static extern uint waveOutGetNumDevs();").Declared);
+        // What it can't read is a problem, never a pass.
+        Assert.NotEmpty(NativeCallsIn("[DllImport(User32)] static extern IntPtr GetForegroundWindow();").Unread); // the library by a constant
+        Assert.NotEmpty(NativeCallsIn("[DllImport(\"user32.dll\", EntryPoint = nameof(X))] static extern IntPtr X();").Unread);
+        Assert.NotEmpty(NativeCallsIn("[DllImport(\"user32.dll\")][DllImport(\"kernel32.dll\")] static extern IntPtr X();").Unread);
+        Assert.NotEmpty(NativeCallsIn("// a DllImport of user32 would go here").Unread);
+        var plain = NativeCallsIn("var size = Marshal.SizeOf<Winmm.WaveHeader>(); // unmanaged memory");
+        Assert.Empty(plain.Declared);
+        Assert.Empty(plain.Unread);
+
+        // The device: Windows' default output alone; the declaration is not a call, a method group is unread.
+        Assert.Equal(new[] { "Winmm.WaveMapper" }, DevicesOpenedIn("var code = Winmm.waveOutOpen(out _handle, Winmm.WaveMapper, ref format, _event, IntPtr.Zero, Winmm.CallbackEvent);").Devices);
+        Assert.Equal(new[] { "2" }, DevicesOpenedIn("_ = waveOutOpen(out h, 2, ref f, e, IntPtr.Zero, 0x50000);").Devices);
+        var declaration = DevicesOpenedIn("public static extern int waveOutOpen(out IntPtr handle, uint device, ref WaveFormat format, IntPtr callback, IntPtr instance, uint flags);");
+        Assert.Empty(declaration.Devices);
+        Assert.Equal(0, declaration.Unread);
+        Assert.Equal(1, DevicesOpenedIn("Open open = Winmm.waveOutOpen;").Unread);
+
+        // The other doors, and the prose and the host's own calls that are none.
+        Assert.Equal(new[] { "ComImport" }, HostReachIn("[ComImport] interface IThing { }"));
+        Assert.Equal(new[] { "NativeLibrary" }, HostReachIn("var lib = NativeLibrary.Load(name);"));
+        Assert.Equal(new[] { "GetDelegateForFunctionPointer" }, HostReachIn("var f = Marshal.GetDelegateForFunctionPointer<Fn>(pointer);"));
+        Assert.Equal(new[] { "delegate* unmanaged" }, HostReachIn("delegate* unmanaged<int, int> f = &X;"));
+        Assert.Equal(new[] { "GetTypeFromCLSID" }, HostReachIn("var t = Type.GetTypeFromCLSID(id);"));
+        Assert.Equal(new[] { "Process" }, HostReachIn("var p = new Process { StartInfo = info };"));
+        Assert.Equal(new[] { "ProcessStartInfo" }, HostReachIn("var info = new ProcessStartInfo(name);"));
+        Assert.Equal(new[] { "Process" }, HostReachIn("foreach (var p in Process.GetProcesses()) { }"));
+        Assert.Equal(new[] { "AutomationElement" }, HostReachIn("var all = AutomationElement.RootElement;"));
+        Assert.Equal(new[] { "PerformanceCounterCategory" }, HostReachIn("var c = new PerformanceCounterCategory(name);"));
+        Assert.Empty(HostReachIn("// a click on the game: the process is never asked"));
+        Assert.Empty(HostReachIn("var memory = Marshal.AllocHGlobal(bytes); // unmanaged memory"));
+        Assert.Empty(HostReachIn("if (_keys.Down(KeyOf(e), Keyboard.Modifiers, isRepeat)) e.Handled = true;"));
     }
 
     [Fact]

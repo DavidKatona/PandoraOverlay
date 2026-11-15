@@ -38,7 +38,10 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   (`GetField`, `Invoke` and the rest, `dynamic`, LINQ expressions) or a picture by
   address (`BitmapImage`, `UriBuilder`, the `Uri` schemes) or an object made by
   `Activator` from an assembly and a type given as text (A68) in the Contract, the
-  Engine or a game, and no address (`://`, `http:`, `https:`) in a source file (A45,
+  Engine or a game, no assembly asked for its embedded files but by the Engine,
+  whose `Atlas.Load`, `Atlas.NamesIn` and `SoundBank.Load` read a games assembly
+  only (A94: the app's would hold the site's access header), and no address
+  (`://`, `http:`, `https:`) in a source file (A45,
   A60); and in a game's XAML no `ObjectDataProvider` or `XmlDataProvider`, no CLR
   namespace or `x:Static` outside the games' own (A42, A60), and no element of an
   internal type of the game's own, which makes WPF compile a helper that reflects by
@@ -169,11 +172,15 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   holds 8 voices behind it. Behind the gate is `ISpeaker`: `WaveOutSpeaker` (winmm
   `waveOut`, one stream mixed by `SpeakerMix`, on a thread of its own that exists
   only while something plays and ends 3 s after the last sound; A80) and
-  `NullSpeaker`. It never calls `waveOutSetVolume` (the app's volume in Windows'
-  mixer, the player's: a scan holds it), never starts a process or a timer, and
-  fails soft: one rule for every failure, the first a Warning, the same again
-  Verbose (A90). **Never for a reading** (A85): a game sounds for the player's own
-  clicks and the playback of what they did, never for what a poll brought (the
+  `NullSpeaker`. It never calls `waveOutSetVolume` or any other volume setter
+  (the app's volume in Windows' mixer, the player's: a scan holds it, A93), never
+  starts a process or a timer, and fails soft: one rule for every failure, a
+  device that hands no buffer back for 3 s included (A91), the first a Warning,
+  the same again Verbose (A90). The host's native calls are its thirteen, on its
+  own window, its own event and Windows' default output, held by a scan (A92): a
+  new one is the architecture's call first. **Never for a reading** (A85): a game
+  sounds for the player's own clicks and the playback of what they did, never for
+  what a poll brought (the
   overlay's chimes already mark the real dino's moments, and the Games mute never
   touches them; the health warning is silent). Hatchling's 29 cues and where they
   fall are its `Turns/BeatSounds` and the comments beside it (H95 to H101).
@@ -266,9 +273,10 @@ and `WORKER-RULES.md` barred starting it); say so when it matters.
     build PC).
   - Crackle with The Isle running, and after the window has been open an hour: the
     spike ran clean with every core spinning and the probe ran 3.6 s on an idle PC.
-  - A device unplugged, in exclusive use or absent, a changed default device, a
-    Bluetooth headset: the failure paths ran on the fake device only, and the codes
-    a real driver gives are not known.
+  - A device unplugged, in exclusive use or absent, one that stops handing buffers
+    back (closed after 3 s, A91), a changed default device, a Bluetooth headset:
+    the failure paths ran on the fake device only, and the codes a real driver
+    gives, and whether one stalls, are not known.
   - The overlay's entry in Windows' volume mixer, and the PC's sleep with the
     window closed (the stream closes 3 s after the last sound; not observed).
   - The mute, `−`, `+`, the preview, and the glyphs and pips in each theme in a real
@@ -281,10 +289,11 @@ and `WORKER-RULES.md` barred starting it); say so when it matters.
   - MainWindow making the speaker and disposing it: compiled, lazy by test, never run.
   - Whether the gate's 40 ms and six-at-once limits ever drop one of Hatchling's cues
     at Fast: by reasoning, not by a test against the gate.
-- The golden renders: only Settings › Hotkeys differs, in every theme (the new row);
-  the baselines are the owner's to record after his look. The harness was not run
-  again after the sound work: it draws no Games window, but it builds MainWindow,
-  which now makes the sound's gate and speaker.
+- The golden renders: Settings › Hotkeys differs in every theme (the new row), and
+  Settings › Widgets should too (A75's GAMES group, by reading: the harness was not
+  run after the Games window's scale); the baselines are the owner's to record
+  after his look. The harness draws no Games window and makes MainWindow without
+  running its constructor, so no sound's gate or speaker exists there.
 - CI's SDK 8.0.x: every build here was SDK 9 compiling `net8.0-windows`.
 - Saves belong to the Windows user, not the website account: two accounts on one PC
   share a game's progress (risk 9, left on purpose).

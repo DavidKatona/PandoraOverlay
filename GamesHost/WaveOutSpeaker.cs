@@ -56,8 +56,10 @@ namespace PandoraOverlay;
 /// </para>
 /// <para>
 /// <b>Fail soft</b> (A80). A device that can't be opened (none, or one in
-/// exclusive use) or written to (unplugged mid-sound), or any exception on the
-/// thread: the voices dropped, the device closed, the failure's time kept,
+/// exclusive use) or written to (unplugged mid-sound), one that hands no
+/// buffer back for <see cref="StallAfter"/> (a driver that holds them: N18,
+/// A91), or any exception on the thread: the voices dropped, the device
+/// closed, the failure's time kept,
 /// and no new thread within <see cref="RetryAfter"/> (a sound asked for
 /// meanwhile is dropped), so a missing device costs one try every few seconds
 /// while a game plays, not one per sound. The first failure since the launch,
@@ -94,14 +96,34 @@ internal sealed class WaveOutSpeaker : ISpeaker
     /// <summary>The longest the thread sleeps between two looks: the device's event wakes it at every buffer (10 ms); this bounds a stalled device's, and an exit's, wait.</summary>
     public const int WaitMilliseconds = 20;
 
+    /// <summary>
+    /// A device that has handed no buffer back for this long has stopped
+    /// answering (N18, A91): a driver that holds its buffers, a headset gone
+    /// mid-stream. It is a failure like a refused write, so the stream closes,
+    /// the thread ends, the queue is dropped and the next try waits
+    /// <see cref="RetryAfter"/>, where the loop would otherwise wake every
+    /// <see cref="WaitMilliseconds"/> with the stream open until the exit. A
+    /// healthy device hands a buffer back every 10 ms, silence included. Long
+    /// on purpose: a Bluetooth headset, or a device waking from power saving,
+    /// may take a second or more to start pulling a new stream, and a false
+    /// stall there would come back at every retry and silence the games for
+    /// that player, while a late one costs nothing heard (a stalled device
+    /// plays nothing either way). So it is the bound A80 puts on an open stream
+    /// with nothing to play, <see cref="IdleClose"/>'s 3 s, and 30 times the
+    /// slowest start measured (93 ms from a play to the device, S03's probe).
+    /// </summary>
+    public static readonly TimeSpan StallAfter = TimeSpan.FromSeconds(3);
+
     /// <summary>How long <see cref="Dispose"/> (the overlay exiting, on the UI thread), or a new thread, waits for a thread to end: a close took 23 to 60 ms in the spike.</summary>
     public const int JoinMilliseconds = 200;
 
     /// <summary>
     /// The most plays queued at once: far more than the mix could sound
     /// between two buffers (<see cref="SpeakerMix.MaxVoices"/>). Only a device
-    /// that never answers its open lets the queue fill; a play past this is
-    /// dropped, so it can't grow while a game keeps playing.
+    /// that never answers its open lets the queue fill (one that stops handing
+    /// buffers back is a failure after <see cref="StallAfter"/>, its queue
+    /// dropped); a play past this is dropped, so it can't grow while a game
+    /// keeps playing.
     /// </summary>
     public const int MaxQueued = 64;
 
@@ -111,6 +133,7 @@ internal sealed class WaveOutSpeaker : ISpeaker
     private readonly Func<IWaveDevice> _newDevice;
     private readonly TimeSpan _idleClose;
     private readonly TimeSpan _retryAfter;
+    private readonly TimeSpan _stallAfter;
     private readonly Action<LogVerbosity, string> _write;
 
     private readonly object _lock = new();
@@ -148,11 +171,13 @@ internal sealed class WaveOutSpeaker : ISpeaker
     /// <param name="idleClose">As <see cref="IdleClose"/>; the tests' is short.</param>
     /// <param name="retryAfter">As <see cref="RetryAfter"/>; the tests' is short.</param>
     /// <param name="write">Where the lines go: the games' log by default (<see cref="AppLog.Games"/>), a list in the tests.</param>
-    internal WaveOutSpeaker(Func<IWaveDevice>? newDevice, TimeSpan? idleClose = null, TimeSpan? retryAfter = null, Action<LogVerbosity, string>? write = null)
+    /// <param name="stallAfter">As <see cref="StallAfter"/>; the tests' is short.</param>
+    internal WaveOutSpeaker(Func<IWaveDevice>? newDevice, TimeSpan? idleClose = null, TimeSpan? retryAfter = null, Action<LogVerbosity, string>? write = null, TimeSpan? stallAfter = null)
     {
         _newDevice = newDevice ?? (() => new WinmmDevice());
         _idleClose = idleClose ?? IdleClose;
         _retryAfter = retryAfter ?? RetryAfter;
+        _stallAfter = stallAfter ?? StallAfter;
         _write = write ?? AppLog.Games.Write;
     }
 
@@ -347,15 +372,25 @@ internal sealed class WaveOutSpeaker : ISpeaker
         var openMs = Stopwatch.GetElapsedTime(opening).TotalMilliseconds;
 
         var mix = new SpeakerMix();
-        if (!Pass(device, mix)) return false; // every buffer is free after the open: all filled and written at once
+        if (!Pass(device, mix, out _)) return false; // every buffer is free after the open: all filled and written at once
         Worked(openMs);
 
+        // The last look that found a buffer handed back (N18, A91). Judged only
+        // after a look that found none, so a thread kept from running (a busy PC,
+        // a PC asleep) is never a stall: its first look finds the buffers back.
+        var answeredAt = Stopwatch.GetTimestamp();
         long? idleSince = null;
         while (!_disposed)
         {
             device.Wait(WaitMilliseconds);
             if (_disposed) break;
-            if (!Pass(device, mix)) return false;
+            if (!Pass(device, mix, out var handedBack)) return false;
+            if (handedBack) answeredAt = Stopwatch.GetTimestamp();
+            else if (Stopwatch.GetElapsedTime(answeredAt) >= _stallAfter)
+            {
+                Stalled();
+                return false;
+            }
             if (!mix.Idle)
             {
                 idleSince = null;
@@ -367,13 +402,15 @@ internal sealed class WaveOutSpeaker : ISpeaker
         return true;
     }
 
-    /// <summary>Every buffer the device has handed back: what was queued moved into the mix (under the lock, in order), the buffer filled and written. False when a write failed (said already).</summary>
-    private bool Pass(IWaveDevice device, SpeakerMix mix)
+    /// <summary>Every buffer the device has handed back: what was queued moved into the mix (under the lock, in order), the buffer filled and written. False when a write failed (said already); <paramref name="handedBack"/>, whether there was one at all.</summary>
+    private bool Pass(IWaveDevice device, SpeakerMix mix, out bool handedBack)
     {
+        handedBack = false;
         for (var n = 0; n < Buffers; n++)
         {
             var index = device.NextFree();
             if (index < 0) break;
+            handedBack = true;
             lock (_lock) Drain(mix);
             mix.Fill(device.Buffer(index));
             var code = device.Write(index);
@@ -458,6 +495,10 @@ internal sealed class WaveOutSpeaker : ISpeaker
     /// <summary>A step the device refused, with winmm's code.</summary>
     private void Failure(string step, int code) =>
         _write(FailureLevel(), $"Games sound: the device could not be {step} (code {code.ToString(CultureInfo.InvariantCulture)})");
+
+    /// <summary>A device that handed nothing back for <see cref="StallAfter"/> (N18, A91): no code to give, only the time it was waited for.</summary>
+    private void Stalled() =>
+        _write(FailureLevel(), $"Games sound: the device handed no buffer back in {_stallAfter.TotalMilliseconds.ToString("0", CultureInfo.InvariantCulture)} ms");
 
     /// <summary>The first failure since the launch or since the device last worked is a Warning, the same again Verbose (A90).</summary>
     private LogVerbosity FailureLevel()

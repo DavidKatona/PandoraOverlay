@@ -87,7 +87,9 @@ internal readonly record struct Finding(string Assembly, string Subject, Forbidd
 /// drawing, layout and mouse input. <c>StreamReader</c> and <c>StreamWriter</c>
 /// are refused whole, since their path constructors share the stream ones' name,
 /// and so is every other way of opening a file by its path that a game would reach
-/// for (A69, A71, A73).
+/// for (A69, A71, A73). An assembly's embedded files are the engine's alone
+/// to read, a game's own art and sounds (A94): asked by a game, they would be
+/// any assembly's it holds, the app's too.
 /// </para>
 /// <para>
 /// What it still can't see, written down so nobody reads more into it (A60):
@@ -111,7 +113,11 @@ internal readonly record struct Finding(string Assembly, string Subject, Forbidd
 /// certificate, a temporary-file collection or a file's access rules by its
 /// path, a file's version information, and a COM class a game declares itself,
 /// <c>[ComImport]</c> with its <c>[Guid]</c>, which the native-call entry does
-/// not see) is review's (A69, A74).
+/// not see) is review's (A69, A74). So are the app's WPF resources (its
+/// map, its fonts, its compiled XAML; no credential: the access header is an
+/// embedded file, the engine's alone to read), which a <c>ResourceManager</c>
+/// given the app's assembly, or a component URI naming it in a view's XAML
+/// (<c>/PandoraOverlay;component/...</c>, the address's gap), still reaches (A94).
 /// </para>
 /// </summary>
 internal static class ForbiddenList
@@ -153,6 +159,11 @@ internal static class ForbiddenList
         "a game calls what it can name: reading or calling a member by its name is how a view could walk to the window and read what the compiler keeps from it (A2, A60)";
     private const string NoAddress =
         "a game makes no request: WPF fetches a picture given by its address itself, with no System.Net type to see, so no way of making one from an address is a game's (A45, A60)";
+    // A94, after the constraint review r4's N21: any assembly a game holds can be asked
+    // for its embedded files, the app's too (Host.GetType().Assembly), so only the
+    // engine asks, and only a game's own assembly.
+    private const string TheEnginesResources =
+        "a game's embedded files are read by the engine alone (Atlas, SoundBank), from a game's own assembly: another assembly's, the app's among them with the site's access header in a release build, are never a game's (constraint 4, A94)";
 
     private const string EngineAssembly = "PandoraOverlay.Games.Engine";
 
@@ -163,7 +174,7 @@ internal static class ForbiddenList
     private static ForbiddenEntry Member(string type, string member, string reason, params string[] except) =>
         new(ForbiddenKind.Member, type, reason) { Member = member, Except = except };
 
-    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member, A60's reflection and picture doors, A69's path doors, A70's two assemblies and A71 to A74's doors sit in their groups.</summary>
+    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member, A60's reflection and picture doors, A69's path doors, A70's two assemblies, A71 to A74's doors and A94's embedded files sit in their groups.</summary>
     public static IReadOnlyList<ForbiddenEntry> All { get; } = new[]
     {
         // ---- Assembly references ------------------------------------------------
@@ -391,9 +402,9 @@ internal static class ForbiddenList
         //   Object.GetType and Exception.GetType (a fault names its type, never its
         //   message): each names what the code already holds, and none reaches a member
         //   by its name.
-        // - The assembly's manifest resources (Assembly.GetManifestResourceStream and
-        //   GetManifestResourceNames): the game's own embedded art, read by the engine's
-        //   atlas.
+        // - An assembly's name (Assembly.GetName): the engine's readers name the
+        //   assembly in their errors. Its embedded files are the engine's alone (A94,
+        //   among the members below).
         // - PngBitmapDecoder's constructor: the engine decodes the art's PNG streams
         //   with it (its Uri overload is the same name: see the summary's gaps). The
         //   six other decoders are refused whole above (A73).
@@ -538,6 +549,14 @@ internal static class ForbiddenList
         Member("System.Reflection.Module", "GetField*", NoReflection),
         Member("System.Reflection.Module", "GetMethod*", NoReflection),
         Member("System.Reflection.Module", "Resolve*", NoReflection),
+
+        // A94, after the constraint review r4's N21: an assembly's embedded files
+        // (GetManifestResourceStream, both overloads, GetManifestResourceNames,
+        // GetManifestResourceInfo) are the engine's to read, for a game's own art and
+        // sounds (Atlas.Load, Atlas.NamesIn, SoundBank.Load, which take a games assembly
+        // only). Asked by a game, they are any assembly's it holds: the app's
+        // (Host.GetType().Assembly) holds its data and the scrambled access header.
+        Member("System.Reflection.Assembly", "GetManifestResource*", TheEnginesResources) with { AllowedIn = EngineAssembly },
 
         // A60, a picture by address. Create is held by name, every overload: the Uri
         // ones fetch, and the stream ones are not the engine's way (it decodes through

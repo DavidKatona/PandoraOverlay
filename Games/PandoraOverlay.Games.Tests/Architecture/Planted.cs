@@ -269,4 +269,12 @@ internal static class Planted
 
     /// <summary>An XML document read or fetched from what a Uri names (the type XmlDataProvider, A74).</summary>
     internal static object AnXmlProvidersSource() => new System.Windows.Data.XmlDataProvider { Source = new Uri("planted", UriKind.Relative) };
+
+    // ---- A94: an assembly's embedded files -----------------------------------------------
+    // The constraint review r4's N21, as it would be written: the host's own assembly,
+    // reached from the host a game is given, asked for one of its embedded files. Never
+    // called; "planted" names no file.
+
+    /// <summary>The app's embedded files through the host's assembly (the member Assembly::GetManifestResourceStream outside the engine, A94).</summary>
+    internal static Stream? TheAppsEmbeddedFile(IGameHost host) => host.GetType().Assembly.GetManifestResourceStream("planted");
 }

@@ -70,16 +70,40 @@ public sealed partial class Atlas
     /// The atlas embedded in a game's assembly as <c>Art/&lt;name&gt;.png</c> and
     /// <c>Art/&lt;name&gt;.json</c> (the one line in the game's csproj, A28). A
     /// resource that isn't there: <see cref="InvalidOperationException"/> naming
-    /// it and the assembly.
+    /// it and the assembly. A games assembly only (A94, <see cref="GameAssembly"/>):
+    /// any other is an <see cref="ArgumentException"/>, and nothing of it is read.
     /// </summary>
     public static Atlas Load(Assembly assembly, string name)
     {
         ArgumentNullException.ThrowIfNull(assembly);
         ArgumentException.ThrowIfNullOrEmpty(name);
-        string owner = assembly.GetName().Name ?? "an unnamed assembly";
+        string owner = GameAssembly.NameOf(assembly);
         using var png = Open(assembly, owner, $"Art/{name}.png");
         using var json = Open(assembly, owner, $"Art/{name}.json");
         return Read(png, json, $"'{name}' in {owner}");
+    }
+
+    /// <summary>
+    /// The name of every atlas embedded in a game's assembly: each
+    /// <c>Art/&lt;name&gt;.png</c> whose <c>Art/&lt;name&gt;.json</c> is embedded
+    /// too, in ordinal order, for <see cref="Load(Assembly, string)"/>. A sheet
+    /// without its table is left out (a build defect the art tool's own test
+    /// fails). A game asks the engine for its atlases, never its assembly (A94:
+    /// the forbidden list leaves an assembly's embedded files to the engine); a
+    /// games assembly only, any other an <see cref="ArgumentException"/>.
+    /// </summary>
+    public static IReadOnlyList<string> NamesIn(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        GameAssembly.NameOf(assembly);
+        const string prefix = "Art/";
+        var resources = new HashSet<string>(assembly.GetManifestResourceNames(), StringComparer.Ordinal);
+        return resources
+            .Where(r => r.StartsWith(prefix, StringComparison.Ordinal) && r.EndsWith(".png", StringComparison.Ordinal))
+            .Select(r => r[prefix.Length..^".png".Length])
+            .Where(name => resources.Contains($"{prefix}{name}.json"))
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
     }
 
     /// <summary>The sprite of this name. A name the table lacks throws <see cref="KeyNotFoundException"/>, naming it and the atlas.</summary>
