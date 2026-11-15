@@ -95,7 +95,8 @@ public sealed class OverlayConfig
     // in its three blocks of four. F1–F4 the overlay itself (edit mode, hide);
     // F5–F8 the widgets, in the control panel's order (stats view, minimap
     // view, heatmap, Check Prime); F9 the website (apply my skin); and M, a
-    // letter to remember, the map. The gaps are other software's: the game's
+    // letter to remember, the map; J the games (G12, Nov 2026, the ninth
+    // key). The gaps are other software's: the game's
     // F2 (recording), F10 (hide HUD) and F11 (windowed / fullscreen), Steam's
     // F12 (screenshot), and Ctrl+F3, held globally by third-party software in
     // the wild. The game sees the bare key even with Ctrl held (raw input), so
@@ -113,6 +114,7 @@ public sealed class OverlayConfig
     public const string DefaultHotkeyPrimeCheck = "Ctrl+F8";
     public const string DefaultHotkeySkin = "Ctrl+F9";
     public const string DefaultHotkeyBigMap = "Ctrl+M";
+    public const string DefaultHotkeyGames = "Ctrl+J";
 
     /// <summary>
     /// Global edit-mode hotkey: modifiers (Ctrl/Alt/Shift/Win) plus one key,
@@ -174,6 +176,18 @@ public sealed class OverlayConfig
     /// on Ctrl+F1 there (the next candidate, free in the old layout).
     /// </summary>
     public string HotkeySkin { get; set; } = DefaultHotkeySkin;
+
+    /// <summary>
+    /// Open and close the Games window (G12) — same format as Hotkey. Ctrl+J:
+    /// safe because a bare J does nothing in The Isle (the owner checked in
+    /// game, Oct 31 2026), and raw-input games can see the bare key despite
+    /// Ctrl, as with the map's M. A late-added key like the five above: a
+    /// collision with a customized combo is resolved to a free one at
+    /// startup, and every other key stays where the player had it. While the
+    /// window is open, a bare J or Esc closes it too, on the key's release —
+    /// keys in our own focused window, no global hook.
+    /// </summary>
+    public string HotkeyGames { get; set; } = DefaultHotkeyGames;
 
     // ---- The big map ----------------------------------------------------------
     // "Big map" is the internal name only: players see "the map" (owner,

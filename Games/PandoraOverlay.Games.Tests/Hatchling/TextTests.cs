@@ -117,7 +117,7 @@ public class TextTests
     {
         var currency = HatchlingText.Currency;
         Assert.Equal("Bites hurt 30% less on a turn you did not move.", HatchlingText.PerkText(Perk.Braced));
-        Assert.Equal("No bite takes more than 15% of its full health.", HatchlingText.PerkText(Perk.Frill));
+        Assert.Equal("No bite takes more than 7% of its full health.", HatchlingText.PerkText(Perk.Frill));
         Assert.Equal("Everything you do makes 1 less noise.", HatchlingText.InstinctText(Instinct.Feet));
         Assert.Equal("+2 defense.", HatchlingText.InstinctText(Instinct.Skin));
         Assert.Equal("Dodge 15% more bites.", HatchlingText.InstinctText(Instinct.Quick));

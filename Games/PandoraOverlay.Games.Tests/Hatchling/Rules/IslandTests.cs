@@ -226,18 +226,18 @@ public class IslandTests
     [Fact]
     public void ThreatIsTheBuildsTimesTheSpeciesTimesTheDangers()
     {
-        Assert.Equal(0.84, Island.Threat(Runs.Fresh("Dryosaurus", 1)), 12);
-        Assert.Equal(1.43 * 1.40, Island.Threat(Runs.Fresh("Tyrannosaurus", 1, danger: 3)), 12);
-        Assert.Equal(1.85 * 1.85, Island.Threat(Runs.Fresh("Deinosuchus", 1, danger: 5)), 12);
+        Assert.Equal(0.84 * 1.10, Island.Threat(Runs.Fresh("Dryosaurus", 1)), 12);
+        Assert.Equal(1.43 * 1.04 * 1.40, Island.Threat(Runs.Fresh("Tyrannosaurus", 1, danger: 3)), 12);
+        Assert.Equal(1.85 * 1.10 * 2.00, Island.Threat(Runs.Fresh("Deinosuchus", 1, danger: 5)), 12);
     }
 
     [Fact]
     public void TheFirstTroodonsHealthCarriesTheThreatRoundedHalvesUp()
     {
-        // 18 x 0.84 = 15.12 -> 15; 18 x 1.43 x 1.85 = 47.619 -> 48; 18 x 1.85 x 1.40 = 46.62 -> 47.
-        Assert.Equal(15, Runs.Fresh("Dryosaurus", 1).Creatures[^1].Health);
-        Assert.Equal(48, Runs.Fresh("Tyrannosaurus", 1, danger: 5).Creatures[^1].Health);
-        Assert.Equal(47, Runs.Fresh("Deinosuchus", 1, danger: 3).Creatures[^1].Health);
+        // 18 x 0.84 x 1.10 = 16.632 -> 17; 18 x 1.43 x 1.04 x 2.00 = 53.54 -> 54; 18 x 1.85 x 1.10 x 1.40 = 51.28 -> 51.
+        Assert.Equal(17, Runs.Fresh("Dryosaurus", 1).Creatures[^1].Health);
+        Assert.Equal(54, Runs.Fresh("Tyrannosaurus", 1, danger: 5).Creatures[^1].Health);
+        Assert.Equal(51, Runs.Fresh("Deinosuchus", 1, danger: 3).Creatures[^1].Health);
     }
 
     /// <summary>H34: the first predator is a Troodon even for a large build, whose pools never hold one.</summary>
@@ -292,7 +292,7 @@ public class IslandTests
         Assert.Equal(Tuning.AlertHeard, c.Alert);
         Assert.Equal(run.You.At, c.Target);
         Assert.Equal(CreatureKind.Predator, c.Kind);
-        Assert.Equal((int)Tuning.Round(75 * 0.84), c.Health);   // 63
+        Assert.Equal((int)Tuning.Round(75 * 0.84 * 1.10), c.Health);   // 69.3 -> 69
         Assert.True(Island.Grid.Distance(c.At, run.You.At) >= Tuning.PredatorDistance);
         Assert.True(Island.IsLand(run, c.At));
         Assert.Same(c, run.Creatures[^1]);

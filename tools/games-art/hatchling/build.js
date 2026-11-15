@@ -18,26 +18,35 @@ const path = require("path");
 const { pack, writeAtlas, frameOf, frameName, animationName } = require("../pack");
 const { writeManifest, REPO } = require("../manifest");
 const { writeSheet } = require("../sheet");
-const { SPECIES, ORDER } = require("./species");
+const { ORDER, SIZES, draw } = require("./species");
 const terrainArt = require("./terrain");
 const thingsArt = require("./things");
 
 const ART = path.join(REPO, "Games", "PandoraOverlay.Games.Hatchling", "Art");
 const SHEETS = path.join(REPO, "tools", "games-art", "out");
 
-// A dino's pivot: the middle of its feet on the ground line, the pixel the game
-// draws it at. The standing frames are 36 x 25 and the feet end on the bottom row.
-const DINO_PIVOT = { px: 18, py: 24 };
+// The walk (6.2): four frames of 3 ticks each (10 a second), looping.
+const WALK_TICKS = [3, 3, 3, 3];
 
-// creatures: each species' standing frame, named as Assets/rules.json spells the
-// species (how a reading names a dino), and its one-frame animation.
+// creatures: every species at its four sizes (6.2, H21: `<Species>-s`, `-m`,
+// `-l` and the full `<Species>`), each named as Assets/rules.json spells the
+// species (how a reading names a dino) with the size's suffix, standing (one
+// frame) and walking (four). A frame's pivot is the middle of its feet on the
+// ground line, the pixel the game draws it at: the size's own (10, 13),
+// (13, 17), (15, 21) or (18, 24), on the frame's bottom row.
 function creatures() {
   const frames = [];
   const animations = [];
   for (const species of ORDER) {
-    const standing = frameName(species, "stand", 0);
-    frames.push(frameOf(standing, SPECIES[species](), DINO_PIVOT.px, DINO_PIVOT.py));
-    animations.push({ name: animationName(species, "stand"), frames: [standing], ticks: [1], loops: true });
+    for (const size of SIZES) {
+      const subject = species + size.suffix;
+      const standing = frameName(subject, "stand", 0);
+      frames.push(frameOf(standing, draw(species, size, "stand", 0), size.px, size.py));
+      animations.push({ name: animationName(subject, "stand"), frames: [standing], ticks: [1], loops: true });
+      const walking = WALK_TICKS.map((_, i) => frameName(subject, "walk", i));
+      walking.forEach((name, i) => frames.push(frameOf(name, draw(species, size, "walk", i), size.px, size.py)));
+      animations.push({ name: animationName(subject, "walk"), frames: walking, ticks: [...WALK_TICKS], loops: true });
+    }
   }
   return pack({ name: "creatures", frames, animations });
 }
@@ -79,12 +88,23 @@ function things() {
 
 const ATLASES = [creatures, terrain, things];
 
+// The creatures atlas is looked at one size to a page (420 frames on one sheet
+// is more than Node's memory holds): creatures-full-sheet.png, -l, -m and -s.
+const SHEET_PAGES = {
+  creatures: [
+    { page: "full", only: (n) => /^[A-Za-z]+\//.test(n) },
+    { page: "l", only: (n) => n.includes("-l/") },
+    { page: "m", only: (n) => n.includes("-m/") },
+    { page: "s", only: (n) => n.includes("-s/") }
+  ]
+};
+
 const written = [];
 const sheets = [];
 for (const make of ATLASES) {
   const atlas = make();
   written.push(...writeAtlas(ART, atlas));
-  if (process.argv.includes("--sheet")) sheets.push(writeSheet(atlas, SHEETS));
+  if (process.argv.includes("--sheet")) for (const options of SHEET_PAGES[atlas.name] || [{}]) sheets.push(writeSheet(atlas, SHEETS, options));
 }
 writeManifest("hatchling", written);
 console.log("wrote " + written.length + " files to " + ART + " and the manifest" + (sheets.length ? "; sheets: " + sheets.join(", ") : ""));
