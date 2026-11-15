@@ -236,6 +236,12 @@
         <Setter Property="Foreground" Value="{DynamicResource Theme.MenuRow.Idle.Text}"/>
         <Setter Property="Focusable" Value="False"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <!-- Not a look, the same in every theme and never a token: a menu's
+             tick is the one plain ToggleButton that is a switch, so its click
+             plays toggle-on or toggle-off by its new state, where every other
+             plain ToggleButton (a nav, a tab, a menu opener) plays select
+             (G27, A100; Sound/UiClicks.cs). -->
+        <Setter Property="local:UiClicks.Cue" Value="Toggle"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">

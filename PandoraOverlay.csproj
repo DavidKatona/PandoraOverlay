@@ -107,6 +107,12 @@
          file and nothing else. Embedded like the rules, so the tests read
          them without WPF. Default itself is code (Themes/DefaultTheme.cs). -->
     <EmbeddedResource Include="Assets\Themes\*.json" LogicalName="Themes/%(Filename)%(Extension)" />
+    <!-- The click sounds (G27, A106): six WAVs made by tools/games-sound/clicks
+         (take A of each, the owner's: G29), checked in under Assets/Clicks and
+         read by the app's own reader (Sound/ClickBank.cs) at the first click
+         that needs each. The overlay plays them, and the games' clicks too, so
+         they are the app's, not a game's Sound/ folder. -->
+    <EmbeddedResource Include="Assets\Clicks\*.wav" LogicalName="Clicks/%(Filename)%(Extension)" />
     <!-- The bundled fonts (1.39): one folder per family, each with its own
          licence as shipped. The faces are WPF Resources, addressed by the
          ;component pack form (Theme.FontFamilyOf), never installed into

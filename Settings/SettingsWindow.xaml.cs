@@ -190,6 +190,9 @@ public partial class SettingsWindow : Window
         StatsViewCombat.IsChecked = combatView;
         StatsViewSurvival.IsChecked = !combatView;
         HideNotInGameCheck.IsChecked = config.HideWhenNotInGame;
+        // Click sounds (A103): a hand-edited step out of range shows at the nearest end and is not written back.
+        ClickSoundCheck.IsChecked = config.ClickSoundEnabled;
+        ClickSoundSlider.Value = Math.Clamp(config.ClickSoundVolume, ClickSoundSlider.Minimum, ClickSoundSlider.Maximum);
         LowStatChimeCheck.IsChecked = config.LowStatChimeEnabled;
         GrowthChimeCheck.IsChecked = config.GrowthChimeEnabled;
         RouteChimeCheck.IsChecked = config.RouteChimeEnabled;
@@ -496,6 +499,17 @@ public partial class SettingsWindow : Window
     {
         if (FadeLabel != null) FadeLabel.Text = $"{e.NewValue:0%}";
     }
+
+    // ---- General (the sounds) -----------------------------------------------
+    /// <summary>The click volume as its step, "3 of 5" (A103): a whole step, as the slider writes it.</summary>
+    private void ClickSoundSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (ClickSoundLabel != null && ClickSoundSlider != null)
+            ClickSoundLabel.Text = $"{ClickSoundStep(e.NewValue)} of {ClickSoundSlider.Maximum:0}";
+    }
+
+    /// <summary>A slider value as a whole step (a value set in code, between ticks, is rounded: only a drag snaps).</summary>
+    private static int ClickSoundStep(double value) => (int)Math.Round(value, MidpointRounding.AwayFromZero);
 
     // ---- Maps ---------------------------------------------------------------
     private void ZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

@@ -147,6 +147,14 @@ public partial class SettingsWindow
         Live(OpacitySlider, v => _config.BackgroundOpacity = v, SettingsChange.Appearance);
         Live(FadeCheck, on => _config.FadeEnabled = on, SettingsChange.Appearance);
         Live(FadeSlider, v => _config.FadeIdleOpacity = v, SettingsChange.Appearance);
+        // Click sounds (G27, A103), read at each click, so no SettingsChange. The ONE box of
+        // the dialog that writes on Checked and Unchecked, not on Click: WPF raises those
+        // inside the toggle, BEFORE the Click event, so the click layer, which decides at the
+        // Click, already reads the new value: ticking it is heard at the step (the player
+        // hears what he switched on), clearing it is silent (what he switched off).
+        ClickSoundCheck.Checked += (_, _) => _config.ClickSoundEnabled = true;
+        ClickSoundCheck.Unchecked += (_, _) => _config.ClickSoundEnabled = false;
+        Live(ClickSoundSlider, v => _config.ClickSoundVolume = ClickSoundStep(v), SettingsChange.None); // a whole step; its release plays press at it
         Live(LowStatChimeCheck, on => _config.LowStatChimeEnabled = on); // the chimes are read live by MainWindow
         Live(GrowthChimeCheck, on => _config.GrowthChimeEnabled = on);
         Live(FriendsChimeCheck, on => _config.FriendsChimeEnabled = on);

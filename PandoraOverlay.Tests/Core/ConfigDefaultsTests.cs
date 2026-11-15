@@ -36,6 +36,36 @@ public class ConfigDefaultsTests
         Assert.False(cfg.GamesSoundMuted);
     }
 
+    /// <summary>The click sounds (A103): ON by default, at the third of five steps (the steps' own default), never seeded from the games' or the chimes'.</summary>
+    [Fact]
+    public void AFreshConfigHasClickSoundsOnAtStepThree()
+    {
+        var cfg = new OverlayConfig { GamesSoundVolume = 1, GamesSoundMuted = true };
+        Assert.True(cfg.ClickSoundEnabled);
+        Assert.Equal(3, cfg.ClickSoundVolume);
+        Assert.Equal(SoundSteps.Default, cfg.ClickSoundVolume);
+
+        var older = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>("""{ "GamesSoundVolume": 5, "GrowthChimeEnabled": true }""")!;
+        Assert.Equal((true, 3), (older.ClickSoundEnabled, older.ClickSoundVolume)); // a file from before the keys: the defaults, no migration
+    }
+
+    /// <summary>A hand-edited click volume is READ as the nearest step and stays as written, through a save too (A103: never written back by reading).</summary>
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(9, 5)]
+    [InlineData(-2, 1)]
+    [InlineData(4, 4)]
+    public void AClickVolumeOutOfRangeIsReadAsTheNearestAndKept(int stored, int read)
+    {
+        var cfg = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>($$"""{ "ClickSoundVolume": {{stored}}, "ClickSoundEnabled": false }""")!;
+
+        Assert.Equal(read, SoundSteps.StepOf(cfg.ClickSoundVolume));
+        Assert.Equal(SoundSteps.GainOf(read), ClickSound.GainOf(ClickScope.Overlay, new OverlayConfig { ClickSoundVolume = cfg.ClickSoundVolume }));
+        Assert.Equal((stored, false), (cfg.ClickSoundVolume, cfg.ClickSoundEnabled));
+        var again = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>(System.Text.Json.JsonSerializer.Serialize(cfg))!;
+        Assert.Equal((stored, false), (again.ClickSoundVolume, again.ClickSoundEnabled));
+    }
+
     /// <summary>A sign-in leaves the session (encrypted), the browser identity and the name; a sign-out forgets the first and the last and keeps the identity.</summary>
     [Fact]
     public void SignInAndSignOutRoundTrip()
