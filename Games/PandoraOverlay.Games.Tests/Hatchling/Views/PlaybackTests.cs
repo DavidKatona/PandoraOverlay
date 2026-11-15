@@ -224,7 +224,7 @@ public class TurnPlaybackTests
     /// which creatures changed place: never two on one tick, small game aside, and a
     /// dodged bite aside (H75: the biter's blow and your hop are one event, the one
     /// case of two creatures moving on the same ticks); and between two hunters, at
-    /// least 3 ticks with nothing moving.
+    /// least a Gap (15 ticks, H93) with nothing moving.
     /// </summary>
     [Fact]
     public void OneCreatureMovesAtATimeWithAGapBetweenTwoHunters() => Sta.Run(() =>
@@ -377,10 +377,10 @@ public class TurnPlaybackTests
             Assert.True(it.X == feet.X + (blow ? BeatStep.BlowReach : 0), $"tick {k}: the biter's X is {it.X}");
             Assert.True(it.Y == feet.Y, $"tick {k}: the biter's Y is {it.Y}");
             Assert.True((k < BeatStep.StrikeTicks ? BeatStep.Strike : ArtNames.Stand) == it.Action, $"tick {k}: the biter's action is {it.Action}");
-            if (k < BeatStep.StrikeTicks) Assert.Equal(k, it.Tick);
+            if (k < BeatStep.StrikeTicks) Assert.Equal(BeatStep.ArtTick(k), it.Tick);   // the art's frames slowed with the beat (H93)
             var hurts = k >= BeatStep.WindUpTicks && k < BeatStep.WindUpTicks + BeatStep.HurtTicks;
             Assert.True((hurts ? BeatStep.Hurt : ArtNames.Stand) == you.Action, $"tick {k}: your action is {you.Action}");
-            if (hurts) Assert.Equal(k - BeatStep.WindUpTicks, you.Tick);
+            if (hurts) Assert.Equal(BeatStep.ArtTick(k - BeatStep.WindUpTicks), you.Tick);
             Assert.Equal(yours, (you.X, you.Y));
             if (k < frames.Count - 1)
                 Assert.True((k >= BeatStep.WindUpTicks ? 1 : 0) == numbers, $"tick {k}: {numbers} numbers on the board");
@@ -456,6 +456,37 @@ public class TurnPlaybackTests
         Assert.Equal((yours.X, yours.Y, ArtNames.Stand), (end.You.X, end.You.Y, end.You.Action));
     }
 
+    /// <summary>
+    /// The wind-up is seen (H75, H93): played through the page, the loop ticks on which
+    /// the biter shows the art's wind-up frame (<c>strike/0</c>) are all of its stretched
+    /// ticks but the one the beat's Begin shares at Normal, and still two at Fast, as the
+    /// first table showed it at Normal.
+    /// </summary>
+    [Fact]
+    public void AStrikesWindUpIsOnScreenAtBothPaces() => Sta.Run(() =>
+    {
+        foreach (var (fast, least) in new[] { (false, BeatStep.WindUpTicks - 1), (true, 2) })
+        {
+            var (game, host) = ViewHarness.Attached(ViewHarness.Running());
+            using var view = ViewHarness.ViewOf(game);
+            var page = view.RunPage;
+            page.FastClicked(fast);
+            page.Play(ABite(Row5(4)));
+            Assert.Equal(fast ? 2 : 1, view.ThePlayback.Speed);
+            var windUp = 0;
+            while (page.Playing)
+            {
+                ViewHarness.Tick(view, host);
+                if (!page.Playing) break;
+                var it = page.CurrentScene.Sprites.Single(s => s.Creature == 1 && s.Kind != SpriteKind.You);
+                if (it.Action == BeatStep.Strike
+                    && ReferenceEquals(GameArt.Find(it.Subject, it.Action, it.Tick), GameArt.Find(it.Subject, BeatStep.Strike, 0)))
+                    windUp++;
+            }
+            Assert.True(windUp >= least, $"{(fast ? "Fast" : "Normal")}: the wind-up was on screen for {windUp} ticks");
+        }
+    });
+
     [Fact]
     public void AfterABiteSkippedAtAnyTickBothStandOnTheirFeet() => Sta.Run(() =>
     {
@@ -475,7 +506,7 @@ public class TurnPlaybackTests
                     Assert.True((yours.X, yours.Y, ArtNames.Stand) == (you.X, you.Y, you.Action), $"{what}: you at {you.X},{you.Y} in {you.Action}");
                 }
 
-                // The step itself, finished at each tick 0 to 9 of the bite.
+                // The step itself, finished at each tick of the bite.
                 for (var k = 0; k < script.Beats[index].Ticks; k++)
                 {
                     var steps = StepsOf(turn, script, out var scene);
@@ -717,7 +748,10 @@ public class TurnPlaybackTests
             if (sprite.Action == BeatStep.Walk) ticks.Add(sprite.Tick);
         }
         Assert.Equal(3 * BeatTicks.WalkPerCell - 1, ticks.Count);
-        for (var i = 1; i < ticks.Count; i++) Assert.True(ticks[i] > ticks[i - 1], "the walk's tick fell back");
+        // Tick k of the walk asks the art's tick k / Stretch (H93): the legs slow with
+        // the walk, and still count on through every cell, never from 0 again.
+        for (var i = 0; i < ticks.Count; i++) Assert.True(ticks[i] == BeatStep.ArtTick(i + 1), $"tick {i + 1} of the walk asked the art's {ticks[i]}");
+        for (var i = 1; i < ticks.Count; i++) Assert.True(ticks[i] >= ticks[i - 1], "the walk's tick fell back");
         Assert.True(ticks[^1] > 12, "a walk of three cells passes the whole cycle of 12");
         ViewHarness.PlayOut(view, host);
         var stands = page.PlayedScene!.Sprites.Single(s => s.Kind == SpriteKind.You);
@@ -862,7 +896,7 @@ public class TurnPlaybackTests
         }
 
         Save(turn, BeatKind.Bites, 1, "bite-1-windup");
-        Save(turn, BeatKind.Bites, BeatStep.WindUpTicks + 2, "bite-2-blow");
+        Save(turn, BeatKind.Bites, BeatStep.WindUpTicks + 2 * BeatTicks.Stretch, "bite-2-blow");
         Save(turn, BeatKind.Bites, BeatStep.StrikeTicks, "bite-3-after");
 
         // The sample's Carnotaurus 2 already bites from the row above, to your left: the
@@ -881,7 +915,7 @@ public class TurnPlaybackTests
         }
         var fromAbove = new TurnResult(Moved(turn.Before), Moved(turn.After), turn.Events);
         carno = fromAbove.Before.Creatures.Single(c => c.Id == carno.Id);
-        Save(fromAbove, BeatKind.Bites, BeatStep.WindUpTicks + 2, "bite-above-blow");
+        Save(fromAbove, BeatKind.Bites, BeatStep.WindUpTicks + 2 * BeatTicks.Stretch, "bite-above-blow");
 
         // Your own strike on it, where it stands beside you in the sample.
         carno = turn.Before.Creatures.Single(c => c.Id == carno.Id);
@@ -892,7 +926,7 @@ public class TurnPlaybackTests
             new Struck(carno.Id, carno.At, 7, false, false, false, false, Tuning.AttackNoise),
             new TimePassed(0, 0, 0),
         });
-        Save(strike, BeatKind.YouStrike, BeatStep.WindUpTicks + 2, "strike-blow");
+        Save(strike, BeatKind.YouStrike, BeatStep.WindUpTicks + 2 * BeatTicks.Stretch, "strike-blow");
         _out.WriteLine("renders in " + folder);
     }
 }
