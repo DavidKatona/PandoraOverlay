@@ -35,6 +35,41 @@ public class ForbiddenApiTests
         Assert.True(findings.Count == 0, "The forbidden list (A29) is broken:\n" + string.Join("\n", findings));
     }
 
+    /// <summary>The class WPF's markup compiler adds to an assembly whose XAML places an element of an internal type of its own.</summary>
+    private const string WpfsHelper = "GeneratedInternalTypeHelper";
+
+    /// <summary>
+    /// A game's XAML places only public types of its own (A67). An element of an
+    /// internal type makes WPF's markup compiler add its GeneratedInternalTypeHelper,
+    /// which reads and calls members by name: the forbidden list would then refuse
+    /// the game for code it never wrote, whichever members a given WPF version's
+    /// helper names. This fact names the cause and the fix instead. Read from each
+    /// assembly's type definitions, in any namespace, with System.Reflection.Metadata
+    /// (nothing loaded or run, as <see cref="MetadataScan"/>).
+    /// </summary>
+    [Fact]
+    public void NoGameCompilesWpfsInternalTypeHelper()
+    {
+        var helpers = new List<string>();
+        foreach (var file in AssembliesUnderTheRule())
+        {
+            using var stream = File.OpenRead(file);
+            using var pe = new System.Reflection.PortableExecutable.PEReader(stream);
+            var md = System.Reflection.Metadata.PEReaderExtensions.GetMetadataReader(pe);
+            foreach (var handle in md.TypeDefinitions)
+            {
+                var type = md.GetTypeDefinition(handle);
+                if (md.GetString(type.Name) != WpfsHelper) continue;
+                var ns = md.GetString(type.Namespace);
+                helpers.Add($"{Path.GetFileName(file)}: {(ns.Length == 0 ? WpfsHelper : ns + "." + WpfsHelper)}");
+            }
+        }
+
+        Assert.True(helpers.Count == 0,
+            "A game's XAML places only public types of its own (A67): WPF compiled its GeneratedInternalTypeHelper into the assemblies below, because their XAML places an element of an internal type of their own, and that helper reads and calls members by name (PropertyInfo.GetValue and SetValue, Type.InvokeMember, EventInfo.AddEventHandler), which the forbidden list refuses for code the game never wrote. Make that element's type public:\n"
+            + string.Join("\n", helpers));
+    }
+
     /// <summary>A scan that found nothing to check would pass for ever: the Contract and the Engine are always there, and the tests' own assembly never is.</summary>
     [Fact]
     public void TheScanChecksAtLeastTheContractAndTheEngine()
@@ -98,6 +133,36 @@ public class ForbiddenApiTests
         AssertFound(findings, ForbiddenKind.Namespace, "System.Net", "the type System.Net.IPAddress");
         AssertFound(findings, ForbiddenKind.Namespace, "System.Timers", "the type System.Timers.ElapsedEventArgs");
         AssertFound(findings, ForbiddenKind.Member, "System.Windows.Application", "the member System.Windows.Application::get_Current");
+
+        // A60, reflection by name: each under the owner the compiler wrote. MethodInfo
+        // inherits Invoke, so a MethodInfo's call reaches the metadata as MethodBase's.
+        AssertFound(findings, ForbiddenKind.Member, "System.Type", "the member System.Type::GetField");
+        AssertFound(findings, ForbiddenKind.Member, "System.Reflection.FieldInfo", "the member System.Reflection.FieldInfo::GetValue");
+        AssertFound(findings, ForbiddenKind.Member, "System.Type", "the member System.Type::GetMethod");
+        AssertFound(findings, ForbiddenKind.Member, "System.Reflection.MethodBase", "the member System.Reflection.MethodBase::Invoke");
+        AssertFound(findings, ForbiddenKind.Member, "System.Type", "the member System.Type::GetProperty");
+        AssertFound(findings, ForbiddenKind.Member, "System.Reflection.PropertyInfo", "the member System.Reflection.PropertyInfo::GetValue");
+        AssertFound(findings, ForbiddenKind.Member, "System.Delegate", "the member System.Delegate::CreateDelegate");
+        AssertFound(findings, ForbiddenKind.Member, "System.Reflection.MethodInfo", "the member System.Reflection.MethodInfo::CreateDelegate");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Linq.Expressions", "the type System.Linq.Expressions.Expression");
+        AssertFound(findings, ForbiddenKind.Assembly, "Microsoft.CSharp", "the assembly Microsoft.CSharp");
+        AssertFound(findings, ForbiddenKind.Member, "System.Type", "the member System.Type::GetType");
+        AssertFound(findings, ForbiddenKind.Member, "System.Reflection.TypeInfo", "the member System.Reflection.TypeInfo::get_DeclaredFields");
+        AssertFound(findings, ForbiddenKind.Type, "System.Reflection.RuntimeReflectionExtensions", "the type System.Reflection.RuntimeReflectionExtensions");
+        AssertFound(findings, ForbiddenKind.Member, "System.Reflection.Assembly", "the member System.Reflection.Assembly::GetEntryAssembly");
+
+        // A68: Activator's overloads that make an object from an assembly and a type
+        // given as text, found by the ObjectHandle they answer.
+        AssertFound(findings, ForbiddenKind.Type, "System.Runtime.Remoting.ObjectHandle", "the type System.Runtime.Remoting.ObjectHandle");
+
+        // A60, a picture by address.
+        AssertFound(findings, ForbiddenKind.Type, "System.Windows.Media.Imaging.BitmapImage", "the type System.Windows.Media.Imaging.BitmapImage");
+        AssertFound(findings, ForbiddenKind.Type, "System.Windows.Media.ImageSourceConverter", "the type System.Windows.Media.ImageSourceConverter");
+        AssertFound(findings, ForbiddenKind.Type, "System.UriBuilder", "the type System.UriBuilder");
+        AssertFound(findings, ForbiddenKind.Member, "System.Uri", "the member System.Uri::UriSchemeHttps");
+        AssertFound(findings, ForbiddenKind.Member, "System.Uri", "the member System.Uri::SchemeDelimiter");
+        AssertFound(findings, ForbiddenKind.Member, "System.Windows.Media.Imaging.BitmapFrame", "the member System.Windows.Media.Imaging.BitmapFrame::Create");
+        AssertFound(findings, ForbiddenKind.Member, "System.Windows.Media.Imaging.BitmapDecoder", "the member System.Windows.Media.Imaging.BitmapDecoder::Create");
     }
 
     private static void AssertFound(IReadOnlyList<Finding> findings, ForbiddenKind kind, string pattern, string subject) =>
@@ -176,6 +241,119 @@ public class ForbiddenApiTests
             new MemberName("System.Windows.FrameworkElement", "get_ActualWidth"),
             new MemberName("System.Windows.FrameworkElement", "set_Tag"),
         })));
+    }
+
+    /// <summary>
+    /// A60's members of reflection by name, as the brief lists them; a prefix entry
+    /// by the names it is there to catch. Each must give exactly one finding.
+    /// </summary>
+    private static readonly (string Type, string[] Members)[] ReflectionMembers =
+    {
+        ("System.Type", new[]
+        {
+            "GetField", "GetFields", "GetProperty", "GetProperties", "GetMethod", "GetMethods", "GetMember", "GetMembers",
+            "GetConstructor", "GetConstructors", "GetEvent", "GetEvents", "GetNestedType", "GetNestedTypes", "GetDefaultMembers",
+            "FindMembers", "InvokeMember", "GetType", "GetTypeFromProgID", "GetTypeFromCLSID", "ReflectionOnlyGetType",
+        }),
+        ("System.Reflection.TypeInfo", new[]
+        {
+            "GetDeclaredField", "GetDeclaredMethod", "GetDeclaredMethods", "GetDeclaredProperty", "GetDeclaredEvent", "GetDeclaredNestedType",
+            "get_DeclaredFields", "get_DeclaredMethods", "get_DeclaredMembers", "get_DeclaredProperties", "get_DeclaredConstructors",
+        }),
+        ("System.Reflection.FieldInfo", new[] { "GetValue", "GetValueDirect", "SetValue", "SetValueDirect" }),
+        ("System.Reflection.PropertyInfo", new[] { "GetValue", "SetValue", "GetGetMethod", "GetSetMethod", "get_GetMethod", "get_SetMethod", "GetAccessors" }),
+        ("System.Reflection.MethodBase", new[] { "Invoke" }),
+        ("System.Reflection.MethodInfo", new[] { "Invoke", "CreateDelegate" }),
+        ("System.Reflection.ConstructorInfo", new[] { "Invoke" }),
+        ("System.Reflection.EventInfo", new[] { "AddEventHandler", "RemoveEventHandler" }),
+        ("System.Delegate", new[] { "CreateDelegate" }),
+        ("System.Reflection.Assembly", new[]
+        {
+            "GetEntryAssembly", "GetCallingAssembly", "GetType", "GetTypes", "GetExportedTypes", "GetForwardedTypes",
+            "get_DefinedTypes", "get_ExportedTypes", "CreateInstance", "get_EntryPoint",
+        }),
+        ("System.Reflection.Module", new[]
+        {
+            "GetType", "GetTypes", "FindTypes", "GetField", "GetFields", "GetMethod", "GetMethods",
+            "ResolveField", "ResolveMethod", "ResolveMember", "ResolveType", "ResolveString", "ResolveSignature",
+        }),
+    };
+
+    /// <summary>
+    /// Reflection by name is refused (A60): every lookup of a member by its name and
+    /// every use of one so found, the extension methods that hand them out,
+    /// expression trees, and <c>dynamic</c> (the assembly of its run-time binder).
+    /// Each made-up reference gives exactly one finding, so no two entries overlap.
+    /// </summary>
+    [Fact]
+    public void TheReflectionDoorsAreRefused()
+    {
+        foreach (var (type, members) in ReflectionMembers)
+            foreach (var member in members)
+                Assert.True(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(type, member) })).Count == 1, $"{type}::{member} should give exactly one finding");
+
+        foreach (var type in new[]
+                 {
+                     T("System.Reflection", "RuntimeReflectionExtensions"), T("System.Runtime.Remoting", "ObjectHandle"),
+                     T("System.Linq.Expressions", "Expression"), T("System.Linq.Expressions", "MemberExpression"), T("System.Linq.Expressions", "Expression`1"),
+                 })
+            Assert.True(ForbiddenList.Check(Made(AGame, types: new[] { type })).Count == 1, type.FullName + " should give exactly one finding");
+
+        var binder = Assert.Single(ForbiddenList.Check(Made(AGame, assemblies: new[] { "Microsoft.CSharp" })));
+        Assert.Equal(ForbiddenKind.Assembly, binder.Entry.Kind);
+        Assert.Contains("A60", binder.Entry.Reason);
+    }
+
+    /// <summary>
+    /// A picture by address is refused (A60): the types that turn an address into a
+    /// picture WPF fetches by itself or build the address, BitmapFrame.Create and
+    /// BitmapDecoder.Create (every overload), and the scheme names that make
+    /// "https://" without a "://" in the source.
+    /// </summary>
+    [Fact]
+    public void ThePictureByAddressDoorsAreRefused()
+    {
+        foreach (var type in new[] { T("System.Windows.Media.Imaging", "BitmapImage"), T("System.Windows.Media", "ImageSourceConverter"), T("System", "UriBuilder") })
+            Assert.True(ForbiddenList.Check(Made(AGame, types: new[] { type })).Count == 1, type.FullName + " should give exactly one finding");
+
+        foreach (var (type, member) in new[]
+                 {
+                     ("System.Windows.Media.Imaging.BitmapFrame", "Create"), ("System.Windows.Media.Imaging.BitmapDecoder", "Create"),
+                     ("System.Uri", "UriSchemeHttp"), ("System.Uri", "UriSchemeHttps"), ("System.Uri", "UriSchemeFile"), ("System.Uri", "UriSchemeWss"),
+                     ("System.Uri", "SchemeDelimiter"),
+                 })
+            Assert.True(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(type, member) })).Count == 1, $"{type}::{member} should give exactly one finding");
+    }
+
+    /// <summary>
+    /// What A60 leaves alone on purpose (A43): typeof, a type's assembly and a
+    /// member's name, the object's and the exception's GetType, the game's own
+    /// embedded art, Uri's constructor (a view's generated code), the engine's PNG
+    /// decoder, and the imaging the engine does today (its decoder's frames, a
+    /// BitmapFrame and a BitmapDecoder as types, events' Combine and Remove).
+    /// </summary>
+    [Fact]
+    public void TheHarmlessReflectionStaysAllowed()
+    {
+        foreach (var (type, member) in new[]
+                 {
+                     ("System.Type", "GetTypeFromHandle"), ("System.Type", "get_Assembly"), ("System.Type", "op_Equality"),
+                     ("System.Reflection.MemberInfo", "get_Name"), ("System.Object", "GetType"), ("System.Exception", "GetType"),
+                     ("System.Reflection.Assembly", "GetManifestResourceStream"), ("System.Reflection.Assembly", "GetManifestResourceNames"),
+                     ("System.Reflection.Assembly", "GetName"), ("System.Uri", ".ctor"),
+                     ("System.Windows.Media.Imaging.PngBitmapDecoder", ".ctor"), ("System.Windows.Media.Imaging.BitmapDecoder", "get_Frames"),
+                     ("System.Delegate", "Combine"), ("System.Delegate", "Remove"),
+                 })
+            Assert.True(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(type, member) })).Count == 0, $"{type}::{member} should give no finding");
+
+        foreach (var type in new[]
+                 {
+                     T("System", "Activator"), T("System", "Uri"), T("System.Windows.Media.Imaging", "PngBitmapDecoder"),
+                     T("System.Windows.Media.Imaging", "WriteableBitmap"), T("System.Windows.Media.Imaging", "BitmapFrame"),
+                     T("System.Windows.Media.Imaging", "BitmapDecoder"), T("System.Windows.Media", "ImageSource"),
+                     T("System.Reflection", "Assembly"), T("System.Reflection", "MemberInfo"), T("System", "Delegate"),
+                 })
+            Assert.True(ForbiddenList.Check(Made(AGame, types: new[] { type })).Count == 0, type.FullName + " should give no finding");
     }
 
     /// <summary>The reader names a generic type's member by the generic type, and a nested type by its outer one.</summary>
