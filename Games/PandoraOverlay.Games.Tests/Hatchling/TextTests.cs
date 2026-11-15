@@ -135,7 +135,7 @@ public class TextTests
         Assert.Equal("The apex gives up 5 turns sooner.", HatchlingText.TraitText(Trait.EldersPatience));
         Assert.Equal("A species earns a star at 50%, 150% and 300% grown on the server. Each star gives it 5% more health and attack in runs.",
             HatchlingText.StarsNote);
-        Assert.Equal("A species you have not grown lately pays ×3.0. One you keep growing falls toward ×1.0 and comes back by itself.",
+        Assert.Equal("A species you have not grown lately pays ×3.0. One you keep growing falls toward ×1.0.",
             HatchlingText.PaysNote);
         Assert.Equal("Grow these on the server, in your own time. Only growth the overlay sees counts. It never asks for a Tyrannosaurus or a Deinosuchus.",
             HatchlingText.JournalIntro);
@@ -291,5 +291,137 @@ public class TextTests
         };
         Assert.Equal(new[] { "Progress/Bad.cs:1", "Progress/Bad.cs:3", "Views/Bad.xaml:1" },
             GameSource.LinesHolding(CodeAndXaml(files), word));
+    }
+
+    // ---- Nothing is for sale (H88, G4) ----------------------------------------------------
+
+    /// <summary>
+    /// The public post says "Nothing to buy, ever" (G4), and the amber is the game's
+    /// own, so no word of the game may read as a shop: no string literal of
+    /// <c>HatchlingText.cs</c> holds, in any case, the whole word buy, buys, buying
+    /// or bought, nor a word starting purchas or shop. Comments and identifiers are
+    /// not the player's words and are left out.
+    /// </summary>
+    [Fact]
+    public void NothingIsForSale()
+    {
+        var text = GameSource.Files().Single(f => f.Path == "HatchlingText.cs").Text;
+        var literals = StringLiterals(text).ToList();
+        Assert.True(literals.Count > 150, $"only {literals.Count} literals found: the scan does not reach the strings");
+        var bad = literals.Where(HoldsASalesWord).ToList();
+        Assert.True(bad.Count == 0, "a word of sale in: " + string.Join(" | ", bad));
+    }
+
+    [Fact]
+    public void TheSalesScanFindsWhatItIsFor()
+    {
+        Assert.True(HoldsASalesWord("Buy 10"));
+        Assert.True(HoldsASalesWord("BUYS"));
+        Assert.True(HoldsASalesWord("nobody is buying"));
+        Assert.True(HoldsASalesWord("Purchased"));
+        Assert.True(HoldsASalesWord("Shop"));
+        Assert.True(HoldsASalesWord("the shop's"));
+        Assert.Contains(StringLiterals("var s = $\"bought {n}\";").ToList(), HoldsASalesWord);
+        Assert.Contains(StringLiterals("var s = \"Buy 10\";").ToList(), HoldsASalesWord);
+        Assert.Contains(StringLiterals("var s = $\"x {(a ? \"Shop\" : \"b\")} y\";").ToList(), HoldsASalesWord);
+        Assert.Contains(StringLiterals("var s = @\"say \"\"buy\"\"\";").ToList(), HoldsASalesWord);
+
+        Assert.False(HoldsASalesWord("buoyant"));
+        Assert.False(HoldsASalesWord("Bouyant"));
+        Assert.DoesNotContain(StringLiterals("// buy\nvar x = 1; /* a \"buy\" */ var BuyCost = 2; var c = '\"';\n").ToList(), HoldsASalesWord);
+        Assert.DoesNotContain(StringLiterals("var s = $\"{BuyCost} left\";").ToList(), HoldsASalesWord);
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex SalesWord =
+        new(@"\b(?:buy|buys|buying|bought)\b|\bpurchas|\bshop", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    private static bool HoldsASalesWord(string literal) => SalesWord.IsMatch(literal);
+
+    /// <summary>
+    /// The text of every string literal in C# source: plain, verbatim, interpolated
+    /// (its fixed parts; a string inside a hole is a literal of its own) and
+    /// combinations of them. Comments and character literals are skipped. Raw string
+    /// literals are not handled: the file holds none, and a scan test would say so
+    /// by finding fewer literals than it expects.
+    /// </summary>
+    private static IEnumerable<string> StringLiterals(string source)
+    {
+        var found = new List<string>();
+        var i = 0;
+        ScanCode(source, ref i, found, inHole: false);
+        return found;
+    }
+
+    private static void ScanCode(string s, ref int i, List<string> found, bool inHole)
+    {
+        var depth = 0;
+        while (i < s.Length)
+        {
+            var c = s[i];
+            if (c == '/' && i + 1 < s.Length && s[i + 1] == '/')
+            {
+                while (i < s.Length && s[i] != '\n') i++;
+            }
+            else if (c == '/' && i + 1 < s.Length && s[i + 1] == '*')
+            {
+                var end = s.IndexOf("*/", i + 2, StringComparison.Ordinal);
+                i = end < 0 ? s.Length : end + 2;
+            }
+            else if (c == '\'')
+            {
+                i++;
+                while (i < s.Length && s[i] != '\'') i += s[i] == (char)92 ? 2 : 1;
+                i++;
+            }
+            else if (c == '"' || c == '$' || c == '@')
+            {
+                var j = i;
+                while (j < s.Length && (s[j] == '$' || s[j] == '@')) j++;
+                if (j < s.Length && s[j] == '"')
+                {
+                    var prefix = s[i..j];
+                    ReadString(s, ref j, found, verbatim: prefix.Contains('@'), interpolated: prefix.Contains('$'));
+                    i = j;
+                }
+                else i++;   // an identifier's character, or a lone $ or @
+            }
+            else if (inHole && c == '{') { depth++; i++; }
+            else if (inHole && c == '}')
+            {
+                if (depth == 0) return;   // the hole's end, left for the caller
+                depth--; i++;
+            }
+            else i++;
+        }
+    }
+
+    /// <summary>Reads a string whose opening quote is at <paramref name="i"/>; leaves <paramref name="i"/> after the closing one.</summary>
+    private static void ReadString(string s, ref int i, List<string> found, bool verbatim, bool interpolated)
+    {
+        var text = new System.Text.StringBuilder();
+        i++;
+        while (i < s.Length)
+        {
+            var c = s[i];
+            if (c == '"')
+            {
+                if (verbatim && i + 1 < s.Length && s[i + 1] == '"') { text.Append('"'); i += 2; continue; }
+                i++;
+                break;
+            }
+            if (!verbatim && c == (char)92 && i + 1 < s.Length) { text.Append(c).Append(s[i + 1]); i += 2; continue; }
+            if (interpolated && c == '{')
+            {
+                if (i + 1 < s.Length && s[i + 1] == '{') { text.Append('{'); i += 2; continue; }
+                i++;
+                text.Append(' ');   // a hole is a gap between the fixed parts, not text
+                ScanCode(s, ref i, found, inHole: true);
+                i++;   // the closing brace
+                continue;
+            }
+            text.Append(c);
+            i++;
+        }
+        found.Add(text.ToString());
     }
 }

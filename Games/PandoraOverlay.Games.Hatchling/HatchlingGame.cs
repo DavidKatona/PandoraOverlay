@@ -57,6 +57,17 @@ public sealed class HatchlingGame : IGame
     private DinoReading _lastReading = DinoReading.NotInGame;
     private bool _hasReading;
 
+    /// <summary>Whether the log has said, for this instance, that a reading named a species the table does not know (H89).</summary>
+    private bool _toldUnknownSpecies;
+
+    /// <summary>
+    /// The one fact H89 logs: a fact, never the species' name (constraint 4: the log
+    /// holds no server text). Whether the API spells all 21 species as the table does
+    /// was never checked; with this line the owner's log shows a mismatch the first
+    /// time he spawns as such a species.
+    /// </summary>
+    private const string UnknownSpeciesFact = "a reading named a species not in the species table: its growth pays nothing (A23)";
+
     /// <summary>Stable for ever: the save folder's name (A37).</summary>
     public string Id => "hatchling";
 
@@ -144,7 +155,8 @@ public sealed class HatchlingGame : IGame
     /// Every successful poll while Ready, window open or not (A5). The seen step, if
     /// the reading made one, is paid by server play (H10, H18) and saved:
     /// <c>Now</c> when it did more than pay, else <c>Soon</c>. A species the table does
-    /// not know is ignored (A23). Cheap: a reading that makes no step allocates
+    /// not know is ignored (A23), and the first in-game reading of one (or of none)
+    /// per instance logs a single fact without its name (H89). Cheap: a reading that makes no step allocates
     /// nothing and writes nothing, and raises <see cref="Changed"/> only when it
     /// differs from the reading before.
     /// </summary>
@@ -155,6 +167,14 @@ public sealed class HatchlingGame : IGame
         var changed = !_hasReading || reading != _lastReading;
         _lastReading = reading;
         _hasReading = true;
+
+        // H89: an in-game reading of a species the table does not know (or of none) pays
+        // nothing (A23); say so once, as a fact, never the name (constraint 4).
+        if (reading.InGame && !_toldUnknownSpecies && !SpeciesTable.TryGet(reading.Species, out _))
+        {
+            _toldUnknownSpecies = true;
+            Log(UnknownSpeciesFact);
+        }
 
         // ServerPlay.Apply answers a new state for an unknown species too (and so is
         // never compared with the old one by reference): asked here first, so a

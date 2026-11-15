@@ -268,7 +268,7 @@ public static class HatchlingText
 
     // ===== The lineage ===================================================================
 
-    public const string LineageIntro = "Traits are permanent. A trait bought during a run counts from the next one.";
+    public const string LineageIntro = "Traits are permanent. A trait taken during a run counts from the next one.";
     public const string TraitComplete = "Complete";
 
     private static readonly string[] BranchNames = { "Survival", "Senses", "Growth", "Instinct" };
@@ -745,8 +745,16 @@ public static class HatchlingText
     public const string EntryNotPlaying = "Not the dino you are playing now";
     public const string SwapArmed = "Click again";
     public const string PaysCaption = "WHAT SERVER GROWTH PAYS";
+
+    /// <summary>
+    /// The Journal's one sentence on freshness (H88): what a rested species pays and
+    /// where a species you keep growing settles, and nothing about it coming back.
+    /// The rule says nothing about freshness beyond the public post's "a species you
+    /// haven't grown in a while earns more", and "comes back by itself" invited
+    /// waiting, the shape of an energy meter (G4).
+    /// </summary>
     public static readonly string PaysNote =
-        $"A species you have not grown lately pays ×{OneDecimal(Tuning.FreshMax)}. One you keep growing falls toward ×{OneDecimal(Tuning.FreshFloor)} and comes back by itself.";
+        $"A species you have not grown lately pays ×{OneDecimal(Tuning.FreshMax)}. One you keep growing falls toward ×{OneDecimal(Tuning.FreshFloor)}.";
     public const string LatelyCaption = "ON THE SERVER LATELY";
     public const string LatelyNone = "Nothing yet. Grow your dino with the overlay running.";
     public const string LatelyNew = "new";
@@ -841,7 +849,7 @@ public static class HatchlingText
         ("gentle", "Live and let live", "Win a run without defeating a predator"),
         ("six", "A wide lineage", "Unlock 6 species"),
         ("island", "The whole island", "Unlock all 21 species"),
-        ("roots", "Deep roots", "Buy 10 ranks of traits"),
+        ("roots", "Deep roots", "Take 10 ranks of traits"),
         ("blood", "Ancient blood", "Complete the lineage"),
         ("researcher", "Field researcher", "Finish 3 journal entries"),
         ("naturalist", "Naturalist", "Finish 15 journal entries"),
