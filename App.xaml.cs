@@ -51,10 +51,12 @@ public partial class App : Application
     /// "PandoraOverlay.Games." and more (a game, the engine or the Contract)
     /// is logged there, its game stopped and noted on its tile, and the
     /// overlay goes on. Everything else, and everything when no games host
-    /// exists yet, crashes exactly as before: an app bug is never hidden as a
-    /// game's. A game's code runs only on the UI thread, so the domain's
-    /// handler has nothing to contain. A task's exception that nobody awaited
-    /// doesn't end the process, so it is an Error.
+    /// exists yet, crashes exactly as before (A50); an app bug that throws
+    /// inside a game's call is on that game's stack and is contained as its
+    /// fault, with the app's frames on top of the logged stack (A63). A game's
+    /// code runs only on the UI thread, so the domain's handler has nothing to
+    /// contain. A task's exception that nobody awaited doesn't end the
+    /// process, so it is an Error.
     /// </summary>
     private void ListenForCrashes()
     {
