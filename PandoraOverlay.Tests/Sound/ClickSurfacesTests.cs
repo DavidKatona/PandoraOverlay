@@ -360,6 +360,29 @@ public sealed class ClickSurfacesTests
         dialog.Close();
     });
 
+    [Fact]
+    public void AStoredDinosRenameCancelBacksOut() => OnSta(sink =>
+    {
+        var (dialog, site) = DialogLayoutTests.Dialog();
+        DrawStorage(dialog);
+        var cards = (StackPanel)dialog.FindName("StorageCards");
+        var summary = (StackPanel)((StackPanel)((Border)cards.Children[0]).Child).Children[0];
+        Mouse(summary, UIElement.MouseLeftButtonUpEvent);
+        sink.Clicks.Clear();
+
+        ClickSeam.Click(Worded(cards, "Rename…")); // opens the form: an ordinary press (A113)
+        Assert.Equal(new[] { ClickCue.Press }, Cues(sink));
+        var cancel = Worded(cards, "Cancel");
+        Assert.Equal(ClickMark.Back, UiClicks.GetCue(cancel));
+
+        ClickSeam.Click(cancel);
+
+        Assert.Equal(new[] { ClickCue.Press, ClickCue.Back }, Cues(sink));
+        Assert.DoesNotContain(Tree(cards).OfType<Button>(), b => Words(b) == "Cancel"); // the form is gone
+        Assert.Equal(0, site.Requests);
+        dialog.Close();
+    });
+
     /// <summary>Settings → Dino storage with one stored dino drawn, as DialogLayoutTests draws it (signed out the page drops any list, so it is handed one), its card closed.</summary>
     private static void DrawStorage(SettingsWindow dialog)
     {

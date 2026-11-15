@@ -373,6 +373,7 @@ public partial class SettingsWindow
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 0) };
         var save = SmallButton("Save", "SaveButtonStyle");
         var cancel = SmallButton("Cancel", "NeutralButtonStyle");
+        UiClicks.SetCue(cancel, ClickMark.Back); // A100, A113: it backs out of the rename, as Keep does
         cancel.Margin = new Thickness(6, 0, 0, 0);
         buttons.Children.Add(save);
         buttons.Children.Add(cancel);
