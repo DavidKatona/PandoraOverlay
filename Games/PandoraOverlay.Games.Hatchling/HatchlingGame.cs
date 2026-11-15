@@ -353,8 +353,14 @@ public sealed class HatchlingGame : IGame
         var host = Host;
         var data = HatchlingSave.From(next);
         if (HatchlingSave.Problem(data) is { } problem)
+        {
+            // The log first (H70): the app logs an exception's type and stack, never
+            // its message, so the one fact that finds the defect (which field, which
+            // rule) would otherwise be lost. The check's words name no value.
+            host.Log.Warning($"not saved: the game's own check refuses the new state: {problem}");
             throw new InvalidOperationException(
                 $"Hatchling would write a save its own check refuses ({problem}): a defect of the game; nothing was replaced or written.");
+        }
         var payload = HatchlingSave.Schema.Save(data);
 
         _state = next;
@@ -368,10 +374,13 @@ public sealed class HatchlingGame : IGame
         }
     }
 
-    /// <summary>A save read by the host, through the schema (A9).</summary>
+    /// <summary>
+    /// A save read by the host, through the schema (A9). A refusal says why in the log,
+    /// as a fact (H72): the check's words, or that the text is not this version's shape.
+    /// </summary>
     private AttachResult Load(SaveRead read)
     {
-        var loaded = HatchlingSave.Schema.Load(read.Version, read.Payload ?? "");
+        var (loaded, why) = HatchlingSave.Read(read.Version, read.Payload ?? "");
         switch (loaded.Outcome)
         {
             case SaveOutcome.Newer:
@@ -391,7 +400,7 @@ public sealed class HatchlingGame : IGame
                 return AttachResult.Ready;
 
             default:
-                Log($"attached: the save could not be read (version {read.Version})");
+                _host?.Log.Warning($"attached: the save could not be read (version {read.Version}): {why ?? "its text is not this version's shape"}");
                 return AttachResult.SaveUnreadable;
         }
     }

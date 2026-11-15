@@ -39,7 +39,37 @@ internal static class HatchlingSave
     /// The save as versioned JSON (A9): version 1, no upgrade step (there is no older
     /// version), and <see cref="Valid"/> as the game's own check of every state read.
     /// </summary>
-    public static readonly SaveSchema<SaveData> Schema = new(Version, Valid);
+    public static readonly SaveSchema<SaveData> Schema = Build(Valid);
+
+    /// <summary>
+    /// A schema of this version with <paramref name="check"/> as the game's own check.
+    /// EVERY UPGRADE STEP IS REGISTERED HERE, and only here, so <see cref="Schema"/>
+    /// and the schema <see cref="Read"/> builds for one load can never differ in
+    /// anything but what their check keeps.
+    /// </summary>
+    private static SaveSchema<SaveData> Build(Func<SaveData, bool> check) => new(Version, check);
+
+    /// <summary>
+    /// A save's text read as <see cref="Schema"/> reads it, the same answer for the same
+    /// text, and, when that answer is Corrupt, why, as a fact for the log (H72): the
+    /// check's own words (a field and a rule, never a value), or that the text is not
+    /// this version's shape (it is not JSON, not an object, or does not read as the
+    /// save). A text that reaches the schema passed the host's check of its bytes, so a
+    /// build of the game wrote it: a refusal is a defect of a build, and the reason is
+    /// what finds it, while the app's log never carries an exception's message. The
+    /// schema is built for this one load with a check that keeps its words; its steps
+    /// are <see cref="Build"/>'s, the same as <see cref="Schema"/>'s. Never throws for
+    /// bad data (a step missing from the build still throws, as the engine's load does).
+    /// </summary>
+    internal static (SaveLoad<SaveData> Load, string? Why) Read(int version, string payload)
+    {
+        string? problem = null;
+        var load = Build(data => (problem = Problem(data)) is null).Load(version, payload);
+        if (load.Outcome != SaveOutcome.Corrupt) return (load, null);
+        return (load, problem is not null
+            ? "the game's own check refuses it: " + problem
+            : "its text is not this version's shape");
+    }
 
     // ===== The state into the save ==========================================================
 

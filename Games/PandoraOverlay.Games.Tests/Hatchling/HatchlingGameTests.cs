@@ -176,6 +176,68 @@ public class HatchlingGameTests
         Assert.Empty(host.Memory.Writes);
     }
 
+    /// <summary>
+    /// A save refused at Attach says why, as a fact (H72): a text that reaches the
+    /// schema was written by a build of the game, so its refusal is a defect, and the
+    /// app's log never carries an exception's message. The check's own words for a
+    /// state it refuses; another line for a text that is not this version's shape.
+    /// Neither holds a value from the save.
+    /// </summary>
+    [Fact]
+    public void ASaveRefusedAtAttachSaysWhy()
+    {
+        var data = HatchlingSave.From(SaveSamples.MidRun());
+        data.Ranks["stomach"] = 7;
+        var ranked = new FakeHost();
+        ranked.Memory.Stored = new SaveRead(SaveReadState.Ok, HatchlingSave.Version, HatchlingSave.Schema.Save(data));
+        Assert.Equal(AttachResult.SaveUnreadable, new HatchlingGame().Attach(ranked));
+        var line = Assert.Single(ranked.Collected.Warnings);
+        Assert.Equal("attached: the save could not be read (version 1): the game's own check refuses it: a rank is above its trait's, or below 0", line);
+        Assert.DoesNotContain("7", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("stomach", line, StringComparison.Ordinal);
+
+        var garbage = new FakeHost();
+        garbage.Memory.Stored = new SaveRead(SaveReadState.Ok, HatchlingSave.Version, "{\"Selected\":\"xyzzy\",");
+        Assert.Equal(AttachResult.SaveUnreadable, new HatchlingGame().Attach(garbage));
+        line = Assert.Single(garbage.Collected.Warnings);
+        Assert.Equal("attached: the save could not be read (version 1): its text is not this version's shape", line);
+        Assert.DoesNotContain("xyzzy", line, StringComparison.Ordinal);
+
+        foreach (var host in new[] { ranked, garbage })
+            foreach (var species in SpeciesTable.All)
+                Assert.DoesNotContain(species.Name, string.Join("\n", host.Collected.Lines), StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(ranked.Memory.Writes);
+        Assert.Empty(garbage.Memory.Writes);
+    }
+
+    /// <summary>The schema the Attach reads with answers exactly what the game's schema answers, for every kind of text (H72: the outcome does not move).</summary>
+    [Theory]
+    [InlineData("mid-run")]
+    [InlineData("fresh")]
+    [InlineData("garbage")]
+    [InlineData("refused")]
+    [InlineData("newer")]
+    public void TheAttachsReadAnswersAsTheSchema(string kind)
+    {
+        var data = HatchlingSave.From(SaveSamples.MidRun());
+        data.Run!.Turn = -1;
+        var (version, text) = kind switch
+        {
+            "mid-run" => (HatchlingSave.Version, SaveFiles.PayloadOf(SaveSamples.MidRun())),
+            "fresh" => (HatchlingSave.Version, SaveFiles.PayloadOf(SaveSamples.Fresh())),
+            "garbage" => (HatchlingSave.Version, "[1, 2"),
+            "refused" => (HatchlingSave.Version, HatchlingSave.Schema.Save(data)),
+            _ => (HatchlingSave.Version + 1, "anything"),
+        };
+        var plain = HatchlingSave.Schema.Load(version, text);
+        var (read, why) = HatchlingSave.Read(version, text);
+        Assert.Equal(plain.Outcome, read.Outcome);
+        Assert.Equal(plain.Upgraded, read.Upgraded);
+        Assert.Equal(plain.Outcome == SaveOutcome.Corrupt, why is not null);
+        if (plain.State is not null)
+            Assert.Empty(Deep.Differences(plain.State, read.State));
+    }
+
     /// <summary>Server play assumes three open entries and never tops the journal up, so Attach fills a short one, from its own generator, without writing.</summary>
     [Fact]
     public void AShortJournalIsFilledAtAttachAndNotWritten()
@@ -394,6 +456,11 @@ public class HatchlingGameTests
         Assert.Throws<InvalidOperationException>(() => game.SetFast(!broken.Fast));
         Assert.Empty(host.Memory.Writes);
         Assert.Same(broken, game.State);
+
+        // Why, in the log, before the throw (H70): the check's words, never the value.
+        var line = Assert.Single(host.Collected.Warnings);
+        Assert.Equal("not saved: the game's own check refuses the new state: the chosen species is not in the table", line);
+        Assert.DoesNotContain("Velociraptor", line, StringComparison.OrdinalIgnoreCase);
     }
 
     // ===== Readings (A6, H10, H18) =============================================================
