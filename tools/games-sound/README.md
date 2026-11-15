@@ -25,7 +25,7 @@ stale (PLAN-SOUND 5.1).
 | `synth.js` | a recipe to samples, by WebAudio's own definitions (R2): band-limited oscillators, the biquads, the automation, the first board's seeded noise; 44,100 Hz, peak-normalised, rounded to 16 bits |
 | `wav.js` | WAV out (RIFF/WAVE, PCM, mono, 44,100 Hz, 16 bits, no other chunk) and in, for the board |
 | `manifest.js` | writes a game's manifest |
-| `board.js` | the sound board: every take from the WAVs that ship, the picks' match figures, the window's volume, the demo turns |
+| `board.js` | the sound board: every take from the WAVs that ship, the picks' match figures (under a pick that misses a bar, the figures of a corrected render and a line saying why, R6), the window's five volume steps and a mute, the demo turns |
 | `<game>/` | one folder per game: its `cues.js`, its `build.js` and its `manifest.json` |
 
 ## The recipe
@@ -33,7 +33,7 @@ stale (PLAN-SOUND 5.1).
 The first sound board's format, unchanged, so a recipe pastes between the two:
 
 ```js
-{ name: "Pad", dur: 0.09, tone: 6000 /* optional lowpass on the take */, layers: [
+{ name: "Example", dur: 0.09, tone: 6000 /* optional lowpass on the take */, layers: [
   { kind: "noise", filter: "lowpass", f0: 900, f1: 250, q: 0.7, t: 0, dur: 0.07, attack: 0.003, gain: 0.8 },
   { kind: "osc", wave: "sine", f0: 140, f1: 85, glide: "linear" /* else exponential */, t: 0, dur: 0.06, attack: 0.002, gain: 0.6 } ] }
 ```
@@ -62,7 +62,12 @@ a cue). A lowpass's `q` is in dB, a bandpass's linear, as WebAudio has them.
   gentle or good, square only for a warning or a fanfare, filtered noise for what is
   physical. By R7, a take the plan derives from a pick keeps the pick's pitch
   (`focus-apex` A), an octave overtone over a palette note may sit above C7 (`unlock`
-  A), and a glide is a sweep, not a held note. `build.js` refuses a take outside the
-  length bounds or with a shorter attack, and a WAV that would fail the test.
+  A), and a glide is a sweep, not a held note. Before it writes a byte `build.js`
+  refuses a name that is not lower-case words joined by `-`, an unknown group, a
+  level outside −24 to −5 dBFS, a pick with other than one take or a new cue with
+  other than three, a take outside the length bounds, a layer with an attack under
+  1 ms or one that ends after its take, and a render the test would refuse (a peak
+  more than 0.5 dB off its level, a first sample or last 2 ms not silent, more than
+  88,200 samples).
 - **Listen before handing over.** Nobody but the owner can judge a sound; the board
   is how he does (PLAN-SOUND section 10).

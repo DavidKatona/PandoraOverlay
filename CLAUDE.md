@@ -33,7 +33,10 @@ a file in the folder is touched.
    the right); the game window is never found, focused or touched. A click on
    the game is known only as our own windows losing the focus (`OverlayFocus`,
    1.38: Settings closes, edit mode locks; with the games, the Games window
-   closes); what took the focus is never asked.
+   closes); what took the focus is never asked. The Games window's sounds play
+   on the default audio device through Windows' audio engine, which mixes them
+   with The Isle's as it mixes any program's; the game process is never seen
+   (A80, A86).
 2. **Approved endpoints only**, each with the trigger and pace below. Nothing is
    added, and nothing goes faster, without the owner's explicit okay.
 
@@ -191,6 +194,12 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   (`PandoraOverlay.Games.Contract`, `.Engine`, one project per game, and
   `PandoraOverlay.Games.Tests`, which builds and runs without the app). They add
   no NuGet package. The app's csproj removes `Games\**` from its globs.
+- The Games window plays the games' sounds through winmm's `waveOut`, by
+  P/Invoke in `GamesHost/` only (`WaveOut.cs`, A80), beside the user32 and
+  dwmapi calls `GamesWindow` already makes (and three kernel32 event calls with
+  it, for the device's event). No package is added; nothing under `Games/` can
+  reach it, and a scan keeps `waveOutSetVolume`, the app's own volume in
+  Windows' mixer, out of `GamesHost/`.
 - The working copy is LF (`.gitattributes` `eol=lf`; the solution file CRLF).
 - The site's access header gets into a build as `Assets/overlay-access.bin`,
   embedded when it exists. Release builds: the workflow runs
@@ -290,8 +299,11 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   GameCatalog (the listed games), GameSaveStore (their saves, under
   `%AppData%\PandoraOverlay\games`), GameGuard and GameFaults (a game that throws
   is closed, not the overlay), HealthWatch (the window's health warning),
-  GamesGate and GamesKeys (the pure rules for what closes the window). Its
-  MainWindow part is `Shell/MainWindow.Games.cs`.
+  GamesGate and GamesKeys (the pure rules for what closes the window), and the
+  sound: the gate (`GamesSound`: what may play, the mute and the five volume
+  steps) and the speaker behind it (`ISpeaker`; `WaveOutSpeaker`, its thread and
+  the winmm device in `WaveOut.cs`; `SpeakerMix`, its pure mix). Its MainWindow
+  part is `Shell/MainWindow.Games.cs`.
 - `Games/` — the games themselves, in projects of their own with their own
   namespaces (`PandoraOverlay.Games…`, the one exception to the flat namespace,
   G20): the Contract, the shared Engine, and one project per game (Hatchling, the
@@ -343,10 +355,17 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 - `tools/games-art/` — the games' art generator (plain Node, no dependencies,
   never run by a build): sprites are drawn from shapes by one engine and written
   as atlases into each game's `Art/` folder, which is checked in and embedded.
+- `tools/games-sound/` — the games' sound generator, beside the art's and apart
+  from it (plain Node, no dependencies, never run by a build): each cue is
+  rendered from its recipe by WebAudio's own definitions and written as a WAV
+  into the game's `Sound/` folder (checked in and embedded), with a manifest, and
+  `--board` writes the audition board into the git-ignored `out/`.
+  `SoundInStepTests` fails when a source changed without a rebuild
+  (`node tools/games-sound/<game>/build.js`).
 - `.claude/rules/` — conventions for writing new code in `Settings/`, the maps
   (`Minimap/`, `BigMap/`, the area tool), `Shell/`, `Core/`, the themes
   (`Themes/`, `Assets/Themes/`, `Assets/Fonts/`) and the games (`Games/`,
-  `GamesHost/`, `tools/games-art/`); each loads when a matching
+  `GamesHost/`, `tools/games-art/`, `tools/games-sound/`); each loads when a matching
   file is touched. `.claude/skills/release-pass/` — the release
   procedure (see Releases); `.claude/skills/patch-notes/` — the Discord post
   for a release (a short intro, then New / Changes / Fixes / Removed).
@@ -376,7 +395,10 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   reference `PollService`, the client, the config or the session (the compiler
   holds that), and the forbidden list refuses the plain ways round it
   (networking, reflection by name, a picture fetched by address): a guard
-  against an API reached for by accident, not a sandbox. The games add no
+  against an API reached for by accident, not a sandbox. A game's sound is the
+  host's (`IGameHost.Sound`, A77): a game hands over one of its own, and the host
+  plays it only while that game is on screen, not paused and not muted (A79),
+  never for a reading (A85). The games add no
   request and no request trigger (constraints 1 to 4 stand as they are).
 
 ## Runtime expectations
@@ -425,12 +447,35 @@ all) — say so when it matters:
   the table doesn't know pays nothing, logged once each time the game is
   started, without the name); nothing seen moving (the walk,
   a bite, a turn's pace); Hatchling's balance, which is a bot's: nobody has
-  played its rules by hand. Guards: 1877 tests in the app's project and 2205 in
-  the games' (4082, 0 failed); the golden renders: the minimap's identical in
-  every theme, the windows mode differing only on Settings › Hotkeys in every
-  theme (the new Games row; no baseline re-recorded), plus two one-off
-  differences that did not repeat (three pixels of About's render once, one
-  render step that failed once); CI's SDK 8 not run (SDK 9 here).
+  played its rules by hand. From the games' sounds (G26, built Nov 15 2026; the
+  overlay was never started with them, and nobody has heard a sound of the games,
+  every check being of what a game hands a fake speaker, a fake device or a
+  board): the owner's seven picks and the 22 new cues by ear, the demo turns'
+  density at Normal and Fast, and the second board whole (its 2.3 MB page was
+  opened only in parts, its match figures only in Chromium); the default volume
+  (step 3) against The Isle's own sound, and the bite landing with its blow;
+  crackle, with The Isle running and after an hour with the window open (the real
+  device ran once, silence only, on an idle PC, and the spike's full-load run is
+  the only evidence under load); the first cue after a launch, which waits for the
+  device's first open (about 93 ms from the play to the device on the build PC,
+  silence only); a device unplugged or in exclusive use, none at all, a changed
+  default device and a Bluetooth headset (the failure paths ran on a fake device
+  only); the overlay's entry in Windows' volume mixer, and the PC's sleep with the
+  window closed; the mute, the `−` and `+`, the preview, and the speaker's glyphs
+  and pips in a real session (renders at 96 DPI only; the glyphs are WPF's font
+  fallback); nothing sounding with the window closed, on the grid, under the
+  health warning or after a click on the game (tests with a fake speaker only);
+  Exit from the tray while a turn plays, whose cue is cut, not faded (A90);
+  MainWindow making the speaker and disposing it (compiled and tested lazy, never
+  run); whether the gate's 40 ms and six-at-once limits ever drop one of
+  Hatchling's cues at Fast (reasoning, not a test). Guards: 2044 tests in the
+  app's project and 2340 in the games' (4384, 0 failed); the golden renders: the
+  minimap's identical in every theme, the windows mode differing only on
+  Settings › Hotkeys in every theme (the new Games row; no baseline
+  re-recorded), plus two one-off differences that did not repeat (three pixels
+  of About's render once, one render step that failed once), and not run again
+  since the sound work (the window's header group, MainWindow making the
+  speaker); CI's SDK 8 not run (SDK 9 here).
 - Dino storage's Delete (1.33; the owner kept their dino).
 - The map's own friends rule (tests only), weaker PCs, high DPI (1.34).
 - A PC without the WebView2 Runtime (1.31; the installer's fetch).
@@ -570,7 +615,10 @@ for AFK growing: a Games window (Ctrl+J) with a grid of games, and the first,
 **Hatchling**, a turn-based roguelite that rewards growing every species on the
 server. The owner's decisions (G1 to G22), the plans, every decision made
 without him (A, H, R) and the report: `Desktop\Pandora Overlay Files\pandora-games\`.
-It waits for the owner's review and his check in game; no version, no CHANGELOG
+The games now have sounds (G26, Nov 15 2026; `PLAN-SOUND.md` there, decisions A77
+to A90, H95 to H101, R1 to R7): 29 cues for Hatchling, made by code
+(`tools/games-sound/`), played by the host, and a mute and five volume steps on
+the Games window's header (the third the default, sound on). It waits for the owner's review and his check in game; no version, no CHANGELOG
 entry and no tag exist for it.
 
 SHIPPED in 1.44.0 (Nov 10 2026, after the pre-release 1.44.0-rc.1 on Nov 9; no
@@ -861,6 +909,9 @@ Widgets and the stats panel
 - Hunger/thirst estimates beyond 1 h (3 h read as clutter).
 - Bundled or custom alert sounds: the Windows Exclamation sound; a custom one
   only if players ask.
+- The games' sounds (G26) are the games' own, made by code, on the Games window's
+  own mute and volume: no licence for the overlay's alerts, which stay Windows'
+  "Exclamation" (`PLAN-SOUND.md`, risk 9).
 - A two-row control panel (one row, grouped by widget).
 - A global scale multiplier on top of the per-widget sliders (Windows display
   scaling already does it, two multiplying sliders confuse, and scaling
