@@ -289,15 +289,16 @@
         </Grid>
 
         <!-- The turn list (H2, H28): a card, its caption row, then eleven rows of 16 made in code. -->
-        <!-- Its right padding is 4, not the left's 10 (task H16, with
-             RunPage.NameWidth): the rows are 6 wider, and the caption row
-             below takes the 6 back so that "turn 48" keeps its edge. -->
-        <Border Grid.Row="4" Padding="10,6,4,6" BorderThickness="1"
+        <!-- The card's padding is 4 at each side and the caption row stands 6 in
+             from it, so "TURN ORDER" and "turn 48" stay 10 from the line as on the
+             other cards; the rows take the card's whole 246 inside: the marker 10,
+             the name 98 (RunPage.NameWidth), what the row did the rest, 138 (H87). -->
+        <Border Grid.Row="4" Padding="4,6" BorderThickness="1"
                 Background="{DynamicResource Theme.Card.Surface}"
                 BorderBrush="{DynamicResource Theme.Card.Line}"
                 CornerRadius="{DynamicResource Theme.Corner.Card}">
             <StackPanel>
-                <Grid Height="16" Margin="0,0,6,0">
+                <Grid Height="16" Margin="6,0,6,0">
                     <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0" TextTrimming="CharacterEllipsis"
                                Style="{DynamicResource SectionCaption}"
                                Text="{x:Static h:HatchlingText.TurnOrder}"/>

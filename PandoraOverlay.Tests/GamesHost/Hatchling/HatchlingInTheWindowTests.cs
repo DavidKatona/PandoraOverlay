@@ -237,6 +237,89 @@ public sealed class HatchlingInTheWindowTests
     });
 
     /// <summary>
+    /// Every name and every row with an amount fits the turn list's columns in every theme (H87).
+    /// It measures instead of walking the samples: the samples hold the longest name, and twice the
+    /// longest line was another (H80: "Herrerasaurus 10"; H87: "Herrerasaurus 40", whose digits are
+    /// wider than a one's in Isle's font, so 25 names from 20 to 99 lost their number in 94 units).
+    /// A name with its number never ends in an ellipsis (H38, H41: the list always has the whole
+    /// number) and keeps 2 units of air before the row's words (a space is 2.8 to 3.0 in the
+    /// bundled fonts); what a row did holds every amount to 199 and every miss. Your own
+    /// "defeated &lt;name&gt;" is left out on purpose (H87): with the Herrerasaurus' name it may end in an ellipsis,
+    /// its number naming a creature your hit just removed, which the banner has named whole.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Themes))]
+    public void EveryNameAndEveryRowWithAnAmountFitsTheTurnListInEveryTheme(string id) => GamesLayoutTests.OnScreen(id, () =>
+    {
+        using var bench = new GamesBench(GameCatalog.All);
+        var window = bench.Window();
+        window.ShowGame(bench.Host.Games[0]);
+        var view = Assert.IsType<HatchlingView>(window.ViewOnScreen);
+        view.ShowLayoutState("run-apex");
+        GamesLayoutTests.LaidOut(window);
+
+        var row = (Grid)view.RunPage.TurnRows.Children[1];
+        var name = (TextBlock)row.Children[1];
+        var did = (TextBlock)row.Children[2];
+        Assert.Equal(RunPage.NameWidth, name.ActualWidth, 0.01);
+        Assert.Equal(138, did.ActualWidth, 0.01);
+
+        var problems = new List<string>();
+        void Fits(TextBlock block, string text, double air)
+        {
+            var width = NaturalWidth(block, text);
+            if (width + air > block.ActualWidth)
+                problems.Add($"\"{text}\" is {width:0.0} in {block.ActualWidth:0.0}");
+        }
+
+        // Names: every predator but the apex with every number to 99 (the apex is one a run and
+        // carries none), keeping each type's widest number for the "hit <name>" rows below.
+        var widest = new Dictionary<PredatorType, int>();
+        foreach (var type in Enum.GetValues<PredatorType>().Where(t => t != Tuning.Apex))
+        {
+            var best = 1;
+            var bestWidth = 0.0;
+            for (var n = 1; n <= 99; n++)
+            {
+                var text = HatchlingText.Name(type, n);
+                Fits(name, text, 2);
+                var width = NaturalWidth(name, text);
+                if (width > bestWidth) (best, bestWidth) = (n, width);
+            }
+            widest[type] = best;
+        }
+        Fits(name, HatchlingText.Name(Tuning.Apex, 1), 2);
+
+        // Rows with an amount, 1 to 199.
+        for (var n = 1; n <= 199; n++)
+        {
+            Fits(did, HatchlingText.ItBit(n), 0);
+            Fits(did, HatchlingText.Joined(HatchlingText.ItSpotted, HatchlingText.ItBit(n)), 0);
+            Fits(did, HatchlingText.Joined(HatchlingText.ItHeard, HatchlingText.ItBit(n)), 0);
+            Fits(did, HatchlingText.Joined(HatchlingText.ItBit(n), HatchlingText.ItDefeated), 0);
+            Fits(did, HatchlingText.DidHitGame(n), 0);
+            Fits(did, HatchlingText.DidHit(Tuning.Apex, 1, n), 0);
+            foreach (var (type, k) in widest)
+                Fits(did, HatchlingText.DidHit(type, k, n), 0);
+        }
+
+        // The misses.
+        Fits(did, HatchlingText.Joined(HatchlingText.ItSpotted, HatchlingText.ItMissed), 0);
+        Fits(did, HatchlingText.Joined(HatchlingText.ItHeard, HatchlingText.ItMissed), 0);
+        Fits(did, HatchlingText.Joined(HatchlingText.ItMissed, HatchlingText.ItDefeated), 0);
+
+        Assert.True(problems.Count == 0, $"{problems.Count} texts do not fit: " + string.Join("; ", problems.Distinct().Take(12)));
+    });
+
+    /// <summary>The width a text takes on one line in a block's own font: what it needs to show whole, trailing space included.</summary>
+    private static double NaturalWidth(TextBlock block, string text)
+    {
+        var typeface = new Typeface(block.FontFamily, block.FontStyle, block.FontWeight, block.FontStretch);
+        var formatted = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, block.FontSize, Brushes.White, 1.0);
+        return formatted.WidthIncludingTrailingWhitespace;
+    }
+
+    /// <summary>
     /// The first minute's hint is the lesson the context line is there for: whole in every theme,
     /// given a second line inside the turn bar's 30 where a font runs wide (never cut, as Camp's
     /// note, H82). A trimmed context line is still fine for what the mouse is over; this holds the

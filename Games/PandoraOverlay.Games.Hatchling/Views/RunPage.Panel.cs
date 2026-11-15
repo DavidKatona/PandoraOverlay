@@ -14,16 +14,19 @@ internal sealed partial class RunPage
     internal const double BarWidth = 132;
 
     /// <summary>
-    /// A turn list row's height, its marker's and its name's widths (H28, H80): the
-    /// widest name, "Herrerasaurus 11", is 88.5 in the widest font, so the name took
-    /// 90 and what the row did the rest (134), which holds "spotted you · bit you: 12"
-    /// in every theme. Task H16, the first time the list met a theme, found two more
-    /// in the widest font (Montserrat, 91.8 for "Herrerasaurus 10", whose zero is
-    /// wider than a one; 136.3 for "spotted you · missed you"), and the list's rows
-    /// now have 6 more units, from the card's right padding (4, the XAML says why):
-    /// the name is 94 (two units of air after the longest) and what the row did 136, the rest unchanged.
+    /// A turn list row's height, its marker's and its name's widths (H28, H80, H87): a row
+    /// is 16 high, its marker 10 ("▸" is 9.5 in the widest font), its name 98 and what it
+    /// did the rest, 138. The name holds every predator's name with any number to 99 and
+    /// a space after it: the widest is "Herrerasaurus 40", 95.1 in Isle's font
+    /// (Montserrat), whose digits are not one width ("Herrerasaurus 11" is 88.5,
+    /// "Herrerasaurus 10" 91.8), and a fighter's run passes 9 (H38). What the row did holds
+    /// every row with an amount to 199 (the widest, "hit Herrerasaurus 44: 100", is 136.6
+    /// there) and "spotted you · missed you" (136.3); only your own "defeated &lt;name&gt;"
+    /// with the Herrerasaurus' name may end in an ellipsis there (138.8 to 147.1), its
+    /// number naming a creature your hit just removed, which the banner has named whole.
+    /// <c>HatchlingInTheWindowTests</c> measures all of it in every theme.
     /// </summary>
-    internal const double RowHeight = 16, MarkerWidth = 10, NameWidth = 94;
+    internal const double RowHeight = 16, MarkerWidth = 10, NameWidth = 98;
 
     /// <summary>A card of the offer (H27): 112 x 132, 8 apart.</summary>
     internal const double OfferCardWidth = 112, OfferCardHeight = 132, OfferCardGap = 8;
