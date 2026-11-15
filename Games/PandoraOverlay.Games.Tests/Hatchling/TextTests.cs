@@ -308,6 +308,14 @@ public class TextTests
         var text = GameSource.Files().Single(f => f.Path == "HatchlingText.cs").Text;
         var literals = StringLiterals(text).ToList();
         Assert.True(literals.Count > 150, $"only {literals.Count} literals found: the scan does not reach the strings");
+        // The scan reaches what it guards, the first constant to the file's last table. By
+        // name, so a rewording never breaks it; the achievements are the file's last player text.
+        Assert.Contains(HatchlingText.Title, literals);
+        foreach (var id in HatchlingText.AchievementIds)
+        {
+            Assert.Contains(HatchlingText.AchievementName(id), literals);
+            Assert.Contains(HatchlingText.AchievementText(id), literals);
+        }
         var bad = literals.Where(HoldsASalesWord).ToList();
         Assert.True(bad.Count == 0, "a word of sale in: " + string.Join(" | ", bad));
     }
@@ -325,6 +333,7 @@ public class TextTests
         Assert.Contains(StringLiterals("var s = \"Buy 10\";").ToList(), HoldsASalesWord);
         Assert.Contains(StringLiterals("var s = $\"x {(a ? \"Shop\" : \"b\")} y\";").ToList(), HoldsASalesWord);
         Assert.Contains(StringLiterals("var s = @\"say \"\"buy\"\"\";").ToList(), HoldsASalesWord);
+        Assert.Contains(StringLiterals("var s = \"line" + (char)92 + "nBuy 10\";").ToList(), HoldsASalesWord);   // var s = "line\nBuy 10";
 
         Assert.False(HoldsASalesWord("buoyant"));
         Assert.False(HoldsASalesWord("Bouyant"));
@@ -409,7 +418,7 @@ public class TextTests
                 i++;
                 break;
             }
-            if (!verbatim && c == (char)92 && i + 1 < s.Length) { text.Append(c).Append(s[i + 1]); i += 2; continue; }
+            if (!verbatim && c == (char)92 && i + 1 < s.Length) { text.Append(' '); i += 2; continue; }   // an escape is a gap: a word after \n is still a word
             if (interpolated && c == '{')
             {
                 if (i + 1 < s.Length && s[i + 1] == '{') { text.Append('{'); i += 2; continue; }

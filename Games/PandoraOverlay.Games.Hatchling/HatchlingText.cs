@@ -747,11 +747,11 @@ public static class HatchlingText
     public const string PaysCaption = "WHAT SERVER GROWTH PAYS";
 
     /// <summary>
-    /// The Journal's one sentence on freshness (H88): what a rested species pays and
-    /// where a species you keep growing settles, and nothing about it coming back.
-    /// The rule says nothing about freshness beyond the public post's "a species you
-    /// haven't grown in a while earns more", and "comes back by itself" invited
-    /// waiting, the shape of an energy meter (G4).
+    /// The Journal's note on freshness (H88): what a species you have not grown lately
+    /// pays, and the floor a species you keep growing falls toward; nothing about it
+    /// coming back. The game says nothing about freshness but what the public post says
+    /// ("a species you haven't grown in a while earns more", <c>Freshness</c>' rule), and
+    /// "comes back by itself" invited waiting, the shape of an energy meter (G4).
     /// </summary>
     public static readonly string PaysNote =
         $"A species you have not grown lately pays ×{OneDecimal(Tuning.FreshMax)}. One you keep growing falls toward ×{OneDecimal(Tuning.FreshFloor)}.";

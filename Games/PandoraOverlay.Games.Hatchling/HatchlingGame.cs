@@ -156,9 +156,9 @@ public sealed class HatchlingGame : IGame
     /// the reading made one, is paid by server play (H10, H18) and saved:
     /// <c>Now</c> when it did more than pay, else <c>Soon</c>. A species the table does
     /// not know is ignored (A23), and the first in-game reading of one (or of none)
-    /// per instance logs a single fact without its name (H89). Cheap: a reading that makes no step allocates
-    /// nothing and writes nothing, and raises <see cref="Changed"/> only when it
-    /// differs from the reading before.
+    /// per instance logs a single fact without its name (H89). Cheap: a reading that
+    /// makes no step allocates nothing and writes nothing, and raises
+    /// <see cref="Changed"/> only when it differs from the reading before.
     /// </summary>
     public void OnReading(DinoReading reading)
     {
