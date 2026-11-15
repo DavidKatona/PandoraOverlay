@@ -186,6 +186,10 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   `PandoraOverlay.sln` also carries **PandoraOverlay.Tests** (xUnit; `dotnet
   test`; CI runs it on every push). The app csproj globs the repo root, so the
   test subtree is `Compile Remove`d from it.
+- `PandoraOverlay.sln` also carries the games' projects, under `Games/`
+  (`PandoraOverlay.Games.Contract`, `.Engine`, one project per game, and
+  `PandoraOverlay.Games.Tests`, which builds and runs without the app). They add
+  no NuGet package. The app's csproj removes `Games\**` from its globs.
 - The working copy is LF (`.gitattributes` `eol=lf`; the solution file CRLF).
 - The site's access header gets into a build as `Assets/overlay-access.bin`,
   embedded when it exists. Release builds: the workflow runs
@@ -280,6 +284,17 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 - `Waypoints/`, `Friends/`, `Activity/`, `Prime/`, `Rules/`, `Skins/`,
   `Storage/` (Dino storage), `Account/` (the in-app sign-in), `Updates/` (the
   update card), `Settings/` (the paged dialog, one partial per page).
+- `GamesHost/` — the app's side of the games (Nov 2026, built on the branch
+  `games`): GamesWindow ("Games" to players, Ctrl+J), GamesFrame, GamesHost and
+  GameCatalog (the listed games), GameSaveStore (their saves, under
+  `%AppData%\PandoraOverlay\games`), GameGuard and GameFaults (a game that throws
+  is closed, not the overlay), HealthWatch (the window's health warning),
+  GamesGate and GamesKeys (the pure rules for what closes the window). Its
+  MainWindow part is `Shell/MainWindow.Games.cs`.
+- `Games/` — the games themselves, in projects of their own with their own
+  namespaces (`PandoraOverlay.Games…`, the one exception to the flat namespace,
+  G20): the Contract, the shared Engine, and one project per game (Hatchling, the
+  first). They cannot reference the app; see `.claude/rules/games.md`.
 - `Assets/` — `map.png`, `app.ico` (WPF Resources) and the embedded data
   (`rules.json`, `calibration.json`, `areas.png` + `areas.json`, `zones.json`;
   the CHANGELOG is embedded too, for the update card).
@@ -324,9 +339,13 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   (one `name:value` line, from a hidden prompt or the release secret) into the
   scrambled, git-ignored `Assets/overlay-access.bin`; it never prints the line
   (see constraint 4 and Stack & build).
+- `tools/games-art/` — the games' art generator (plain Node, no dependencies,
+  never run by a build): sprites are drawn from shapes by one engine and written
+  as atlases into each game's `Art/` folder, which is checked in and embedded.
 - `.claude/rules/` — conventions for writing new code in `Settings/`, the maps
-  (`Minimap/`, `BigMap/`, the area tool), `Shell/`, `Core/` and the themes
-  (`Themes/`, `Assets/Themes/`, `Assets/Fonts/`); each loads when a matching
+  (`Minimap/`, `BigMap/`, the area tool), `Shell/`, `Core/`, the themes
+  (`Themes/`, `Assets/Themes/`, `Assets/Fonts/`) and the games (`Games/`,
+  `GamesHost/`, `tools/games-art/`); each loads when a matching
   file is touched. `.claude/skills/release-pass/` — the release
   procedure (see Releases); `.claude/skills/patch-notes/` — the Discord post
   for a release (a short intro, then New / Changes / Fixes / Removed).
@@ -348,6 +367,12 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 - MainWindow owns whatever must outlive a widget being hidden: the config, the
   PollService, the waypoint library, the route, the friend book, the activity log
   and its feeds, the area journal, the trail, the map menu's actions.
+- The games are fed, never asking (Nov 2026): `MainWindow.OnSnapshot` hands
+  every successful poll to `GamesHost.Feed`, which gives each game four values
+  (in game, species, gender, growth), window open or not. A game → the Engine →
+  the Contract; the app → the Contract and each game; nothing under `Games/` can
+  see `PollService`, the client, the config or the session, and the games add no
+  request and no request trigger (constraints 1 to 4 stand as they are).
 
 ## Runtime expectations
 
@@ -374,6 +399,27 @@ The release history is CHANGELOG.md (player-facing; the update card shows it).
 
 **Never tested in a real session** (checked by tests or renders only, or not at
 all) — say so when it matters:
+- From the games (built Nov 2026 on the branch `games` by an unattended run; NOT
+  RELEASED, nothing pushed; the overlay was never started with them): everything
+  in game, by tests and off-screen renders only. The window over The Isle and its
+  keys (Ctrl+J, the cursor let go, Esc and J on their release with the game not
+  reacting); the focus rule and a click on the game closing it, and reopening
+  mid-run; the frame rate (the presenter alone was timed: 0.6 ms a frame at 100%
+  and 200%, 2.3 ms at 150%, not WPF's own composition over the game); pixel art at
+  fractional display scales (the arithmetic is tested, the placement is not); the
+  six themes (renders: the window and every Hatchling screen fit in each, and no
+  theme's `Fit` moved); the health warning (a pure rule; up to 15 s late after a
+  spawn (60 s after ten minutes not in game), since opening Games nudges no poll,
+  which constraint 2 leaves to the owner); saves across an update, Exit and a Windows shutdown (temp folders only,
+  the real data folder never written by a test); growth seen against a storage
+  swap (the rule, not the server's real growth); nothing seen moving (the walk,
+  a bite, a turn's pace); Hatchling's balance, which is a bot's: nobody has
+  played its rules by hand. Guards: 1857 tests in the app's project and 2193 in
+  the games' (4050, 0 failed); the golden renders: the minimap's identical in
+  every theme, the windows mode differing only on Settings › Hotkeys in every
+  theme (the new Games row; no baseline re-recorded), plus two one-off
+  differences that did not repeat (three pixels of About's render once, one
+  render step that failed once); CI's SDK 8 not run (SDK 9 here).
 - Dino storage's Delete (1.33; the owner kept their dino).
 - The map's own friends rule (tests only), weaker PCs, high DPI (1.34).
 - A PC without the WebView2 Runtime (1.31; the installer's fetch).
@@ -507,6 +553,14 @@ all) — say so when it matters:
   build session's driver, with the real pointer: 28 of 28, Nov 9); other PCs and
   display scales. The owner ran it in game on Nov 10, in Pandora with nobody on
   their dino: the empty Pack and the new control panel ("seems to work well").
+
+BUILT, NOT RELEASED (Nov 2026, the branch `games`): **games in the overlay**,
+for AFK growing: a Games window (Ctrl+J) with a grid of games, and the first,
+**Hatchling**, a turn-based roguelite that rewards growing every species on the
+server. The owner's decisions (G1 to G22), the plans, every decision made
+without him (A, H, R) and the report: `Desktop\Pandora Overlay Files\pandora-games\`.
+It waits for the owner's review and his check in game; no version, no CHANGELOG
+entry and no tag exist for it.
 
 SHIPPED in 1.44.0 (Nov 10 2026, after the pre-release 1.44.0-rc.1 on Nov 9; no
 fresh reviewer's read, the owner's call): **the Pack widget**, the stats of your
@@ -960,6 +1014,10 @@ The four-features brainstorm (Nov 2–3 2026)
 - No stock WPF chrome in any of our windows: every control kind has its own
   dark template (one set, `Themes/Controls.xaml`, since 1.39); icons are font
   glyphs (✕ ♂ ♀, text badges), not image files.
+- Game art may be image files (G21, the owner, Nov 2026): sprites and tiles are
+  data art, the same in every theme, like the map's data colours. The overlay's
+  own chrome keeps "icons are font glyphs", and every WORD a game shows is themed
+  text held by the fit factor.
 - User content (`waypoints.json`, `route.json`, `friends.json`) is kept apart from config and
   the cookie vault.
 - Player-facing text states only what the API shows: never "died" (a fresh life
