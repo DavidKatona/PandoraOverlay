@@ -855,4 +855,45 @@ public class HatchlingGameTests
             foreach (var species in SpeciesTable.All)
                 Assert.DoesNotContain(species.Name, line, StringComparison.OrdinalIgnoreCase);
     }
+
+    // ===== A species the table does not know (H89, N3) =======================================
+
+    private const string UnknownSpeciesFact = "a reading named a species not in the species table: its growth pays nothing (A23)";
+
+    /// <summary>The server may spell a species another way than the table does (never checked, N3): one fact, once, without the name (constraint 4).</summary>
+    [Fact]
+    public void ASpeciesTheTableDoesNotKnowIsLoggedOnceAndNeverByName()
+    {
+        var (game, host) = Attached();
+        var before = host.Collected.Lines.Count;
+        Feed(game, host, Reading("Utahraptor", 100));
+        Feed(game, host, Reading("Utahraptor", 101));
+        Feed(game, host, Reading("Utahraptor", 102));
+
+        var added = host.Collected.Lines.Skip(before).ToList();
+        Assert.Equal(new[] { UnknownSpeciesFact }, added);
+        Assert.DoesNotContain(host.Collected.Lines, l => l.Contains("Utahraptor", StringComparison.OrdinalIgnoreCase));
+
+        // A reading of a known species afterwards adds nothing, and the fact is not said again.
+        Feed(game, host, Reading("Deinosuchus", 200));
+        Feed(game, host, Reading("Utahraptor", 103));
+        Assert.Equal(1, host.Collected.Lines.Count(l => l == UnknownSpeciesFact));
+        Assert.Equal(before + 1, host.Collected.Lines.Count);
+    }
+
+    /// <summary>The fact is for an in-game reading of a species the table lacks, and nothing else: the table's own names (case aside, H36) and a reading out of game say nothing.</summary>
+    [Fact]
+    public void AKnownSpeciesOrNotInGameLogsNoSuchFact()
+    {
+        var (game, host) = Attached();
+        var before = host.Collected.Lines.Count;
+        Feed(game, host, Reading("Deinosuchus", 100));
+        Feed(game, host, Reading("deinosuchus", 101));
+        Feed(game, host, Reading("DEINOSUCHUS", 102));
+        Feed(game, host, DinoReading.NotInGame);
+        Feed(game, host, DinoReading.NotInGame);
+        Assert.DoesNotContain(host.Collected.Lines, l => l.Contains("species table", StringComparison.Ordinal));
+        Assert.DoesNotContain(UnknownSpeciesFact, host.Collected.Lines);
+        Assert.Equal(before, host.Collected.Lines.Count);
+    }
 }
