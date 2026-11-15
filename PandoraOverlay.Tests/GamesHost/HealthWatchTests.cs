@@ -249,8 +249,9 @@ public class HealthWatchTests
     }
 
     // The drain (A59): a poll that fell, two points or more under the life's
-    // highest reading of the last 120 s. Every stream below falls by less than
-    // the step at each poll, unless it says "a hit".
+    // highest reading of the last 120 s since health was last lower (A66).
+    // Every stream below falls by less than the step at each poll, unless it
+    // says "a hit".
 
     [Fact]
     public void TheStatsPanelsSteadyFallWarnsWithinHalfAMinute()
@@ -359,6 +360,71 @@ public class HealthWatchTests
         // a new trouble and warns (had a level poll counted, it would be the same
         // acknowledged trouble, and quiet).
         Assert.Equal(HealthNotice.Warn, watch.Update(P(0.84), At(33)));
+    }
+
+    [Fact]
+    public void AOneUnitDipWhileHealingAfterAHitIsNoDrain()
+    {
+        var watch = Watching(0.900);
+        Assert.Equal(HealthNotice.Warn, watch.Update(P(0.800), At(3)));    // a hit
+        watch.Acknowledge();
+
+        for (var k = 1; k <= 12; k++)
+        {
+            Assert.Equal(HealthNotice.None, watch.Update(P(Math.Round(0.800 + 0.001 * k, 3)), At(3 + 3 * k))); // healing: 0.801 at 6 s up to 0.812 at 39 s
+        }
+
+        // One unit lower while healing. A59's first build warned here: 0.900 at
+        // 0 s was 42 s old, inside the window, and the hit's trouble had ended at
+        // 33 s, so the dip started a new one. A66: every reading from the hit up
+        // to 0.810 is under 0.811 and restarts the peak, which is then the heal's
+        // own top, 0.812: one unit, no drain.
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.811), At(42)));
+        Assert.False(watch.TroubledAt(At(42)));
+    }
+
+    [Fact]
+    public void ADrainResumedAfterAHealCountsFromTheHealsTop()
+    {
+        var watch = Watching(0.800);
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.796), At(3)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.792), At(6)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.788), At(9)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.784), At(12)));
+        Assert.Equal(HealthNotice.Warn, watch.Update(P(0.780), At(15)));   // two points under 0.800: a drain
+        watch.Acknowledge();
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.776), At(18)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.772), At(21)));   // the drain's last fall, its low
+
+        // The heal, to a top of 0.796 at 39 s.
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.776), At(24)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.780), At(27)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.784), At(30)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.788), At(33)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.792), At(36)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.796), At(39)));
+
+        // Level; the trouble ends at 51 s, 30 s after its last fall at 21 s.
+        for (var t = 42; t <= 57; t += 3)
+        {
+            Assert.Equal(HealthNotice.None, watch.Update(P(0.796), At(t)));
+        }
+
+        // The drain resumes.
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.792), At(60)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.788), At(63)));
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.784), At(66)));
+
+        // A59's first build warned here, because 0.800 at 0 s is two points
+        // above. A66: the last reading under 0.780 is 0.776 at 24 s, which
+        // restarts the peak, and the highest since is the heal's top, 0.796:
+        // 0.016, no drain.
+        Assert.Equal(HealthNotice.None, watch.Update(P(0.780), At(69)));
+
+        // Two points under the heal's top, still above the earlier low of 0.772:
+        // a new trouble. The last reading under 0.776 is 0.772 at 21 s (the equal
+        // 0.776 at 24 s does not restart the peak), and the highest since is 0.796.
+        Assert.Equal(HealthNotice.Warn, watch.Update(P(0.776), At(72)));
     }
 
     [Fact]

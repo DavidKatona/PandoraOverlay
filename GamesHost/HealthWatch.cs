@@ -21,28 +21,31 @@ internal enum HealthNotice
 /// HIT: health at least <see cref="Step"/> lower than the last poll's. A
 /// DRAIN (A59): health lower than the last poll's by any amount AND at least
 /// <see cref="DrainFall"/> under the highest reading this life gave within the
-/// last <see cref="DrainWindow"/>. The drain exists because a hit alone never
-/// saw a starving, thirsty or bleeding dino: the stats panel's own
-/// HealthTracker reads that fall in game as "two or three units of the API's
-/// third decimal" a poll, under the step at every poll however far it goes.
-/// A poll that rose or stayed level is never a drain, so healing after a hit,
-/// still under the old peak, keeps nothing going; and a counted drain leaves
-/// the window as it is, so a steady drain stays a drop at every poll that
-/// falls (one that falls faster than a point a minute falls at least once
-/// every 6 s even in three decimals, well inside <see cref="Quiet"/>) and its
-/// trouble ends 30 s after its last fall, never flapping on and off. A fall
-/// slower than one point a minute (over 100 minutes a bar) is not caught: the
-/// 120 s window holds under 2 points of it, give or take the API's rounding of
-/// its last digit. A drop of either kind starts TROUBLE, which ends once
-/// <see cref="Quiet"/> passes with no drop. The first drop of a trouble warns;
-/// so does every drop while the warning is not acknowledged (it may have been
-/// raised with the window closed). "Keep playing", or closing the window,
-/// acknowledges it for the rest of that trouble (<see cref="Acknowledge"/>),
-/// with one exception: health crossing DOWN into a lower quarter than it was
-/// in when acknowledged warns again (the bar's quarters,
-/// <see cref="BarStates.Of"/>: 75, 50, 25), and the acknowledgement is then
-/// withdrawn. Rising health never warns. At 3-second polls a warning can be up
-/// to a poll late; it says nothing the API doesn't (never who or what).
+/// last <see cref="DrainWindow"/> since health was last lower than this poll's
+/// (A66: a fall already won back is not counted again). The drain exists
+/// because a hit alone never saw a starving, thirsty or bleeding dino: the
+/// stats panel's own HealthTracker reads that fall in game as "two or three
+/// units of the API's third decimal" a poll, under the step at every poll
+/// however far it goes. A poll that rose or stayed level is never a drain, and
+/// a dip while health heals is measured from the heal's own top, so healing
+/// after a hit or a drain, still under the old peak, keeps nothing going; and
+/// a counted drain leaves the window as it is, so a steady drain stays a drop
+/// at every poll that falls (one that falls faster than a point a minute falls
+/// at least once every 6 s even in three decimals, well inside
+/// <see cref="Quiet"/>) and its trouble ends 30 s after its last fall, never
+/// flapping on and off. A fall slower than one point a minute (over 100
+/// minutes a bar) is not caught: the 120 s window holds under 2 points of it,
+/// give or take the API's rounding of its last digit. A drop of either kind
+/// starts TROUBLE, which ends once <see cref="Quiet"/> passes with no drop.
+/// The first drop of a trouble warns; so does every drop while the warning is
+/// not acknowledged (it may have been raised with the window closed). "Keep
+/// playing", or closing the window, acknowledges it for the rest of that
+/// trouble (<see cref="Acknowledge"/>), with one exception: health crossing
+/// DOWN into a lower quarter than it was in when acknowledged warns again (the
+/// bar's quarters, <see cref="BarStates.Of"/>: 75, 50, 25), and the
+/// acknowledgement is then withdrawn. Rising health never warns. At 3-second
+/// polls a warning can be up to a poll late; it says nothing the API doesn't
+/// (never who or what).
 /// </para>
 /// <para>
 /// A LIFE is the identity the overlay uses everywhere (DamageTracker,
@@ -181,9 +184,13 @@ internal sealed class HealthWatch
     }
 
     /// <summary>
-    /// A drain (A59): this poll fell (by any amount) and lies at least
-    /// <see cref="DrainFall"/> under the highest reading the window kept. A poll
-    /// that rose or stayed level is never one, however far under the peak.
+    /// A drain (A59, A66): this poll fell (by any amount) and lies at least
+    /// <see cref="DrainFall"/> under the highest reading the window kept since
+    /// health was last lower than this poll: walking the window oldest first, a
+    /// reading under this poll's health restarts the peak, so a fall already won
+    /// back (a hit, or a drain, then a heal) is not counted again, and a dip while
+    /// health heals is measured from the heal's own top. A poll that rose or stayed
+    /// level is never one, however far under the peak.
     /// Walked with the queue's struct enumerator: nothing allocated per poll.
     /// A NaN (never seen from the API) is never a peak and never a drain, as it
     /// is never a hit.
@@ -194,7 +201,8 @@ internal sealed class HealthWatch
         var peak = double.NegativeInfinity; // an empty window has no peak: no drain
         foreach (var reading in _recent)
         {
-            if (reading.Health > peak) peak = reading.Health;
+            if (reading.Health < health - Slack) peak = double.NegativeInfinity; // lower since: what came before was won back (A66)
+            else if (reading.Health > peak) peak = reading.Health;
         }
         return peak - health >= DrainFall - Slack;
     }
