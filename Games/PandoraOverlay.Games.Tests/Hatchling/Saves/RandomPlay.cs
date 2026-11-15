@@ -24,19 +24,43 @@ internal static class RandomPlay
     /// <summary>The species an afflicting career plays, one for each perk that afflicts: Headbutt's daze, Venom's slow, Bleeder's bleed.</summary>
     private static readonly string[] Afflicters = { "Pachycephalosaurus", "Troodon", "Allosaurus" };
 
+    /// <summary>How many sets of dice a career is played on before it gives up on its phase.</summary>
+    private const int Attempts = 25;
+
     /// <summary>
     /// Career <paramref name="index"/>: a fresh save at its own moment (so its own
     /// seeds, H25), a stretch of server play and purchases, then a run played toward
-    /// <see cref="PhaseOf"/>(index). A phase is aimed at, not promised: a run can end
-    /// first, and the tests count the phases the careers reached.
-    /// <para>One nudge, for the apex: a run that has not reached Elder after its
-    /// stretch of play has its growth set to 99%, fed and watered, and is played on
-    /// until the apex comes. A random player rarely grows a run to Elder; the apex's
-    /// arrival and everything after it are still the rules'.</para>
+    /// <see cref="PhaseOf"/>(index).
+    /// <para><b>The phase whatever the balance (H74).</b> The save's tests must not lean
+    /// on the balance: with the tuned threats of task H09 no random career lived to the
+    /// apex, and a test failed that had nothing to do with saving. So a career whose run
+    /// ended before it reached its phase is played again on other dice (the first set
+    /// is the one it always had), up to <see cref="Attempts"/> times; and the two phases
+    /// a random player reaches only by growing, an offer open and the apex about, are
+    /// brought about at the run's start, before any play: its growth set just under the
+    /// line that makes them (Juvenile's for the offer, Elder's for the apex), fed,
+    /// watered and whole (<see cref="Nudged"/>). From there everything is the rules':
+    /// the line crossed, the offer drawn, the apex's arrival.</para>
+    /// <para>After every attempt the career may still miss its phase (the test then
+    /// names the phase no career reached): that would take a balance in which no set of
+    /// twenty-five dice lives through a few turns.</para>
     /// </summary>
     public static GameState Career(int index)
     {
-        var dice = new Rng(Rng.Mix((uint)index, 0xB0A7));
+        var aim = PhaseOf(index);
+        GameState? state = null;
+        for (var attempt = 0u; attempt < Attempts; attempt++)
+        {
+            state = Attempt(index, attempt);
+            if (PhasesOf(state).Contains(aim)) return state;
+        }
+        return state!;
+    }
+
+    /// <summary>One play of career <paramref name="index"/> on its <paramref name="attempt"/>-th set of dice (the 0th is the career's own).</summary>
+    private static GameState Attempt(int index, uint attempt)
+    {
+        var dice = new Rng(Rng.Mix((uint)index, 0xB0A7u + attempt));
         var state = GameState.Fresh(SaveSamples.Moment.AddMinutes(37 * index));
         for (var k = 0; k < 40; k++) state = ServerStep(state, dice);
         for (var k = 0; k < 8; k++)
@@ -69,11 +93,34 @@ internal static class RandomPlay
         {
             Phase.TurnZero => state,
             Phase.MidRun => PlayUntil(state, dice, _ => false, 5 + dice.Next(55)),
-            Phase.OfferOpen => PlayUntil(state, dice, s => s.Run?.Offer is not null && s.Run.Over is null, 300),
+            Phase.OfferOpen => PlayUntil(Nudged(state, JustUnderJuvenile), dice, s => s.Run?.Offer is not null && s.Run.Over is null, 300),
             Phase.Afflicted => PlayUntil(state, dice, s => Afflicted(s) || s.Run?.Over is not null, 400, aggressive: true),
-            Phase.Apex => ApexAbout(state, dice),
+            Phase.Apex => PlayUntil(Nudged(state, JustUnderElder), dice, s => s.Run!.ApexAt != Tuning.ApexNotYet, 40),
             _ => PlayUntil(state, dice, s => s.Run?.Over is not null, 600),
         };
+    }
+
+    /// <summary>One point under the Juvenile line (a turn's growing is 1.4 or more): the next growing turn crosses it and owes an offer (H14).</summary>
+    private static readonly double JustUnderJuvenile = Tuning.StageLines[0] - 1;
+
+    /// <summary>One point under full growth: the next growing turn reaches Elder, and the apex comes.</summary>
+    private static readonly double JustUnderElder = Tuning.StageLines[^1] - 1;
+
+    /// <summary>
+    /// A run at its start brought about (H74): grown to <paramref name="growth"/>
+    /// (never below what it is), fed, watered and whole, in a copy. A line it was set
+    /// past owes no pick: the rules owe one only for a line a turn crosses.
+    /// </summary>
+    private static GameState Nudged(GameState state, double growth)
+    {
+        var copy = state.Clone();
+        var you = copy.Run!.You;
+        you.Growth = Math.Max(you.Growth, growth);
+        you.Best = Math.Max(you.Best, you.Growth);
+        you.Food = 90;
+        you.Water = 90;
+        you.Health = 1;
+        return copy;
     }
 
     /// <summary>The phase career <paramref name="index"/> aims at.</summary>
@@ -152,27 +199,15 @@ internal static class RandomPlay
         return state;
     }
 
-    /// <summary>Played a while; then, still under Elder, nudged to 99% grown and played on until the apex has come.</summary>
-    private static GameState ApexAbout(GameState state, Rng dice)
-    {
-        state = PlayUntil(state, dice, s => s.Run!.ApexAt != Tuning.ApexNotYet, 80);
-        if (state.Run is { Over: null, ApexAt: Tuning.ApexNotYet })
-        {
-            state = state.Clone();
-            var you = state.Run!.You;
-            you.Growth = Math.Max(you.Growth, 99);
-            you.Best = Math.Max(you.Best, you.Growth);
-            you.Food = 90;
-            you.Water = 90;
-            you.Health = 1;
-            state = PlayUntil(state, dice, s => s.Run!.ApexAt != Tuning.ApexNotYet, 40);
-        }
-        return state;
-    }
-
-    /// <summary>A predator on the island carries a daze, a slow or a bleed.</summary>
+    /// <summary>
+    /// A predator on the island carries a slow or a bleed, or a daze. A daze is spent at
+    /// the dazed one's next action, which is in the same turn's world phase, so a run
+    /// under way as it is saved shows it only by its lasting trace, the turn from which
+    /// it can be dazed again (<c>DazeFreeAt</c>); <c>Dazed</c> itself is seen only in a
+    /// run that ended before that action.
+    /// </summary>
     private static bool Afflicted(GameState state) =>
-        state.Run?.Creatures.Any(c => c.Dazed || c.Slowed > 0 || c.Bleed > 0) == true;
+        state.Run?.Creatures.Any(c => c.Dazed || c.DazeFreeAt > 0 || c.Slowed > 0 || c.Bleed > 0) == true;
 
     /// <summary>One action of the run, chosen and taken through the game's own step; a refused one leaves the state as it was.</summary>
     private static GameState RunStep(GameState state, Rng dice, bool aggressive)

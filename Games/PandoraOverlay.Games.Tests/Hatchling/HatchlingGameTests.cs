@@ -541,6 +541,42 @@ public class HatchlingGameTests
         Assert.Equal(0.2, second.State.Record("Maiasaura").Grown, 9);
     }
 
+    /// <summary>
+    /// A reading spelled in another case (H36): "TYRANNOSAURUS" and "tyrannosaurus"
+    /// pay exactly what "Tyrannosaurus" pays, crossing Adult unlocks it under the
+    /// table's spelling, the record is kept under that spelling, the last write reads
+    /// back equal to the state, and no fault is reported. The whole states are equal,
+    /// field for field, whatever the spelling.
+    /// </summary>
+    [Fact]
+    public void AReadingSpelledInAnotherCasePaysAsTheTablesSpelling()
+    {
+        GameState Streamed(string spelling, out FakeHost host)
+        {
+            (var game, host) = Attached();
+            for (var permille = 100; permille <= 800; permille++)
+                Feed(game, host, Reading(spelling, permille));
+            Assert.Empty(host.Faults);
+            var differences = Deep.Differences(game.State, LastWritten(host));
+            Assert.True(differences.Count == 0, Deep.Show(differences));
+            return game.State;
+        }
+
+        var table = Streamed("Tyrannosaurus", out var tableHost);
+        Assert.True(table.Wallet.Balance > 0);
+        Assert.Contains("Tyrannosaurus", table.Unlocked);
+        Assert.Equal(1, table.Record("Tyrannosaurus").Adults);
+        foreach (var spelling in new[] { "TYRANNOSAURUS", "tyrannosaurus" })
+        {
+            var other = Streamed(spelling, out var otherHost);
+            var differences = Deep.Differences(table, other);
+            Assert.True(differences.Count == 0, $"{spelling}:\n" + Deep.Show(differences));
+            Assert.Equal(new[] { "Tyrannosaurus" }, other.Species.Keys);
+            Assert.DoesNotContain(spelling, other.Unlocked);
+            Assert.Equal(tableHost.Memory.Writes.Select(w => w.Urgency), otherHost.Memory.Writes.Select(w => w.Urgency));
+        }
+    }
+
     [Fact]
     public void ASpeciesTheGameDoesNotKnowCostsNothing()
     {
