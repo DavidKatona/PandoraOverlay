@@ -1,4 +1,5 @@
 using PandoraOverlay.Games;
+using PandoraOverlay.Games.Hatchling;
 
 namespace PandoraOverlay;
 
@@ -29,8 +30,9 @@ internal sealed record GameEntry(string Id, Func<IGame> Create);
 /// shape are the game's business, reached through the Contract alone.
 /// </para>
 /// <para>
-/// Empty until the first game is listed (G19: the library exists from day
-/// one, even with nothing in it). A line has this shape:
+/// Hatchling is the first (G7) and so the first cell (G19: the library
+/// existed from day one, with nothing in it, and a host over an empty catalog
+/// still plays nothing and asks nothing). A line has this shape:
 /// <c>new("hatchling", () =&gt; new HatchlingGame()),</c>
 /// </para>
 /// </summary>
@@ -38,5 +40,6 @@ internal static class GameCatalog
 {
     public static IReadOnlyList<GameEntry> All { get; } = new GameEntry[]
     {
+        new("hatchling", () => new HatchlingGame()),
     };
 }

@@ -16,7 +16,15 @@
     <!-- The turn bar, 12, 40, 508 x 30: the banner, the context line, Fast. The
          banner may take 430 (H80): its longest sentence, a spikes hurt that
          defeats, is 399 in the widest font; the context line takes what is left,
-         which during a playback is only the line that a click skips. -->
+         which during a playback is only the line that a click skips. The context
+         line may take a second line inside the bar's 30 (task H16, the first
+         time the page met a theme): the first minute's hint is 399.7 wide in
+         Isle's font in 374.9, and a hint is the lesson it is there for, so, as
+         Camp's note (H82), it is given room and never cut; what the mouse is over
+         is longer still ("Sprint here · noise 5 · Herrerasaurus 11 · hunting you
+         · 3 hexes · click to attack") in every font. Two lines of the tallest body
+         font are 29 units; the bar never changes size. -->
+
     <Grid x:Name="TurnBar" Margin="12,6,0,0" Width="508" Height="30"
           HorizontalAlignment="Left" VerticalAlignment="Top">
         <Grid.ColumnDefinitions>
@@ -30,7 +38,7 @@
                    FontSize="{DynamicResource Theme.Size.14}"
                    FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
         <TextBlock x:Name="Context" Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center"
-                   TextTrimming="CharacterEllipsis"
+                   TextWrapping="Wrap" MaxHeight="30" TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource Theme.Text.Dim}"
                    FontSize="{DynamicResource Theme.Size.11}"/>
         <CheckBox x:Name="FastBox" Focusable="False" Grid.Column="2" VerticalAlignment="Center"
@@ -281,12 +289,15 @@
         </Grid>
 
         <!-- The turn list (H2, H28): a card, its caption row, then eleven rows of 16 made in code. -->
-        <Border Grid.Row="4" Padding="10,6" BorderThickness="1"
+        <!-- Its right padding is 4, not the left's 10 (task H16, with
+             RunPage.NameWidth): the rows are 6 wider, and the caption row
+             below takes the 6 back so that "turn 48" keeps its edge. -->
+        <Border Grid.Row="4" Padding="10,6,4,6" BorderThickness="1"
                 Background="{DynamicResource Theme.Card.Surface}"
                 BorderBrush="{DynamicResource Theme.Card.Line}"
                 CornerRadius="{DynamicResource Theme.Corner.Card}">
             <StackPanel>
-                <Grid Height="16">
+                <Grid Height="16" Margin="0,0,6,0">
                     <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0" TextTrimming="CharacterEllipsis"
                                Style="{DynamicResource SectionCaption}"
                                Text="{x:Static h:HatchlingText.TurnOrder}"/>

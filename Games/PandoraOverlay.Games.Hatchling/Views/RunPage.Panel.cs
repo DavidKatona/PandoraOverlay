@@ -15,11 +15,15 @@ internal sealed partial class RunPage
 
     /// <summary>
     /// A turn list row's height, its marker's and its name's widths (H28, H80): the
-    /// widest name, "Herrerasaurus 11", is 88.5 in the widest font, so the name takes
+    /// widest name, "Herrerasaurus 11", is 88.5 in the widest font, so the name took
     /// 90 and what the row did the rest (134), which holds "spotted you · bit you: 12"
-    /// in every theme.
+    /// in every theme. Task H16, the first time the list met a theme, found two more
+    /// in the widest font (Montserrat, 91.8 for "Herrerasaurus 10", whose zero is
+    /// wider than a one; 136.3 for "spotted you · missed you"), and the list's rows
+    /// now have 6 more units, from the card's right padding (4, the XAML says why):
+    /// the name is 94 (two units of air after the longest) and what the row did 136, the rest unchanged.
     /// </summary>
-    internal const double RowHeight = 16, MarkerWidth = 10, NameWidth = 90;
+    internal const double RowHeight = 16, MarkerWidth = 10, NameWidth = 94;
 
     /// <summary>A card of the offer (H27): 112 x 132, 8 apart.</summary>
     internal const double OfferCardWidth = 112, OfferCardHeight = 132, OfferCardGap = 8;
