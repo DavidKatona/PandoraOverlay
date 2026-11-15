@@ -55,6 +55,7 @@
          the app through the games, and no app source names one of its
          types. -->
     <ProjectReference Include="Games\PandoraOverlay.Games.Contract\PandoraOverlay.Games.Contract.csproj" />
+    <ProjectReference Include="Games\PandoraOverlay.Games.Hatchling\PandoraOverlay.Games.Hatchling.csproj" />
   </ItemGroup>
 
   <ItemGroup>
