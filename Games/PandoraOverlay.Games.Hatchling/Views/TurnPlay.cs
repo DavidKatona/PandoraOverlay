@@ -67,6 +67,6 @@ internal sealed class TurnPlay
     /// </summary>
     public int Ticks { get; set; }
 
-    /// <summary>The scene's ambient frame flips every this many playback ticks (H55).</summary>
+    /// <summary>The scene's ambient frame flips every this many playback ticks (H55): a cue, not a beat's frame, so H93's slower table left it as it was.</summary>
     public const int RingPulseTicks = 8;
 }

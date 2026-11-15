@@ -33,7 +33,7 @@ namespace PandoraOverlay.Games.Hatchling;
 /// <para><b>Missing art (H30)</b>, asked of the book per action: a strike with no
 /// <c>strike</c> frames is the standing frame moved 4 pixels toward its target and
 /// back; a hurt with no <c>hurt</c> frame is the sprite drawn at opacity 120 twice, 2
-/// ticks each; a walk with no <c>walk</c> frames slides the standing one (the book
+/// art ticks each (4 beat ticks at Normal, H93); a walk with no <c>walk</c> frames slides the standing one (the book
 /// answers it). The numbers are drawn by the painter only when their digits exist;
 /// the banner carries them anyway.</para>
 /// </summary>
@@ -44,22 +44,32 @@ internal sealed partial class BeatStep : IStep
     internal const string Walk = "walk", Strike = "strike", Hurt = "hurt", Eat = "eat";
 
     /// <summary>
-    /// A strike's wind-up (<c>strike/0</c>, task H12's art): the ticks of a strike
-    /// before its blow lands. The hit's hurt and its number begin on this tick, never
-    /// during the wind-up (H75; the beat table's "(3)").
+    /// The art's tick for tick <paramref name="k"/> of a beat (H93): the art's frames,
+    /// and the view's own frame tables below, were timed for the first beat table, so
+    /// a beat <see cref="BeatTicks.Stretch"/> times as long asks them with its tick
+    /// divided by that. A walk's legs, a strike's two frames, the meal's frames, a
+    /// blink or a hop then slow with the beat, and at Fast show as they first did.
     /// </summary>
-    internal const int WindUpTicks = 3;
+    internal static int ArtTick(int k) => k / BeatTicks.Stretch;
 
     /// <summary>
-    /// A whole strike as the art draws it (H75): the wind-up's 3 and the blow's 6
-    /// (<c>strike/1</c>). The art does not loop it and would hold the blow for ever,
-    /// so the view puts the striker back on <c>stand</c> once these are over, also
-    /// where the beat goes on ("It bites", 10). A dodge (8) ends inside it.
+    /// A strike's wind-up (<c>strike/0</c>, task H12's art): the ticks of a strike
+    /// before its blow lands, 6: the art's 3, stretched (H93). The hit's hurt and its
+    /// number begin on this tick, never during the wind-up (H75; the beat table's "(6)").
     /// </summary>
-    internal const int StrikeTicks = 9;
+    internal const int WindUpTicks = 3 * BeatTicks.Stretch;
 
-    /// <summary>A hurt as the art draws it (H75): one frame for 4 ticks; then the view puts it back on <c>stand</c>.</summary>
-    internal const int HurtTicks = 4;
+    /// <summary>
+    /// A whole strike as the art draws it (H75), stretched (H93): the wind-up's 6 and
+    /// the blow's 12 (<c>strike/1</c>, the art's 6). The art does not loop it and would
+    /// hold the blow for ever, so the view puts the striker back on <c>stand</c> once
+    /// these are over, also where the beat goes on ("It bites", 20). A dodge (16) ends
+    /// inside it.
+    /// </summary>
+    internal const int StrikeTicks = 9 * BeatTicks.Stretch;
+
+    /// <summary>A hurt as the art draws it (H75), stretched (H93): one frame for 8 ticks (the art's 4); then the view puts it back on <c>stand</c>.</summary>
+    internal const int HurtTicks = 4 * BeatTicks.Stretch;
 
     /// <summary>
     /// How far the blow moves the striker toward its target's feet while
@@ -77,27 +87,28 @@ internal sealed partial class BeatStep : IStep
     /// <summary>
     /// A creature the player no longer knows fades out, whole, over this many last
     /// ticks of its own last beat of the turn (H77; the whole beat if it is shorter),
-    /// so it is seen leaving and nothing stays on the board that the rest will not draw.
+    /// so it is seen leaving and nothing stays on the board that the rest will not draw:
+    /// 6, the first 3 stretched (H93).
     /// </summary>
-    internal const int LeaveTicks = 3;
+    internal const int LeaveTicks = 3 * BeatTicks.Stretch;
 
-    /// <summary>How far a strike with no art leans toward its target, tick by tick over the wind-up: 4 pixels and back (H30).</summary>
+    /// <summary>How far a strike with no art leans toward its target, art tick by art tick over the wind-up (<see cref="ArtTick"/>): 4 pixels and back (H30).</summary>
     private static readonly int[] StrikeLean = { 2, 4, 2 };
 
-    /// <summary>A hurt with no art: opacity 120 on these ticks of the hurt, twice for 2 ticks each (H30).</summary>
+    /// <summary>A hurt with no art: opacity 120 on art ticks 0, 1, 4 and 5 of the hurt (<see cref="ArtTick"/>), twice for 2 art ticks each, 4 beat ticks at Normal (H30, H93).</summary>
     internal const byte HurtBlink = 120;
 
-    /// <summary>A dodge: your dino hops this far away from the biter and back, tick by tick, from the blow's first tick.</summary>
+    /// <summary>A dodge: your dino hops this far away from the biter and back, art tick by art tick (<see cref="ArtTick"/>), from the blow's first tick.</summary>
     private static readonly int[] DodgeHop = { 1, 2, 2, 1, 0 };
 
-    /// <summary>Second wind: your ring flashes white on these ticks, three times (the beat's 12).</summary>
-    private static bool SecondWindFlash(int tick) => tick % 4 < 2 && tick < 12;
+    /// <summary>Second wind: your ring flashes white on these art ticks (<see cref="ArtTick"/>), three times over the art's 12 (the beat's 24, H93).</summary>
+    private static bool SecondWindFlash(int artTick) => artTick % 4 < 2 && artTick < 12;
 
-    /// <summary>A stage: your dino blinks out on these ticks, three times, and is its new size from the middle.</summary>
-    private static bool StageBlink(int tick) => tick is 2 or 3 or 8 or 9 or 14 or 15;
+    /// <summary>A stage: your dino blinks out on these art ticks (<see cref="ArtTick"/>), three times, and is its new size from the middle.</summary>
+    private static bool StageBlink(int artTick) => artTick is 2 or 3 or 8 or 9 or 14 or 15;
 
-    /// <summary>The tick of a stage beat from which your dino is drawn at its new size.</summary>
-    internal const int StageSwitchTick = 10;
+    /// <summary>The tick of a stage beat from which your dino is drawn at its new size: 20 of its 40, the art's 10 stretched (H93).</summary>
+    internal const int StageSwitchTick = 10 * BeatTicks.Stretch;
 
     /// <summary>A rising number starts this far above the feet of the one it concerns, to its top row (H54)...</summary>
     internal const int NumberStartAbove = 22;
@@ -257,7 +268,7 @@ internal sealed partial class BeatStep : IStep
                 if (_actor is not null)
                 {
                     _actor.Action = end ? ArtNames.Stand : Eat;
-                    _actor.Tick = end ? 0 : k;
+                    _actor.Tick = end ? 0 : ArtTick(k);
                 }
                 Slide(k, t);
                 Rise(k);
@@ -303,7 +314,7 @@ internal sealed partial class BeatStep : IStep
                 break;
 
             case BeatKind.SecondWind:
-                if (_other is not null) _other.Ring = !end && SecondWindFlash(k) ? Ring.Acting : Ring.You;
+                if (_other is not null) _other.Ring = !end && SecondWindFlash(ArtTick(k)) ? Ring.Acting : Ring.You;
                 if (_actor is not null) _actor.Ring = end ? _ringEnd : _ringDuring;
                 Slide(k, 1);   // health is set at once: the blow left you at a quarter
                 break;
@@ -339,7 +350,7 @@ internal sealed partial class BeatStep : IStep
                 if (_other is not null)
                 {
                     _other.Subject = k >= StageSwitchTick ? _subjectTo : _subjectFrom;
-                    _other.Opacity = !end && StageBlink(k) ? (byte)0 : (byte)255;
+                    _other.Opacity = !end && StageBlink(ArtTick(k)) ? (byte)0 : (byte)255;
                 }
                 break;
 
@@ -371,11 +382,11 @@ internal sealed partial class BeatStep : IStep
     }
 
     /// <summary>
-    /// Your hit (or Thagomizer's sweep): your <c>strike</c> toward it on ticks 0 to 8,
-    /// the blow moving you toward it from tick 3 (H75); its <c>hurt</c> on the 4 ticks
-    /// from the one the blow lands (3; a swept one's from 0) and its number from that
-    /// tick; a defeat fades it out (after its hurt's 6 for your main hit, in its last
-    /// third for a swept one) and its meat appears.
+    /// Your hit (or Thagomizer's sweep): your <c>strike</c> toward it on ticks 0 to 17,
+    /// the blow moving you toward it from tick 6 (H75, stretched by H93); its <c>hurt</c>
+    /// on the 8 ticks from the one the blow lands (6; a swept one's from 0) and its
+    /// number from that tick; a defeat fades it out (after its hurt's 12 for your main
+    /// hit, in its last third for a swept one) and its meat appears.
     /// </summary>
     private void ShowStrike(int k, bool end, bool strikes)
     {
@@ -392,11 +403,11 @@ internal sealed partial class BeatStep : IStep
             {
                 var hk = k - hurtFrom;
                 // A swept one that falls fades in its hurt's last third; your main hit's
-                // target fades after its hurt, over the table's 6 more.
+                // target fades after its hurt, over the table's 12 more.
                 if (hk < hurtLength) HurtAt(_other, hk, hurtLength, end: false, fadesOut: !strikes && _fadesOut);
                 else
                 {
-                    // A hit that defeats: it fades over the rest of the beat (the table's 6 more).
+                    // A hit that defeats: it fades over the rest of the beat (the table's 12 more).
                     _other.Action = ArtNames.Stand;
                     _other.Tick = 0;
                     _other.Opacity = Fade(255, 0, hk - hurtLength, _beat.Ticks - hurtFrom - hurtLength);
@@ -416,10 +427,11 @@ internal sealed partial class BeatStep : IStep
     }
 
     /// <summary>
-    /// A predator's bite on you, or the miss you dodged (H75): its <c>strike</c> toward
-    /// you on ticks 0 to 8 (to the beat's end in a dodge), the blow moving it toward
-    /// you from tick 3; then your <c>hurt</c> on ticks 3 to 6, the number and the
-    /// health bar from tick 3; or, dodged, your hop away from it on the blow's ticks.
+    /// A predator's bite on you, or the miss you dodged (H75, stretched by H93): its
+    /// <c>strike</c> toward you on ticks 0 to 17 (to the beat's end in a dodge), the
+    /// blow moving it toward you from tick 6; then your <c>hurt</c> on ticks 6 to 13,
+    /// the number and the health bar from tick 6; or, dodged, your hop away from it on
+    /// the blow's ticks.
     /// </summary>
     private void ShowBite(int k, bool end, bool dodged)
     {
@@ -433,7 +445,7 @@ internal sealed partial class BeatStep : IStep
             var after = k - WindUpTicks;
             if (dodged)
             {
-                var hop = !end && after >= 0 && after < DodgeHop.Length ? DodgeHop[after] : 0;
+                var hop = !end && after >= 0 && ArtTick(after) < DodgeHop.Length ? DodgeHop[ArtTick(after)] : 0;
                 _other.X = _otherX + (_actorFeet.X <= _otherX ? hop : -hop);
             }
             else
@@ -459,8 +471,9 @@ internal sealed partial class BeatStep : IStep
     /// <summary>
     /// A walk along <paramref name="cells"/> at tick <paramref name="k"/> of
     /// <paramref name="t"/>: cell by cell, the feet in a straight line from one cell's
-    /// feet to the next's, the <c>walk</c> frames asked with the tick of the WHOLE walk
-    /// (H60: never from 0 again at a cell), facing the way it steps; at the end it
+    /// feet to the next's, the <c>walk</c> frames asked with the art tick of the WHOLE
+    /// walk (H60: never from 0 again at a cell; <see cref="ArtTick"/>, H93: the legs
+    /// slow with the walk), facing the way it steps; at the end it
     /// stands on the last cell. Its row is the one it walks into, and the scene is
     /// sorted when that changes.
     /// </summary>
@@ -488,7 +501,7 @@ internal sealed partial class BeatStep : IStep
             sprite.Y = ay + (by - ay) * within / perCell;
             row = Island.Grid.Row(cells[segment + 1]);
             sprite.Action = Walk;
-            sprite.Tick = k;
+            sprite.Tick = ArtTick(k);
             sprite.Flip = FacingAlong(cells, segment, flipFrom);
         }
         if (sprite.Row != row)
@@ -518,7 +531,7 @@ internal sealed partial class BeatStep : IStep
 
     /// <summary>
     /// The striker at tick <paramref name="k"/> of its beat, facing its target from
-    /// tick 0 (H75). With the art: <c>strike</c> with the tick since it began, for
+    /// tick 0 (H75). With the art: <c>strike</c> with the art tick since it began, for
     /// <see cref="StrikeTicks"/> or to the beat's end if that comes first (a dodge);
     /// while the blow shows (from <see cref="WindUpTicks"/>) it stands
     /// <see cref="Blow"/> away from its feet toward its target, its ring, marks and
@@ -537,7 +550,7 @@ internal sealed partial class BeatStep : IStep
         {
             if (k >= Math.Min(StrikeTicks, _beat.Ticks)) return;
             sprite.Action = Strike;
-            sprite.Tick = k;
+            sprite.Tick = ArtTick(k);
             if (k >= WindUpTicks)
             {
                 var (dx, dy) = Blow(_actorFeet, _targetFeet, _flipEnd);
@@ -547,7 +560,7 @@ internal sealed partial class BeatStep : IStep
         }
         else if (k < WindUpTicks)
         {
-            sprite.X += _flipEnd ? -StrikeLean[k] : StrikeLean[k];
+            sprite.X += _flipEnd ? -StrikeLean[ArtTick(k)] : StrikeLean[ArtTick(k)];
         }
     }
 
@@ -567,7 +580,7 @@ internal sealed partial class BeatStep : IStep
 
     /// <summary>
     /// A hurt at tick <paramref name="k"/> of the <paramref name="length"/> ticks it is
-    /// given: the art's <c>hurt</c> frame on its first <see cref="HurtTicks"/>, then
+    /// given: the art's <c>hurt</c> frame on its first <see cref="HurtTicks"/> (asked with the art tick), then
     /// standing (H75: the art holds its frame for ever, so the view ends it); or, with
     /// no <c>hurt</c> frame, two blinks at opacity 120 (H30). A defeat fades out over
     /// the length's last third.
@@ -584,9 +597,9 @@ internal sealed partial class BeatStep : IStep
         var drawn = Drawn(sprite.Subject, Hurt);
         var hurts = drawn && k < HurtTicks;
         sprite.Action = hurts ? Hurt : ArtNames.Stand;
-        sprite.Tick = hurts ? k : 0;
+        sprite.Tick = hurts ? ArtTick(k) : 0;
         byte opacity = 255;
-        if (!drawn && (k is 0 or 1 || k == 4 || k == 5)) opacity = HurtBlink;
+        if (!drawn && ArtTick(k) is 0 or 1 or 4 or 5) opacity = HurtBlink;
         if (fadesOut)
         {
             var fadeFrom = length - length / 3;

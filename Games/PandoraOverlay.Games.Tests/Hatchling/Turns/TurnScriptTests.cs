@@ -66,20 +66,20 @@ public class TurnScriptTests
         var script = BriefScript();
         var expected = new (BeatKind Kind, BeatActor Actor, int Creature, int Ticks, string Banner, int Row)[]
         {
-            (BeatKind.YouWalk, BeatActor.You, 0, 5, "You walk", 0),
-            (BeatKind.Gap, BeatActor.World, 0, 3, "You walk", -1),
-            (BeatKind.Focus, BeatActor.Creature, HerreraId, 3, "Herrerasaurus spots you", 1),
-            (BeatKind.Notices, BeatActor.Creature, HerreraId, 5, "Herrerasaurus spots you", 1),
-            (BeatKind.Steps, BeatActor.Creature, HerreraId, 8, "Herrerasaurus hunts you", 1),
-            (BeatKind.Bites, BeatActor.Creature, HerreraId, 10, "Herrerasaurus bites you: 12", 1),
-            (BeatKind.Gap, BeatActor.World, 0, 3, "Herrerasaurus bites you: 12", -1),
-            (BeatKind.Focus, BeatActor.Creature, TroodonId, 3, "Troodon waits", 2),
-            (BeatKind.Stays, BeatActor.Creature, TroodonId, 2, "Troodon waits", 2),
-            (BeatKind.Gap, BeatActor.World, 0, 3, "Troodon waits", -1),
-            (BeatKind.SmallGame, BeatActor.SmallGame, 0, 5, "Small game scatters", 3),
-            (BeatKind.Gap, BeatActor.World, 0, 3, "Small game scatters", -1),
-            (BeatKind.Unseen, BeatActor.Unseen, 0, 3, "Out of sight: quiet", 4),
-            (BeatKind.TimePasses, BeatActor.World, 0, 4, "Time passes", -1),
+            (BeatKind.YouWalk, BeatActor.You, 0, 10, "You walk", 0),
+            (BeatKind.Gap, BeatActor.World, 0, 15, "You walk", -1),
+            (BeatKind.Focus, BeatActor.Creature, HerreraId, 15, "Herrerasaurus spots you", 1),
+            (BeatKind.Notices, BeatActor.Creature, HerreraId, 12, "Herrerasaurus spots you", 1),
+            (BeatKind.Steps, BeatActor.Creature, HerreraId, 16, "Herrerasaurus hunts you", 1),
+            (BeatKind.Bites, BeatActor.Creature, HerreraId, 20, "Herrerasaurus bites you: 12", 1),
+            (BeatKind.Gap, BeatActor.World, 0, 15, "Herrerasaurus bites you: 12", -1),
+            (BeatKind.Focus, BeatActor.Creature, TroodonId, 15, "Troodon waits", 2),
+            (BeatKind.Stays, BeatActor.Creature, TroodonId, 4, "Troodon waits", 2),
+            (BeatKind.Gap, BeatActor.World, 0, 15, "Troodon waits", -1),
+            (BeatKind.SmallGame, BeatActor.SmallGame, 0, 10, "Small game scatters", 3),
+            (BeatKind.Gap, BeatActor.World, 0, 15, "Small game scatters", -1),
+            (BeatKind.Unseen, BeatActor.Unseen, 0, 6, "Out of sight: quiet", 4),
+            (BeatKind.TimePasses, BeatActor.World, 0, 8, "Time passes", -1),
         };
         Assert.Equal(expected, script.Beats.Select(b => (b.Kind, b.Actor, b.Creature, b.Ticks, b.Banner, b.RowIndex)).ToArray());
         Assert.Equal(expected.Sum(e => e.Ticks), script.TotalTicks);
@@ -721,9 +721,9 @@ public class TurnScriptTests
     {
         var (script, predators) = Worst();
         AssertBounded(script);
-        Assert.Equal(15, One(script, BeatKind.YouWalk).Ticks);
+        Assert.Equal(30, One(script, BeatKind.YouWalk).Ticks);
         Assert.Equal(predators, script.Beats.Count(b => b.Kind == BeatKind.Focus));
-        Assert.All(script.Beats.Where(b => b.Kind == BeatKind.Steps), b => Assert.Equal(8, b.Ticks));
+        Assert.All(script.Beats.Where(b => b.Kind == BeatKind.Steps), b => Assert.Equal(16, b.Ticks));
         // Far under the engine's limit for one queued step, beat by beat.
         Assert.True(script.Beats.Max(b => b.Ticks) < 300);
         Assert.Equal(new[] { BeatKind.Stage, BeatKind.End }, script.Beats.TakeLast(2).Select(b => b.Kind));

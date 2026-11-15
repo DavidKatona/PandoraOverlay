@@ -96,65 +96,86 @@ internal sealed record Beat(BeatKind Kind, BeatActor Actor, int Creature, int Ti
 /// <summary>
 /// How long each beat lasts, in the engine's ticks at speed 1 (30 a second; Fast
 /// plays at speed 2, H5): the beat table's numbers, each with its one home here.
-/// Brisk on purpose: a turn with nothing known nearby is about half a second, a
-/// turn with two hunters that both bite about two and a half.
+///
+/// <para><b>The enemies' time</b> (H93, the owner's call of Nov 15 2026, amending H5's
+/// paces: "emphasise the enemies"). The first table was brisk, and the owner found it
+/// too quick to follow the hunters. Every beat is now <see cref="Stretch"/> times its
+/// first length, so a beat keeps its inner proportions (a strike's wind-up, then its
+/// blow; a bite's frames, then your hurt), and the view slows every frame it shows
+/// inside a beat by the same factor (<c>BeatStep.ArtTick</c>); but a predator's
+/// <see cref="Focus"/> and the <see cref="Gap"/> between two actors are half a second
+/// each, and <see cref="Notices"/> long enough to read, so each hunter is singled out
+/// before it acts and two actors are plainly apart. A quiet turn (a walk, a gap, out
+/// of sight, time) is 39 ticks, 1.3 s at Normal; a turn with two hunters that both
+/// spot you, step twice and bite, 195, 6.5 s. Fast, speed 2 over this table, is
+/// about the first table's Normal, with the focus and the gap at a quarter second.</para>
 /// </summary>
 internal static class BeatTicks
 {
-    /// <summary>A walk, a cell.</summary>
-    public const int WalkPerCell = 5;
-    /// <summary>A sneak, a cell: slower.</summary>
-    public const int SneakPerCell = 6;
-    /// <summary>A sprint, a cell: fast. Five cells are 15.</summary>
-    public const int SprintPerCell = 3;
-    /// <summary>Eating: the eat frames, the food going, the gain rising.</summary>
-    public const int Eat = 8;
-    /// <summary>Drinking.</summary>
-    public const int Drink = 8;
-    /// <summary>Resting.</summary>
-    public const int Rest = 8;
-    /// <summary>Your hit: your strike frames toward it (3), then its hurt frame and the number (6).</summary>
-    public const int Strike = 9;
-    /// <summary>A hit that defeats: it fades over this many more ticks and its meat appears.</summary>
-    public const int StrikeDefeatFade = 6;
-    /// <summary>Each creature Thagomizer's sweep also struck: its hurt frame and its number.</summary>
-    public const int AlsoStruck = 6;
-    /// <summary>Between two actors, nothing moving (G9).</summary>
-    public const int Gap = 3;
-    /// <summary>A known predator's action begins.</summary>
-    public const int Focus = 3;
-    /// <summary>It spots you, hears you, loses your trail: the mark above it changes.</summary>
-    public const int Notices = 5;
-    /// <summary>A predator's step, a cell.</summary>
-    public const int StepPerCell = 4;
-    /// <summary>It waits: short, nothing happens.</summary>
-    public const int Waits = 2;
-    /// <summary>It is dazed, or held by venom: long enough to read why it did not move.</summary>
-    public const int Stuck = 5;
-    /// <summary>A bite: its strike frames (3), your hurt frame and the number (7).</summary>
-    public const int Bite = 10;
-    /// <summary>A bite you dodged: its strike frames, and your dino hops aside and back.</summary>
-    public const int Dodge = 8;
-    /// <summary>Your spikes hurt it, or it bleeds.</summary>
-    public const int Hurt = 6;
-    /// <summary>Second wind: your ring flashes three times.</summary>
-    public const int SecondWind = 12;
-    /// <summary>The small game that moved, all together.</summary>
-    public const int SmallGame = 5;
-    /// <summary>A predator arrives where you can see it: it fades in.</summary>
-    public const int Arrives = 6;
-    /// <summary>Out of sight, when nothing out there heard you.</summary>
-    public const int UnseenQuiet = 3;
-    /// <summary>Out of sight, when something heard you: long enough to be read.</summary>
-    public const int UnseenHeard = 8;
-    /// <summary>Time passes: the bars and the growth slide to their new values.</summary>
-    public const int TimePasses = 4;
-    /// <summary>Hunger or thirst took health: your hurt frame and the number.</summary>
-    public const int TimeHurts = 8;
-    /// <summary>A new stage: your dino blinks three times and is its new size.</summary>
-    public const int Stage = 20;
-    /// <summary>The apex has your scent: it fades in.</summary>
-    public const int Apex = 16;
-    /// <summary>The run ended: then the summary.</summary>
-    public const int End = 12;
+    /// <summary>
+    /// How many times its first length every beat is but the Focus, the Gap and a
+    /// notice (H93): 2. The art's frames were timed for the first table (a walk's
+    /// cycle of 12 ticks, a strike's 3 and 6), so the view asks them with a beat's tick
+    /// divided by this (<c>BeatStep.ArtTick</c>), and its own frame tables (the lean,
+    /// the hop, the blinks, the flashes) the same way: at Normal they show for twice
+    /// their ticks, at Fast as the first table drew them. Never regenerate the art for it.
+    /// </summary>
+    public const int Stretch = 2;
+
+    /// <summary>A walk, a cell: 10.</summary>
+    public const int WalkPerCell = 5 * Stretch;
+    /// <summary>A sneak, a cell: slower, 12.</summary>
+    public const int SneakPerCell = 6 * Stretch;
+    /// <summary>A sprint, a cell: fast, 6. Five cells are 30.</summary>
+    public const int SprintPerCell = 3 * Stretch;
+    /// <summary>Eating: the eat frames, the food going, the gain rising: 16.</summary>
+    public const int Eat = 8 * Stretch;
+    /// <summary>Drinking: 16.</summary>
+    public const int Drink = 8 * Stretch;
+    /// <summary>Resting: 16.</summary>
+    public const int Rest = 8 * Stretch;
+    /// <summary>Your hit, 18: your strike frames toward it (6), then its hurt frame and the number (12).</summary>
+    public const int Strike = 9 * Stretch;
+    /// <summary>A hit that defeats: it fades over this many more ticks (12) and its meat appears.</summary>
+    public const int StrikeDefeatFade = 6 * Stretch;
+    /// <summary>Each creature Thagomizer's sweep also struck: its hurt frame and its number, 12.</summary>
+    public const int AlsoStruck = 6 * Stretch;
+    /// <summary>Between two actors, nothing moving (G9): half a second, so two actors are plainly apart (H93).</summary>
+    public const int Gap = 15;
+    /// <summary>A known predator's action begins, its ring lit and its row marked: half a second, so it is singled out before it acts (H93).</summary>
+    public const int Focus = 15;
+    /// <summary>It spots you, hears you, loses your trail: the mark above it changes, 12, long enough to read (H93).</summary>
+    public const int Notices = 12;
+    /// <summary>A predator's step, a cell: 8.</summary>
+    public const int StepPerCell = 4 * Stretch;
+    /// <summary>It waits: short, nothing happens, 4.</summary>
+    public const int Waits = 2 * Stretch;
+    /// <summary>It is dazed, or held by venom: long enough to read why it did not move, 10.</summary>
+    public const int Stuck = 5 * Stretch;
+    /// <summary>A bite, 20: its strike frames (6), your hurt frame and the number (14).</summary>
+    public const int Bite = 10 * Stretch;
+    /// <summary>A bite you dodged, 16: its strike frames, and your dino hops aside and back.</summary>
+    public const int Dodge = 8 * Stretch;
+    /// <summary>Your spikes hurt it, or it bleeds: 12.</summary>
+    public const int Hurt = 6 * Stretch;
+    /// <summary>Second wind: your ring flashes three times, 24.</summary>
+    public const int SecondWind = 12 * Stretch;
+    /// <summary>The small game that moved, all together: 10.</summary>
+    public const int SmallGame = 5 * Stretch;
+    /// <summary>A predator arrives where you can see it: it fades in, 12.</summary>
+    public const int Arrives = 6 * Stretch;
+    /// <summary>Out of sight, when nothing out there heard you: 6.</summary>
+    public const int UnseenQuiet = 3 * Stretch;
+    /// <summary>Out of sight, when something heard you: long enough to be read, 16.</summary>
+    public const int UnseenHeard = 8 * Stretch;
+    /// <summary>Time passes: the bars and the growth slide to their new values, 8.</summary>
+    public const int TimePasses = 4 * Stretch;
+    /// <summary>Hunger or thirst took health: your hurt frame and the number, 16.</summary>
+    public const int TimeHurts = 8 * Stretch;
+    /// <summary>A new stage: your dino blinks three times and is its new size, 40.</summary>
+    public const int Stage = 20 * Stretch;
+    /// <summary>The apex has your scent: it fades in, 32.</summary>
+    public const int Apex = 16 * Stretch;
+    /// <summary>The run ended, 24: then the summary.</summary>
+    public const int End = 12 * Stretch;
 }

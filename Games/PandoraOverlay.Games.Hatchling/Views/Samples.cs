@@ -303,7 +303,7 @@ internal static class Samples
         var (state, turn) = Mid();
         var script = TurnScripts.Build(turn, RunPage.SightKnows);
         var bite = script.Beats.ToList().FindIndex(b => b.Kind == BeatKind.Bites);
-        return new Sample(state, turn, bite, BeatStep.WindUpTicks + 2);
+        return new Sample(state, turn, bite, BeatStep.WindUpTicks + 2 * BeatTicks.Stretch);
     }
 
     /// <summary>An Elder at danger 5 with the apex and seven predators known: eleven rows, the apex's count in the status line.</summary>

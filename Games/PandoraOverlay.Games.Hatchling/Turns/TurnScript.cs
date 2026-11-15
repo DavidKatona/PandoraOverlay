@@ -24,7 +24,7 @@ internal sealed record TurnScript(IReadOnlyList<Beat> Beats, IReadOnlyList<TurnR
     /// No beat lasts longer: two seconds at speed 1. The engine finishes for it
     /// any queued step still running after 300 ticks (<c>Playback.StepLimitTicks</c>)
     /// and the rest of it would jump (A35); 60 keeps every beat far under that, and
-    /// a turn's longest beat (a stage, 20) under this.
+    /// a turn's longest beat (a stage, 40 since H93's slower table) under this.
     /// </summary>
     public const int MaxBeatTicks = 60;
 
