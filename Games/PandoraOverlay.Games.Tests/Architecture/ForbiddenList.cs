@@ -87,7 +87,7 @@ internal readonly record struct Finding(string Assembly, string Subject, Forbidd
 /// drawing, layout and mouse input. <c>StreamReader</c> and <c>StreamWriter</c>
 /// are refused whole, since their path constructors share the stream ones' name,
 /// and so is every other way of opening a file by its path that a game would reach
-/// for (A69).
+/// for (A69, A71, A73).
 /// </para>
 /// <para>
 /// What it still can't see, written down so nobody reads more into it (A60):
@@ -98,15 +98,20 @@ internal readonly record struct Finding(string Assembly, string Subject, Forbidd
 /// code), or through a decoder's <c>Uri</c> constructor
 /// (<c>PngBitmapDecoder</c> takes a <c>Uri</c> as well as the stream the engine
 /// gives it, and the two are one name in the metadata); and memory
-/// reinterpreted (an object read as another type's layout). The address scan
-/// (A45) keeps the address out of the source, and review keeps the rest: the
-/// metadata says what an assembly names, never what a string it builds will
-/// hold. A file named by a <c>Uri</c> reaching WPF (a decoder's or a font's)
-/// is the address's gap above, and WPF's fonts read from a folder by its path
+/// reinterpreted (an object read as another type's layout). The source scans
+/// keep what is written out of the source, an address (A45) and a file path
+/// (A72: a drive letter, a UNC path or <c>file:</c> starting a string or a
+/// value), and review keeps the rest: the metadata says what an assembly
+/// names, never what a string it builds will hold. A file named by a
+/// <c>Uri</c> built at run time and reaching WPF (<c>PngBitmapDecoder</c>'s, a
+/// font's, a resource dictionary's <c>Source</c>) is the address's gap above,
+/// and WPF's fonts read from a folder by its path
 /// (<c>Fonts.GetFontFamilies</c>, <c>GetTypefaces</c>, which only read) sit
-/// with it (A70); and a door no game would reach for by accident (a certificate
-/// or a temporary-file collection by its path, a file's version information)
-/// is review's (A69).
+/// with it (A70); and a door no game would reach for by accident (a
+/// certificate, a temporary-file collection or a file's access rules by its
+/// path, a file's version information, and a COM class a game declares itself,
+/// <c>[ComImport]</c> with its <c>[Guid]</c>, which the native-call entry does
+/// not see) is review's (A69, A74).
 /// </para>
 /// </summary>
 internal static class ForbiddenList
@@ -158,7 +163,7 @@ internal static class ForbiddenList
     private static ForbiddenEntry Member(string type, string member, string reason, params string[] except) =>
         new(ForbiddenKind.Member, type, reason) { Member = member, Except = except };
 
-    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member, A60's reflection and picture doors, A69's path doors and A70's two assemblies sit in their groups.</summary>
+    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member, A60's reflection and picture doors, A69's path doors, A70's two assemblies and A71 to A74's doors sit in their groups.</summary>
     public static IReadOnlyList<ForbiddenEntry> All { get; } = new[]
     {
         // ---- Assembly references ------------------------------------------------
@@ -179,6 +184,17 @@ internal static class ForbiddenList
         // their words.
         Assembly("System.Configuration.ConfigurationManager", StorageIsTheHosts),
         Assembly("System.Diagnostics.EventLog", ReachingOut),
+        // A74, hard constraint 1 and the promise of no request: UI Automation's client
+        // walks every top-level window on the desktop, The Isle's included, and asks each
+        // window's process for its UI (AutomationElement.RootElement); the performance
+        // counters name every running process and read its figures
+        // (PerformanceCounterCategory("Process").GetInstanceNames()); the directory
+        // services ask the domain's directory over LDAP, with no System.Net type
+        // (DirectorySearcher.FindAll). Whole: nothing in them is a game's. UI
+        // Automation's provider side stays (see "Not on the list, on purpose").
+        Assembly("UIAutomationClient", ReachingOut),
+        Assembly("System.Diagnostics.PerformanceCounter", ReachingOut),
+        Assembly("System.DirectoryServices", ReachingOut),
 
         // ---- Namespaces, and every namespace below them ----------------------------
         Namespace("System.Net", ReachingOut),
@@ -226,6 +242,13 @@ internal static class ForbiddenList
         // A69: VisualBasic's FileIO.FileSystem reads, writes and walks files by their
         // paths, and Interaction.Shell starts a program.
         Namespace("Microsoft.VisualBasic", ReachingOut),
+        // A73, beside A69's resource entries: the preserialized .resources reader and
+        // writer, each by a path (DeserializingResourceReader, PreserializedResourceWriter).
+        Namespace("System.Resources.Extensions", StorageIsTheHosts),
+        // A73: printing. A file sent to the PC's printer by its path
+        // (PrintQueue.AddJob(name, path, fastCopy)), and every queue of the PC
+        // (LocalPrintServer); the print dialog is with the types below.
+        Namespace("System.Printing", ReachingOut),
 
         // ---- Types ----------------------------------------------------------------
         Type("System.IO.File", StorageIsTheHosts),
@@ -328,6 +351,30 @@ internal static class ForbiddenList
         Type("System.Windows.Media.Imaging.BitmapImage", NoAddress),
         Type("System.Windows.Media.ImageSourceConverter", NoAddress),
         Type("System.UriBuilder", NoAddress),
+        // A71, a file by its path: the converter that turns a ".cur" or ".ani" name into
+        // a cursor read from that file (or fetched). Cursor's constructors are refused by
+        // member, below, so Cursor as a type stays.
+        Type("System.Windows.Input.CursorConverter", StorageIsTheHosts),
+        // A73: the print dialog, a window of its own over The Isle, whose PrintVisual
+        // prints to the PC's printer with no dialog at all. The file dialogs are
+        // Microsoft.Win32's, refused above.
+        Type("System.Windows.Controls.PrintDialog", LeavingTheFrame),
+        // A73, a picture by address (the constraint review r2's note): the six decoders
+        // beside the engine's PngBitmapDecoder each open what a Uri names, a file or an
+        // address, in their constructor. Nothing uses them; PngBitmapDecoder stays (its
+        // Uri overload is the summary's gap).
+        Type("System.Windows.Media.Imaging.JpegBitmapDecoder", NoAddress),
+        Type("System.Windows.Media.Imaging.GifBitmapDecoder", NoAddress),
+        Type("System.Windows.Media.Imaging.BmpBitmapDecoder", NoAddress),
+        Type("System.Windows.Media.Imaging.TiffBitmapDecoder", NoAddress),
+        Type("System.Windows.Media.Imaging.WmpBitmapDecoder", NoAddress),
+        Type("System.Windows.Media.Imaging.IconBitmapDecoder", NoAddress),
+        // A74: A60's two XAML providers, in code. An ObjectDataProvider calls a public
+        // method by its name, a static one of a type named only by typeof included
+        // (ObjectType = typeof(Environment), MethodName = "Exit", past A44's member
+        // entry); an XmlDataProvider reads or fetches what its Source names.
+        Type("System.Windows.Data.ObjectDataProvider", NoReflection),
+        Type("System.Windows.Data.XmlDataProvider", NoAddress),
         // Not on the list, on purpose (A43, A60), and held so by
         // ForbiddenApiTests.TheHarmlessReflectionStaysAllowed:
         // - System.Activator: `new T()` on a type parameter compiles to
@@ -348,7 +395,18 @@ internal static class ForbiddenList
         //   GetManifestResourceNames): the game's own embedded art, read by the engine's
         //   atlas.
         // - PngBitmapDecoder's constructor: the engine decodes the art's PNG streams
-        //   with it (its Uri overload is the same name: see the summary's gaps).
+        //   with it (its Uri overload is the same name: see the summary's gaps). The
+        //   six other decoders are refused whole above (A73).
+        // - System.Windows.Input.Cursor as a type, Cursors and FrameworkElement.Cursor
+        //   (A71): a view's code may set Cursor = Cursors.Hand. Only Cursor's
+        //   constructors (a file's or a stream's) and CursorConverter (a ".cur" name)
+        //   are refused.
+        // - System.Resources.ResourceSet as a type (A73): only its constructors are
+        //   refused.
+        // - UI Automation's provider side, UIAutomationTypes and UIAutomationProvider,
+        //   and WPF's own automation peers and AutomationProperties (A74): they describe
+        //   a game's own controls. The client, which reads other windows, is refused
+        //   whole above.
         // - System.Windows.Input.KeyboardNavigation: a view may switch tab navigation
         //   off with it.
         // - The readers and writers that take only a stream or a string (BinaryReader,
@@ -403,6 +461,12 @@ internal static class ForbiddenList
         // its path names (ResourceManager's GetString on the game's own resources stays).
         Member("System.Diagnostics.DefaultTraceListener", "set_LogFileName", StorageIsTheHosts),
         Member("System.Resources.ResourceManager", "CreateFileBasedResourceManager", StorageIsTheHosts),
+        // A71 and A73, a file by its path on types that otherwise stay: every Cursor
+        // constructor (its path ones share the name .ctor with its stream ones, as
+        // StreamReader's do; Cursors.Hand stays), and every ResourceSet constructor
+        // (ResourceSet(fileName) beside its stream and reader ones).
+        Member("System.Windows.Input.Cursor", ".ctor", StorageIsTheHosts),
+        Member("System.Resources.ResourceSet", ".ctor", StorageIsTheHosts),
 
         // A60, reflection by name. Every way to a member by its name (the lookups), and
         // every way to use one found so (read, write, call, hook, make a delegate of),

@@ -13,7 +13,7 @@ namespace PandoraOverlay.Games.Tests;
 /// forbidden list (A33, A42), and opens none of XAML's own doors: no data
 /// provider, no namespace mapped but the games' own, no x:Static but through one
 /// (A60); and no source under Games/ holds an address, a bare scheme included
-/// (A45, A60). The files are read where they are, a
+/// (A45, A60), or a written file path (A72). The files are read where they are, a
 /// build's output and these tests' own folder left out. With no game yet the
 /// chrome scans find no file, which is expected: each rule's self-test, a bad
 /// line and a good one, is what proves it today, as the app's own
@@ -545,6 +545,100 @@ public class SourceScanTests
         Assert.Empty(AddressesIn("if (code == HttpStatusCode.OK) return;", xaml: false));
         Assert.Empty(AddressesIn("""var word = "http"; // the word http, no colon""", xaml: false));
         Assert.Empty(AddressesIn("""case "https": break;""", xaml: false));
+    }
+
+    // ---- No written file path under Games/ (A72) ----
+    // WPF reads the file a plain path names: in a view's <Image Source>, <ImageBrush
+    // ImageSource>, Cursor and <ResourceDictionary Source> (loose XAML that no scan
+    // reads), and in code through a decoder's or a font's Uri, with no type in the
+    // metadata and no "://" for the address scan. So no string, and in XAML no
+    // attribute value, starts with a written path: a drive letter and a slash or
+    // backslash (C:\art, c:/art); two backslashes and a name, a UNC path (\\host\share,
+    // four backslashes in a regular C# string), or two slashes and a name
+    // (//host/share, which Uri reads as the same UNC path), each a read from another
+    // machine with no System.Net type; or file: and something (file:C:/x). Case is
+    // ignored. In C# a string opens with a double quote (a single one is an apostrophe
+    // or a char there), in XAML a value with either. A path inside a longer string is
+    // not read (KNOWN GAP 4: a computed path is A60's gap). A false alarm is possible,
+    // and cheap: a regular string that starts with one letter and a colon before an
+    // escape ("a:\n"), or with an escaped backslash before a letter ("\\d+"); write
+    // those another way (a verbatim @"\d+"). ThePathScanFindsWhatItIsFor pins both.
+    private static readonly Regex CodePath = new(@"""((?:[A-Za-z]:[\\/]|\\\\(?:\\\\)?(?=\w)|//(?=\w)|file:(?=[^\s""']))[^""\s]*)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex XamlPath = new(@"[""']((?:[A-Za-z]:[\\/]|\\\\(?=\w)|//(?=\w)|file:(?=[^\s""']))[^""'\s]*)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>Every written file path in a source text (A72): a string, or in XAML an attribute value, that starts with a drive letter, a UNC path or file:, each as the path it found.</summary>
+    internal static IReadOnlyList<string> PathsIn(string text, bool xaml) =>
+        (xaml ? XamlPath : CodePath).Matches(text).Select(m => m.Groups[1].Value).ToList();
+
+    /// <summary>
+    /// No source under Games/ holds a written file path (A72): no string, and in
+    /// XAML no attribute value, starts with a drive letter, a UNC path or file:.
+    /// WPF reads the file such a path names with no type for the forbidden list
+    /// to see.
+    /// </summary>
+    [Fact]
+    public void NoSourceUnderGamesHoldsAFilePath()
+    {
+        var files = GamesSources(".cs").Select(f => (File: f, Xaml: false)).Concat(GamesSources(".xaml").Select(f => (File: f, Xaml: true))).ToList();
+        Assert.NotEmpty(files);
+
+        var problems = files
+            .SelectMany(f => PathsIn(File.ReadAllText(f.File), f.Xaml).Select(p => $"{Repo.Relative(f.File)}: {p}"))
+            .ToList();
+        Assert.True(problems.Count == 0,
+            "No written file path under Games/ (A72): no string or attribute value starts with a drive letter and a slash (C:\\, c:/), two backslashes or two slashes and a name (a UNC path, a read from another machine), or file:. WPF reads the file such a path names in an Image's Source, a Cursor or a ResourceDictionary's Source, with no type for the forbidden list to see; a game's art is embedded and read by the engine's atlas (A28), and its storage is the host's (A7). A regular string that only looks like one (\"a:\\n\", \"\\\\d+\") is written another way:\n"
+            + string.Join("\n", problems));
+    }
+
+    [Fact]
+    public void ThePathScanFindsWhatItIsFor()
+    {
+        // C#: a drive letter, a UNC path (two backslashes or two slashes), file:, in a
+        // verbatim, a regular or a raw string.
+        Assert.Equal(new[] { @"C:\art\x.png" }, PathsIn("""var u = new Uri(@"C:\art\x.png");""", xaml: false));
+        Assert.Equal(new[] { @"C:\\art\\x.png" }, PathsIn("""var u = new Uri("C:\\art\\x.png");""", xaml: false));
+        Assert.Equal(new[] { "c:/art/x.png" }, PathsIn("""var u = new Uri("c:/art/x.png");""", xaml: false));
+        Assert.Equal(new[] { @"\\host\share\x.cur" }, PathsIn("""var c = new Cursor(@"\\host\share\x.cur");""", xaml: false));
+        Assert.Equal(new[] { @"\\\\host\\share\\x.cur" }, PathsIn("""var c = new Cursor("\\\\host\\share\\x.cur");""", xaml: false));
+        Assert.Equal(new[] { "//host/share/x.png" }, PathsIn("""var u = new Uri("//host/share/x.png");""", xaml: false));
+        Assert.Equal(new[] { "FILE:c:/x.png" }, PathsIn("""var u = new Uri("FILE:c:/x.png");""", xaml: false));
+        Assert.Equal(new[] { @"C:\x.png" }, PathsIn(""""var r = """C:\x.png""";"""", xaml: false));
+
+        // XAML: a value in double or single quotes.
+        Assert.Equal(new[] { @"C:\art\x.png" }, PathsIn("""<Image Source="C:\art\x.png"/>""", xaml: true));
+        Assert.Equal(new[] { "c:/art/x.png" }, PathsIn("""<Image Source='c:/art/x.png'/>""", xaml: true));
+        Assert.Equal(new[] { @"\\host\share\x.png" }, PathsIn("""<ImageBrush ImageSource="\\host\share\x.png"/>""", xaml: true));
+        Assert.Equal(new[] { @"C:\x.cur" }, PathsIn("""<Border Cursor="C:\x.cur"/>""", xaml: true));
+        Assert.Equal(new[] { @"C:\x.xaml" }, PathsIn("""<ResourceDictionary Source="C:\x.xaml"/>""", xaml: true));
+        Assert.Equal(new[] { "//host/share/x.png" }, PathsIn("""<Image Source="//host/share/x.png"/>""", xaml: true));
+        Assert.Equal(new[] { "file:C:/x.png" }, PathsIn("""<Image Source="file:C:/x.png"/>""", xaml: true));
+
+        // Not a path: a view's own relative Uri, escaped quotes and backslashes, a colon
+        // before an escape after a longer word, "File:" with a space, "//" alone or
+        // inside a string, a comment, a path inside a longer string (the stated gap).
+        Assert.Empty(PathsIn("""new Uri("/PandoraOverlay.Games.Sample;component/views/camp.xaml", UriKind.Relative)""", xaml: false));
+        Assert.Empty(PathsIn("""throw new ArgumentException($"No species is named \"{species}\".", nameof(species));""", xaml: false));
+        Assert.Empty(PathsIn("""var s = "\\"; var c = '\\'; var t = "\\\\";""", xaml: false));
+        Assert.Empty(PathsIn("""var m = "original's:\n";""", xaml: false));
+        Assert.Empty(PathsIn("""var m = $"{x}:\n";""", xaml: false));
+        Assert.Empty(PathsIn("""var k = "Problems:\n";""", xaml: false));
+        Assert.Empty(PathsIn("""var s = "File: saved"; var t = "//"; var c = "a // b";""", xaml: false));
+        Assert.Empty(PathsIn("""// see C:\ in a comment, no quote""", xaml: false));
+        Assert.Empty(PathsIn("""var s = "see C:\x.png";""", xaml: false));
+
+        // XAML that is not a path: an x:Static, the art's own relative path, the
+        // namespace declarations, a named cursor, the word "file".
+        Assert.Empty(PathsIn("""<TextBlock Text="{x:Static h:HatchlingText.TabCamp}"/>""", xaml: true));
+        Assert.Empty(PathsIn("""<Image Source="/Art/x.png"/>""", xaml: true));
+        Assert.Empty(PathsIn("""<Grid xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"/>""", xaml: true));
+        Assert.Empty(PathsIn("""<Border Cursor="Hand"/>""", xaml: true));
+        Assert.Empty(PathsIn("""<TextBlock Text="{x:Static h:T.File}" Tag="file"/>""", xaml: true));
+
+        // The scan's known false alarms, held so that a change to the pattern is seen: a
+        // regular string starting with an escaped backslash before a letter, or with one
+        // letter and a colon before an escape. Written another way (@"\d+") they pass.
+        Assert.Equal(new[] { @"\\d+" }, PathsIn("""var r = new Regex("\\d+");""", xaml: false));
+        Assert.Equal(new[] { @"a:\n" }, PathsIn("""var m = "a:\n";""", xaml: false));
     }
 
     /// <summary>What a game's view code holds that it may not: a colour built in code.</summary>

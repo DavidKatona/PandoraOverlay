@@ -19,8 +19,10 @@ namespace PandoraOverlay.Games.Tests;
 /// Nothing here is ever called. The compiler writes the references down
 /// whether a method runs or not, and that is all the scan reads; so no file is
 /// looked at, opened or walked, no timer made, no native code run, no member
-/// read by its name and no picture made. The names the reflection calls look up
-/// and the paths the A69 calls open ("planted") name nothing that exists.
+/// read by its name, no picture made, no window of the desktop walked, no
+/// process counted, no directory asked and nothing printed. The names the
+/// reflection calls look up and the paths the A69 to A74 calls open
+/// ("planted") name nothing that exists.
 /// </para>
 /// </summary>
 internal static class Planted
@@ -208,4 +210,63 @@ internal static class Planted
     /// <summary>A log file read by its path (the assembly System.Diagnostics.EventLog, by EventLogReader, with no EventLog named).</summary>
     internal static object AnEventLogFile() =>
         new System.Diagnostics.Eventing.Reader.EventLogReader("planted", System.Diagnostics.Eventing.Reader.PathType.FilePath);
+
+    // ---- A71, A73, A74: the last doors ------------------------------------------------
+    // Real calls again, each compiled with the framework a game builds against and no
+    // package. Never called: the UI Automation, counter and directory ones would walk
+    // the desktop's windows, count the PC's processes and ask the network.
+
+    /// <summary>A cursor read from a file by its path (Cursor::.ctor; Cursor as a type stays, A71).</summary>
+    internal static System.Windows.Input.Cursor ACursorFile() => new("planted");
+
+    /// <summary>The converter that turns a ".cur" name into a cursor read from that file (the type CursorConverter, A71).</summary>
+    internal static object ACursorConverter() => new System.Windows.Input.CursorConverter();
+
+    /// <summary>A .resources file read by its path through a resource set (ResourceSet::.ctor; the type stays, A73).</summary>
+    internal static System.Resources.ResourceSet AResourceSetFile() => new("planted");
+
+    /// <summary>A preserialized .resources file read by its path (the namespace System.Resources.Extensions, A73).</summary>
+    internal static object AnExtensionsReader() => new System.Resources.Extensions.DeserializingResourceReader("planted");
+
+    /// <summary>The same, written by its path (the namespace System.Resources.Extensions, A73).</summary>
+    internal static object AnExtensionsWriter() => new System.Resources.Extensions.PreserializedResourceWriter("planted");
+
+    /// <summary>A file sent to a printer by its path (the namespace System.Printing, by PrintQueue, A73).</summary>
+    internal static object APrintJob(System.Printing.PrintQueue queue) => queue.AddJob("planted", "planted", false);
+
+    /// <summary>The print dialog, a window of its own (the type PrintDialog, A73).</summary>
+    internal static object APrintDialog() => new System.Windows.Controls.PrintDialog();
+
+    /// <summary>The six decoders other than the engine's, each opening what a Uri names in its constructor (each its type, A73).</summary>
+    internal static object AJpegByUri() => new JpegBitmapDecoder(new Uri("planted", UriKind.Relative), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+
+    /// <inheritdoc cref="AJpegByUri"/>
+    internal static object AGifByUri() => new GifBitmapDecoder(new Uri("planted", UriKind.Relative), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+
+    /// <inheritdoc cref="AJpegByUri"/>
+    internal static object ABmpByUri() => new BmpBitmapDecoder(new Uri("planted", UriKind.Relative), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+
+    /// <inheritdoc cref="AJpegByUri"/>
+    internal static object ATiffByUri() => new TiffBitmapDecoder(new Uri("planted", UriKind.Relative), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+
+    /// <inheritdoc cref="AJpegByUri"/>
+    internal static object AWmpByUri() => new WmpBitmapDecoder(new Uri("planted", UriKind.Relative), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+
+    /// <inheritdoc cref="AJpegByUri"/>
+    internal static object AnIconByUri() => new IconBitmapDecoder(new Uri("planted", UriKind.Relative), BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+
+    /// <summary>Every top-level window on the desktop, The Isle's included (the assembly UIAutomationClient, A74).</summary>
+    internal static object TheDesktopsWindows() => System.Windows.Automation.AutomationElement.RootElement;
+
+    /// <summary>Every running process by its name (the assembly System.Diagnostics.PerformanceCounter, A74).</summary>
+    internal static string[] TheProcessCounters() => new System.Diagnostics.PerformanceCounterCategory("planted").GetInstanceNames();
+
+    /// <summary>A query of the domain's directory over LDAP (the assembly System.DirectoryServices, A74).</summary>
+    internal static object ADirectorySearch() => new System.DirectoryServices.DirectorySearcher().FindAll();
+
+    /// <summary>A public method called by its name (the type ObjectDataProvider, A74).</summary>
+    internal static object AProvidersCallByName() => new System.Windows.Data.ObjectDataProvider { MethodName = "planted" };
+
+    /// <summary>An XML document read or fetched from what a Uri names (the type XmlDataProvider, A74).</summary>
+    internal static object AnXmlProvidersSource() => new System.Windows.Data.XmlDataProvider { Source = new Uri("planted", UriKind.Relative) };
 }
