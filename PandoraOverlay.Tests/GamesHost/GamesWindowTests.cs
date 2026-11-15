@@ -1011,4 +1011,230 @@ public class GamesWindowTests
             Assert.IsNotType<TextBlock>(GamesBench.Tile(second, 0).Well.Child); // its art, not its title
         }
     });
+
+    // ---- The window's own clicks (G27, A103, A104; PLAN-CLICKS.md's Games window table) ----------
+
+    /// <summary>
+    /// A test with the theme on screen and the click layer attached to its
+    /// thread, its sink a fake on that thread only (<see cref="ClickSeam"/>):
+    /// what MainWindow does, so a click through the layer reaches the sink.
+    /// </summary>
+    private static void Listening(Action<FakeClickSink> test) => Run(() => test(ClickSeam.Listen()));
+
+    private static (ClickCue, ClickScope) InGames(ClickCue cue) => (cue, ClickScope.Games);
+
+    /// <summary>A sink that notes, with each click, how many times the games' speaker had been stopped by then: a click heard before a stage's stop.</summary>
+    private sealed class StopsSink : IClickSink
+    {
+        private readonly FakeSpeaker _games;
+
+        public StopsSink(FakeSpeaker games) => _games = games;
+
+        public List<(ClickCue Cue, ClickScope Scope, int StopsBefore)> Clicks { get; } = new();
+
+        public void Click(ClickCue cue, ClickScope scope) => Clicks.Add((cue, scope, _games.Stops));
+    }
+
+    /// <summary>The root is in the Games scope and the view's container in the Game scope; a control inside a game's root inherits Game, and the layer leaves it to the Engine.</summary>
+    [Fact]
+    public void TheWindowIsInTheGamesScopeAndAGamesViewInTheGameScope() => Listening(sink =>
+    {
+        var game = new FakeGame();
+        using var bench = new GamesBench(game);
+        var window = bench.Window();
+
+        Assert.Equal(ClickScope.Overlay, UiClicks.GetScope(window)); // the scope starts at the frame, not at the window
+        Assert.Equal(ClickScope.Games, UiClicks.GetScope(window.RootPanel));
+        Assert.Equal(ClickScope.Game, UiClicks.GetScope(window.GameHost));
+        foreach (var control in new DependencyObject[] { window.CloseButton, window.BackButton, window.SoundToggle, window.WarningButton, GamesBench.Tile(window, 0).Card, GamesBench.Tile(window, 0).Button })
+            Assert.Equal(ClickScope.Games, UiClicks.GetScope(control));
+
+        window.ShowGame(bench.Host.Games[0]);
+        var inGame = new Button { Content = "Eat" };
+        ((Grid)game.Views[^1].Root).Children.Add(inGame);
+        Assert.Equal(ClickScope.Game, UiClicks.GetScope(inGame));
+
+        ClickSeam.Click(inGame);
+        UiClicks.Clicked(inGame, ClickCue.Select); // nor a non-button's: the Game scope is the Engine's
+
+        Assert.Empty(sink.Clicks);
+    });
+
+    /// <summary>The marks of the table: "‹ Games" and ✕ back, the sound group silent, the warning's button by type, a tile's button armed.</summary>
+    [Fact]
+    public void TheWindowsControlsCarryTheTablesMarks() => Run(() =>
+    {
+        using var bench = new GamesBench(new FakeGame());
+        var window = bench.Window();
+
+        Assert.Equal((ClickMark.Back, ClickMark.Back), (UiClicks.GetCue(window.BackButton), UiClicks.GetCue(window.CloseButton)));
+        Assert.Equal((ClickMark.None, ClickMark.None, ClickMark.None),
+                     (UiClicks.GetCue(window.SoundToggle), UiClicks.GetCue(window.SoundDown), UiClicks.GetCue(window.SoundUp)));
+        Assert.Equal(ClickMark.Auto, UiClicks.GetCue(window.WarningButton));
+        Assert.Equal(ClickMark.Arm, UiClicks.GetCue(GamesBench.Tile(window, 0).Button));
+    });
+
+    /// <summary>"‹ Games" plays back in the Games scope, before the stage's stop (the class handler runs before the button's own handler, A104), and goes back to the grid.</summary>
+    [Fact]
+    public void BackToGamesPlaysBackBeforeTheStageStops() => Run(() =>
+    {
+        using var bench = new GamesBench(new FakeGame());
+        var window = bench.Window();
+        window.ShowGame(bench.Host.Games[0]);
+        UiClicks.Attach();
+        var sink = new StopsSink(bench.Speaker);
+        UiClicks.Sink = sink;
+        var stops = bench.Speaker.Stops;
+
+        ClickSeam.Click(window.BackButton);
+
+        Assert.Null(window.OnScreen);
+        Assert.Equal(stops + 1, bench.Speaker.Stops); // the grid: nobody heard, the Games channel stopped
+        Assert.Equal(new[] { (ClickCue.Back, ClickScope.Games, stops) }, sink.Clicks); // the click came first
+    });
+
+    /// <summary>✕ plays back in the Games scope, before the window's close stops the games' sound.</summary>
+    [Fact]
+    public void CloseCrossPlaysBackBeforeTheWindowCloses() => Run(() =>
+    {
+        using var bench = new GamesBench(new FakeGame());
+        var window = bench.Window();
+        window.ShowGame(bench.Host.Games[0]);
+        var closed = false;
+        window.Closed += (_, _) => closed = true;
+        UiClicks.Attach();
+        var sink = new StopsSink(bench.Speaker);
+        UiClicks.Sink = sink;
+        var stops = bench.Speaker.Stops;
+
+        ClickSeam.Click(window.CloseButton);
+
+        Assert.True(closed);
+        Assert.True(bench.Speaker.Stops > stops);
+        Assert.Equal(new[] { (ClickCue.Back, ClickScope.Games, stops) }, sink.Clicks);
+    });
+
+    /// <summary>The speaker, `−` and `+` give the layer nothing: their sound is their own (the preview on an unmute or a step, silence on a mute, A82).</summary>
+    [Fact]
+    public void TheSoundGroupClicksNothingOfTheLayers() => Listening(sink =>
+    {
+        using var bench = new GamesBench(new FakeGame());
+        var window = bench.Window();
+
+        void After(Action click)
+        {
+            click();
+            bench.Clock.Advance(GamesSound.SameSoundGap); // the preview is one sound: not again within its gap (A81)
+        }
+
+        After(() => ClickSeam.Click(window.SoundUp)); // 4: the preview
+        After(() => ClickSeam.Click(window.SoundDown)); // 3: the preview
+        After(() => ClickSeam.Click(window.SoundToggle)); // muted: silence
+        After(() => ClickSeam.Click(window.SoundToggle)); // unmuted: the preview
+
+        Assert.Empty(sink.Clicks);
+        Assert.Equal(3, bench.Speaker.Played.Count);
+        Assert.Equal((3, false), (bench.Config.GamesSoundVolume, bench.Config.GamesSoundMuted));
+    });
+
+    /// <summary>A tile that opens its game plays select in the Games scope; a stopped game's tile, which opens nothing, plays nothing.</summary>
+    [Fact]
+    public void ATilesOpenPlaysSelect() => Listening(sink =>
+    {
+        using var bench = GamesLayoutTests.Conditions();
+        var window = bench.Window();
+
+        GamesBench.ClickCard(GamesBench.Tile(window, 2).Card); // stopped: no open
+        Assert.Empty(sink.Clicks);
+        Assert.Null(window.OnScreen);
+
+        GamesBench.ClickCard(GamesBench.Tile(window, 0).Card);
+
+        Assert.Same(bench.Host.Games[0], window.OnScreen);
+        Assert.Equal(new[] { InGames(ClickCue.Select) }, sink.Clicks);
+    });
+
+    /// <summary>Reset: arm on the first click, press on the second, through the layer; the save is still kept before the reset (A38, A62).</summary>
+    [Fact]
+    public void ResetPlaysArmThenPressAndStillSavesFirst() => Listening(sink =>
+    {
+        var game = new FakeGame(Id) { DuringAttach = h => h.Storage.Write(1, "turn 7", SaveUrgency.Now) };
+        using var bench = new GamesBench(game);
+        var window = bench.Window();
+        var tile = GamesBench.Tile(window, 0);
+
+        ClickSeam.Click(tile.Button);
+        Assert.Equal("Click again to reset", tile.Label);
+        Assert.Equal(new[] { InGames(ClickCue.Arm) }, sink.Clicks);
+
+        ClickSeam.Click(tile.Button);
+
+        Assert.Contains("Reset", game.Calls);
+        Assert.Equal(new[] { InGames(ClickCue.Arm), InGames(ClickCue.Press) }, sink.Clicks);
+        var kept = bench.Temp.FileOf(Id, GameSaveStore.BeforeReset(1));
+        Assert.True(System.IO.File.Exists(kept));
+        Assert.Contains("turn 7", System.IO.File.ReadAllText(kept));
+        Assert.Equal("fresh", bench.Temp.SavedPayload(Id));
+    });
+
+    /// <summary>Start fresh on a held save arms too: arm, then press.</summary>
+    [Fact]
+    public void StartFreshPlaysArmThenPress() => Listening(sink =>
+    {
+        using var bench = GamesLayoutTests.Conditions();
+        var window = bench.Window();
+
+        ClickSeam.Click(GamesBench.Tile(window, 3).Button);
+        ClickSeam.Click(GamesBench.Tile(window, 3).Button);
+
+        Assert.Equal(GameCondition.Ready, bench.Host.Games[3].Condition);
+        Assert.Equal(new[] { InGames(ClickCue.Arm), InGames(ClickCue.Press) }, sink.Clicks);
+    });
+
+    /// <summary>"Start it again" never arms: press.</summary>
+    [Fact]
+    public void StartItAgainPlaysPress() => Listening(sink =>
+    {
+        var made = 0;
+        var entry = new GameEntry(Id, () => new FakeGame(Id) { Throws = made++ == 0 ? FakeThrows.Attach : FakeThrows.None });
+        using var bench = new GamesBench(new[] { entry });
+        var window = bench.Window();
+        Assert.Equal("Start it again", GamesBench.Tile(window, 0).Label);
+
+        ClickSeam.Click(GamesBench.Tile(window, 0).Button);
+
+        Assert.Equal(GameCondition.Ready, bench.Host.Games[0].Condition);
+        Assert.Equal(new[] { InGames(ClickCue.Press) }, sink.Clicks);
+    });
+
+    /// <summary>The warning's button clicks by type: press, in the Games scope, on the grid and over a game.</summary>
+    [Fact]
+    public void TheWarningsButtonPlaysPress() => Listening(sink =>
+    {
+        using var bench = new GamesBench(new FakeGame());
+        var window = bench.Window();
+        window.ShowHealthWarning(40);
+
+        ClickSeam.Click(window.WarningButton); // "Back to Games"
+        window.ShowGame(bench.Host.Games[0]);
+        window.ShowHealthWarning(30);
+        ClickSeam.Click(window.WarningButton); // "Keep playing"
+
+        Assert.Equal(Visibility.Collapsed, window.WarningPanel.Visibility);
+        Assert.Equal(new[] { InGames(ClickCue.Press), InGames(ClickCue.Press) }, sink.Clicks);
+    });
+
+    /// <summary>A click raised in code on the window's buttons (the bench's own, as every older test clicks) is not the mouse's, and plays nothing (A98, A111).</summary>
+    [Fact]
+    public void AClickRaisedInCodePlaysNothing() => Listening(sink =>
+    {
+        using var bench = new GamesBench(new FakeGame());
+        var window = bench.Window();
+
+        GamesBench.Click(GamesBench.Tile(window, 0).Button);
+        ClickSeam.Pump();
+        GamesBench.Click(window.CloseButton);
+
+        Assert.Empty(sink.Clicks);
+    });
 }

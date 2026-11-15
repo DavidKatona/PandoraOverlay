@@ -126,4 +126,34 @@ public sealed class GameHostTests : IDisposable
 
         Assert.Single(speaker.Played);
     }
+
+    /// <summary>
+    /// A closed door's click reaches nothing (A105), as its sound doesn't: the
+    /// game is on screen and heard, its click reaches the click gate; once its
+    /// instance is detached, a click through the door it kept or its door now
+    /// is dropped.
+    /// </summary>
+    [Fact]
+    public void ADetachedHostsClickReachesNothing()
+    {
+        var clock = new TestGameClock();
+        var clicks = new FakeClickSink();
+        var game = new FakeGame("sample-game");
+        var store = new GameSaveStore(_temp.Root, () => clock.UtcNow);
+        var games = new GamesHost(store, new[] { new GameEntry("sample-game", () => game) }, clock, _ => new TestGameLog(),
+            new GamesSound(new FakeSpeaker(), new OverlayConfig(), clock, clicks));
+        games.AttachAll();
+        var hosted = games.Games[0];
+        var host = hosted.Host!;
+        var door = host.Sound;
+        games.Sound.Stage(hosted, paused: false);
+        door.Click(GameClick.Press);
+        Assert.Equal(new[] { (ClickCue.Press, ClickScope.Games) }, clicks.Clicks);
+
+        host.Detach();
+        door.Click(GameClick.Select);
+        host.Sound.Click(GameClick.Back);
+
+        Assert.Single(clicks.Clicks);
+    }
 }

@@ -232,6 +232,13 @@ internal partial class GamesWindow : Window
         if (game is not null && view is not null) GameGuard.Run(game, "Dispose", view.Dispose);
     }
 
+    // "‹ Games" and ✕ change the stage (the grid, the window closed), and the
+    // stop that comes with it (A79, A88). Their `back` (A100) is already playing:
+    // the click layer's class handler plays a button's click before the button's
+    // own handler runs (A104), on the speaker's Clicks channel, and a stage's stop
+    // stops only the Games channel (A101), so it is heard whole. The same holds
+    // for the warning's button, the tiles' open and every other stage change a
+    // click makes here.
     private void Back_Click(object sender, RoutedEventArgs e) => ShowGrid();
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();

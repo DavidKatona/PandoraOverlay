@@ -45,7 +45,7 @@ internal sealed class GameHost : IGameHost
 
     public IGameLog Log { get; }
 
-    /// <summary>This instance's door to the window's speaker (A77): its Play asks the host's gate (<see cref="GamesSound"/>) with this instance, and reaches nothing once the instance is detached.</summary>
+    /// <summary>This instance's door to the window's speaker (A77, A105): its Play and its Click ask the host's gate (<see cref="GamesSound"/>) with this instance, and reach nothing once the instance is detached.</summary>
     public IGameSound Sound => _sound;
 
     /// <summary>The game this instance plays.</summary>
@@ -92,16 +92,19 @@ internal sealed class GameHost : IGameHost
         }
 
         /// <summary>
-        /// A game's click (G27, A105): dropped for now. C06 hands it to the games'
-        /// gate, <c>GamesSound.Click(_host, click)</c>, which plays it only for the
-        /// instance heard (A79's second layer) through the click gate in the Games
-        /// scope (the Settings switch, the window's mute and step, the gap); a closed
-        /// door will reach nothing, as its <see cref="Play"/> does. Until then every
-        /// game's click is silence, which the Contract allows: the host decides, the
-        /// game never learns which, and nothing here throws.
+        /// A game's click (G27, A105), from the Engine's rule: handed to the games'
+        /// gate with the instance that handed it (<see cref="GamesSound.Click"/>),
+        /// which passes it on only for the instance heard (A79's second layer)
+        /// to the click gate in the Games scope (the Settings switch, the window's
+        /// mute and step, the gap). A closed door reaches nothing, as its
+        /// <see cref="Play"/> doesn't: a replaced instance's click is silence
+        /// (the gate would drop it too, by <see cref="Current"/>). The game never
+        /// learns which, and nothing here throws (the Contract's promise).
         /// </summary>
         public void Click(GameClick click)
         {
+            if (_closed) return;
+            _host._owner.Sound.Click(_host, click);
         }
 
         public void Close() => _closed = true;

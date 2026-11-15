@@ -551,6 +551,239 @@ public class GamesSoundTests
         host.Sound.StepUp(); // a NullSpeaker: nothing to hear, nothing thrown
     }
 
+    // ---- A game's clicks (A105) -----------------------------------------------------------------
+
+    /// <summary>
+    /// A host whose games' gate hands its clicks to a sink (MainWindow's line,
+    /// with a test's sink): the games here are fakes, attached in a temporary
+    /// games folder of the bench's own, and their gate plays on a speaker that
+    /// records. <see cref="GamesBench"/> makes its gate without a click gate,
+    /// as every construction before A105 does.
+    /// </summary>
+    private sealed class ClickBench : IDisposable
+    {
+        private readonly TempGamesRoot _temp = new();
+
+        public ClickBench(IClickSink? clicks, int games = 1)
+        {
+            Games = Enumerable.Range(1, games).Select(n => new FakeGame($"game-{n}")).ToArray();
+            var store = new GameSaveStore(_temp.Root, () => Clock.UtcNow);
+            Host = new GamesHost(store, Games.Select(g => new GameEntry(g.Id, () => g)).ToArray(), Clock, _ => new TestGameLog(),
+                new GamesSound(Speaker, Config, Clock, clicks));
+            Host.AttachAll();
+        }
+
+        public TestGameClock Clock { get; } = new();
+
+        public FakeSpeaker Speaker { get; } = new();
+
+        public OverlayConfig Config { get; } = new();
+
+        public FakeGame[] Games { get; }
+
+        public GamesHost Host { get; }
+
+        public GamesSound Gate => Host.Sound;
+
+        /// <summary>A click as the Engine's rule hands it: through the game's own door.</summary>
+        public void ClickFrom(int game, GameClick click) => Games[game].Host!.Sound.Click(click);
+
+        public void Dispose()
+        {
+            Host.Sound.Dispose();
+            _temp.Dispose();
+        }
+    }
+
+    private static (ClickCue, ClickScope) InGames(ClickCue cue) => (cue, ClickScope.Games);
+
+    /// <summary>The Contract's six and the app's six are the same by name, one for one (A100, A105); a value outside them is none.</summary>
+    [Fact]
+    public void AGamesClickIsTheCueOfTheSameName()
+    {
+        var clicks = Enum.GetValues<GameClick>();
+        Assert.Equal(Enum.GetNames<ClickCue>(), Enum.GetNames<GameClick>());
+        foreach (var click in clicks) Assert.Equal(click.ToString(), GamesSound.CueOf(click).ToString());
+        Assert.Null(GamesSound.CueOf((GameClick)99));
+        Assert.Null(GamesSound.CueOf((GameClick)(-1)));
+    }
+
+    /// <summary>The game on screen, not covered: each of its clicks reaches the click gate once, as its cue, in the Games scope; nothing reaches the games' own speaker (a click is the Clicks channel's, A101).</summary>
+    [Fact]
+    public void AHeardInstancesClickReachesTheClickGateInTheGamesScope()
+    {
+        var sink = new FakeClickSink();
+        using var bench = new ClickBench(sink);
+        bench.Gate.Stage(bench.Host.Games[0], paused: false);
+
+        foreach (var click in Enum.GetValues<GameClick>()) bench.ClickFrom(0, click);
+
+        Assert.Equal(Enum.GetValues<ClickCue>().Select(InGames), sink.Clicks);
+        Assert.Empty(bench.Speaker.Played);
+    }
+
+    [Fact]
+    public void AnotherGamesClickIsDropped()
+    {
+        var sink = new FakeClickSink();
+        using var bench = new ClickBench(sink, games: 2);
+        bench.Gate.Stage(bench.Host.Games[0], paused: false);
+
+        bench.ClickFrom(1, GameClick.Press);
+
+        Assert.Empty(sink.Clicks);
+    }
+
+    /// <summary>Before any stage and on the grid nobody is heard, so no click goes anywhere.</summary>
+    [Fact]
+    public void OnTheGridNoGamesClickIsHeard()
+    {
+        var sink = new FakeClickSink();
+        using var bench = new ClickBench(sink);
+        bench.ClickFrom(0, GameClick.Press);
+        bench.Gate.Stage(null, paused: false); // the grid
+
+        bench.ClickFrom(0, GameClick.Select);
+
+        Assert.Empty(sink.Clicks);
+    }
+
+    [Fact]
+    public void WithTheWarningUpNoGamesClickIsHeard()
+    {
+        var sink = new FakeClickSink();
+        using var bench = new ClickBench(sink);
+        bench.Gate.Stage(bench.Host.Games[0], paused: true);
+
+        bench.ClickFrom(0, GameClick.Press);
+        Assert.Empty(sink.Clicks);
+
+        bench.Gate.Stage(bench.Host.Games[0], paused: false); // "Keep playing"
+        bench.ClickFrom(0, GameClick.Press);
+        Assert.Equal(new[] { InGames(ClickCue.Press) }, sink.Clicks);
+    }
+
+    /// <summary>A detached instance (after "Start it again") reaches nothing, through the door it kept or straight at the gate; the instance that replaced it is heard.</summary>
+    [Fact]
+    public void ADetachedInstancesClickReachesNothing()
+    {
+        var sink = new FakeClickSink();
+        using var bench = new ClickBench(sink);
+        var game = bench.Host.Games[0];
+        var old = game.Host!;
+        var oldDoor = old.Sound;
+        bench.Host.Fault(game, new InvalidOperationException("made up"));
+        Assert.True(bench.Host.StartAgain(game));
+        bench.Gate.Stage(game, paused: false);
+
+        oldDoor.Click(GameClick.Press);
+        bench.Gate.Click(old, GameClick.Press);
+        Assert.Empty(sink.Clicks);
+
+        bench.ClickFrom(0, GameClick.Back);
+        Assert.Equal(new[] { InGames(ClickCue.Back) }, sink.Clicks);
+    }
+
+    /// <summary>A stopped game is heard no more, before the window answers its fault: it is not Ready.</summary>
+    [Fact]
+    public void AStoppedGamesClickIsDropped()
+    {
+        var sink = new FakeClickSink();
+        using var bench = new ClickBench(sink);
+        bench.Gate.Stage(bench.Host.Games[0], paused: false);
+        bench.Host.Fault(bench.Host.Games[0], new InvalidOperationException("made up"));
+
+        bench.ClickFrom(0, GameClick.Press);
+
+        Assert.Empty(sink.Clicks);
+    }
+
+    /// <summary>The window closed (it tells the gate none), and the gate disposed at the exit: no click goes anywhere.</summary>
+    [Fact]
+    public void OnceClosedNoGamesClickIsHeard()
+    {
+        var sink = new FakeClickSink();
+        using var bench = new ClickBench(sink);
+        bench.Gate.Stage(bench.Host.Games[0], paused: false);
+        bench.Gate.Stage(null, paused: false); // Closed
+        bench.ClickFrom(0, GameClick.Press);
+        Assert.Empty(sink.Clicks);
+
+        bench.Gate.Stage(bench.Host.Games[0], paused: false);
+        bench.Gate.Dispose(); // the exit
+        bench.ClickFrom(0, GameClick.Press);
+        Assert.Empty(sink.Clicks);
+    }
+
+    /// <summary>A gate made without a click gate (every construction before A105: the tests', the harness's) drops every click, and throws for none.</summary>
+    [Fact]
+    public void WithNoClickGateNoGamesClickGoesAnywhere()
+    {
+        using var bench = new ClickBench(clicks: null);
+        bench.Gate.Stage(bench.Host.Games[0], paused: false);
+
+        foreach (var click in Enum.GetValues<GameClick>()) bench.ClickFrom(0, click);
+
+        Assert.Empty(bench.Speaker.Played);
+    }
+
+    /// <summary>The mute is the click gate's to read for the Games scope (A103), not repeated here: muted, a heard click is still handed on, and the click gate drops it.</summary>
+    [Fact]
+    public void TheMuteIsTheClickGatesToRead()
+    {
+        var sink = new FakeClickSink();
+        using var bench = new ClickBench(sink);
+        bench.Config.GamesSoundMuted = true;
+        bench.Gate.Stage(bench.Host.Games[0], paused: false);
+
+        bench.ClickFrom(0, GameClick.Select);
+
+        Assert.Equal(new[] { InGames(ClickCue.Select) }, sink.Clicks);
+    }
+
+    /// <summary>
+    /// Through the real click gate (MainWindow's pair, over the bundled
+    /// clicks and a second recording speaker for the Clicks channel): a heard
+    /// click plays at the Games window's step; the window muted, or clicks
+    /// turned off in Settings, it is silence; the 80 ms gap holds (A99, A103).
+    /// </summary>
+    [Fact]
+    public void ThroughTheClickGateAGamesClickObeysTheWindowsMuteAndStepAndTheSwitch()
+    {
+        var clickSpeaker = new FakeSpeaker();
+        var clock = new TestGameClock();
+        var config = new OverlayConfig { GamesSoundVolume = 2, ClickSoundVolume = 5 };
+        var clicks = new ClickSound(clickSpeaker, config, () => clock.Elapsed, new ClickBank(null, (_, line) => throw new Xunit.Sdk.XunitException(line)));
+        using var temp = new TempGamesRoot();
+        var game = new FakeGame("game-1");
+        var host = new GamesHost(new GameSaveStore(temp.Root, () => clock.UtcNow), new[] { new GameEntry(game.Id, () => game) }, clock, _ => new TestGameLog(),
+            new GamesSound(new FakeSpeaker(), config, clock, clicks));
+        host.AttachAll();
+        host.Sound.Stage(host.Games[0], paused: false);
+
+        game.Host!.Sound.Click(GameClick.Press);
+        Assert.Equal(GamesSound.GainOf(2), Assert.Single(clickSpeaker.Played).Gain); // the window's step, not the overlay's 5
+
+        clock.Advance(TimeSpan.FromMilliseconds(40));
+        game.Host.Sound.Click(GameClick.Press); // within the gap
+        Assert.Single(clickSpeaker.Played);
+
+        clock.Advance(ClickSound.MinGap);
+        config.GamesSoundMuted = true;
+        game.Host.Sound.Click(GameClick.Press);
+        Assert.Single(clickSpeaker.Played);
+
+        config.GamesSoundMuted = false;
+        config.ClickSoundEnabled = false;
+        game.Host.Sound.Click(GameClick.Press);
+        Assert.Single(clickSpeaker.Played);
+
+        config.ClickSoundEnabled = true;
+        game.Host.Sound.Click(GameClick.Back);
+        Assert.Equal(2, clickSpeaker.Played.Count);
+        host.Sound.Dispose();
+    }
+
     private sealed class ThrowingSpeaker : ISpeaker
     {
         public bool Disposed { get; private set; }

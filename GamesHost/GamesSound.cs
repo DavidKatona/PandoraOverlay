@@ -57,8 +57,26 @@ namespace PandoraOverlay;
 /// (<c>GamesSoundVolume</c>, <c>GamesSoundMuted</c>). A value out of range is
 /// READ as the nearest step and never written back by reading: only a click
 /// writes. A sound is passed at its step's gain at its play; what is playing
-/// finishes at the level it started with (under a second). <see cref="GainOf"/>
-/// is the one home of the steps.
+/// finishes at the level it started with (under a second). The steps' one home
+/// is <see cref="SoundSteps"/> since A103 (the overlay's clicks share them):
+/// <see cref="GainOf"/>, <see cref="Steps"/>, <see cref="DefaultStep"/> and
+/// the rest here forward to it.
+/// </para>
+/// <para>
+/// <b>A game's clicks (G27, A105).</b> A game's own controls click by the
+/// Engine's rule, which hands each click its host (<see cref="IGameSound.Click"/>,
+/// through its <see cref="GameHost"/>'s door) and arrives at <see cref="Click"/>:
+/// passed on to the click gate (<see cref="ClickSound"/>, handed in by
+/// MainWindow) in the <see cref="ClickScope.Games"/> scope only for the
+/// instance heard, by the same <see cref="Heard"/> as a sound (A79's second
+/// layer: the current instance of the game on screen, the window open, the
+/// warning not up), so a detached instance's click, another game's, one from
+/// the grid or under the warning is silence. The rest is the click gate's and
+/// is not repeated here (A99, A103): the Settings switch, the window's mute
+/// and step, the 80 ms gap; and a click plays on the speaker's Clicks
+/// channel, so it is never one of this gate's <see cref="MaxVoices"/> and a
+/// stage's stop never fades it. With no click gate (the tests, the render
+/// harness: the parameter left out) no click goes anywhere.
 /// </para>
 /// <para>
 /// <b>The preview (A82).</b> The gate's own sound, made in code once: a 0.08 s
@@ -122,6 +140,9 @@ internal sealed class GamesSound : IDisposable
     private readonly OverlayConfig _config;
     private readonly IGameClock _clock;
 
+    /// <summary>Where a heard instance's clicks go (A105): MainWindow's click gate, or none (silence).</summary>
+    private readonly IClickSink? _clicks;
+
     /// <summary>Per sound object: the gate's own copy of its samples (null when refused) and when it last started.</summary>
     private readonly ConditionalWeakTable<GameSound, Kept> _kept = new();
 
@@ -139,11 +160,13 @@ internal sealed class GamesSound : IDisposable
     /// <param name="speaker">What plays (the real speaker, or <see cref="NullSpeaker"/>); owned and disposed by the gate.</param>
     /// <param name="config">Where the step and the mute live (A82): read at every play, written by the controls.</param>
     /// <param name="clock">The host's clock, for the limits' counts.</param>
-    public GamesSound(ISpeaker speaker, OverlayConfig config, IGameClock clock)
+    /// <param name="clicks">The click gate a heard instance's clicks are handed to (MainWindow's <see cref="ClickSound"/>, A105), or a test's fake sink; left out, no game's click goes anywhere. Never disposed here: it is MainWindow's, and owns nothing to dispose.</param>
+    public GamesSound(ISpeaker speaker, OverlayConfig config, IGameClock clock, IClickSink? clicks = null)
     {
         _speaker = speaker ?? throw new ArgumentNullException(nameof(speaker));
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _clicks = clicks;
         _kept.Add(Preview, new Kept(Preview.Samples.ToArray()));
     }
 
@@ -199,6 +222,43 @@ internal sealed class GamesSound : IDisposable
         if (kept.Samples is null) return;
         Start(kept);
     }
+
+    // ---- A game's click (A105) ---------------------------------------------------------------
+
+    /// <summary>
+    /// A click a game's instance handed its host (its <see cref="GameHost"/>'s
+    /// door, from the Engine's rule): passed to the click gate as the
+    /// <see cref="ClickCue"/> of the same name, in the
+    /// <see cref="ClickScope.Games"/> scope, when that instance is heard (the
+    /// same <see cref="Heard"/> as <see cref="Play"/>); else dropped, silently.
+    /// Nothing once disposed or with no click gate, and nothing for a value
+    /// outside <see cref="GameClick"/>'s six. The mute is NOT read here: the
+    /// click gate reads it for the Games scope, with the Settings switch, the
+    /// window's step and the gap (A103, A99), so no rule is written twice.
+    /// Never throws (the click gate's own promise).
+    /// </summary>
+    internal void Click(GameHost asking, GameClick click)
+    {
+        if (_disposed || _clicks is null || !Heard(asking) || CueOf(click) is not { } cue) return;
+        _clicks.Click(cue, ClickScope.Games);
+    }
+
+    /// <summary>
+    /// A game's click as the overlay's cue (A100, A105): the Contract's
+    /// <see cref="GameClick"/> and the app's <see cref="ClickCue"/> are the
+    /// same six by name (the Contract can't name the app's enum, A2); null for
+    /// a value that is none of them (a game's cast), which plays nothing.
+    /// </summary>
+    internal static ClickCue? CueOf(GameClick click) => click switch
+    {
+        GameClick.Press => ClickCue.Press,
+        GameClick.Select => ClickCue.Select,
+        GameClick.ToggleOn => ClickCue.ToggleOn,
+        GameClick.ToggleOff => ClickCue.ToggleOff,
+        GameClick.Arm => ClickCue.Arm,
+        GameClick.Back => ClickCue.Back,
+        _ => null,
+    };
 
     /// <summary>The asking instance is the current instance of the game on screen, which plays, and the warning is not up.</summary>
     private bool Heard(GameHost asking) =>
