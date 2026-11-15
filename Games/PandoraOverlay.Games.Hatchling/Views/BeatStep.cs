@@ -190,9 +190,6 @@ internal sealed partial class BeatStep : IStep
     /// <summary>Its index in the script.</summary>
     public int Index => _index;
 
-    /// <summary>Its cues, as the one pass worked them out (<see cref="BeatSounds.Of"/>): the tests compare what was played with them.</summary>
-    internal IReadOnlyList<BeatSound> Sounds => _sounds;
-
     /// <summary>
     /// One step for each beat of the play's script, in order, with every picture worked
     /// out by one pass over the island as the beats move it (see the summary). The

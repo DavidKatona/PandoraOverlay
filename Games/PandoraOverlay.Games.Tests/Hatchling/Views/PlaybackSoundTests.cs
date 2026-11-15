@@ -241,6 +241,29 @@ public class PlaybackSoundTests
         Assert.Equal(new[] { "lost" }, host.Sound.Played);   // one cue a click (H98, H99)
     });
 
+    /// <summary>A skip with no cue of its own (the end already begun, so <c>OnSkip</c> finds nothing) leaves the summary's "reward" to play at that click (H99: only a skip's cue takes its place).</summary>
+    [Fact]
+    public void ASkipAfterTheEndHasSoundedStillOpensTheSummarysReward() => Sta.Run(() =>
+    {
+        var (game, host) = ViewHarness.Attached(Starving());
+        using var view = ViewHarness.ViewOf(game);
+        view.RunPage.RestClicked();
+        var ticks = 0;
+        while (!host.Sound.Played.Contains("lost") && ticks < 2000)
+        {
+            ViewHarness.Tick(view, host);
+            ticks++;
+        }
+        Assert.True(host.Sound.Played.Contains("lost"), "the End beat's cue was never handed");
+        Assert.True(view.RunPage.Playing);   // the End beat is 24 ticks: still playing
+        view.RunPage.BoardPressed(new PixelPointer(1, 1, PointerButton.Left));   // the skip, after the end has sounded
+        Assert.False(view.RunPage.Playing);
+        var played = host.Sound.Played;
+        _out.WriteLine(string.Join(", ", played));
+        Assert.Equal(new[] { "lost", "reward" }, played.TakeLast(2));
+        Assert.Single(played, p => p == "reward");
+    });
+
     // ===== The plan's two-hunter turn, as evidence (H97) ======================================================
 
     [Fact]
