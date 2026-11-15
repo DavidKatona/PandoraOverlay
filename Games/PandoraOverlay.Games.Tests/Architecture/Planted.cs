@@ -195,4 +195,17 @@ internal static class Planted
 
     /// <summary>The PC's event log, by a log's name (the type EventLog: in the WPF framework, no package).</summary>
     internal static object AnEventLog() => new System.Diagnostics.EventLog("planted");
+
+    // A70: the two assemblies behind ConfigurationManager and EventLog, whole. Neither
+    // plant names either refused type: the assembly reference is what the scan finds.
+
+    /// <summary>A settings class, as Visual Studio's Settings designer writes one (the assembly System.Configuration.ConfigurationManager, by its base type).</summary>
+    internal sealed class PlantedSettings : System.Configuration.ApplicationSettingsBase { }
+
+    /// <summary>Its Save, which writes user.config under the user's AppData with no ConfigurationManager named (SettingsBase::Save).</summary>
+    internal static void ASettingsSave() => new PlantedSettings().Save();
+
+    /// <summary>A log file read by its path (the assembly System.Diagnostics.EventLog, by EventLogReader, with no EventLog named).</summary>
+    internal static object AnEventLogFile() =>
+        new System.Diagnostics.Eventing.Reader.EventLogReader("planted", System.Diagnostics.Eventing.Reader.PathType.FilePath);
 }

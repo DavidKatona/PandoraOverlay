@@ -95,16 +95,18 @@ internal readonly record struct Finding(string Assembly, string Subject, Forbidd
 /// XAML's own conversion (a string property bound to an <c>Image</c>'s
 /// <c>Source</c>, or a game's string read there by an <c>x:Static</c>, is
 /// turned into a picture fetched by WPF, with no imaging type in the game's
-/// code), or through
-/// a decoder's <c>Uri</c> constructor (<c>PngBitmapDecoder</c> takes a
-/// <c>Uri</c> as well as the stream the engine gives it, and the two are one
-/// name in the metadata); and memory reinterpreted (an object read as another
-/// type's layout). The address scan (A45) keeps the address out of the source,
-/// and review keeps the rest: the metadata says what an assembly names, never
-/// what a string it builds will hold. A file named by a <c>Uri</c> reaching WPF
-/// (a decoder's or a font's) is the address's gap above, and a door no game would
-/// reach for by accident (a certificate or a temporary-file collection by its
-/// path, a file's version information) is review's (A69).
+/// code), or through a decoder's <c>Uri</c> constructor
+/// (<c>PngBitmapDecoder</c> takes a <c>Uri</c> as well as the stream the engine
+/// gives it, and the two are one name in the metadata); and memory
+/// reinterpreted (an object read as another type's layout). The address scan
+/// (A45) keeps the address out of the source, and review keeps the rest: the
+/// metadata says what an assembly names, never what a string it builds will
+/// hold. A file named by a <c>Uri</c> reaching WPF (a decoder's or a font's)
+/// is the address's gap above, and WPF's fonts read from a folder by its path
+/// (<c>Fonts.GetFontFamilies</c>, <c>GetTypefaces</c>, which only read) sit
+/// with it (A70); and a door no game would reach for by accident (a certificate
+/// or a temporary-file collection by its path, a file's version information)
+/// is review's (A69).
 /// </para>
 /// </summary>
 internal static class ForbiddenList
@@ -156,7 +158,7 @@ internal static class ForbiddenList
     private static ForbiddenEntry Member(string type, string member, string reason, params string[] except) =>
         new(ForbiddenKind.Member, type, reason) { Member = member, Except = except };
 
-    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member, A60's reflection and picture doors and A69's path doors sit in their groups.</summary>
+    /// <summary>Every entry, in the brief's order (A02): assemblies, namespaces, types, members, native calls, the engine's one exception; A43's additions, A44's Environment by member, A60's reflection and picture doors, A69's path doors and A70's two assemblies sit in their groups.</summary>
     public static IReadOnlyList<ForbiddenEntry> All { get; } = new[]
     {
         // ---- Assembly references ------------------------------------------------
@@ -170,6 +172,13 @@ internal static class ForbiddenList
         // turns it into calls on this assembly's run-time binder, and names no member
         // of the target at all.
         Assembly("Microsoft.CSharp", NoReflection),
+        // A70: the two framework assemblies behind A69's ConfigurationManager and EventLog,
+        // whole: a settings class (ApplicationSettingsBase, then Save()) writes user.config
+        // under the user's AppData naming neither type, and EventLogReader reads a log file
+        // by its path. Nothing a game needs is in either; the type entries below stay for
+        // their words.
+        Assembly("System.Configuration.ConfigurationManager", StorageIsTheHosts),
+        Assembly("System.Diagnostics.EventLog", ReachingOut),
 
         // ---- Namespaces, and every namespace below them ----------------------------
         Namespace("System.Net", ReachingOut),
@@ -352,8 +361,9 @@ internal static class ForbiddenList
         //   System.Drawing.Common, which the WPF framework the games build against
         //   (Games/Directory.Build.props: UseWPF) does not hold, only Windows Forms'
         //   does: Image.FromFile does not compile in the games' tests (CS1069), which
-        //   build as a game does. A game's project that switched Windows Forms on would
-        //   reach it, and no project rule refuses that switch today.
+        //   build as a game does. A game's project that switched Windows Forms on
+        //   would reach it, and ProjectRulesTests.NoProjectSwitchesOnAnotherFramework
+        //   refuses that switch and any other framework (A70).
         // Watch: a game whose XAML places an element of one of its own INTERNAL types
         // (<local:Board/> where Board is internal) gets WPF's GeneratedInternalTypeHelper
         // compiled in, and that helper calls PropertyInfo.GetValue and SetValue,

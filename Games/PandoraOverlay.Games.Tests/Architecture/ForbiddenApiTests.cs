@@ -187,6 +187,11 @@ public class ForbiddenApiTests
         AssertFound(findings, ForbiddenKind.Namespace, "System.Windows.Xps", "the type System.Windows.Xps.Packaging.XpsDocument");
         AssertFound(findings, ForbiddenKind.Namespace, "Microsoft.VisualBasic", "the type Microsoft.VisualBasic.FileIO.FileSystem");
         AssertFound(findings, ForbiddenKind.Type, "System.Diagnostics.EventLog", "the type System.Diagnostics.EventLog");
+
+        // A70: the two assemblies whole, found by the reference a settings class and a
+        // log file read by its path write (neither names A69's two types).
+        AssertFound(findings, ForbiddenKind.Assembly, "System.Configuration.ConfigurationManager", "the assembly System.Configuration.ConfigurationManager");
+        AssertFound(findings, ForbiddenKind.Assembly, "System.Diagnostics.EventLog", "the assembly System.Diagnostics.EventLog");
     }
 
     private static void AssertFound(IReadOnlyList<Finding> findings, ForbiddenKind kind, string pattern, string subject) =>
@@ -396,7 +401,8 @@ public class ForbiddenApiTests
     /// package, mapped-file, folder-walk, tar, XPS, run-time XAML and VisualBasic
     /// namespaces, each by a type in it; System.Xml also by two types below it, and
     /// System.Windows.Xps and Microsoft.VisualBasic by the type below each that
-    /// <see cref="Planted"/> calls.
+    /// <see cref="Planted"/> calls; and the two framework assemblies behind
+    /// ConfigurationManager and EventLog, whole, as references (A70).
     /// </summary>
     [Fact]
     public void ThePathDoorsAreRefused()
@@ -436,6 +442,18 @@ public class ForbiddenApiTests
             var findings = ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(type, member) }));
             Assert.True(findings.Count == 1, $"{type}::{member} should give exactly one finding");
             Assert.StartsWith(StorageReason, findings[0].Entry.Reason);
+        }
+
+        // A70: the two framework assemblies behind ConfigurationManager and EventLog, whole.
+        foreach (var (assembly, reason) in new[]
+                 {
+                     ("System.Configuration.ConfigurationManager", StorageReason),
+                     ("System.Diagnostics.EventLog", ReachingOutReason),
+                 })
+        {
+            var findings = ForbiddenList.Check(Made(AGame, assemblies: new[] { assembly }));
+            Assert.True(findings.Count == 1, $"the assembly {assembly} should give exactly one finding");
+            Assert.StartsWith(reason, findings[0].Entry.Reason);
         }
     }
 
