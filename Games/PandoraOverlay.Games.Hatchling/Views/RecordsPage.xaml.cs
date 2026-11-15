@@ -77,8 +77,9 @@ internal sealed partial class RecordsPage : Grid, IHatchlingPage
 
     /// <summary>
     /// An achievement's cell (H27): the mark ("✓" Good earned, "○" Off not), the name
-    /// (Bright earned, Text2 not) over its text (Dim), and at the right what it pays
-    /// (Highlight, or Good once earned; nothing for one that pays nothing).
+    /// (Bright earned, Text2 not) with what it pays at the right of its line
+    /// (Highlight, or Good once earned; nothing for one that pays nothing), over its
+    /// text (Dim) (H84).
     /// </summary>
     private static void DrawCell(Cell cell, Achievements achievements)
     {
@@ -121,7 +122,16 @@ internal sealed partial class RecordsPage : Grid, IHatchlingPage
 
     // ===== Made once ============================================================================
 
-    /// <summary>An achievement's cell, in the table's order: the first twelve down the left column, the rest down the right.</summary>
+    /// <summary>
+    /// An achievement's cell, in the table's order: the first twelve down the left
+    /// column, the rest down the right. The mark in its column of 18; beside it two
+    /// lines: the name with its reward at the right (sized to its words, 6 from the
+    /// name), and under them the text across the whole column (H84: with the reward
+    /// centred across both lines the text lost its 30 too, and in Isle's font "Grow to
+    /// Adult in a run without being bitten" and "Win a run without defeating a
+    /// predator" lost the condition that earns them; on the name's line it costs
+    /// nothing).
+    /// </summary>
     private Cell MakeCell(string id, int index)
     {
         var mark = PageParts.Line("Theme.Text.Off", "Theme.Size.12");
@@ -129,7 +139,8 @@ internal sealed partial class RecordsPage : Grid, IHatchlingPage
         var text = PageParts.Line("Theme.Text.Dim", "Theme.Size.10.5");
         var reward = PageParts.Line("Theme.Text.Highlight", "Theme.Size.12");
 
-        var words = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { name, text } };
+        var nameLine = PageParts.LeftAndRight(name, reward);
+        var words = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { nameLine, text } };
         var grid = new Grid
         {
             Width = CellWidth,
@@ -140,13 +151,9 @@ internal sealed partial class RecordsPage : Grid, IHatchlingPage
         };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(MarkWidth) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         Grid.SetColumn(words, 1);
-        reward.Margin = new Thickness(6, 0, 0, 0);
-        Grid.SetColumn(reward, 2);
         grid.Children.Add(mark);
         grid.Children.Add(words);
-        grid.Children.Add(reward);
         Cells.Children.Add(grid);
         return new Cell(id, mark, name, text, reward);
     }
@@ -188,6 +195,10 @@ internal sealed partial class RecordsPage : Grid, IHatchlingPage
     /// <summary>The cells as shown, in the table's order: where each stands, its words, and its keys.</summary>
     internal IReadOnlyList<(string Id, Thickness Place, string Mark, string Name, string Text, string Reward, string MarkKey, string NameKey, string RewardKey)> CellsShown =>
         _cells.Select(c => (c.Id, ((FrameworkElement)c.Mark.Parent).Margin, c.Mark.Text, c.Name.Text, c.Text.Text, c.Reward.Text, c.MarkKey, c.NameKey, c.RewardKey)).ToList();
+
+    /// <summary>Each cell's grid and its name, text and reward blocks, in the table's order (H84: where the reward and the text stand).</summary>
+    internal IReadOnlyList<(Grid Cell, TextBlock Name, TextBlock Text, TextBlock Reward)> CellBlocks =>
+        _cells.Select(c => ((Grid)c.Mark.Parent, c.Name, c.Text, c.Reward)).ToList();
 
     /// <summary>"5 of 24", the totals' values in their order, and the chosen species' line.</summary>
     internal (string Count, IReadOnlyList<string> Totals, string Chosen) SummaryShown =>

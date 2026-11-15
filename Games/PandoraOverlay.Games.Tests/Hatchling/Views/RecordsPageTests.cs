@@ -37,6 +37,33 @@ public class RecordsPageTests
         Assert.Equal("+500", cells[^1].Reward);
     });
 
+    /// <summary>
+    /// H84: an achievement's text has the cell's whole width beside the mark (237), and
+    /// its reward stands on the name's line, so it takes nothing from the condition
+    /// that earns it (in Isle's font two conditions were cut in the 204 left beside a
+    /// reward centred across both lines).
+    /// </summary>
+    [Fact]
+    public void AnAchievementsTextHasTheWholeCellAndItsRewardTheNamesLine() => Sta.Run(() =>
+    {
+        var (game, _) = ViewHarness.Attached(ViewHarness.Ready());
+        using var view = ViewHarness.ViewOf(game);
+        var page = PageHarness.Open<RecordsPage>(view, PageKind.Records);
+        PageHarness.LayOut(view);
+        var blocks = page.CellBlocks;
+        Assert.Equal(24, blocks.Count);
+        Assert.Equal(237, RecordsPage.CellWidth - 18);
+        foreach (var (cell, name, text, reward) in blocks)
+        {
+            Assert.Equal(RecordsPage.CellWidth - 18, text.ActualWidth);
+            var nameCentre = name.TranslatePoint(new System.Windows.Point(0, name.ActualHeight / 2), cell).Y;
+            var rewardCentre = reward.TranslatePoint(new System.Windows.Point(0, reward.ActualHeight / 2), cell).Y;
+            Assert.Equal(nameCentre, rewardCentre, 6);
+            var textTop = text.TranslatePoint(new System.Windows.Point(0, 0), cell).Y;
+            Assert.True(textTop >= nameCentre, $"{name.Text}: the text at {textTop}, the name's centre at {nameCentre}");
+        }
+    });
+
     [Fact]
     public void AnEarnedOneDiffersFromOneNotEarnedAndTheCountSaysHowMany() => Sta.Run(() =>
     {
