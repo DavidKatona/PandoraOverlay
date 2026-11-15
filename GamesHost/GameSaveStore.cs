@@ -21,11 +21,17 @@ namespace PandoraOverlay;
 /// <c>save.json</c> the current save; <c>save.bak</c> the good save before the
 /// last write; <c>save.json.tmp</c> a write in progress;
 /// <c>save.v&lt;n&gt;.json</c> the last good save of version n, copied before
-/// the first write of a higher one; <c>save.before-reset.json</c> the save a
-/// Reset replaced; <c>unreadable-&lt;n&gt;.json</c> and
+/// the first write of a higher one; <c>save.before-reset-&lt;n&gt;.json</c>
+/// the save each Reset replaced, one file per Reset, never overwritten (A62,
+/// <see cref="KeepBeforeReset"/>); <c>unreadable-&lt;n&gt;.json</c> and
 /// <c>unreadable-&lt;n&gt;.bak</c>, damaged files set aside, by the player's
 /// "Start fresh" (<see cref="SetAside"/>) or by a write that found a damaged
 /// save in its way (A36), never deleted and never read again.
+/// One more name may be there and is never the store's: a
+/// <c>save.before-reset.json</c> left by a build of the branch before A62
+/// (which kept one copy and overwrote it). Nothing here names it, so it is
+/// never read, moved, overwritten or deleted: it may be the only copy of the
+/// progress a Reset replaced.
 /// </para>
 /// <para>
 /// The envelope round the game's text: one JSON object, UTF-8 without a BOM,
@@ -73,7 +79,6 @@ internal sealed class GameSaveStore
     internal const string SaveFile = "save.json";
     internal const string BackupFile = "save.bak";
     internal const string TempFile = "save.json.tmp";
-    internal const string BeforeResetFile = "save.before-reset.json";
 
     /// <summary>The last save of a version, kept for ever: what a later, fixed build can recover from if an upgrade step was wrong.</summary>
     internal static string VersionFile(int version) => $"save.v{version.ToString(CultureInfo.InvariantCulture)}.json";
@@ -83,9 +88,18 @@ internal sealed class GameSaveStore
     internal static string UnreadableBackup(int n) => $"unreadable-{n.ToString(CultureInfo.InvariantCulture)}.bak";
 
     /// <summary>
-    /// The highest number a set-aside pair is given. Only a bound, so a disk
-    /// that answers "it exists" to every name can't hang the overlay: a player
-    /// clicks "Start fresh" once per save that broke, never thousands of times.
+    /// The copy the n-th Reset kept (A62): numbered as <see cref="SetAside"/>
+    /// numbers its files, because one name overwritten at every Reset lost the
+    /// first Reset's copy at the second (a Reset by mistake, a little play, a
+    /// second Reset: <c>save.bak</c> has rolled on by then).
+    /// </summary>
+    internal static string BeforeReset(int n) => $"save.before-reset-{n.ToString(CultureInfo.InvariantCulture)}.json";
+
+    /// <summary>
+    /// The highest number a set-aside pair, or a Reset's copy (A62), is given.
+    /// Only a bound, so a disk that answers "it exists" to every name can't
+    /// hang the overlay: a player clicks "Start fresh" once per save that
+    /// broke, and a Reset is two armed clicks, never thousands of times.
     /// </summary>
     internal const int MaxSetAside = 10_000;
 
@@ -446,9 +460,17 @@ internal sealed class GameSaveStore
 
     /// <summary>
     /// Before a Ready game's Reset (the tile's armed second click): a copy of
-    /// <c>save.json</c> as <c>save.before-reset.json</c>, over the last one,
-    /// so a Reset by mistake can be undone by hand. <c>true</c> when there was
-    /// nothing to copy or the copy worked.
+    /// <c>save.json</c> as a file of its own, <c>save.before-reset-&lt;n&gt;.json</c>
+    /// (<see cref="BeforeReset"/>), so a Reset by mistake can be undone by
+    /// hand, and so can the one before it (A62). n is the first from 1 whose
+    /// name is not taken (<see cref="FreeBeforeResetNumber"/>), and the copy is
+    /// made with no overwrite: should the name be taken after all between the
+    /// look and the copy, the copy fails rather than replace what is there.
+    /// <c>true</c> when there was nothing to copy (no <c>save.json</c>) or the
+    /// copy worked; <c>false</c> and a Warning on any failure, the bound
+    /// passed included, and then the host resets nothing (keep first, reset
+    /// second: A38, in <c>GamesHost.StartFresh</c>). A
+    /// <c>save.before-reset.json</c> from before A62 is not looked at.
     /// </summary>
     public bool KeepBeforeReset(string gameId)
     {
@@ -457,8 +479,9 @@ internal sealed class GameSaveStore
         {
             var save = Path.Combine(folder, SaveFile);
             if (!File.Exists(save)) return true;
-            File.Copy(save, Path.Combine(folder, BeforeResetFile), overwrite: true);
-            AppLog.Games.Log($"{gameId}: the save was kept before a reset");
+            var n = FreeBeforeResetNumber(folder);
+            File.Copy(save, Path.Combine(folder, BeforeReset(n)), overwrite: false);
+            AppLog.Games.Log($"{gameId}: the save was kept before a reset as save.before-reset-{n}");
             return true;
         }
         catch (Exception ex)
@@ -466,6 +489,23 @@ internal sealed class GameSaveStore
             AppLog.Games.Warning($"{gameId}: the save could not be kept before a reset: {AppLog.Short(ex)}");
             return false;
         }
+    }
+
+    /// <summary>
+    /// The first n from 1 for which nothing is named <see cref="BeforeReset"/>(n):
+    /// neither a file nor a folder (A62). A folder of that name, which only a
+    /// person could have made, is passed over: counting it free would fail
+    /// the copy, and so every Reset, for ever. Throws past
+    /// <see cref="MaxSetAside"/>, which <see cref="KeepBeforeReset"/> answers
+    /// as <c>false</c>.
+    /// </summary>
+    private static int FreeBeforeResetNumber(string folder)
+    {
+        for (var n = 1; n <= MaxSetAside; n++)
+        {
+            if (!Path.Exists(Path.Combine(folder, BeforeReset(n)))) return n;
+        }
+        throw new IOException("no free number to keep the save under before a reset");
     }
 
     // ---- The id ------------------------------------------------------------------

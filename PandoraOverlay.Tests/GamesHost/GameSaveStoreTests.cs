@@ -611,19 +611,35 @@ public sealed class GameSaveStoreTests : IDisposable
 
     // ---- Before a reset ----------------------------------------------------------
 
+    /// <summary>The name a Reset's copy had before A62 (one file, overwritten at every Reset), which a build of the branch may have left.</summary>
+    private const string UnnumberedCopy = "save.before-reset.json";
+
+    /// <summary>The Reset copies in the game's folder, by name.</summary>
+    private string[] ResetCopies() =>
+        Directory.GetFileSystemEntries(Folder, "save.before-reset*").Select(f => Path.GetFileName(f)).OrderBy(f => f, StringComparer.Ordinal).ToArray();
+
     [Fact]
     public void KeepBeforeResetCopiesTheSave()
     {
+        // A62 reversed what this pinned (one copy, the last Reset's only): a
+        // Reset by mistake, a little play, and a second Reset must still leave
+        // the first Reset's copy, whole.
         var store = TwoWrites();
+        var first = File.ReadAllBytes(FileOf(GameSaveStore.SaveFile));
         Assert.True(store.KeepBeforeReset(Id));
-        Assert.Equal(File.ReadAllBytes(FileOf(GameSaveStore.SaveFile)), File.ReadAllBytes(FileOf(GameSaveStore.BeforeResetFile)));
-        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "second-save"), ReadAsSave(FileOf(GameSaveStore.BeforeResetFile)));
+        Assert.Equal(first, File.ReadAllBytes(FileOf(GameSaveStore.BeforeReset(1))));
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "second-save"), ReadAsSave(FileOf(GameSaveStore.BeforeReset(1))));
 
-        // The reset's fresh save, then another reset: the copy is the last one only.
+        // The reset's fresh save, then another reset: a second copy, the first untouched.
         Assert.True(store.Write(Id, 1, "after the reset"));
+        var second = File.ReadAllBytes(FileOf(GameSaveStore.SaveFile));
         Assert.True(store.KeepBeforeReset(Id));
-        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "after the reset"), ReadAsSave(FileOf(GameSaveStore.BeforeResetFile)));
+        Assert.Equal(first, File.ReadAllBytes(FileOf(GameSaveStore.BeforeReset(1))));
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "second-save"), ReadAsSave(FileOf(GameSaveStore.BeforeReset(1))));
+        Assert.Equal(second, File.ReadAllBytes(FileOf(GameSaveStore.BeforeReset(2))));
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "after the reset"), ReadAsSave(FileOf(GameSaveStore.BeforeReset(2))));
         Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "after the reset"), store.Read(Id));
+        Assert.Equal(new[] { "save.before-reset-1.json", "save.before-reset-2.json" }, ResetCopies());
     }
 
     [Fact]
@@ -631,6 +647,97 @@ public sealed class GameSaveStoreTests : IDisposable
     {
         Assert.True(Store().KeepBeforeReset(Id));
         Assert.False(Directory.Exists(Root));
+    }
+
+    [Fact]
+    public void KeepBeforeResetWithOnlyOtherFilesMakesNothing()
+    {
+        // The folder is there, with an earlier copy and a backup, but no
+        // save.json: nothing to copy (a backup is not what a Reset replaces).
+        var store = TwoWrites();
+        Assert.True(store.KeepBeforeReset(Id));
+        File.Delete(FileOf(GameSaveStore.SaveFile));
+        var before = Snapshot();
+
+        Assert.True(store.KeepBeforeReset(Id));
+
+        AssertSameFiles(before, Snapshot());
+        Assert.Equal(new[] { "save.before-reset-1.json" }, ResetCopies());
+    }
+
+    [Fact]
+    public void AResetCopyTakesTheFirstFreeNumber()
+    {
+        var store = TwoWrites();
+        Plant(GameSaveStore.BeforeReset(1), "an earlier copy");
+        Plant(GameSaveStore.BeforeReset(3), "a later copy");
+        var save = File.ReadAllBytes(FileOf(GameSaveStore.SaveFile));
+
+        Assert.True(store.KeepBeforeReset(Id));
+
+        Assert.Equal(save, File.ReadAllBytes(FileOf(GameSaveStore.BeforeReset(2))));
+        Assert.Equal("an earlier copy", File.ReadAllText(FileOf(GameSaveStore.BeforeReset(1))));
+        Assert.Equal("a later copy", File.ReadAllText(FileOf(GameSaveStore.BeforeReset(3))));
+        Assert.Equal(new[] { "save.before-reset-1.json", "save.before-reset-2.json", "save.before-reset-3.json" }, ResetCopies());
+
+        // And the next one skips every taken number.
+        Assert.True(store.KeepBeforeReset(Id));
+        Assert.Equal(save, File.ReadAllBytes(FileOf(GameSaveStore.BeforeReset(4))));
+        Assert.Equal("a later copy", File.ReadAllText(FileOf(GameSaveStore.BeforeReset(3))));
+    }
+
+    [Fact]
+    public void AFolderInTheWayOfAResetCopyIsPassedOver()
+    {
+        // Counted free, a folder of the name would fail the copy, and every
+        // Reset after it, for ever.
+        var store = TwoWrites();
+        Directory.CreateDirectory(FileOf(GameSaveStore.BeforeReset(1)));
+        var save = File.ReadAllBytes(FileOf(GameSaveStore.SaveFile));
+
+        Assert.True(store.KeepBeforeReset(Id));
+
+        Assert.Equal(save, File.ReadAllBytes(FileOf(GameSaveStore.BeforeReset(2))));
+        Assert.True(Directory.Exists(FileOf(GameSaveStore.BeforeReset(1))));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(FileOf(GameSaveStore.BeforeReset(1))));
+    }
+
+    [Fact]
+    public void AnUnnumberedCopyFromBeforeA62IsLeftAsItIs()
+    {
+        // It may be the only copy of what an earlier Reset replaced: never
+        // read, moved, overwritten or deleted, and never counted as number 1.
+        var store = TwoWrites();
+        Plant(UnnumberedCopy, Envelope(Id, 1, "kept by an older build"));
+        var old = File.ReadAllBytes(FileOf(UnnumberedCopy));
+        var save = File.ReadAllBytes(FileOf(GameSaveStore.SaveFile));
+
+        Assert.True(store.KeepBeforeReset(Id));
+        Assert.True(store.Write(Id, 1, "after the reset"));
+        Assert.True(store.KeepBeforeReset(Id));
+
+        Assert.Equal(old, File.ReadAllBytes(FileOf(UnnumberedCopy)));
+        Assert.Equal(save, File.ReadAllBytes(FileOf(GameSaveStore.BeforeReset(1))));
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "after the reset"), ReadAsSave(FileOf(GameSaveStore.BeforeReset(2))));
+        Assert.Equal(new[] { "save.before-reset-1.json", "save.before-reset-2.json", UnnumberedCopy }, ResetCopies()); // ordinal: '-' before '.'
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "after the reset"), store.Read(Id));
+    }
+
+    [Fact]
+    public void AResetCopyThatCantReadTheSaveFailsAndMakesNoCopy()
+    {
+        // The copy's failure is false (the host then resets nothing, A38), and
+        // it leaves no file behind, so no number is used up by a torn copy.
+        var store = TwoWrites();
+        var before = Snapshot();
+
+        using (new FileStream(FileOf(GameSaveStore.SaveFile), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Assert.False(store.KeepBeforeReset(Id));
+        }
+
+        AssertSameFiles(before, Snapshot());
+        Assert.Empty(ResetCopies());
     }
 
     // ---- A root that can't be made ----------------------------------------------
@@ -709,7 +816,7 @@ public sealed class GameSaveStoreTests : IDisposable
         Assert.Equal(new SaveRead(SaveReadState.Ok, 2, $"{Id} fresh"), store.Read(Id));
         Assert.Equal(new SaveRead(SaveReadState.Ok, 2, $"{OtherId} fresh"), store.Read(OtherId));
 
-        var names = new Regex(@"^(save\.json|save\.bak|save\.json\.tmp|save\.v[0-9]+\.json|save\.before-reset\.json|unreadable-[0-9]+\.(json|bak))$");
+        var names = new Regex(@"^(save\.json|save\.bak|save\.json\.tmp|save\.v[0-9]+\.json|save\.before-reset-[0-9]+\.json|unreadable-[0-9]+\.(json|bak))$");
         foreach (var file in Directory.EnumerateFileSystemEntries(_base, "*", SearchOption.AllDirectories))
         {
             if (file == Root) continue;

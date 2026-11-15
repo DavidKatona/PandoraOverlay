@@ -636,7 +636,7 @@ public sealed class GamesHostTests : IDisposable
 
         Assert.True(host.StartFresh(hosted));
 
-        Assert.Equal("progress", PayloadOf(_temp.FileOf(Id, GameSaveStore.BeforeResetFile)));
+        Assert.Equal("progress", PayloadOf(_temp.FileOf(Id, GameSaveStore.BeforeReset(1))));
         Assert.Contains("Reset", game.Calls);
         Assert.Equal("fresh", OnDisk());
         Assert.Equal(GameCondition.Ready, hosted.Condition);
@@ -654,38 +654,52 @@ public sealed class GamesHostTests : IDisposable
 
         Assert.True(host.StartFresh(hosted));
 
-        Assert.Equal("accrued since", PayloadOf(_temp.FileOf(Id, GameSaveStore.BeforeResetFile)));
+        Assert.Equal("accrued since", PayloadOf(_temp.FileOf(Id, GameSaveStore.BeforeReset(1))));
         Assert.Equal("fresh", OnDisk());
         host.Flush();
         Assert.Equal("fresh", OnDisk()); // the old pending state was not written over the reset
     }
 
+    /// <summary>
+    /// Keep first, reset second (A38): the copy fails, so nothing is reset.
+    /// The copy is made to fail by holding <c>save.json</c> open with no
+    /// sharing, so the copy can't read it. Holding the copy's own name no
+    /// longer would: a taken name is passed over for the next number (A62).
+    /// Nothing is pending here (the game's one write was a Now, on disk at
+    /// Attach), so the flush first writes nothing and is not what fails: the
+    /// refusal is the copy's (A38), not the pending write's (A49), which the
+    /// test below makes fail instead.
+    /// </summary>
     [Fact]
     public void AResetWhoseSaveCantBeKeptFirstResetsNothing()
     {
         var game = new FakeGame { DuringAttach = h => h.Storage.Write(1, "progress", SaveUrgency.Now) };
         var hosted = Attached(game, out var host);
         _events.Clear();
+        Assert.False(hosted.Host!.OwnStorage.HasPending); // nothing for the flush to write
 
         bool answer;
-        using (Lock(GameSaveStore.BeforeResetFile)) answer = host.StartFresh(hosted);
+        using (Lock(GameSaveStore.SaveFile)) answer = host.StartFresh(hosted);
 
         Assert.False(answer);
         Assert.DoesNotContain("Reset", game.Calls);
         Assert.Equal("progress", OnDisk());
         Assert.Equal(GameCondition.Ready, hosted.Condition);
         Assert.Empty(_events);
-        Assert.Contains(LogOf(Id).Warnings, w => w.StartsWith("not reset", StringComparison.Ordinal));
+        Assert.Contains("not reset: its save could not be kept first", LogOf(Id).Warnings);
+        Assert.DoesNotContain("not reset: its last pending save could not be written first", LogOf(Id).Warnings);
+        Assert.False(File.Exists(_temp.FileOf(Id, GameSaveStore.BeforeReset(1)))); // no copy, not even a torn one
 
         Assert.True(host.StartFresh(hosted)); // the player can click again
         Assert.Equal("fresh", OnDisk());
+        Assert.Equal("progress", PayloadOf(_temp.FileOf(Id, GameSaveStore.BeforeReset(1))));
     }
 
     /// <summary>
     /// Item 3c of the A10 verdict (A49): the pending write fails while the
     /// copy could still be made. The store's write is made to fail by holding
     /// its temp file, <c>save.json.tmp</c>, open with no sharing: the copy to
-    /// <c>save.before-reset.json</c> touches only <c>save.json</c>, so it alone
+    /// <c>save.before-reset-1.json</c> touches only <c>save.json</c>, so it alone
     /// would have worked.
     /// </summary>
     [Fact]
@@ -701,7 +715,7 @@ public sealed class GamesHostTests : IDisposable
 
         Assert.False(answer);
         Assert.DoesNotContain("Reset", game.Calls);
-        Assert.False(File.Exists(_temp.FileOf(Id, GameSaveStore.BeforeResetFile))); // not even the copy
+        Assert.False(File.Exists(_temp.FileOf(Id, GameSaveStore.BeforeReset(1)))); // not even the copy
         Assert.Equal("turn 1", OnDisk());
         Assert.Equal(GameCondition.Ready, hosted.Condition);
         Assert.Empty(_events);
@@ -742,7 +756,7 @@ public sealed class GamesHostTests : IDisposable
         Assert.False(host.StartFresh(hosted));
 
         Assert.Equal(GameCondition.Faulted, hosted.Condition);
-        Assert.True(File.Exists(_temp.FileOf(Id, GameSaveStore.BeforeResetFile))); // kept first
+        Assert.True(File.Exists(_temp.FileOf(Id, GameSaveStore.BeforeReset(1)))); // kept first
         Assert.Equal("progress", OnDisk());
     }
 
