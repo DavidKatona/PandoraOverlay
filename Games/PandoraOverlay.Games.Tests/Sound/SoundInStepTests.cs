@@ -528,7 +528,8 @@ internal static class SoundInStep
     /// Rule 4: every output that exists is a WAV in the one format (RIFF/WAVE, a
     /// 16-byte fmt chunk: PCM, 1 channel, 44,100 Hz, 16 bits; then data, and no
     /// other chunk), 1 to <see cref="MaxSamples"/> samples long, its first sample
-    /// and its last 2 ms under -60 dBFS (no click), no sample at full scale, its
+    /// and its last 2 ms under -60 dBFS (no click) (A87: the rise between is R3's
+    /// attack, which build.js refuses to break), no sample at full scale, its
     /// peak within 0.5 dB of its cue's level, that level within -24 to -5 dBFS
     /// (R4), and the cue's <c>ms</c> its length, rounded.
     /// </summary>

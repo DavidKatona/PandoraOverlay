@@ -1,8 +1,8 @@
 {
   "sources": {
-    "tools/games-sound/board.js": "0bde957c071f29e0746b7f187f626acb604024646e8b5167096491b8bb831047",
-    "tools/games-sound/hatchling/build.js": "6385b682643d1d60fb1c51d58cab48ce570837540b568ec21f9b14df0bf2391a",
-    "tools/games-sound/hatchling/cues.js": "70c432a92b7af49a88c6eea9de9f27ff79ab37000323741531e272c0167f2f6c",
+    "tools/games-sound/board.js": "9e29013279838e3596d7b96b827b57db4971a09d5a92a86fa4feb9ed957c4d04",
+    "tools/games-sound/hatchling/build.js": "6dec86ceb1fcdeab9f404f1ba00e066527f07b6b0492322cbee6c7eea3e7983e",
+    "tools/games-sound/hatchling/cues.js": "d7747dbc7ed645acb76472b9101d6efb253fc3f98743e92cbbc03ebf3e61a503",
     "tools/games-sound/manifest.js": "3ef7419b0fdd753b708c314e44ebbcd5c2e6f17976eed1371dbeb7d1490aa48b",
     "tools/games-sound/synth.js": "8ed389eb1538971e89627ad6f213c5c8e2bff55b546193255a956bd5a9d86ac7",
     "tools/games-sound/wav.js": "3c910f499b553f8011dda457f3424cd1a4afb342b38b114c5c59aa8ce1b6b0d4"

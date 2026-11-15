@@ -241,6 +241,7 @@ details pre { font-family: var(--mono); font-size: 11.5px; background: var(--wel
 .figures { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
 .figures .miss { color: var(--amber); font-weight: 600; }
 .from { font-size: 13px; color: var(--muted); font-style: italic; flex-basis: 100%; }
+.why { font-size: 12px; color: var(--muted); }
 </style>`;
 
 const BODY = `<div class="wrap">
@@ -311,6 +312,37 @@ async function renderTake(take, level) {
     env.connect(out);
     if (L.kind === "osc") {
       const o = ctx.createOscillator(); o.type = L.wave;
+      glide(o.frequency, L, L.f0, L.f1);
+      o.connect(env); o.start(L.t); o.stop(L.t + L.dur + 0.01);
+    } else {
+      const src = ctx.createBufferSource(); src.buffer = noiseBuffer(ctx, L.dur + 0.02);
+      const f = ctx.createBiquadFilter(); f.type = L.filter; f.Q.value = L.q;
+      glide(f.frequency, L, L.f0, L.f1);
+      src.connect(f); f.connect(env); src.start(L.t); src.stop(L.t + L.dur + 0.01);
+    }
+  }
+  const buf = await ctx.startRendering();
+  const d = buf.getChannelData(0);
+  let peak = 0; for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+  const target = Math.pow(10, level / 20);
+  const k = peak > 0 ? target / peak : 1;
+  let sum = 0; for (let i = 0; i < d.length; i++) { d[i] *= k; sum += d[i] * d[i]; }
+  const rms = Math.sqrt(sum / d.length);
+  return { buf, peakDb: level, rmsDb: 20 * Math.log10(rms || 1e-9), ms: Math.round(take.dur * 1000) };
+}
+// R6: the same render with ONE line added, each oscillator's frequency set to its own
+// f0 before its automation. A diagnostic only, never played and never the bar's
+// figures: it shows whether a pick's miss is the browser's oscillator quirk alone.
+async function renderTakeFrequencySet(take, level) {
+  const ctx = new OfflineAudioContext(1, Math.ceil(take.dur * RATE), RATE);
+  let out = ctx.destination;
+  if (take.tone) { const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = take.tone; lp.connect(ctx.destination); out = lp; }
+  for (const L of take.layers) {
+    const env = envelope(ctx, L);
+    env.connect(out);
+    if (L.kind === "osc") {
+      const o = ctx.createOscillator(); o.type = L.wave;
+      o.frequency.value = L.f0;
       glide(o.frequency, L, L.f0, L.f1);
       o.connect(env); o.start(L.t); o.stop(L.t + L.dur + 0.01);
     } else {
@@ -467,9 +499,19 @@ async function renderAll() {
     const f = figures(decoded[cue.id + 0], r.buf);
     results[cue.id] = f;
     const ok = (good, text) => good ? text : `<span class="miss">${text} UNDER THE BAR</span>`;
+    const meets = (x) => x.correlation >= BAR_CORRELATION && x.envelope <= BAR_ENVELOPE_DB;
+    let why = "";
+    if (!meets(f)) {
+      // R6: a miss is explained only by a measurement in this browser, never by a claim.
+      const corrected = figures(decoded[cue.id + 0], (await renderTakeFrequencySet(cue.takes[0].recipe, cue.level)).buf);
+      f.corrected = corrected;
+      if (meets(corrected))
+        why = `<br><span class="why">Why: your browser starts some of these notes at 440 Hz for up to 1.5 ms before their own pitch, a quirk of its oscillator, so their waves line up a little differently with the file's. The notes and their loudness are the same. With that one setting corrected, the same recipe matches the file: correlation ${corrected.correlation.toFixed(3)}, envelope ${corrected.envelope.toFixed(2)} dB.</span>`;
+    }
     document.getElementById(`fig-${cue.id}`).innerHTML =
       `${ok(f.correlation >= BAR_CORRELATION, `correlation ${f.correlation.toFixed(4)} (bar ${BAR_CORRELATION})`)}<br>`
-      + `${ok(f.envelope <= BAR_ENVELOPE_DB, `envelope ${f.envelope.toFixed(2)} dB at ${f.worstMs} ms (bar ${BAR_ENVELOPE_DB} dB)`)}`;
+      + `${ok(f.envelope <= BAR_ENVELOPE_DB, `envelope ${f.envelope.toFixed(2)} dB at ${f.worstMs} ms (bar ${BAR_ENVELOPE_DB} dB)`)}`
+      + why;
   }
   window.matchFigures = results;
   console.log("match figures " + JSON.stringify(results));

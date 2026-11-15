@@ -31,7 +31,7 @@ const MIN_SECONDS = 0.07, MAX_SECONDS = 0.85;   // R3
 const MIN_ATTACK = 0.001;                         // R3: a millisecond or more
 const MIN_LEVEL = -24, MAX_LEVEL = -5;            // R4
 const MAX_SAMPLES = 2 * RATE;                     // GameSound.MaxSamples, 2 s (A78)
-const EDGE = Math.floor(0.002 * RATE);            // the last 2 ms (88 samples), silent
+const EDGE = Math.floor(0.002 * RATE);            // the last 2 ms (88 samples), silent (A87)
 const SILENT = Math.pow(10, -60 / 20) * 32767;    // -60 dBFS in 16-bit steps
 
 function check(cue) {
@@ -52,6 +52,8 @@ function check(cue) {
 function checkRendered(cue, take, samples) {
   const fail = (why) => { throw new Error(`cue '${cue.id}', take '${take.name}': ${why}`); };
   if (samples.length < 1 || samples.length > MAX_SAMPLES) fail(`${samples.length} samples`);
+  // The first sample and the last 2 ms under -60 dBFS (A87: the rise between is
+  // R3's attack, which build.js refuses to break, in check()).
   if (Math.abs(samples[0]) >= SILENT) fail("the first sample is not silent");
   for (let k = samples.length - EDGE; k < samples.length; k++) if (Math.abs(samples[k]) >= SILENT) fail("the last 2 ms are not silent");
   if (Math.abs(measure(samples).peakDb - cue.level) > 0.5) fail("the peak is not the level");

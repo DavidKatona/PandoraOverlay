@@ -52,7 +52,7 @@ a cue). A lowpass's `q` is in dB, a bandpass's linear, as WebAudio has them.
   rebuild and says `run node tools/games-sound/<game>/build.js`; it also holds every
   file under a game's `Sound/` to being an output, and every WAV to its format, 1 to
   88,200 samples (`GameSound.MaxSamples`), its peak within 0.5 dB of its cue's level,
-  that level within −24 to −5 dBFS (R4), a silent first sample and last 2 ms, and no
+  that level within −24 to −5 dBFS (R4), a silent first sample and last 2 ms (A87), and no
   sample at full scale.
 - **The owner's picks are his.** The seven cues marked `pick` are the first board's
   take A, copied with nothing changed (R1). A pick other than A on the second board,
@@ -60,7 +60,9 @@ a cue). A lowpass's `q` is in dB, a bandpass's linear, as WebAudio has them.
 - **New cues in the picks' style** (R3): 0.07 to 0.85 s; attacks of 1 ms or more;
   C, E and G and their octaves for every held note; triangle and sine for what is
   gentle or good, square only for a warning or a fanfare, filtered noise for what is
-  physical. `build.js` refuses a take outside the length bounds or with a shorter
-  attack, and a WAV that would fail the test.
+  physical. By R7, a take the plan derives from a pick keeps the pick's pitch
+  (`focus-apex` A), an octave overtone over a palette note may sit above C7 (`unlock`
+  A), and a glide is a sweep, not a held note. `build.js` refuses a take outside the
+  length bounds or with a shorter attack, and a WAV that would fail the test.
 - **Listen before handing over.** Nobody but the owner can judge a sound; the board
   is how he does (PLAN-SOUND section 10).

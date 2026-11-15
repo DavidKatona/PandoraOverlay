@@ -14,7 +14,10 @@
 // - Every other take is new, in the picks' style (R3): 0.07 to 0.85 s; attacks of
 //   1 ms or more and exponential decays (the envelope's own); the picks' C-major
 //   palette for every held note (C, E and G and their octaves: the first board's N
-//   table, with C7 and the octaves below it as needed); triangle and sine for what
+//   table, with C7 and the octaves below it as needed; by R7, a take the plan
+//   derives from a pick keeps the pick's pitch (`focus-apex` A), an octave overtone
+//   over a palette note may sit above C7 (`unlock` A), and a glide is a sweep, not a
+//   held note); triangle and sine for what
 //   is gentle or good, square only for a warning or a fanfare, filtered noise for
 //   what is physical. Take A in the direction the table gives, B and C each a real
 //   alternative (brighter or sharper, softer or darker, or another idea of the
@@ -135,8 +138,8 @@ const CUES = [
     { name: "Ping", dur: 0.16, layers: [
       { kind: "osc", wave: "triangle", f0: 880, f1: 880, t: 0, dur: 0.15, attack: 0.002, gain: 0.7 } ] } ] },
 
-  // Take A as the table gives it: the owner's Ping (880 Hz) an octave down, over a
-  // sine two octaves under that. B and C keep to the C-major palette.
+  // Take A as the table gives it (R7): the owner's Ping (880 Hz) an octave down, over
+  // a sine two octaves under that. B and C keep to the C-major palette.
   { id: "focus-apex", group: "hunter", when: "The apex's turn begins.", often: "Each of its turns", level: -10, takes: [
     { name: "Low ping", dur: 0.22, layers: [
       { kind: "osc", wave: "triangle", f0: 440, f1: 440, t: 0, dur: 0.2, attack: 0.002, gain: 0.7 },
@@ -293,6 +296,8 @@ const CUES = [
     { name: "Soft riffle", dur: 0.2, layers: [0, 0.04, 0.08, 0.12].map((t) =>
       ({ kind: "noise", filter: "lowpass", f0: 2500, f1: 1500, q: 0.7, t, dur: 0.025, attack: 0.001, gain: 0.7 })) } ] },
 
+  // Take A as the table gives it: C6 then G6 with a sine an octave over each, G6's
+  // at G7 (3,136 Hz), an overtone above C7 (R7). B and C keep to the C-major palette.
   { id: "unlock", group: "pages", when: "A species unlocked for amber.", often: "Each", level: -10, takes: [
     { name: "Ding-ding", dur: 0.4, layers: [
       { kind: "osc", wave: "triangle", f0: N.C6, f1: N.C6, t: 0, dur: 0.15, attack: 0.003, gain: 0.6 },
