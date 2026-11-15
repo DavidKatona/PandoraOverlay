@@ -18,9 +18,9 @@ namespace PandoraOverlay.Games.Tests;
 /// <para>
 /// Nothing here is ever called. The compiler writes the references down
 /// whether a method runs or not, and that is all the scan reads; so no file is
-/// looked at, no timer made, no native code run, no member read by its name
-/// and no picture made. The names the reflection calls look up ("planted")
-/// name nothing that exists.
+/// looked at, opened or walked, no timer made, no native code run, no member
+/// read by its name and no picture made. The names the reflection calls look up
+/// and the paths the A69 calls open ("planted") name nothing that exists.
 /// </para>
 /// </summary>
 internal static class Planted
@@ -125,4 +125,74 @@ internal static class Planted
 
     /// <summary>A decoder made by BitmapDecoder.Create (the engine uses PngBitmapDecoder's constructor instead).</summary>
     internal static BitmapDecoder ADecoder(Stream stream) => BitmapDecoder.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+
+    // ---- A69: a file or a folder by its path -------------------------------------------
+    // Each opens what its path names with no File, Directory, FileStream or Path in the
+    // metadata. Real calls again, so the scan is shown the owner the compiler writes;
+    // each compiles with the framework a game builds against, and no package.
+
+    /// <summary>A file read by its path: StreamReader's path constructor, the same name (.ctor) as its stream one (the type StreamReader).</summary>
+    internal static StreamReader AReaderOnAPath() => new("planted");
+
+    /// <summary>A file written by its path, the debugging session's new StreamWriter("debug.txt") (the type StreamWriter).</summary>
+    internal static StreamWriter AWriterOnAPath() => new("planted");
+
+    /// <summary>A trace listener writing the file its path names (the type TextWriterTraceListener).</summary>
+    internal static System.Diagnostics.TraceListener ATextLog() => new System.Diagnostics.TextWriterTraceListener("planted");
+
+    /// <summary>The same, one line a record (the type DelimitedListTraceListener).</summary>
+    internal static System.Diagnostics.TraceListener ADelimitedLog() => new System.Diagnostics.DelimitedListTraceListener("planted");
+
+    /// <summary>The same, as XML (the type XmlWriterTraceListener).</summary>
+    internal static System.Diagnostics.TraceListener AnXmlLog() => new System.Diagnostics.XmlWriterTraceListener("planted");
+
+    /// <summary>The default listener, which Debug and Trace write to, given a file (DefaultTraceListener::set_LogFileName; the type stays).</summary>
+    internal static System.Diagnostics.DefaultTraceListener ADefaultLogFile() => new() { LogFileName = "planted" };
+
+    /// <summary>A .resources file read by its path (the type ResourceReader).</summary>
+    internal static System.Resources.ResourceReader AResourceFileRead() => new("planted");
+
+    /// <summary>A .resources file written by its path (the type ResourceWriter).</summary>
+    internal static System.Resources.ResourceWriter AResourceFileWritten() => new("planted");
+
+    /// <summary>A resource manager on a folder's .resources files (ResourceManager::CreateFileBasedResourceManager; the type stays).</summary>
+    internal static System.Resources.ResourceManager AResourceFolder() =>
+        System.Resources.ResourceManager.CreateFileBasedResourceManager("planted", "planted", null);
+
+    /// <summary>An exe's config file, read and written (the type ConfigurationManager).</summary>
+    internal static object TheExesConfig() => System.Configuration.ConfigurationManager.OpenExeConfiguration("planted");
+
+    /// <summary>An XML file read by its path (the namespace System.Xml).</summary>
+    internal static object AnXmlFile() => System.Xml.XmlReader.Create("planted");
+
+    /// <summary>The same through LINQ to XML (System.Xml.Linq, the namespace below).</summary>
+    internal static object AnXmlDocument() => System.Xml.Linq.XDocument.Load("planted");
+
+    /// <summary>A data set's XML read by its path (the namespace System.Data).</summary>
+    internal static object ADataSetsXml() => new System.Data.DataSet().ReadXml("planted");
+
+    /// <summary>A package opened by its path (the namespace System.IO.Packaging).</summary>
+    internal static object APackage() => System.IO.Packaging.Package.Open("planted");
+
+    /// <summary>A file mapped into memory by its path (the namespace System.IO.MemoryMappedFiles).</summary>
+    internal static object AMappedFile() => System.IO.MemoryMappedFiles.MemoryMappedFile.CreateFromFile("planted");
+
+    /// <summary>A folder walked by its path (the namespace System.IO.Enumeration).</summary>
+    internal static object AFoldersWalk() =>
+        new System.IO.Enumeration.FileSystemEnumerable<string>("planted", (ref System.IO.Enumeration.FileSystemEntry e) => e.FileName.ToString());
+
+    /// <summary>A folder packed into a tar file, both by their paths (the namespace System.Formats.Tar).</summary>
+    internal static void AnArchive() => System.Formats.Tar.TarFile.CreateFromDirectory("planted", "planted", false);
+
+    /// <summary>XAML read from a file at run time (the namespace System.Xaml).</summary>
+    internal static object AXamlFile() => System.Xaml.XamlServices.Load("planted");
+
+    /// <summary>An XPS document opened by its path (System.Windows.Xps.Packaging, below System.Windows.Xps).</summary>
+    internal static object AnXpsDocument() => new System.Windows.Xps.Packaging.XpsDocument("planted", FileAccess.Read);
+
+    /// <summary>A file read through VisualBasic's FileSystem (Microsoft.VisualBasic.FileIO, below Microsoft.VisualBasic).</summary>
+    internal static string AVisualBasicFile() => Microsoft.VisualBasic.FileIO.FileSystem.ReadAllText("planted");
+
+    /// <summary>The PC's event log, by a log's name (the type EventLog: in the WPF framework, no package).</summary>
+    internal static object AnEventLog() => new System.Diagnostics.EventLog("planted");
 }

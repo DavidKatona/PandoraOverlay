@@ -163,6 +163,30 @@ public class ForbiddenApiTests
         AssertFound(findings, ForbiddenKind.Member, "System.Uri", "the member System.Uri::SchemeDelimiter");
         AssertFound(findings, ForbiddenKind.Member, "System.Windows.Media.Imaging.BitmapFrame", "the member System.Windows.Media.Imaging.BitmapFrame::Create");
         AssertFound(findings, ForbiddenKind.Member, "System.Windows.Media.Imaging.BitmapDecoder", "the member System.Windows.Media.Imaging.BitmapDecoder::Create");
+
+        // A69, a file or a folder by its path: each under its entry, as the compiler
+        // wrote it (a namespace entry reports the type the call is on).
+        AssertFound(findings, ForbiddenKind.Type, "System.IO.StreamReader", "the type System.IO.StreamReader");
+        AssertFound(findings, ForbiddenKind.Type, "System.IO.StreamWriter", "the type System.IO.StreamWriter");
+        AssertFound(findings, ForbiddenKind.Type, "System.Diagnostics.TextWriterTraceListener", "the type System.Diagnostics.TextWriterTraceListener");
+        AssertFound(findings, ForbiddenKind.Type, "System.Diagnostics.DelimitedListTraceListener", "the type System.Diagnostics.DelimitedListTraceListener");
+        AssertFound(findings, ForbiddenKind.Type, "System.Diagnostics.XmlWriterTraceListener", "the type System.Diagnostics.XmlWriterTraceListener");
+        AssertFound(findings, ForbiddenKind.Member, "System.Diagnostics.DefaultTraceListener", "the member System.Diagnostics.DefaultTraceListener::set_LogFileName");
+        AssertFound(findings, ForbiddenKind.Type, "System.Resources.ResourceReader", "the type System.Resources.ResourceReader");
+        AssertFound(findings, ForbiddenKind.Type, "System.Resources.ResourceWriter", "the type System.Resources.ResourceWriter");
+        AssertFound(findings, ForbiddenKind.Member, "System.Resources.ResourceManager", "the member System.Resources.ResourceManager::CreateFileBasedResourceManager");
+        AssertFound(findings, ForbiddenKind.Type, "System.Configuration.ConfigurationManager", "the type System.Configuration.ConfigurationManager");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Xml", "the type System.Xml.XmlReader");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Xml", "the type System.Xml.Linq.XDocument");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Data", "the type System.Data.DataSet");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.IO.Packaging", "the type System.IO.Packaging.Package");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.IO.MemoryMappedFiles", "the type System.IO.MemoryMappedFiles.MemoryMappedFile");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.IO.Enumeration", "the type System.IO.Enumeration.FileSystemEnumerable`1");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Formats.Tar", "the type System.Formats.Tar.TarFile");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Xaml", "the type System.Xaml.XamlServices");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Windows.Xps", "the type System.Windows.Xps.Packaging.XpsDocument");
+        AssertFound(findings, ForbiddenKind.Namespace, "Microsoft.VisualBasic", "the type Microsoft.VisualBasic.FileIO.FileSystem");
+        AssertFound(findings, ForbiddenKind.Type, "System.Diagnostics.EventLog", "the type System.Diagnostics.EventLog");
     }
 
     private static void AssertFound(IReadOnlyList<Finding> findings, ForbiddenKind kind, string pattern, string subject) =>
@@ -356,6 +380,99 @@ public class ForbiddenApiTests
             Assert.True(ForbiddenList.Check(Made(AGame, types: new[] { type })).Count == 0, type.FullName + " should give no finding");
     }
 
+    // The starts of the three reasons A69 gives its entries (ForbiddenList's
+    // StorageIsTheHosts, NothingLoaded and ReachingOut): a door kept under the wrong
+    // reason would print the wrong why.
+    private const string StorageReason = "storage is the host's";
+    private const string LoadingReason = "nothing is loaded";
+    private const string ReachingOutReason = "reaching out";
+
+    /// <summary>
+    /// The framework's ways of opening a file or a folder by a path the caller gives
+    /// are refused (A69), each by one entry and under its reason: StreamReader and
+    /// StreamWriter whole, the trace listeners that write a file, the .resources
+    /// reader and writer, the exe's config, the event log; the default listener's
+    /// file and the file-based resource manager by member; and the XML, data,
+    /// package, mapped-file, folder-walk, tar, XPS, run-time XAML and VisualBasic
+    /// namespaces, each by a type in it; System.Xml also by two types below it, and
+    /// System.Windows.Xps and Microsoft.VisualBasic by the type below each that
+    /// <see cref="Planted"/> calls.
+    /// </summary>
+    [Fact]
+    public void ThePathDoorsAreRefused()
+    {
+        foreach (var (type, reason) in new[]
+                 {
+                     (T("System.IO", "StreamReader"), StorageReason), (T("System.IO", "StreamWriter"), StorageReason),
+                     (T("System.Diagnostics", "TextWriterTraceListener"), StorageReason),
+                     (T("System.Diagnostics", "DelimitedListTraceListener"), StorageReason),
+                     (T("System.Diagnostics", "XmlWriterTraceListener"), StorageReason),
+                     (T("System.Resources", "ResourceReader"), StorageReason), (T("System.Resources", "ResourceWriter"), StorageReason),
+                     (T("System.Configuration", "ConfigurationManager"), StorageReason),
+                     (T("System.Diagnostics", "EventLog"), ReachingOutReason),
+                     (T("System.Xml", "XmlReader"), StorageReason), (T("System.Xml", "XmlDocument"), StorageReason),
+                     (T("System.Xml.Linq", "XDocument"), StorageReason), (T("System.Xml.Serialization", "XmlSerializer"), StorageReason),
+                     (T("System.Data", "DataSet"), StorageReason),
+                     (T("System.IO.Packaging", "Package"), StorageReason),
+                     (T("System.IO.MemoryMappedFiles", "MemoryMappedFile"), StorageReason),
+                     (T("System.IO.Enumeration", "FileSystemEnumerable`1"), StorageReason),
+                     (T("System.Formats.Tar", "TarFile"), StorageReason),
+                     (T("System.Windows.Xps", "XpsDocumentWriter"), StorageReason), (T("System.Windows.Xps.Packaging", "XpsDocument"), StorageReason),
+                     (T("System.Xaml", "XamlServices"), LoadingReason), (T("System.Xaml", "XamlXmlReader"), LoadingReason),
+                     (T("Microsoft.VisualBasic", "Interaction"), ReachingOutReason), (T("Microsoft.VisualBasic.FileIO", "FileSystem"), ReachingOutReason),
+                 })
+        {
+            var findings = ForbiddenList.Check(Made(AGame, types: new[] { type }));
+            Assert.True(findings.Count == 1, type.FullName + " should give exactly one finding");
+            Assert.StartsWith(reason, findings[0].Entry.Reason);
+        }
+
+        foreach (var (type, member) in new[]
+                 {
+                     ("System.Diagnostics.DefaultTraceListener", "set_LogFileName"),
+                     ("System.Resources.ResourceManager", "CreateFileBasedResourceManager"),
+                 })
+        {
+            var findings = ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(type, member) }));
+            Assert.True(findings.Count == 1, $"{type}::{member} should give exactly one finding");
+            Assert.StartsWith(StorageReason, findings[0].Entry.Reason);
+        }
+    }
+
+    /// <summary>
+    /// What A69 leaves alone on purpose: the streams, the readers and writers that
+    /// take only a stream or a string, System.Text.Json (the atlas's JsonDocument,
+    /// the saves' JsonSerializer), Debug, Trace and the default listener, the
+    /// resource manager, the framework enum in System.Configuration.Assemblies (why
+    /// ConfigurationManager is refused as a type, not by its namespace), and what
+    /// the shipped code names beside them today. No finding for any.
+    /// </summary>
+    [Fact]
+    public void TheStreamsStayAllowed()
+    {
+        foreach (var type in new[]
+                 {
+                     T("System.IO", "Stream"), T("System.IO", "MemoryStream"), T("System.IO", "BinaryReader"), T("System.IO", "BinaryWriter"),
+                     T("System.IO", "StringReader"), T("System.IO", "StringWriter"), T("System.IO", "TextReader"), T("System.IO", "TextWriter"),
+                     T("System.Text.Json", "JsonDocument"), T("System.Text.Json", "JsonSerializer"), T("System.Text.Json", "Utf8JsonWriter"),
+                     T("System.Diagnostics", "Debug"), T("System.Diagnostics", "Trace"), T("System.Diagnostics", "DefaultTraceListener"),
+                     T("System.Resources", "ResourceManager"),
+                     T("System.Configuration.Assemblies", "AssemblyHashAlgorithm"),
+                     // What the shipped Contract, Engine and Hatchling name today, beside the new entries.
+                     T("System.IO", "InvalidDataException"), T("System.Text.Json", "JsonElement"), T("System.Text.Json.Nodes", "JsonNode"),
+                     T("System.Text.Json.Serialization.Metadata", "DefaultJsonTypeInfoResolver"),
+                     T("System.Diagnostics", "DebuggerHiddenAttribute"), T("System.Diagnostics", "DebuggerNonUserCodeAttribute"),
+                 })
+            Assert.True(ForbiddenList.Check(Made(AGame, types: new[] { type })).Count == 0, type.FullName + " should give no finding");
+
+        foreach (var (type, member) in new[]
+                 {
+                     ("System.IO.Stream", "Read"), ("System.Diagnostics.Debug", "WriteLine"), ("System.Resources.ResourceManager", "GetString"),
+                     ("System.Text.Json.JsonDocument", "Parse"), ("System.Text.Json.JsonSerializer", "Serialize"), ("System.Text.Json.JsonSerializer", "Deserialize"),
+                 })
+            Assert.True(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(type, member) })).Count == 0, $"{type}::{member} should give no finding");
+    }
+
     /// <summary>The reader names a generic type's member by the generic type, and a nested type by its outer one.</summary>
     [Fact]
     public void TheReaderNamesGenericAndNestedTypes()
@@ -458,13 +575,13 @@ public class ForbiddenApiTests
             Assert.Empty(ForbiddenList.Check(Made(AGame, types: new[] { T("System.Diagnostics", name) })));
     }
 
-    /// <summary>What the brief keeps fine on purpose: streams, readers and writers (the atlas reads embedded art), and WPF's drawing and mouse input.</summary>
+    /// <summary>What the brief keeps fine on purpose: streams and the readers that take one (the atlas reads embedded art), and WPF's drawing and mouse input. StreamReader left this list with A69, which refuses it whole for its path constructor; <see cref="TheStreamsStayAllowed"/> holds the rest of the readers and writers.</summary>
     [Fact]
     public void StreamsDrawingAndTheMouseAreFine()
     {
         var fine = new[]
         {
-            T("System.IO", "Stream"), T("System.IO", "MemoryStream"), T("System.IO", "StreamReader"), T("System.IO", "BinaryReader"),
+            T("System.IO", "Stream"), T("System.IO", "MemoryStream"), T("System.IO", "BinaryReader"),
             T("System.Windows.Media.Imaging", "WriteableBitmap"), T("System.Windows.Media", "DrawingContext"),
             T("System.Windows.Input", "MouseButtonEventArgs"), T("System.Windows.Input", "Mouse"), T("System.Windows", "FrameworkElement"),
         };
