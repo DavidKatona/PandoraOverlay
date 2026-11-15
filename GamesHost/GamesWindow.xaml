@@ -24,8 +24,15 @@
          Windows 11's own rounding is the theme's flag (Map.WindowRounded,
          OnSourceInitialized). The root takes the fixed frame and the window
          sizes to it (GamesFrame); every word is GamesText's; every colour,
-         corner and font a theme token. -->
-    <local:ThemedBorder x:Name="RootPanel" Background="{DynamicResource Theme.Glass.MapWindow}" BorderThickness="1"
+         corner and font a theme token.
+         Its clicks (G27, A104): the root is in the Games scope, an inherited
+         mark, so every control in the window clicks under the window's own mute
+         and step and the Settings switch (A103); a game's view below is in the
+         Game scope (GameHost), left to the Engine's rule (A105). A mark on a
+         control says only what its type doesn't (PLAN-CLICKS.md, the appendix's
+         Games window table); the warning's button and a tile's "Start it again"
+         click by type (press). -->
+    <local:ThemedBorder x:Name="RootPanel" local:UiClicks.Scope="Games" Background="{DynamicResource Theme.Glass.MapWindow}" BorderThickness="1"
                         Width="{x:Static local:GamesFrame.Width}" Height="{x:Static local:GamesFrame.Height}">
         <DockPanel>
             <!-- The header, always (G13): its bottom line inside its 40. -->
@@ -48,30 +55,35 @@
                              (measured Nov 15 2026), inside the 22 x 22 with room to
                              spare; the planner's glyph render was at 13 too. The speaker's
                              glyphs at Normal in every theme, since a SemiBold body made WPF
-                             embolden the fallback symbol font (A89). -->
+                             embolden the fallback symbol font (A89).
+                             No click of the layer's on any of the three (Cue None, A98,
+                             PLAN-CLICKS.md 1.1's third rule): their sound is their own, a
+                             mute is silence and an unmute or a step plays the preview at
+                             the new step (A82), so a click on top would double it. -->
                         <StackPanel x:Name="SoundGroup" Orientation="Horizontal" VerticalAlignment="Center" Margin="{x:Static local:GamesFrame.SoundGroupMargin}">
-                            <Button x:Name="SoundToggle" Click="SoundToggle_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
+                            <Button x:Name="SoundToggle" local:UiClicks.Cue="None" Click="SoundToggle_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
                                     Width="{x:Static local:GamesFrame.SoundButtonSize}" Height="{x:Static local:GamesFrame.SoundButtonSize}" Padding="0"
                                     FontSize="{DynamicResource Theme.Size.13}" FontWeight="Normal" VerticalAlignment="Center"/>
-                            <Button x:Name="SoundDown" Click="SoundDown_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
+                            <Button x:Name="SoundDown" local:UiClicks.Cue="None" Click="SoundDown_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
                                     Content="{x:Static local:GamesText.SoundDown}" Margin="{x:Static local:GamesFrame.SoundGapBefore}"
                                     Width="{x:Static local:GamesFrame.SoundButtonSize}" Height="{x:Static local:GamesFrame.SoundButtonSize}" Padding="0"
                                     FontSize="{DynamicResource Theme.Size.13}" VerticalAlignment="Center"/>
                             <StackPanel x:Name="SoundPips" Orientation="Horizontal" VerticalAlignment="Center" Margin="{x:Static local:GamesFrame.SoundGapBefore}"
                                         Width="{x:Static local:GamesFrame.SoundPipsWidth}" Height="{x:Static local:GamesFrame.SoundPipsHeight}"/>
-                            <Button x:Name="SoundUp" Click="SoundUp_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
+                            <Button x:Name="SoundUp" local:UiClicks.Cue="None" Click="SoundUp_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
                                     Content="{x:Static local:GamesText.SoundUp}" Margin="{x:Static local:GamesFrame.SoundGapBefore}"
                                     Width="{x:Static local:GamesFrame.SoundButtonSize}" Height="{x:Static local:GamesFrame.SoundButtonSize}" Padding="0"
                                     FontSize="{DynamicResource Theme.Size.13}" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock x:Name="HintText" Text="{x:Static local:GamesText.Hint}" FontSize="{DynamicResource Theme.Size.11}" Foreground="{DynamicResource Theme.Text.Dim}"
                                    FontWeight="{DynamicResource Theme.Font.BodyWeight}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <Button x:Name="CloseButton" Content="{x:Static local:GamesText.Close}" Click="Close_Click" Focusable="False"
+                        <!-- ✕ and "‹ Games" are dismissals: back (A100). -->
+                        <Button x:Name="CloseButton" local:UiClicks.Cue="Back" Content="{x:Static local:GamesText.Close}" Click="Close_Click" Focusable="False"
                                 Style="{StaticResource DangerButtonStyle}" Width="22" Height="22" Padding="0" FontSize="{DynamicResource Theme.Size.10}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <!-- Left: "‹ Games" in a game, the title (a title's literal size, as the map's), the dim subtitle. -->
                     <StackPanel x:Name="HeaderLeft" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button x:Name="BackButton" Click="Back_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
+                        <Button x:Name="BackButton" local:UiClicks.Cue="Back" Click="Back_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
                                 Padding="8,2" Margin="0,0,10,0" VerticalAlignment="Center" Visibility="Collapsed">
                             <TextBlock Text="{x:Static local:GamesText.Back}"/>
                         </Button>
@@ -105,8 +117,12 @@
                     <WrapPanel x:Name="Tiles" HorizontalAlignment="Left" VerticalAlignment="Top"/>
                 </ScrollViewer>
 
-                <!-- A game in the same frame (G13): its view's Root, filling the area. -->
-                <Border x:Name="GameHost" Visibility="Collapsed"/>
+                <!-- A game in the same frame (G13): its view's Root, filling the area.
+                     In the Game scope (A104, A105): a game's own controls click by the
+                     Engine's rule (not during a turn, not on top of its own cue), so
+                     the app's class handler leaves every button inside at once and a
+                     game's click is never decided twice. -->
+                <Border x:Name="GameHost" local:UiClicks.Scope="Game" Visibility="Collapsed"/>
 
                 <!-- The health warning (G18, A15): opaque over the view area, never the header. -->
                 <Border x:Name="WarningPanel" Background="{DynamicResource Theme.Glass.MapWindow}" Visibility="Collapsed">

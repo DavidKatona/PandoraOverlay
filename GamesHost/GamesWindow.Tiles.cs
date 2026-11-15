@@ -165,7 +165,14 @@ internal partial class GamesWindow
         {
             if (_pressed != t) return;
             _pressed = null;
-            if (t.Opens && t.Game.Plays) ShowGame(t.Game);
+            if (!t.Opens || !t.Game.Plays) return;
+            // The card is no button, so it says its click itself (A98, A104): a
+            // select in its scope, the window's Games scope. Before ShowGame, as
+            // the class handler plays a button's click before its handler: the
+            // click is on the speaker's Clicks channel, so the stop that telling
+            // the new stage makes (the Games channel, A88, A101) never fades it.
+            UiClicks.Clicked(t.Card, ClickCue.Select);
+            ShowGame(t.Game);
         };
 
         var well = t.Well;
@@ -205,6 +212,13 @@ internal partial class GamesWindow
         button.Focusable = false; // the keyboard closes the window here, it never clicks a tile's button
         button.Content = t.ButtonText;
         button.SetResourceReference(StyleProperty, "NeutralButtonStyle");
+        // Its click (A100, A104): marked Arm whatever it says, so the layer
+        // decides after TileButton_Click ran: `arm` when that click armed it
+        // (Arm calls UiClicks.Armed: Reset's and Start fresh's first click),
+        // else `press` (their confirming click, and "Start it again", which
+        // never arms). One mark for every label, since a tile's label changes
+        // in place with the game's condition.
+        UiClicks.SetCue(button, ClickMark.Arm);
         button.Click += (_, _) => TileButton_Click(t);
         var buttonRow = new Grid { Height = GamesFrame.TileButtonRowHeight };
         buttonRow.Children.Add(button);
@@ -375,13 +389,14 @@ internal partial class GamesWindow
         t.Detail.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Text.Caution");
     }
 
-    /// <summary>The first click: the label says what the second does, the button turns Danger, nothing moves (its width is fixed).</summary>
+    /// <summary>The first click: the label says what the second does, the button turns Danger, nothing moves (its width is fixed). Its click is `arm` (it asks), told to the click layer here (A104).</summary>
     private void Arm(TileView t)
     {
         Disarm();
         ShowDetail(t, t.DetailText); // armed again: a refusal shown there is gone
         _armed = t;
         ShowArmed(t);
+        UiClicks.Armed(t.Button);
     }
 
     /// <summary>The armed look: the label saying what the second click does, the Danger family.</summary>

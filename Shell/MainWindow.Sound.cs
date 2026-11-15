@@ -62,13 +62,16 @@ public partial class MainWindow
 
     /// <summary>
     /// The games' gate (A79, A82) over the speaker's Games channel, the
-    /// config (the Games window's mute and step) and the games host's one
-    /// clock: made in the constructor for the host, which owns and disposes it
+    /// config (the Games window's mute and step), the games host's one
+    /// clock and the click gate, to which it hands a heard game's clicks
+    /// (A105; <see cref="_clicks"/> is made first, by <see cref="AttachClicks"/>):
+    /// made in the constructor for the host, which owns and disposes it
     /// (its Dispose stops the Games channel and disposes the view, which does
-    /// nothing). Opens nothing, starts nothing.
+    /// nothing; the click gate is not its to dispose). Opens nothing, starts
+    /// nothing.
     /// </summary>
     private GamesSound MakeGamesSound(GameClock clock) =>
-        new(_speaker.Channel(SpeakerChannel.Games), _config, clock);
+        new(_speaker.Channel(SpeakerChannel.Games), _config, clock, _clicks);
 
     /// <summary>
     /// The click gate over the speaker's Clicks channel, the config, the
