@@ -104,10 +104,10 @@ public partial class MainWindow : OverlayWindowBase
         // once: App's crash handler asks it before anything else (A10).
         // Its sound gate (A79) is made here too, over the config (the window's
         // mute and volume, A82) and the host's one clock, with no device and no
-        // thread: NullSpeaker until the real speaker is wired (A80).
+        // thread yet: the speaker is lazy, and makes both at the first sound (A80).
         var gamesClock = new GameClock();
         _games = new GamesHost(new GameSaveStore(DataFolder.GamesFolder, () => DateTime.UtcNow), GameCatalog.All, gamesClock,
-            new GamesSound(new NullSpeaker(), _config, gamesClock));
+            new GamesSound(new WaveOutSpeaker(), _config, gamesClock));
         GameFaults.Host = _games;
         GameFaults.OnScreen = () => _gamesWindow?.OnScreen;
 

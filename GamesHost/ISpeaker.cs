@@ -5,9 +5,11 @@ namespace PandoraOverlay;
 /// <remarks>
 /// Every rule above the device (which instance may sound, the mute, the
 /// steps, the limits) is <see cref="GamesSound"/>'s, tested with a fake
-/// speaker; the device is only the speaker's. The real one (one stream, our
-/// own mix, a thread of the host's own that exists only while something
-/// plays) replaces <see cref="NullSpeaker"/> in a later step. Whatever it is,
+/// speaker; the device is only the speaker's. The real one is
+/// <see cref="WaveOutSpeaker"/> (one stream, our own mix, a thread of the
+/// host's own that exists only while something plays), which MainWindow
+/// makes; <see cref="NullSpeaker"/> is what a host made without a gate of its
+/// own plays through. Whatever it is,
 /// it never touches the game process, makes no request and starts no timer
 /// that leads to one (A86), and it never sets the overlay's own volume in
 /// Windows' mixer: that level is the player's (A80).
@@ -28,10 +30,9 @@ internal interface ISpeaker : IDisposable
 }
 
 /// <summary>
-/// The speaker that plays nothing: what the Games window's sound goes
-/// through until the real speaker is wired (A80), and what a host made
-/// without one gets (the tests, the render harness). No device, no thread,
-/// nothing kept.
+/// The speaker that plays nothing: what a <see cref="GamesHost"/> made
+/// without a sound gate of its own plays through (the tests, the render
+/// harness). No device, no thread, nothing kept.
 /// </summary>
 internal sealed class NullSpeaker : ISpeaker
 {
