@@ -68,7 +68,9 @@ namespace PandoraOverlay;
 /// of its channel's plays queued before it, never one queued after it, so a
 /// play right after a stop is heard whole; the other channel's voices and
 /// plays, before it or after it, are never faded by it. A stop kept for later
-/// would fade the next sound.
+/// would fade the next sound. A stop is one with its channel's last queued
+/// request when that is a stop, whatever the other channel queued since: the
+/// earlier stop already fades everything this one would (A108).
 /// </para>
 /// <para>
 /// <b>Fail soft</b> (A80). A device that can't be opened (none, or one in
@@ -142,7 +144,8 @@ internal sealed class WaveOutSpeaker : IDisposable
     /// that never answers its open lets the queue fill (one that stops handing
     /// buffers back is a failure after <see cref="StallAfter"/>, its queue
     /// dropped); a play past this is dropped, so it can't grow while a gate
-    /// keeps playing. One queue for both channels, in the order asked.
+    /// keeps playing. One queue for both channels, in the order asked; stops
+    /// are bounded by A108's rule, one per channel after each of its plays.
     /// </summary>
     public const int MaxQueued = 64;
 
@@ -281,10 +284,16 @@ internal sealed class WaveOutSpeaker : IDisposable
             lock (_lock)
             {
                 if (_disposed || _running is null) return;
-                // Two stops of one channel in a row are one: the second finds every
-                // voice of that channel fading already. A stop of the other channel
-                // between them is a request of its own, so the second is kept.
-                if (_queue.Count > 0 && _queue[^1] is { IsStop: true } last && last.Channel == channel) return;
+                // A stop is one with its channel's last queued request when that is a
+                // stop, whatever the other channel queued since: the earlier stop
+                // already fades everything this one would (A108). So the queue holds at
+                // most one stop of a channel after each of its plays.
+                for (var i = _queue.Count - 1; i >= 0; i--)
+                {
+                    if (_queue[i].Channel != channel) continue;
+                    if (_queue[i].IsStop) return;
+                    break;
+                }
                 _queue.Add(Request.Stop(channel));
             }
         }

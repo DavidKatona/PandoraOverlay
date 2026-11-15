@@ -582,8 +582,8 @@ public sealed class WaveOutSpeakerTests
 
     // ---- Two channels (A101) ------------------------------------------------------------------
     // One speaker, one stream, two channels: a voice carries its channel and a stop is one
-    // channel's, in the queue's order; A88 holds per channel (no thread, no effect; two stops of
-    // one channel in a row are one); a gate's view passes its channel and its Dispose does
+    // channel's, in the queue's order; A88 holds per channel (no thread, no effect; a stop is one
+    // with its channel's last queued stop, A108); a gate's view passes its channel and its Dispose does
     // nothing; the thread is the overlay's and its lines go to LogSound with "Sound:".
 
     /// <summary>A sound no test here outlives: ten times a game's longest, 20 s, so a voice under way is still sounding after a hold however late the test's thread runs (the fake hands buffers back faster than a real device).</summary>
@@ -673,7 +673,7 @@ public sealed class WaveOutSpeakerTests
     }
 
     [Fact]
-    public void TwoStopsOfOneChannelInARowAreOneQueuedRequestAndOfTwoChannelsTwo()
+    public void AStopIsOneWithItsChannelsLastStopWhateverTheOtherQueued()
     {
         var device = new FakeWaveDevice { OpenDelay = Patience }; // held in its open: nothing leaves the queue
         using var speaker = Speaker(device, new SpeakerLog());
@@ -688,14 +688,52 @@ public sealed class WaveOutSpeakerTests
         Assert.Equal(3, speaker.Queued); // a Games and a Clicks stop: two
 
         speaker.StopAll(SpeakerChannel.Games);
-        Assert.Equal(4, speaker.Queued); // a Clicks stop between two Games stops: the second is a request of its own
+        Assert.Equal(3, speaker.Queued); // Games' last queued is a stop: the Clicks stop since changes nothing (A108)
 
         speaker.StopAll(SpeakerChannel.Clicks);
         speaker.StopAll(SpeakerChannel.Clicks);
-        Assert.Equal(5, speaker.Queued);
+        Assert.Equal(3, speaker.Queued); // Clicks' last queued is its stop
+
+        speaker.Play(Constant(100, 441), 0.1f, SpeakerChannel.Clicks);
+        Assert.Equal(4, speaker.Queued);
+
+        speaker.StopAll(SpeakerChannel.Games);
+        Assert.Equal(4, speaker.Queued); // Games' last is still its stop: a Clicks play changes nothing for it
+
+        speaker.StopAll(SpeakerChannel.Clicks);
+        Assert.Equal(5, speaker.Queued); // Clicks' last is a play: this stop is needed, and kept
 
         device.OpenRelease.Set();
         Until(() => speaker.Queued == 0, "the queue moved into the mix");
+    }
+
+    [Fact]
+    public void StopsOfBothChannelsInTurnKeepTheQueueBounded()
+    {
+        var device = new FakeWaveDevice { OpenDelay = Patience }; // held in its open: nothing leaves the queue
+        using var speaker = Speaker(device, new SpeakerLog());
+        speaker.Play(Constant(10_000, Long), 1f, SpeakerChannel.Games); // a thread running, and a game's sound the stops must end
+        Assert.Equal(1, speaker.Queued);
+
+        for (var i = 0; i < 1000; i++)
+        {
+            speaker.StopAll(SpeakerChannel.Games);
+            speaker.StopAll(SpeakerChannel.Clicks);
+        }
+        Assert.Equal(3, speaker.Queued); // the play and one stop of each channel (A108): 2,000 stops in turn, under MaxQueued
+
+        device.OpenRelease.Set();
+        Until(() => speaker.Queued == 0 && device.Writes >= WaveOutSpeaker.Buffers, "the queue moved into the mix");
+        device.Hold();
+        Until(() => device.Waiting, "the thread held inside a wait");
+        var mark = device.Written.Count;
+        speaker.Play(Constant(3000, 600), 1f, SpeakerChannel.Clicks);
+        device.Release();
+        Until(() => device.Written.Count >= mark + WaveOutSpeaker.Buffers, "the click written");
+
+        var stream = device.WrittenFrom(mark);
+        Assert.All(stream[..600], s => Assert.Equal(3000, s)); // a play after the stops is heard whole
+        Assert.All(stream[600..], s => Assert.Equal(0, s)); // and the game's sound ended by its stop
     }
 
     [Fact]
