@@ -1,0 +1,159 @@
+{
+  "sources": {
+    "tools/games-sound/board.js": "0bde957c071f29e0746b7f187f626acb604024646e8b5167096491b8bb831047",
+    "tools/games-sound/hatchling/build.js": "6385b682643d1d60fb1c51d58cab48ce570837540b568ec21f9b14df0bf2391a",
+    "tools/games-sound/hatchling/cues.js": "70c432a92b7af49a88c6eea9de9f27ff79ab37000323741531e272c0167f2f6c",
+    "tools/games-sound/manifest.js": "3ef7419b0fdd753b708c314e44ebbcd5c2e6f17976eed1371dbeb7d1490aa48b",
+    "tools/games-sound/synth.js": "8ed389eb1538971e89627ad6f213c5c8e2bff55b546193255a956bd5a9d86ac7",
+    "tools/games-sound/wav.js": "3c910f499b553f8011dda457f3424cd1a4afb342b38b114c5c59aa8ce1b6b0d4"
+  },
+  "outputs": {
+    "Games/PandoraOverlay.Games.Hatchling/Sound/apex.wav": "930cb3b9c3c29e2c7b4ab0584709451203358e06c121f592aa37c4cfed339144",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/arrive.wav": "a4238175314e7e2ec3c62340938833373af276b0d40d869320e85ea0a275594b",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/bite.wav": "0a0054dac679902bc1521149e866f9fa52007a01452d3996e39dc17501b52ed4",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/choose.wav": "1ce5c75b69bf8a854b6f3227a3b3b2261c965ced62e2db8df8219203d8afa384",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/defeat.wav": "95eccf1f2e30229867445fef4a76ea9f2ffa5f019e54b0ccde893d031cd7b718",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/dodge.wav": "2bb94639641b57acd6435c63fe686fa3a7b1a948a7583523caec00766e96cb2b",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/drink.wav": "46fabe6817796a7d4658b976128868601f66f2d58f52f2af6e5e9ed9e0a02e17",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/eat.wav": "31108061e3096620cbf7c5450c894ac388541ec52a4b0bdf9c48f434d0878f06",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/focus-apex.wav": "7c86d60fa96784263dbb9e6a3be7c909cb86df410db40eb6df7f5f1d574f3054",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/focus.wav": "367085d57a2fc64cbe0eb93fd862711df18ac831698344a1f3ce6cf0bfece2a1",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/hatch.wav": "fcc7e94c68e28f9a004843884cf1ba4319cf891bde351a9fbea360c6d21c5317",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/heard.wav": "b24dd6de46cb2a6f547644fefd5612c9a32ce0263d18114ecbd6f83bed9a1bb1",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/hit.wav": "4f72e74b1475d32a015f19d6ef4eb6d8c9e10ee6ed3d9fc187e494759dbbdacb",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/hunter-step.wav": "0859e8e8ae71c18be633c820a4f7b4f3e9a86cd2ff6c479c39647953b2c1ef26",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/lost-trail.wav": "056077d8139374478da46323261e4d2cf7889bca7838aa2fa0a6a67f5bdc07da",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/lost.wav": "b3c723249dff36a4e032fe9ec19a8c13259a7ab945608c22e9bf8e8e31fb67ba",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/rest.wav": "8fa2517f89d0de3be5914b875c84885717318f6d6dd2d406511964d4a872c99d",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/reward.wav": "85bfba8b24ec9afb6e90690313162e2df33b75583fdd4fbb9a98efcff57bf0ee",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/second-wind.wav": "871dcef35863c4cc8f4bccc78ca0ad6247cd2037c8bfa28718cd1a71779495a1",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/shuffle.wav": "b883fa8374b8915830e7e8feb943c2f3dd51c4387d8210d2fffa3046dbc4ab88",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/spotted.wav": "fb168be9f9bf62c3ae230be42d5d2af9bda49467eec83d9b374505d3c9363f5a",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/stage.wav": "4ce38fd8b2168a2e02b7611df7e343c2c0166f44a53886eeb7f354fd7bf6da2b",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/starve.wav": "d5780c6a4100e1105bbfb39bb651e343ec68b26785ea8fe4a165dc39da5ae40f",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/step-sneak.wav": "75ec4eb95479d77a1f9beb9e9bf12770f1595625ab201a4e9a3979d656f1c481",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/step-sprint.wav": "29083d85cc0b05afba3773958949b62adf1aa91c22bfa59da61a947da30b8970",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/step.wav": "41b32d1aa2b439d867eadc6593241042e21827e81ff5df7affec55bed9151ba8",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/sting.wav": "31a9a1e86f9a8f06038cbcb6714f9d990c9b2284a20a67269454b34ce193beaf",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/unlock.wav": "c518821b09670802a7781a11c041053738b0dda0c5a9988567a5b5876633f11b",
+    "Games/PandoraOverlay.Games.Hatchling/Sound/win.wav": "091eb817a60abeb806b41f29592bacba5a849f39c006c191ffbff0bd445efd3b"
+  },
+  "cues": {
+    "apex": {
+      "level": -7,
+      "ms": 700
+    },
+    "arrive": {
+      "level": -12,
+      "ms": 350
+    },
+    "bite": {
+      "level": -5,
+      "ms": 220
+    },
+    "choose": {
+      "level": -12,
+      "ms": 200
+    },
+    "defeat": {
+      "level": -10,
+      "ms": 300
+    },
+    "dodge": {
+      "level": -12,
+      "ms": 140
+    },
+    "drink": {
+      "level": -15,
+      "ms": 220
+    },
+    "eat": {
+      "level": -14,
+      "ms": 200
+    },
+    "focus": {
+      "level": -11,
+      "ms": 160
+    },
+    "focus-apex": {
+      "level": -10,
+      "ms": 220
+    },
+    "hatch": {
+      "level": -10,
+      "ms": 300
+    },
+    "heard": {
+      "level": -13,
+      "ms": 120
+    },
+    "hit": {
+      "level": -9,
+      "ms": 150
+    },
+    "hunter-step": {
+      "level": -20,
+      "ms": 110
+    },
+    "lost": {
+      "level": -10,
+      "ms": 700
+    },
+    "lost-trail": {
+      "level": -15,
+      "ms": 160
+    },
+    "rest": {
+      "level": -15,
+      "ms": 400
+    },
+    "reward": {
+      "level": -10,
+      "ms": 500
+    },
+    "second-wind": {
+      "level": -9,
+      "ms": 360
+    },
+    "shuffle": {
+      "level": -14,
+      "ms": 200
+    },
+    "spotted": {
+      "level": -8,
+      "ms": 160
+    },
+    "stage": {
+      "level": -9,
+      "ms": 400
+    },
+    "starve": {
+      "level": -11,
+      "ms": 320
+    },
+    "step": {
+      "level": -16,
+      "ms": 90
+    },
+    "step-sneak": {
+      "level": -22,
+      "ms": 80
+    },
+    "step-sprint": {
+      "level": -14,
+      "ms": 70
+    },
+    "sting": {
+      "level": -13,
+      "ms": 100
+    },
+    "unlock": {
+      "level": -10,
+      "ms": 400
+    },
+    "win": {
+      "level": -7,
+      "ms": 850
+    }
+  }
+}

@@ -24,3 +24,6 @@ Assets/overlay-access.bin
 
 # The games' art tool's scratch: contact sheets for LOOKING at art (tools/games-art/sheet.js).
 tools/games-art/out/
+
+# The games' sound tool's scratch: takes B and C and the sound board, for LISTENING (tools/games-sound/board.js).
+tools/games-sound/out/
