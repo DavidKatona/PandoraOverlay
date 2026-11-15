@@ -148,8 +148,9 @@ public class GamesWindowTests
     [Theory]
     [InlineData(1.0, 2560, 1440, 1.0)]
     [InlineData(1.5, 2560, 1440, 1.5)]
-    [InlineData(2.0, 3840, 2160, 2.0)]
-    [InlineData(2.0, 1920, 1080, 1032.0 / 552)] // clamped to the screen
+    [InlineData(1.5, 3840, 2160, 1.5)]
+    [InlineData(1.25, 1920, 1080, 1.25)]
+    [InlineData(1.5, 1366, 768, 720.0 / 552)] // clamped to the screen
     [InlineData(0.75, 1920, 1080, 0.75)]
     public void TheWholeWindowIsDrawnAtTheChosenScale(double chosen, double width, double height, double drawn) => Run(() =>
     {

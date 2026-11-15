@@ -473,8 +473,8 @@ all) — say so when it matters:
   Exit from the tray while a turn plays, whose cue is cut, not faded (A90);
   MainWindow making the speaker and disposing it (compiled and tested lazy, never
   run); whether the gate's 40 ms and six-at-once limits ever drop one of
-  Hatchling's cues at Fast (reasoning, not a test). Guards: 2048 tests in the
-  app's project and 2344 in the games' (4392, 0 failed); the golden renders: the
+  Hatchling's cues at Fast (reasoning, not a test). Guards: 2053 tests in the
+  app's project and 2344 in the games' (4397, 0 failed); the golden renders: the
   minimap's identical in every theme, the windows mode differing only on
   Settings › Hotkeys in every theme (the new Games row; no baseline
   re-recorded), plus two one-off differences that did not repeat (three pixels
@@ -1040,7 +1040,7 @@ The four-features brainstorm (Nov 2–3 2026)
   widget ships with one (override `AppearanceScale`). The control panel has its
   own too, `ControlPanelScale` (1.37; it rode `UiScale` before), and so has
   the Games window, `GamesScale` (Nov 15 2026, the branch `games`: 75% to
-  200%, clamped to the screen, the layout fixed). All behave
+  150% like the rest, clamped to the screen, the layout fixed). All behave
   alike (owner, Oct 6 2026): plain numbers defaulting to 1.0, no seeding from
   another widget, no migration. No global multiplier on top.
 - **A widget never changes size.** Every widget is 298 wide on one of two fixed

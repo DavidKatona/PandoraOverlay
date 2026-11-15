@@ -129,26 +129,28 @@ public class GamesFrameTests
 
     // ---- The player's scale (GamesScale, A75) -----------------------------------------
 
-    /// <summary>The chosen scale is what is drawn where it fits: 200% on a 4K work area, 150% on 1440p.</summary>
+    /// <summary>The chosen scale is what is drawn where it fits: 150% on a 4K, a 1440p and a 1080p work area.</summary>
     [Theory]
-    [InlineData(3840, 2160, 2.0, 2.0)]
-    [InlineData(7680, 4320, 2.0, 2.0)]
+    [InlineData(3840, 2160, 1.5, 1.5)]
+    [InlineData(7680, 4320, 1.5, 1.5)]
     [InlineData(2560, 1440, 1.5, 1.5)]
+    [InlineData(1920, 1080, 1.5, 1.5)]
     [InlineData(1920, 1080, 1.25, 1.25)]
     [InlineData(1920, 1080, 0.75, 0.75)]
     public void TheChosenScaleIsDrawnWhereItFits(double width, double height, double chosen, double expected) =>
         Assert.Equal(expected, GamesFrame.FitScale(new Size(width, height), chosen), 10);
 
     /// <summary>
-    /// Never larger than the monitor's work area less the margin: 200% on a
-    /// 1920 x 1080 work area (a 1200 x 828 frame would fit, 1600 x 1104 not) is
-    /// the largest that fits, the height's (1032 / 552).
+    /// Never larger than the monitor's work area less the margin: 150% on a
+    /// 1366 x 768 work area (a 1200 x 828 frame does not fit the height) is
+    /// the largest that fits, the height's (720 / 552).
     /// </summary>
     [Theory]
-    [InlineData(1920, 1080, 2.0, 1032.0 / 552)]
-    [InlineData(1920, 1040, 2.0, 992.0 / 552)]   // a taskbar off the height
+    [InlineData(1366, 768, 1.5, 720.0 / 552)]
+    [InlineData(1366, 728, 1.5, 680.0 / 552)]    // a taskbar off the height
     [InlineData(1280, 720, 1.5, 672.0 / 552)]
-    [InlineData(911, 512, 2.0, 464.0 / 552)]     // 1366 x 768 at 150%: as at 100%
+    [InlineData(1100, 900, 1.5, 1052.0 / 800)]   // the width binds
+    [InlineData(911, 512, 1.5, 464.0 / 552)]     // 1366 x 768 at 150%: as at 100%
     public void AChosenScaleTooLargeForTheScreenIsClampedToTheFit(double width, double height, double chosen, double expected)
     {
         var scale = GamesFrame.FitScale(new Size(width, height), chosen);
@@ -169,13 +171,14 @@ public class GamesFrameTests
         var fit = Math.Min((width - 2 * GamesFrame.ScreenMargin) / GamesFrame.Width, (height - 2 * GamesFrame.ScreenMargin) / GamesFrame.Height);
 
         Assert.Equal(fit, GamesFrame.FitScale(screen, 1.0), 10);
-        Assert.Equal(fit, GamesFrame.FitScale(screen, 2.0), 10);
+        Assert.Equal(fit, GamesFrame.FitScale(screen, 1.5), 10);
         Assert.Equal(Math.Min(fit, 0.75), GamesFrame.FitScale(screen, 0.75), 10);
     }
 
-    /// <summary>A hand-edited config.json can hold anything: it is held to 75%..200%, and a value that is not a number reads as 100%.</summary>
+    /// <summary>A hand-edited config.json can hold anything: it is held to 75%..150%, and a value that is not a number reads as 100%. A 2.0 saved before A97 is drawn at 1.5.</summary>
     [Theory]
-    [InlineData(5.0, 2.0)]
+    [InlineData(5.0, 1.5)]
+    [InlineData(2.0, 1.5)]
     [InlineData(0.1, 0.75)]
     [InlineData(-3.0, 0.75)]
     [InlineData(double.NaN, 1.0)]
@@ -184,6 +187,6 @@ public class GamesFrameTests
         Assert.Equal(expected, GamesFrame.FitScale(new Size(7680, 4320), chosen), 10);
 
     [Fact]
-    public void TheRangeIsTheWidgetsFloorUpToTwoHundredPercent() =>
-        Assert.Equal((0.75, 2.0), (GamesFrame.MinScale, GamesFrame.MaxScale));
+    public void TheRangeIsTheWidgetsOwn() =>
+        Assert.Equal((0.75, 1.5), (GamesFrame.MinScale, GamesFrame.MaxScale));
 }

@@ -6,7 +6,7 @@ namespace PandoraOverlay.Tests;
 
 /// <summary>
 /// Settings → Widgets' GAMES group (the owner, Nov 15 2026, A75), through the
-/// dialog's real controls: the Games window's Scale slider runs 75% to 200%
+/// dialog's real controls: the Games window's Scale slider runs 75% to 150%
 /// (the window's own range, <see cref="GamesFrame"/>), shows the config's value
 /// held to that range without writing it, and writes GamesScale at once with
 /// its percent beside it. A counting fake sits behind the dialog: none of this
@@ -43,16 +43,17 @@ public sealed class SettingsGamesScaleTests
         slider.Value = 1.5;
         Assert.Equal(1.5, config.GamesScale);
         Assert.Equal($"{1.5:0%}", label.Text);
-        slider.Value = 2.0;
-        Assert.Equal(2.0, config.GamesScale);
+        slider.Value = 1.25;
+        Assert.Equal(1.25, config.GamesScale);
         Assert.Equal(0, site.Requests);
         dialog.Close();
     });
 
     /// <summary>A hand-edited value out of range shows at the nearest end, and filling the slider writes nothing (.claude/rules/settings.md).</summary>
     [Theory]
-    [InlineData(1.75, 1.75)]
-    [InlineData(3.0, 2.0)]
+    [InlineData(1.25, 1.25)]
+    [InlineData(2.0, 1.5)]   // saved under A75's old ceiling
+    [InlineData(3.0, 1.5)]
     [InlineData(0.2, 0.75)]
     public void TheSliderShowsTheConfigsValueHeldToItsRange(double stored, double shown) => TheThemeOnScreen.OnSta(() =>
     {

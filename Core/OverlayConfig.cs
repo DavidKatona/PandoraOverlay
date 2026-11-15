@@ -271,9 +271,10 @@ public sealed class OverlayConfig
     }
 
     /// <summary>
-    /// The Games window's own scale, clamped 0.75–2.0 (the owner, Nov 15 2026,
-    /// A75: like every widget's, but up to 200%, since the point is to draw it
-    /// larger). A plain 1.0, never seeded from another, no migration. The
+    /// The Games window's own scale, clamped 0.75–1.5 like every widget's (the
+    /// owner, Nov 15 2026, A75; A97 brought its ceiling from 2.0 to the others'
+    /// 1.5, and a 2.0 already saved is simply drawn at 1.5). A plain 1.0, never
+    /// seeded from another, no migration. The
     /// whole fixed frame is drawn at it, and smaller still on a screen too
     /// small for it (GamesFrame.FitScale). Settings → Widgets.
     /// </summary>

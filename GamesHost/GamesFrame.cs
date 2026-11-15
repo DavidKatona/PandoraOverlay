@@ -22,8 +22,9 @@ namespace PandoraOverlay;
 /// </para>
 /// <para>
 /// The whole window is drawn at ONE layout scale, <see cref="FitScale"/>: the
-/// player's <c>GamesScale</c> (Settings → Widgets, 75% to 200%; the owner,
-/// Nov 15 2026, A75, reversing G15's "no size slider"), and smaller still on
+/// player's <c>GamesScale</c> (Settings → Widgets, 75% to 150% like every
+/// widget's; the owner, Nov 15 2026, A75 and A97, reversing G15's "no size
+/// slider"), and smaller still on
 /// a screen where that size and a margin round it don't fit (1366 x 768 at
 /// 150%, for one): never cut off, never re-laid out (A11). The layout stays
 /// 800 x 552 at every scale; only the transform over it changes.
@@ -178,8 +179,8 @@ public static class GamesFrame
     /// <summary>The smallest <c>GamesScale</c> (Settings → Widgets): the widgets' own floor.</summary>
     public const double MinScale = 0.75;
 
-    /// <summary>The largest <c>GamesScale</c>: 200%, above the widgets' 150%, since the point of the window's slider is to go bigger (A75).</summary>
-    public const double MaxScale = 2.0;
+    /// <summary>The largest <c>GamesScale</c>: 150%, the widgets' own ceiling (A97: the owner matched it to the others; it was 200% under A75).</summary>
+    public const double MaxScale = 1.5;
 
     /// <summary>
     /// The one scale the whole window is drawn at on this screen (its work
