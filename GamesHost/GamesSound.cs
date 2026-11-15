@@ -85,14 +85,14 @@ internal sealed class GamesSound : IDisposable
     /// <summary>The same sound object is not started again within this (A81).</summary>
     public static readonly TimeSpan SameSoundGap = TimeSpan.FromMilliseconds(40);
 
-    /// <summary>The volume's steps (A82): 1 to this, the loudest at 0 dB.</summary>
-    public const int Steps = 5;
+    /// <summary>The volume's steps (A82): <see cref="SoundSteps.Count"/>, the steps' one home since A103.</summary>
+    public const int Steps = SoundSteps.Count;
 
-    /// <summary>The volume a fresh config holds (A82): −12 dB, well under The Isle's own sound, which is the player's warning.</summary>
-    public const int DefaultStep = 3;
+    /// <summary>The volume a fresh config holds (A82): <see cref="SoundSteps.Default"/>, the steps' one home since A103.</summary>
+    public const int DefaultStep = SoundSteps.Default;
 
-    /// <summary>Between two steps (A82): 6 dB, a clear "louder" or "quieter" each click.</summary>
-    public const double DecibelsPerStep = 6;
+    /// <summary>Between two steps (A82): <see cref="SoundSteps.DecibelsPerStep"/>, the steps' one home since A103.</summary>
+    public const double DecibelsPerStep = SoundSteps.DecibelsPerStep;
 
     /// <summary>A refused sound's name in its log line is cut to this many characters.</summary>
     internal const int MaxLoggedName = 32;
@@ -153,18 +153,19 @@ internal sealed class GamesSound : IDisposable
     /// <summary>The player muted the games' sounds (A82).</summary>
     public bool Muted => _config.GamesSoundMuted;
 
-    /// <summary>A value of the config as a step: held to 1..<see cref="Steps"/>.</summary>
-    public static int StepOf(int value) => Math.Clamp(value, 1, Steps);
+    /// <summary>A value of the config as a step: <see cref="SoundSteps.StepOf"/> (A103), held to 1..<see cref="Steps"/>.</summary>
+    public static int StepOf(int value) => SoundSteps.StepOf(value);
 
     /// <summary>
-    /// The one home of the steps (A82): the gain a step plays at,
+    /// The gain a step plays at: <see cref="SoundSteps.GainOf"/>, the steps' one
+    /// home since A103 (the Games window and the overlay's clicks share it),
     /// <c>10^(dB/20)</c> with 1 = −24 dB, 2 = −18, 3 = −12, 4 = −6, 5 = 0. A step
     /// out of range is read as the nearest.
     /// </summary>
-    public static float GainOf(int step) => (float)Math.Pow(10, DecibelsOf(step) / 20);
+    public static float GainOf(int step) => SoundSteps.GainOf(step);
 
-    /// <summary>A step's level in dB: 0 at the top step, <see cref="DecibelsPerStep"/> less for each below.</summary>
-    public static double DecibelsOf(int step) => (StepOf(step) - Steps) * DecibelsPerStep;
+    /// <summary>A step's level in dB: <see cref="SoundSteps.DecibelsOf"/> (A103), 0 at the top step, <see cref="DecibelsPerStep"/> less for each below.</summary>
+    public static double DecibelsOf(int step) => SoundSteps.DecibelsOf(step);
 
     // ---- The stage (A79) ----------------------------------------------------------------
 

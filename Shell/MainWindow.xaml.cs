@@ -108,6 +108,7 @@ public partial class MainWindow : OverlayWindowBase
         // thread yet: the speaker is lazy, and makes both at the first sound (A80).
         var gamesClock = new GameClock();
         _speaker = new WaveOutSpeaker();
+        _clicks = AttachClicks(gamesClock); // the click gate on the Clicks channel, the layer attached, the sink set (G27, A104)
         _games = new GamesHost(new GameSaveStore(DataFolder.GamesFolder, () => DateTime.UtcNow), GameCatalog.All, gamesClock,
             MakeGamesSound(gamesClock));
         GameFaults.Host = _games;
@@ -177,6 +178,7 @@ public partial class MainWindow : OverlayWindowBase
             CloseGamesFor(OverlayEvent.Exiting); // its view handed over what it had, and
             _games.Flush();                      // every pending save is written before the config is
             _games.Sound.Dispose();              // the games' gate: its channel's stop queued (A80)
+            DetachClicks();                      // no click reaches the speaker from here on (A104)
             CloseSound();                        // then the app's one speaker closed, after every gate (A101)
             PersistState();
             _poll.Dispose();

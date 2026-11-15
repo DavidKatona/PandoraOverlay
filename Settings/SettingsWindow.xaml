@@ -242,7 +242,25 @@
             </DockPanel>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="SOUNDS"/>
-            <CheckBox x:Name="LowStatChimeCheck" Style="{StaticResource Check}"
+            <!-- Click sounds (G27, A103), first under SOUNDS: the box owns its
+                 1-to-5 slider in the 140 px label slot, as Fade does. The box
+                 writes on Checked/Unchecked (SettingsWindow.Apply.cs), so
+                 ticking it is heard at the step and clearing it is silent; the
+                 slider's release plays press at the new step (its mark), so a
+                 level is never set blind (A82). Measured in every theme by the
+                 planner's probe: General keeps 73.67 px or more, no Fit moves. -->
+            <DockPanel>
+                <CheckBox x:Name="ClickSoundCheck" Style="{StaticResource Check}" Width="140"
+                          Content="Click sounds"/>
+                <TextBlock x:Name="ClickSoundLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right" Text="3 of 5"/>
+                <Slider Style="{DynamicResource Theme.SliderStyle}" x:Name="ClickSoundSlider" Minimum="1" Maximum="5"
+                        SmallChange="1" LargeChange="1" IsSnapToTickEnabled="True" TickFrequency="1" IsMoveToPointEnabled="True" Value="3"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        IsEnabled="{Binding IsChecked, ElementName=ClickSoundCheck}"
+                        local:UiClicks.Cue="Press"
+                        ValueChanged="ClickSoundSlider_ValueChanged"/>
+            </DockPanel>
+            <CheckBox x:Name="LowStatChimeCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
                       Content="Chime when hunger or thirst drops under 20%"/>
             <CheckBox x:Name="GrowthChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Chime at growth milestones (25 / 50 / 75 / 100%)"/>
@@ -250,7 +268,7 @@
                       Content="Chime when a friend spawns in"/>
             <CheckBox x:Name="RouteChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Chime when you reach a route stop"/>
-            <TextBlock Text="Each one plays the Windows &quot;Exclamation&quot; sound."
+            <TextBlock Text="Each chime plays the Windows &quot;Exclamation&quot; sound; clicks in the Games window follow its own volume."
                        Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 

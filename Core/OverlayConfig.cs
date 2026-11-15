@@ -690,6 +690,27 @@ public sealed class OverlayConfig
     public bool GrowthChimeEnabled { get; set; }
 
     /// <summary>
+    /// Click sounds (G27, A103): a short, quiet tick when the left mouse button
+    /// is released on a button of the overlay's windows, of the Games window
+    /// and of a game (never for a key, a hover, automation or code). ON by
+    /// default: G27 asks for feedback, and a sound off by default is one
+    /// nobody hears (so the release notes must say an update turned them on).
+    /// One switch for every click, the games' too; the Games window's clicks
+    /// also obey its own mute and step. Settings → General → Sounds; read at
+    /// each click (Sound/ClickSound.cs).
+    /// </summary>
+    public bool ClickSoundEnabled { get; set; } = true;
+
+    /// <summary>
+    /// The overlay's clicks' volume step, 1 to 5, 6 dB apart (the steps of
+    /// Sound/SoundSteps.cs, the Games window's too): the third by default.
+    /// A value out of range (a hand-edited file) is READ as the nearest step
+    /// and never written back by reading; only Settings' slider writes here.
+    /// The Games window's clicks play at its own step (GamesSoundVolume).
+    /// </summary>
+    public int ClickSoundVolume { get; set; } = 3;
+
+    /// <summary>
     /// Attention fade: the stats panel and the Prime tracker drop to
     /// FadeIdleOpacity while nothing needs attention and return to full
     /// opacity when something does (see StatsAttention / PrimeWindow). Off
