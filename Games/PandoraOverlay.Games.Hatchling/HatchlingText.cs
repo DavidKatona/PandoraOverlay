@@ -547,8 +547,8 @@ public static class HatchlingText
     internal static string DidEat(Food food, int gain) => $"ate {FoodWord(food)} · +{Count(gain)}";
     internal static string DidDrink(int gain) => $"drank · +{Count(gain)}";
     internal static string DidRest(int percent) => $"rested · +{Count(percent)}%";
-    internal static string DidHit(PredatorType type, int ordinal, int damage) => $"hit {The(type, ordinal)}: {Count(damage)}";
-    internal static string DidDefeat(PredatorType type, int ordinal) => $"defeated {The(type, ordinal)}";
+    internal static string DidHit(PredatorType type, int ordinal, int damage) => $"hit {Name(type, ordinal)}: {Count(damage)}";
+    internal static string DidDefeat(PredatorType type, int ordinal) => $"defeated {Name(type, ordinal)}";
     internal static string DidHitGame(int damage) => $"hit small game: {Count(damage)}";
     internal static string ItBit(int damage) => $"bit you: {Count(damage)}";
 

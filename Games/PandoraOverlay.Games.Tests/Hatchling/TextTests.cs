@@ -210,8 +210,8 @@ public class TextTests
         Assert.Equal("ate fish · +25", HatchlingText.RowText(Row(RowActor.You, RowCode.Ate, a: 25, food: Food.Fish)));
         Assert.Equal("drank · +40", HatchlingText.RowText(Row(RowActor.You, RowCode.Drank, a: 40)));
         Assert.Equal("rested · +8%", HatchlingText.RowText(Row(RowActor.You, RowCode.Rested, a: 8)));
-        Assert.Equal("hit the Troodon: 7", HatchlingText.RowText(Row(RowActor.You, RowCode.Hit, a: 7)));
-        Assert.Equal("defeated the Troodon", HatchlingText.RowText(Row(RowActor.You, RowCode.Defeated)));
+        Assert.Equal("hit Troodon: 7", HatchlingText.RowText(Row(RowActor.You, RowCode.Hit, a: 7)));
+        Assert.Equal("defeated Troodon", HatchlingText.RowText(Row(RowActor.You, RowCode.Defeated)));
         Assert.Equal("hit small game: 4", HatchlingText.RowText(Row(RowActor.You, RowCode.Hit, a: 4, smallGame: true)));
         Assert.Equal("caught small game", HatchlingText.RowText(Row(RowActor.You, RowCode.Defeated, smallGame: true)));
     }
