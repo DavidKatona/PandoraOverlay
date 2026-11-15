@@ -20,14 +20,16 @@
           HorizontalAlignment="Left" VerticalAlignment="Top"/>
 
     <!-- The chosen species, 544, 46, 242 x 452, top to bottom: the header
-         (56), 8, the four numbers (68), 6, the perk (16 + 30), the build's
-         line (30), 6, on the server (50), 6, the danger (44), what is left with
-         the note at its foot (51 + 45), the button (36). -->
+         (56), the kind line across the panel (20), 6, the four numbers (68),
+         6, the perk (16 + 30), the build's line (30), 6, on the server (50), 6,
+         the danger (44), what is left with the note at its foot (78: the note's
+         60 and its 6 under it, the rest empty), the button (36). -->
     <Grid x:Name="Panel" Margin="544,12,0,0" Width="242" Height="452"
           HorizontalAlignment="Left" VerticalAlignment="Top">
         <Grid.RowDefinitions>
             <RowDefinition Height="56"/>
-            <RowDefinition Height="8"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="6"/>
             <RowDefinition Height="68"/>
             <RowDefinition Height="6"/>
             <RowDefinition Height="16"/>
@@ -41,7 +43,7 @@
             <RowDefinition Height="36"/>
         </Grid.RowDefinitions>
 
-        <!-- The header: the portrait in its well, the name, the stars, the kind. -->
+        <!-- The header: the portrait in its well, the name and the stars centred on it. -->
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="76"/>
@@ -59,15 +61,19 @@
                 <TextBlock x:Name="ChosenStars" TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource Theme.Text.Highlight}"
                            FontSize="{DynamicResource Theme.Size.12}"/>
-                <TextBlock x:Name="ChosenKind" TextTrimming="CharacterEllipsis"
-                           Foreground="{DynamicResource Theme.Text.Dim}"
-                           FontSize="{DynamicResource Theme.Size.11}"/>
             </StackPanel>
         </Grid>
 
+        <!-- The kind line, across the panel's whole 242 (H83): beside the well it
+             had 158, and the Beipiaosaurus' "Forager · eats plants, meat and fish"
+             (169.1 in Segoe UI, 192.1 in Isle's font) lost "fish" in every theme. -->
+        <TextBlock x:Name="ChosenKind" Grid.Row="1" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource Theme.Text.Dim}"
+                   FontSize="{DynamicResource Theme.Size.11}"/>
+
         <!-- Four rows of 17: the numbers at 75% growth, with the lineage and the
              stars as they are now and no instinct. -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="3">
             <Grid.RowDefinitions>
                 <RowDefinition Height="17"/>
                 <RowDefinition Height="17"/>
@@ -101,23 +107,23 @@
         </Grid>
 
         <!-- The perk: its name, then its rule (room for two lines). -->
-        <TextBlock x:Name="PerkName" Grid.Row="4" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+        <TextBlock x:Name="PerkName" Grid.Row="5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource Theme.Text.Bright}"
                    FontSize="{DynamicResource Theme.Size.12}"
                    FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
-        <TextBlock x:Name="PerkText" Grid.Row="5" MaxHeight="30" VerticalAlignment="Top"
+        <TextBlock x:Name="PerkText" Grid.Row="6" MaxHeight="30" VerticalAlignment="Top"
                    TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource Theme.Text.Text}"
                    FontSize="{DynamicResource Theme.Size.11}"/>
 
         <!-- The build's line (room for two lines). -->
-        <TextBlock x:Name="BuildLine" Grid.Row="6" MaxHeight="30" VerticalAlignment="Top"
+        <TextBlock x:Name="BuildLine" Grid.Row="7" MaxHeight="30" VerticalAlignment="Top"
                    TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource Theme.Text.Dim}"
                    FontSize="{DynamicResource Theme.Size.11}"/>
 
         <!-- On the server: what growing this species there has given, and what it pays now (H18: a multiplier, never a wait). -->
-        <Border Grid.Row="8" Padding="10,2" BorderThickness="1"
+        <Border Grid.Row="9" Padding="10,2" BorderThickness="1"
                 Background="{DynamicResource Theme.InfoCard.Surface}"
                 BorderBrush="{DynamicResource Theme.InfoCard.Line}"
                 CornerRadius="{DynamicResource Theme.Corner.Card}">
@@ -134,7 +140,7 @@
         </Border>
 
         <!-- The danger: the caption, five radios (made in code), the line. -->
-        <StackPanel Grid.Row="10">
+        <StackPanel Grid.Row="11">
             <TextBlock Margin="0" TextTrimming="CharacterEllipsis"
                        Style="{DynamicResource SectionCaption}"
                        Text="{x:Static h:HatchlingText.DangerCaption}"/>
@@ -144,16 +150,17 @@
                        FontSize="{DynamicResource Theme.Size.11}"/>
         </StackPanel>
 
-        <!-- The note, at the foot of what is left (room for three lines, and the
-             rest above it for a font that wraps one line more). -->
-        <TextBlock x:Name="Note" Grid.Row="11" MaxHeight="60" VerticalAlignment="Bottom" Margin="0,0,0,6"
+        <!-- The note, at the foot of what is left (78): room for four lines (60),
+             6 above the button; three is the usual, and the first minute's note
+             takes the fourth in Isle's font (H82). The rest above it is empty. -->
+        <TextBlock x:Name="Note" Grid.Row="12" MaxHeight="60" VerticalAlignment="Bottom" Margin="0,0,0,6"
                    TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource Theme.Text.Dim}"
                    FontSize="{DynamicResource Theme.Size.11}"/>
 
         <!-- Start a run, or the unlock (armed: the first click changes its words
              and its look, the second unlocks). -->
-        <Button x:Name="ActionButton" Grid.Row="12" Focusable="False" Height="36"
+        <Button x:Name="ActionButton" Grid.Row="13" Focusable="False" Height="36"
                 Style="{DynamicResource SaveButtonStyle}"/>
     </Grid>
 </Grid>

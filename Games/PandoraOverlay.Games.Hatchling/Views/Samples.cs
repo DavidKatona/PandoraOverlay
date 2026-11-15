@@ -103,7 +103,12 @@ internal static class Samples
         return new Sample(state, Armed: true);
     }
 
-    /// <summary>All 21 unlocked, each with three stars and won at danger 5, the wallet in seven figures, danger 5 chosen.</summary>
+    /// <summary>
+    /// All 21 unlocked, each with three stars and won at danger 5, the wallet in seven
+    /// figures, danger 5 chosen, the Beipiaosaurus chosen: its kind line ("Forager ·
+    /// eats plants, meat and fish") is the widest of the 21, so the window's walk holds
+    /// it across the panel in every theme (H83).
+    /// </summary>
     private static Sample CampEverything()
     {
         var state = Game(runs: 12_345, balance: Balance);
@@ -118,6 +123,7 @@ internal static class Samples
             record.BestGrowth = Tuning.GrowthMost;
             i++;
         }
+        state.Selected = "Beipiaosaurus";
         state.MaxDanger = Dangers.Highest;
         state.Danger = Dangers.Highest;
         return new Sample(state);

@@ -292,6 +292,22 @@ public class CampPageTests
         Assert.Empty(host.Faults);
     });
 
+    /// <summary>
+    /// H83: the chosen species' kind line stands in a row of its own under the header,
+    /// across the panel's whole 242, where every kind fits every font (beside the well
+    /// it had 158, and the Beipiaosaurus' lost "fish").
+    /// </summary>
+    [Fact]
+    public void TheKindLineHasThePanelsWholeWidth() => Sta.Run(() =>
+    {
+        var (game, _) = ViewHarness.Attached(Rich());
+        using var view = ViewHarness.ViewOf(game);
+        var page = PageHarness.Shown<CampPage>(view);
+        PageHarness.LayOut(view);
+        Assert.Equal(242, page.ChosenKind.ActualWidth);
+        Assert.True(page.ChosenKind.TranslatePoint(new Point(0, 0), page.Panel).Y >= 56);
+    });
+
     [Fact]
     public void TheChosenCardKeepsItsLineUnderTheMouseAndTheOthersTakeTheHoverLine() => Sta.Run(() =>
     {
@@ -551,6 +567,9 @@ public class CampPageTests
         Assert.All(cards, c => Assert.Equal(HatchlingText.CardWon(5), c.Won));
         Assert.Equal(HatchlingText.StartRun, page.ActionShown.Button);   // no unlock button
         Assert.True(page.DangerShown.Radios[4].Checked);
+        // The widest kind line of the 21 (H83), so the window's walk holds it in every theme.
+        Assert.Equal("Beipiaosaurus", page.PanelShown.Name);
+        Assert.Equal(HatchlingText.PanelKind(Build.Forager, Diet.Plants | Diet.Meat | Diet.Fish), page.PanelShown.Kind);
         Assert.Equal(HatchlingText.ServerGrownAll(345), page.PanelShown.Grown);
         Assert.Contains(cards, c => c.FreshKey == "Theme.Text.Good");
         Assert.Contains(cards, c => c.FreshKey == "Theme.Text.Dim");
