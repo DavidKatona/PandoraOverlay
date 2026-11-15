@@ -448,12 +448,12 @@ internal sealed class GameSaveStore
         }
     }
 
-    /// <summary>The first n from 1 for which neither set-aside name is taken. Throws past <see cref="MaxSetAside"/>.</summary>
+    /// <summary>The first n from 1 for which neither set-aside name is taken, by a file or a folder (A65: a folder counted free failed the move onto it, at every try). Throws past <see cref="MaxSetAside"/>.</summary>
     private static int FreeNumber(string folder)
     {
         for (var n = 1; n <= MaxSetAside; n++)
         {
-            if (!File.Exists(Path.Combine(folder, UnreadableSave(n))) && !File.Exists(Path.Combine(folder, UnreadableBackup(n)))) return n;
+            if (!Path.Exists(Path.Combine(folder, UnreadableSave(n))) && !Path.Exists(Path.Combine(folder, UnreadableBackup(n)))) return n;
         }
         throw new IOException("no free number to set the save aside under");
     }

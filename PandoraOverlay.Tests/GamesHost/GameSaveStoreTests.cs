@@ -429,6 +429,23 @@ public sealed class GameSaveStoreTests : IDisposable
     }
 
     [Fact]
+    public void AFolderInTheWayOfADamagedSaveIsPassedOver()
+    {
+        // Counted free, the folder would fail this write and every write of the game after it (A65).
+        Plant(GameSaveStore.SaveFile, "torn save");
+        var damaged = File.ReadAllBytes(FileOf(GameSaveStore.SaveFile));
+        Directory.CreateDirectory(FileOf(GameSaveStore.UnreadableSave(1)));
+
+        Assert.True(Store().Write(Id, 1, "fresh"));
+
+        Assert.Equal(damaged, File.ReadAllBytes(FileOf(GameSaveStore.UnreadableSave(2))));
+        Assert.True(Directory.Exists(FileOf(GameSaveStore.UnreadableSave(1))));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(FileOf(GameSaveStore.UnreadableSave(1))));
+        Assert.Equal(new[] { "unreadable-2.json" }, Unreadables()); // files only: the folder is not listed
+        Assert.Equal(new SaveRead(SaveReadState.Ok, 1, "fresh"), Store().Read(Id));
+    }
+
+    [Fact]
     public void ASaveThatCantBeOpenedEndsTheWriteWithNothingMoved()
     {
         var store = TwoWrites();
@@ -588,6 +605,28 @@ public sealed class GameSaveStoreTests : IDisposable
         Assert.Equal("a backup alone", File.ReadAllText(FileOf(GameSaveStore.UnreadableBackup(3))));
         Assert.Equal("left by hand", File.ReadAllText(FileOf(GameSaveStore.UnreadableBackup(2))));
         Assert.Equal("first damage", File.ReadAllText(FileOf(GameSaveStore.UnreadableSave(1))));
+    }
+
+    [Fact]
+    public void AFolderInTheWayOfASetAsideIsPassedOver()
+    {
+        // Counted free, the folder would fail the move of the backup onto it, and so every "Start fresh" (A65).
+        Plant(GameSaveStore.SaveFile, "damaged");
+        Plant(GameSaveStore.BackupFile, "damaged too");
+        Directory.CreateDirectory(FileOf(GameSaveStore.UnreadableBackup(1)));
+        var store = Store();
+        store.Hold(Id);
+
+        Assert.True(store.SetAside(Id));
+        Assert.False(store.IsHeld(Id));
+
+        Assert.Equal("damaged", File.ReadAllText(FileOf(GameSaveStore.UnreadableSave(2))));
+        Assert.Equal("damaged too", File.ReadAllText(FileOf(GameSaveStore.UnreadableBackup(2))));
+        Assert.False(File.Exists(FileOf(GameSaveStore.UnreadableSave(1))));
+        Assert.True(Directory.Exists(FileOf(GameSaveStore.UnreadableBackup(1))));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(FileOf(GameSaveStore.UnreadableBackup(1))));
+        Assert.False(File.Exists(FileOf(GameSaveStore.SaveFile)));
+        Assert.False(File.Exists(FileOf(GameSaveStore.BackupFile)));
     }
 
     [Fact]
