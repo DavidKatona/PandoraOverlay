@@ -280,6 +280,7 @@ public partial class SettingsWindow
                 Style = (Style)FindResource("DangerButtonStyle"),
                 HorizontalAlignment = HorizontalAlignment.Center, ToolTip = "Delete this pack"
             };
+            UiClicks.SetCue(delete, ClickMark.Arm); // A104: its first click asks, its second deletes
             // Two clicks since 1.38, like Delete all: no Cancel brings a pack back.
             // The caption asks, in place: the ✕'s column has no room for words.
             var armed = false;
@@ -291,6 +292,7 @@ public partial class SettingsWindow
                     return;
                 }
                 armed = true;
+                UiClicks.Armed(delete);
                 caption.Text = "DELETE THE WHOLE PACK? CLICK ✕ AGAIN";
                 caption.Foreground = HintWarn;
                 delete.ToolTip = "Click again to delete the pack";
@@ -408,6 +410,7 @@ public partial class SettingsWindow
             dot.Fill = PaletteBrushes[wp.Colour];
             well.ToolTip = $"{WaypointPalette.Colours[wp.Colour].Name} — click to change";
             WaypointsEdited();
+            UiClicks.Clicked(well, ClickCue.Press); // not a button (A98): the colour changed, so it clicks
         };
         row.Children.Add(well);
 
@@ -497,6 +500,7 @@ public partial class SettingsWindow
         if (!_deleteAllArmed)
         {
             _deleteAllArmed = true;
+            UiClicks.Armed(DeleteAllButton); // A104
             DeleteAllButton.Content = "Really delete all?";
             return;
         }

@@ -134,7 +134,10 @@
                             Style="{StaticResource PanelButton}"
                             Background="{DynamicResource Theme.Button.Primary.Idle.Fill}" Foreground="{DynamicResource Theme.Button.Primary.Idle.Text}"
                             BorderBrush="{DynamicResource Theme.Button.Primary.Idle.Line}"/>
-                    <Button Content="Exit" Click="Exit_Click" Width="{x:Static local:ControlPanelFrame.ExitButton}"
+                    <!-- Cue None (A98, PLAN-CLICKS 1.1): the overlay exits at once, and the
+                         speaker's dispose cuts whatever still plays (A90), so a click here
+                         would be heard as a cut, not as a click. -->
+                    <Button Content="Exit" Click="Exit_Click" local:UiClicks.Cue="None" Width="{x:Static local:ControlPanelFrame.ExitButton}"
                             Style="{StaticResource PanelButton}"
                             Background="{DynamicResource Theme.Button.Danger.Idle.Fill}" Foreground="{DynamicResource Theme.Button.Danger.Idle.Text}"
                             BorderBrush="{DynamicResource Theme.Button.Danger.Idle.Line}"

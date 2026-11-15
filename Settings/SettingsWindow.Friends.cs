@@ -165,6 +165,7 @@ public partial class SettingsWindow
             dot.Fill = PaletteBrushes[next];
             well.ToolTip = $"{WaypointPalette.Colours[next].Name} — click to change";
             FriendsEdited();
+            UiClicks.Clicked(well, ClickCue.Press); // not a button (A98)
         };
         row.Children.Add(well);
 

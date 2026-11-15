@@ -113,6 +113,7 @@ public partial class SettingsWindow : Window
         if (!_resetPositionsArmed)
         {
             _resetPositionsArmed = true;
+            UiClicks.Armed(ResetPositionsButton); // A104: this click asks (the arm cue)
             ResetPositionsButton.Content = "Really reset?";
             return;
         }
@@ -407,6 +408,7 @@ public partial class SettingsWindow : Window
         if (!_defaultKeysArmed)
         {
             _defaultKeysArmed = true;
+            UiClicks.Armed(DefaultKeysButton); // A104
             DefaultKeysButton.Content = "Really change them all?";
             return;
         }
