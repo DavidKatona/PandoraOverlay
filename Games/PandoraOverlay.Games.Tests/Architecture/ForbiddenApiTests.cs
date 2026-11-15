@@ -192,6 +192,23 @@ public class ForbiddenApiTests
         // log file read by its path write (neither names A69's two types).
         AssertFound(findings, ForbiddenKind.Assembly, "System.Configuration.ConfigurationManager", "the assembly System.Configuration.ConfigurationManager");
         AssertFound(findings, ForbiddenKind.Assembly, "System.Diagnostics.EventLog", "the assembly System.Diagnostics.EventLog");
+
+        // A71, A73, A74: each under its entry, as the compiler wrote it (AddJob's owner is
+        // PrintQueue; UI Automation, the counters and the directory by their assembly).
+        AssertFound(findings, ForbiddenKind.Member, "System.Windows.Input.Cursor", "the member System.Windows.Input.Cursor::.ctor");
+        AssertFound(findings, ForbiddenKind.Type, "System.Windows.Input.CursorConverter", "the type System.Windows.Input.CursorConverter");
+        AssertFound(findings, ForbiddenKind.Member, "System.Resources.ResourceSet", "the member System.Resources.ResourceSet::.ctor");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Resources.Extensions", "the type System.Resources.Extensions.DeserializingResourceReader");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Resources.Extensions", "the type System.Resources.Extensions.PreserializedResourceWriter");
+        AssertFound(findings, ForbiddenKind.Namespace, "System.Printing", "the type System.Printing.PrintQueue");
+        AssertFound(findings, ForbiddenKind.Type, "System.Windows.Controls.PrintDialog", "the type System.Windows.Controls.PrintDialog");
+        foreach (var decoder in new[] { "Jpeg", "Gif", "Bmp", "Tiff", "Wmp", "Icon" })
+            AssertFound(findings, ForbiddenKind.Type, $"System.Windows.Media.Imaging.{decoder}BitmapDecoder", $"the type System.Windows.Media.Imaging.{decoder}BitmapDecoder");
+        AssertFound(findings, ForbiddenKind.Assembly, "UIAutomationClient", "the assembly UIAutomationClient");
+        AssertFound(findings, ForbiddenKind.Assembly, "System.Diagnostics.PerformanceCounter", "the assembly System.Diagnostics.PerformanceCounter");
+        AssertFound(findings, ForbiddenKind.Assembly, "System.DirectoryServices", "the assembly System.DirectoryServices");
+        AssertFound(findings, ForbiddenKind.Type, "System.Windows.Data.ObjectDataProvider", "the type System.Windows.Data.ObjectDataProvider");
+        AssertFound(findings, ForbiddenKind.Type, "System.Windows.Data.XmlDataProvider", "the type System.Windows.Data.XmlDataProvider");
     }
 
     private static void AssertFound(IReadOnlyList<Finding> findings, ForbiddenKind kind, string pattern, string subject) =>
@@ -391,6 +408,11 @@ public class ForbiddenApiTests
     private const string StorageReason = "storage is the host's";
     private const string LoadingReason = "nothing is loaded";
     private const string ReachingOutReason = "reaching out";
+    // And of the three more that A71 to A74 give theirs (LeavingTheFrame, NoAddress,
+    // NoReflection).
+    private const string FrameReason = "leaving the frame";
+    private const string AddressReason = "a game makes no request";
+    private const string ReflectionReason = "a game calls what it can name";
 
     /// <summary>
     /// The framework's ways of opening a file or a folder by a path the caller gives
@@ -489,6 +511,86 @@ public class ForbiddenApiTests
                      ("System.Text.Json.JsonDocument", "Parse"), ("System.Text.Json.JsonSerializer", "Serialize"), ("System.Text.Json.JsonSerializer", "Deserialize"),
                  })
             Assert.True(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(type, member) })).Count == 0, $"{type}::{member} should give no finding");
+    }
+
+    /// <summary>
+    /// The framework's last doors are refused, each by one entry and under its reason:
+    /// a cursor read from a file, by CursorConverter and by every Cursor constructor
+    /// (A71); the preserialized .resources reader and writer, every ResourceSet
+    /// constructor, printing and the print dialog, and the six decoders beside the
+    /// engine's that open what a Uri names (A73); UI Automation's client, the
+    /// performance counters and the directory services, whole, and A60's two XAML
+    /// providers written in code (A74).
+    /// </summary>
+    [Fact]
+    public void TheOtherFrameworkDoorsAreRefused()
+    {
+        var decoders = new[] { "Jpeg", "Gif", "Bmp", "Tiff", "Wmp", "Icon" }
+            .Select(d => (T("System.Windows.Media.Imaging", d + "BitmapDecoder"), AddressReason));
+        foreach (var (type, reason) in new[]
+                 {
+                     (T("System.Windows.Input", "CursorConverter"), StorageReason),
+                     (T("System.Resources.Extensions", "DeserializingResourceReader"), StorageReason),
+                     (T("System.Resources.Extensions", "PreserializedResourceWriter"), StorageReason),
+                     (T("System.Printing", "PrintQueue"), ReachingOutReason), (T("System.Printing", "LocalPrintServer"), ReachingOutReason),
+                     (T("System.Windows.Controls", "PrintDialog"), FrameReason),
+                     (T("System.Windows.Data", "ObjectDataProvider"), ReflectionReason),
+                     (T("System.Windows.Data", "XmlDataProvider"), AddressReason),
+                 }.Concat(decoders))
+        {
+            var findings = ForbiddenList.Check(Made(AGame, types: new[] { type }));
+            Assert.True(findings.Count == 1, type.FullName + " should give exactly one finding");
+            Assert.StartsWith(reason, findings[0].Entry.Reason);
+        }
+
+        foreach (var (type, member) in new[]
+                 {
+                     ("System.Windows.Input.Cursor", ".ctor"),
+                     ("System.Resources.ResourceSet", ".ctor"),
+                 })
+        {
+            var findings = ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(type, member) }));
+            Assert.True(findings.Count == 1, $"{type}::{member} should give exactly one finding");
+            Assert.StartsWith(StorageReason, findings[0].Entry.Reason);
+        }
+
+        foreach (var assembly in new[] { "UIAutomationClient", "System.Diagnostics.PerformanceCounter", "System.DirectoryServices" })
+        {
+            var findings = ForbiddenList.Check(Made(AGame, assemblies: new[] { assembly }));
+            Assert.True(findings.Count == 1, $"the assembly {assembly} should give exactly one finding");
+            Assert.StartsWith(ReachingOutReason, findings[0].Entry.Reason);
+        }
+    }
+
+    /// <summary>
+    /// What A71, A73 and A74 leave alone on purpose: Cursor and Cursors as types,
+    /// Cursors.Hand and a view's Cursor (A71); ResourceSet as a type and the engine's
+    /// PngBitmapDecoder (A73); UI Automation's provider side, WPF's automation peers
+    /// and AutomationProperties, which describe a game's own controls, and WPF's
+    /// bindings and converters (A74). No finding for any.
+    /// </summary>
+    [Fact]
+    public void TheOtherFrameworkDoorsLeaveTheHarmlessAlone()
+    {
+        foreach (var type in new[]
+                 {
+                     T("System.Windows.Input", "Cursor"), T("System.Windows.Input", "Cursors"), T("System.Resources", "ResourceSet"),
+                     T("System.Windows.Media.Imaging", "PngBitmapDecoder"),
+                     T("System.Windows.Automation", "AutomationProperties"),
+                     T("System.Windows.Automation.Peers", "AutomationPeer"), T("System.Windows.Automation.Peers", "FrameworkElementAutomationPeer"),
+                     T("System.Windows.Data", "Binding"), T("System.Windows.Data", "BindingOperations"), T("System.Windows.Data", "IValueConverter"),
+                 })
+            Assert.True(ForbiddenList.Check(Made(AGame, types: new[] { type })).Count == 0, type.FullName + " should give no finding");
+
+        foreach (var (type, member) in new[]
+                 {
+                     ("System.Windows.Input.Cursors", "get_Hand"), ("System.Windows.FrameworkElement", "set_Cursor"),
+                     ("System.Windows.Automation.AutomationProperties", "SetName"),
+                 })
+            Assert.True(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName(type, member) })).Count == 0, $"{type}::{member} should give no finding");
+
+        foreach (var assembly in new[] { "UIAutomationTypes", "UIAutomationProvider" })
+            Assert.True(ForbiddenList.Check(Made(AGame, assemblies: new[] { assembly })).Count == 0, $"the assembly {assembly} should give no finding");
     }
 
     /// <summary>The reader names a generic type's member by the generic type, and a nested type by its outer one.</summary>
