@@ -192,12 +192,13 @@ public class HatchlingViewTests
     }
 
     [Fact]
-    public void TheLayoutStatesAreSeventeenAndAllShowStill() => Sta.Run(() =>
+    public void TheLayoutStatesAreTwentySevenAndAllShowStill() => Sta.Run(() =>
     {
         var (game, host) = ViewHarness.Attached(ViewHarness.Running());
         using var view = ViewHarness.ViewOf(game);
-        Assert.Equal(17, view.LayoutStates.Count);
-        Assert.Equal(17, view.LayoutStates.Distinct().Count());
+        Assert.Equal(17 + HatchlingText.Guide.Count, view.LayoutStates.Count);   // the plan's seventeen and the Guide's ten (H94)
+        Assert.Equal(27, view.LayoutStates.Count);
+        Assert.Equal(view.LayoutStates.Count, view.LayoutStates.Distinct().Count());
         var writes = host.Memory.Writes.Count;
         var all = view.LayoutStates.ToList();
         Assert.Equal(7, all.Count(s => s.StartsWith("run-", StringComparison.Ordinal)));
@@ -212,6 +213,7 @@ public class HatchlingViewTests
                 "run" => PageKind.Run,
                 "lineage" => PageKind.Lineage,
                 "journal" => PageKind.Journal,
+                "guide" => PageKind.Guide,
                 _ => PageKind.Records,
             };
             Assert.Equal(page, view.Shown);

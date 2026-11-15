@@ -1,0 +1,31 @@
+<!-- The Guide (H94, in the page's own space): the list of sections at the
+     left, 12, 12, 168 wide, one NavButton each (made in code from
+     HatchlingText.Guide), and the chosen section's card at the right, 192,
+     12, 594 x 452: its title, then its intro, its table and its entries, made
+     in code (GuidePage.xaml.cs). No scrolling (H27): every section fits its
+     card whole, in every theme. Every colour, size and font is the theme's
+     (A25), every word HatchlingText's (A24). -->
+<Grid x:Class="PandoraOverlay.Games.Hatchling.GuidePage"
+      x:ClassModifier="internal"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Width="798" Height="476" Background="Transparent"
+      TextElement.FontFamily="{DynamicResource Theme.Font.Family}">
+
+    <StackPanel x:Name="SectionList" Margin="12,12,0,0" Width="168"
+                HorizontalAlignment="Left" VerticalAlignment="Top"/>
+
+    <Border x:Name="SectionCard" Margin="192,12,0,0" Width="594" Height="452"
+            HorizontalAlignment="Left" VerticalAlignment="Top"
+            BorderThickness="1" Padding="14,10,14,10"
+            Background="{DynamicResource Theme.Card.Surface}"
+            BorderBrush="{DynamicResource Theme.Card.Line}"
+            CornerRadius="{DynamicResource Theme.Corner.Card}">
+        <StackPanel x:Name="SectionBody" VerticalAlignment="Top">
+            <TextBlock x:Name="SectionTitle" TextTrimming="CharacterEllipsis"
+                       FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontSize="14"
+                       Foreground="{DynamicResource Theme.Text.Title}"/>
+            <StackPanel x:Name="SectionContent" Margin="0,8,0,0"/>
+        </StackPanel>
+    </Border>
+</Grid>

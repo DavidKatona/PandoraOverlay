@@ -1,7 +1,7 @@
 namespace PandoraOverlay.Games.Hatchling;
 
 /// <summary>Which hint the context line gives: one for each row of the hints' table, and None.</summary>
-internal enum HintCode { None, Beside, HuntedHide, Hunted, Rest, Thirst, HungerPlants, HungerMeat, First, Grow }
+internal enum HintCode { None, Beside, HuntedHide, Hunted, Rest, Thirst, HungerPlants, HungerMeat, First, Guide, Grow }
 
 /// <summary>
 /// The hints of a player's first runs (H23): one line in the turn bar that teaches
@@ -16,8 +16,9 @@ internal static class Hints
     /// <summary>
     /// The first hint that applies, in the table's priority: a predator beside
     /// you; one you know hunting you; hurt with no predator known; thirsty;
-    /// hungry; the first turn; otherwise growing. None once the run is over: its
-    /// summary is up.
+    /// hungry; the first turn; the turn after it, which points at the Guide tab
+    /// (H94: once a run, in the runs that have hints); otherwise growing. None once
+    /// the run is over: its summary is up.
     /// </summary>
     /// <param name="run">The run as it stands.</param>
     /// <param name="hides">Your build hides in forest (the hunted hint says where to break its line of sight).</param>
@@ -35,6 +36,7 @@ internal static class Hints
         if (run.You.Water < Tuning.HintThirsty) return HintCode.Thirst;
         if (run.You.Food < Tuning.HintHungry) return eatsPlants ? HintCode.HungerPlants : HintCode.HungerMeat;
         if (run.Turn == 0) return HintCode.First;
+        if (run.Turn == Tuning.HintGuideTurn) return HintCode.Guide;
         return HintCode.Grow;
     }
 
@@ -49,6 +51,7 @@ internal static class Hints
         HintCode.HungerPlants => HatchlingText.HintHungerPlants,
         HintCode.HungerMeat => HatchlingText.HintHungerMeat,
         HintCode.First => HatchlingText.HintFirst,
+        HintCode.Guide => HatchlingText.HintGuide,
         HintCode.Grow => HatchlingText.HintGrow,
         _ => "",
     };
