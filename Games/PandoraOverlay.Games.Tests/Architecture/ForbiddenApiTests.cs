@@ -209,6 +209,14 @@ public class ForbiddenApiTests
         AssertFound(findings, ForbiddenKind.Assembly, "System.DirectoryServices", "the assembly System.DirectoryServices");
         AssertFound(findings, ForbiddenKind.Type, "System.Windows.Data.ObjectDataProvider", "the type System.Windows.Data.ObjectDataProvider");
         AssertFound(findings, ForbiddenKind.Type, "System.Windows.Data.XmlDataProvider", "the type System.Windows.Data.XmlDataProvider");
+
+        // A94: an assembly asked for its embedded files outside the engine.
+        AssertFound(findings, ForbiddenKind.Member, "System.Reflection.Assembly", "the member System.Reflection.Assembly::GetManifestResourceStream");
+
+        // A95: reflection by name through IReflect, and .NET 8's invokers.
+        AssertFound(findings, ForbiddenKind.Type, "System.Reflection.IReflect", "the type System.Reflection.IReflect");
+        AssertFound(findings, ForbiddenKind.Type, "System.Reflection.MethodInvoker", "the type System.Reflection.MethodInvoker");
+        AssertFound(findings, ForbiddenKind.Type, "System.Reflection.ConstructorInvoker", "the type System.Reflection.ConstructorInvoker");
     }
 
     private static void AssertFound(IReadOnlyList<Finding> findings, ForbiddenKind kind, string pattern, string subject) =>
@@ -373,10 +381,12 @@ public class ForbiddenApiTests
 
     /// <summary>
     /// What A60 leaves alone on purpose (A43): typeof, a type's assembly and a
-    /// member's name, the object's and the exception's GetType, the game's own
-    /// embedded art, Uri's constructor (a view's generated code), the engine's PNG
-    /// decoder, and the imaging the engine does today (its decoder's frames, a
-    /// BitmapFrame and a BitmapDecoder as types, events' Combine and Remove).
+    /// member's name, the object's and the exception's GetType, an assembly's name
+    /// (its embedded files are the engine's alone since A94:
+    /// <see cref="LoadingIsRefusedAndResourcesAreTheEnginesAlone"/>), Uri's
+    /// constructor (a view's generated code), the engine's PNG decoder, and the
+    /// imaging the engine does today (its decoder's frames, a BitmapFrame and a
+    /// BitmapDecoder as types, events' Combine and Remove).
     /// </summary>
     [Fact]
     public void TheHarmlessReflectionStaysAllowed()
@@ -385,7 +395,6 @@ public class ForbiddenApiTests
                  {
                      ("System.Type", "GetTypeFromHandle"), ("System.Type", "get_Assembly"), ("System.Type", "op_Equality"),
                      ("System.Reflection.MemberInfo", "get_Name"), ("System.Object", "GetType"), ("System.Exception", "GetType"),
-                     ("System.Reflection.Assembly", "GetManifestResourceStream"), ("System.Reflection.Assembly", "GetManifestResourceNames"),
                      ("System.Reflection.Assembly", "GetName"), ("System.Uri", ".ctor"),
                      ("System.Windows.Media.Imaging.PngBitmapDecoder", ".ctor"), ("System.Windows.Media.Imaging.BitmapDecoder", "get_Frames"),
                      ("System.Delegate", "Combine"), ("System.Delegate", "Remove"),
@@ -638,14 +647,49 @@ public class ForbiddenApiTests
             Assert.Single(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName("System.Windows.Application", member) })));
     }
 
-    /// <summary>Nothing is loaded at run time; an assembly's own resources are read as streams (the atlas), and that stays allowed.</summary>
+    /// <summary>
+    /// Nothing is loaded at run time (A43); an assembly's embedded files are the
+    /// engine's alone to read (A94): asked by a game or the Contract, each of the three
+    /// is one finding under its reason, since any assembly a game holds can be asked,
+    /// the app's too; asked by the engine (Atlas, SoundBank), none. An assembly's name
+    /// stays allowed.
+    /// </summary>
     [Fact]
-    public void LoadingIsRefusedAndResourcesAreNot()
+    public void LoadingIsRefusedAndResourcesAreTheEnginesAlone()
     {
         foreach (var member in new[] { "Load", "LoadFrom", "LoadFile", "UnsafeLoadFrom" })
             Assert.Single(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName("System.Reflection.Assembly", member) })));
-        foreach (var member in new[] { "GetManifestResourceStream", "GetManifestResourceNames", "GetName" })
-            Assert.Empty(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName("System.Reflection.Assembly", member) })));
+        foreach (var member in new[] { "GetManifestResourceStream", "GetManifestResourceNames", "GetManifestResourceInfo" })
+        {
+            var asked = new[] { new MemberName("System.Reflection.Assembly", member) };
+            var finding = Assert.Single(ForbiddenList.Check(Made(AGame, members: asked)));
+            Assert.StartsWith(ResourcesReason, finding.Entry.Reason, StringComparison.Ordinal);
+            Assert.Single(ForbiddenList.Check(Made(Contract, members: asked)));
+            Assert.Empty(ForbiddenList.Check(Made(Engine, members: asked)));
+        }
+        Assert.Empty(ForbiddenList.Check(Made(AGame, members: new[] { new MemberName("System.Reflection.Assembly", "GetName") })));
+    }
+
+    /// <summary>The start of A94's reason (ForbiddenList's TheEnginesResources).</summary>
+    private const string ResourcesReason = "a game's embedded files are read by the engine alone";
+
+    /// <summary>
+    /// Reflection by name through the interface every Type implements, and calls through
+    /// .NET 8's invokers (A95): each type is one finding under A60's reason, for a game
+    /// and for the engine, so a member reached past System.Type's entries is still refused.
+    /// </summary>
+    [Fact]
+    public void ReflectionThroughIReflectAndTheInvokersIsRefused()
+    {
+        foreach (var type in new[] { T("System.Reflection", "IReflect"), T("System.Reflection", "MethodInvoker"), T("System.Reflection", "ConstructorInvoker") })
+        {
+            foreach (var who in new[] { AGame, Engine })
+            {
+                var findings = ForbiddenList.Check(Made(who, types: new[] { type }));
+                Assert.True(findings.Count == 1, $"{type.FullName} in {who} should give exactly one finding");
+                Assert.StartsWith(ReflectionReason, findings[0].Entry.Reason);
+            }
+        }
     }
 
     /// <summary>The wall clock and the unseeded id are refused; building a DateTime or reading its parts is not.</summary>

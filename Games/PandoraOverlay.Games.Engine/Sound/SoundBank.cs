@@ -56,12 +56,14 @@ public sealed partial class SoundBank
     /// <c>Sound/&lt;name&gt;.wav</c>, read once, named without the folder and
     /// the extension, in name order. An assembly with none gives an empty bank:
     /// a game with no sounds plays none. A sound that breaks the format:
-    /// <see cref="InvalidDataException"/>, naming it (<see cref="Read"/>).
+    /// <see cref="InvalidDataException"/>, naming it (<see cref="Read"/>). A
+    /// games assembly only (A94, <see cref="GameAssembly"/>): any other is an
+    /// <see cref="ArgumentException"/>, and nothing of it is read.
     /// </summary>
     public static SoundBank Load(Assembly assembly)
     {
         ArgumentNullException.ThrowIfNull(assembly);
-        string owner = assembly.GetName().Name ?? "an unnamed assembly";
+        string owner = GameAssembly.NameOf(assembly);
         var sounds = new List<GameSound>();
         foreach (var resource in assembly.GetManifestResourceNames().Where(IsSound).OrderBy(r => r, StringComparer.Ordinal))
         {

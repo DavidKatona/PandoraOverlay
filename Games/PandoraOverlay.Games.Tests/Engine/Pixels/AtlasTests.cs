@@ -125,6 +125,66 @@ public class AtlasTests
         Assert.Contains("PandoraOverlay.Games.Tests", error.Message);
     }
 
+    /// <summary>
+    /// The names a game's art book asks for (A94): every <c>Art/&lt;name&gt;.png</c>
+    /// with its <c>.json</c>, in ordinal order; a sheet without its table, a table
+    /// without its sheet and a file of another folder are left out.
+    /// </summary>
+    [Fact]
+    public void NamesInListsEverySheetWithItsTable()
+    {
+        Assert.Equal(new[] { TestAtlas.Name }, Atlas.NamesIn(typeof(AtlasTests).Assembly));
+
+        var one = new byte[] { 1 };
+        var assembly = new ResourceAssembly("PandoraOverlay.Games.Sample", new Dictionary<string, byte[]>
+        {
+            ["Art/things.png"] = one, ["Art/things.json"] = one,
+            ["Art/creatures.png"] = one, ["Art/creatures.json"] = one,
+            ["Art/half.png"] = one,
+            ["Art/table.json"] = one,
+            ["Sound/step.wav"] = one, ["Other/x.png"] = one, ["Other/x.json"] = one,
+        });
+
+        Assert.Equal(new[] { "creatures", "things" }, Atlas.NamesIn(assembly));
+        Assert.Empty(Atlas.NamesIn(typeof(Atlas).Assembly)); // the engine embeds no art
+        Assert.Throws<ArgumentNullException>(() => Atlas.NamesIn(null!));
+    }
+
+    /// <summary>
+    /// The engine reads a games assembly's art alone (A94): an assembly named as the
+    /// app is, holding an atlas where a game keeps one, is refused by name before
+    /// anything of it is read, by both readers, and so is the framework's and a name
+    /// that only starts like a games assembly's; the same files under a games name read.
+    /// </summary>
+    [Fact]
+    public void TheReadersTakeAGamesAssemblyAlone()
+    {
+        byte[] Bytes(string extension)
+        {
+            using var stream = TestAtlas.Resource(extension);
+            using var copy = new MemoryStream();
+            stream.CopyTo(copy);
+            return copy.ToArray();
+        }
+        var art = new Dictionary<string, byte[]> { ["Art/x.png"] = Bytes("png"), ["Art/x.json"] = Bytes("json") };
+        var app = new ResourceAssembly("PandoraOverlay", art);
+
+        var load = Assert.Throws<ArgumentException>(() => Atlas.Load(app, "x"));
+        var names = Assert.Throws<ArgumentException>(() => Atlas.NamesIn(app));
+
+        Assert.Contains("'PandoraOverlay'", load.Message);
+        Assert.Contains("A94", load.Message);
+        Assert.Equal(load.Message, names.Message);
+        Assert.Equal(0, app.Reads);
+        foreach (var other in new[] { "PandoraOverlay.Games", "PandoraOverlay.GamesX.Sample", "pandoraoverlay.games.sample", "System.Private.CoreLib" })
+            Assert.Throws<ArgumentException>(() => Atlas.NamesIn(new ResourceAssembly(other, art)));
+        Assert.Throws<ArgumentException>(() => Atlas.Load(typeof(object).Assembly, "x"));
+
+        var game = new ResourceAssembly("PandoraOverlay.Games.Sample", art);
+        Assert.Equal(new[] { "x" }, Atlas.NamesIn(game));
+        Assert.Equal(TestAtlas.Load().Names, Atlas.Load(game, "x").Names);
+    }
+
     [Fact]
     public void AnImageThatIsNotAPngIsNamed()
     {

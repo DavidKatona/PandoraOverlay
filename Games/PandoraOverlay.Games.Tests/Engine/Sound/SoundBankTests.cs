@@ -292,6 +292,26 @@ public class SoundBankTests
     [Fact]
     public void LoadNeedsAnAssembly() => Assert.Throws<ArgumentNullException>(() => SoundBank.Load(null!));
 
+    /// <summary>
+    /// The engine reads a games assembly's sounds alone (A94): an assembly named as
+    /// the app is, with a sound where a game keeps one, is refused by name before
+    /// anything of it is read, and so is the framework's; a games assembly reads.
+    /// </summary>
+    [Fact]
+    public void TheBankReadsAGamesAssemblyAlone()
+    {
+        var sounds = new Dictionary<string, byte[]> { ["Sound/step.wav"] = new WavFile().Write() };
+        var app = new ResourceAssembly("PandoraOverlay", sounds);
+
+        var error = Assert.Throws<ArgumentException>(() => SoundBank.Load(app));
+
+        Assert.Contains("'PandoraOverlay'", error.Message);
+        Assert.Contains("A94", error.Message);
+        Assert.Equal(0, app.Reads);
+        Assert.Throws<ArgumentException>(() => SoundBank.Load(typeof(object).Assembly));
+        Assert.Equal(new[] { "step" }, SoundBank.Load(new ResourceAssembly("PandoraOverlay.Games.Sample", sounds)).Names);
+    }
+
     // ---- Helpers ------------------------------------------------------------------------------
 
     /// <summary>A stream that reads forward only, as a stream from somewhere other than memory may.</summary>
@@ -311,21 +331,5 @@ public class SoundBankTests
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    }
-
-    /// <summary>An assembly that serves manifest resources from memory, as a game's serves its embedded files: the bank asks nothing else of it.</summary>
-    private sealed class ResourceAssembly : Assembly
-    {
-        private readonly string _name;
-        private readonly Dictionary<string, byte[]> _resources;
-
-        public ResourceAssembly(string name, Dictionary<string, byte[]> resources) => (_name, _resources) = (name, resources);
-
-        public override string[] GetManifestResourceNames() => _resources.Keys.ToArray();
-
-        public override Stream? GetManifestResourceStream(string name) =>
-            _resources.TryGetValue(name, out var bytes) ? new MemoryStream(bytes, writable: false) : null;
-
-        public override AssemblyName GetName(bool copiedName) => new(_name);
     }
 }

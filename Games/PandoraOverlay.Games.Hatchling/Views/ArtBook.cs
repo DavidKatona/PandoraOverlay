@@ -79,20 +79,14 @@ internal sealed class ArtBook
     /// the art tool's own test already fails, and is skipped here. One embedded but
     /// broken throws <see cref="InvalidDataException"/> from the engine's load, as
     /// does a piece of art two atlases both hold. The game passes its own assembly
-    /// (A29: art is read from the assembly, never from a file).
+    /// (A29: art is read from the assembly, never from a file), and the engine
+    /// finds and reads its atlases (<see cref="Atlas.NamesIn"/>, A94: a game never
+    /// asks an assembly for its embedded files itself).
     /// </summary>
     public static ArtBook Load(Assembly assembly)
     {
         ArgumentNullException.ThrowIfNull(assembly);
-        const string prefix = "Art/";
-        var resources = new HashSet<string>(assembly.GetManifestResourceNames(), StringComparer.Ordinal);
-        var names = resources
-            .Where(r => r.StartsWith(prefix, StringComparison.Ordinal) && r.EndsWith(".png", StringComparison.Ordinal))
-            .Select(r => r[prefix.Length..^".png".Length])
-            .Where(name => resources.Contains($"{prefix}{name}.json"))
-            .OrderBy(name => name, StringComparer.Ordinal)
-            .ToList();
-        return From(names.Select(name => (name, Atlas.Load(assembly, name))).ToList());
+        return From(Atlas.NamesIn(assembly).Select(name => (name, Atlas.Load(assembly, name))).ToList());
     }
 
     /// <summary>A book of these atlases, named: what <see cref="Load"/> builds, and what a test builds from atlases it made.</summary>

@@ -198,8 +198,9 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   P/Invoke in `GamesHost/` only (`WaveOut.cs`, A80), beside the user32 and
   dwmapi calls `GamesWindow` already makes (and three kernel32 event calls with
   it, for the device's event). No package is added; nothing under `Games/` can
-  reach it, and a scan keeps `waveOutSetVolume`, the app's own volume in
-  Windows' mixer, out of `GamesHost/`.
+  reach it. Scans hold `GamesHost/` to those native calls, thirteen in all, and
+  to Windows' default output (A92), and keep out `waveOutSetVolume`, the app's
+  own volume in Windows' mixer, with every other volume setter (A93).
 - The working copy is LF (`.gitattributes` `eol=lf`; the solution file CRLF).
 - The site's access header gets into a build as `Assets/overlay-access.bin`,
   embedded when it exists. Release builds: the workflow runs
@@ -394,11 +395,13 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   the Contract; the app → the Contract and each game; nothing under `Games/` can
   reference `PollService`, the client, the config or the session (the compiler
   holds that), and the forbidden list refuses the plain ways round it
-  (networking, reflection by name, a picture fetched by address): a guard
+  (networking, reflection by name, a picture fetched by address, another
+  assembly's embedded files: the Engine alone reads a game's own, A94): a guard
   against an API reached for by accident, not a sandbox. A game's sound is the
-  host's (`IGameHost.Sound`, A77): a game hands over one of its own, and the host
-  plays it only while that game is on screen, not paused and not muted (A79),
-  never for a reading (A85). The games add no
+  host's (`IGameHost.Sound`, A77): a game hands over one of its own, only for
+  the player's clicks and their playback, never for a reading (A85), and the
+  host plays it only while that game is on screen, not paused and not muted
+  (A79). The games add no
   request and no request trigger (constraints 1 to 4 stand as they are).
 
 ## Runtime expectations
@@ -458,24 +461,28 @@ all) — say so when it matters:
   device ran once, silence only, on an idle PC, and the spike's full-load run is
   the only evidence under load); the first cue after a launch, which waits for the
   device's first open (about 93 ms from the play to the device on the build PC,
-  silence only); a device unplugged or in exclusive use, none at all, a changed
-  default device and a Bluetooth headset (the failure paths ran on a fake device
-  only); the overlay's entry in Windows' volume mixer, and the PC's sleep with the
-  window closed; the mute, the `−` and `+`, the preview, and the speaker's glyphs
+  silence only); a device unplugged or in exclusive use, none at all, one that
+  stops handing buffers back (closed after 3 s, A91), a changed default device
+  and a Bluetooth headset (the failure paths ran on a fake device only, and
+  whether a real driver stalls is unknown); the overlay's entry in Windows'
+  volume mixer, and the PC's sleep with the window closed; the mute, the `−`
+  and `+`, the preview, and the speaker's glyphs
   and pips in a real session (renders at 96 DPI only; the glyphs are WPF's font
   fallback); nothing sounding with the window closed, on the grid, under the
   health warning or after a click on the game (tests with a fake speaker only);
   Exit from the tray while a turn plays, whose cue is cut, not faded (A90);
   MainWindow making the speaker and disposing it (compiled and tested lazy, never
   run); whether the gate's 40 ms and six-at-once limits ever drop one of
-  Hatchling's cues at Fast (reasoning, not a test). Guards: 2044 tests in the
-  app's project and 2340 in the games' (4384, 0 failed); the golden renders: the
+  Hatchling's cues at Fast (reasoning, not a test). Guards: 2048 tests in the
+  app's project and 2344 in the games' (4392, 0 failed); the golden renders: the
   minimap's identical in every theme, the windows mode differing only on
   Settings › Hotkeys in every theme (the new Games row; no baseline
   re-recorded), plus two one-off differences that did not repeat (three pixels
-  of About's render once, one render step that failed once), and not run again
-  since the sound work (it draws no Games window, but builds MainWindow, which
-  now makes the sound's gate and speaker); CI's SDK 8 not run (SDK 9 here).
+  of About's render once, one render step that failed once), and not run since
+  the Games window's scale (A75), whose GAMES group should make Settings ›
+  Widgets differ in every theme too (by reading; the harness draws no Games
+  window and makes MainWindow without running its constructor, so no sound's
+  gate or speaker either); CI's SDK 8 not run (SDK 9 here).
 - Dino storage's Delete (1.33; the owner kept their dino).
 - The map's own friends rule (tests only), weaker PCs, high DPI (1.34).
 - A PC without the WebView2 Runtime (1.31; the installer's fetch).

@@ -37,8 +37,9 @@ public sealed class WaveOutSpeakerTests
     private static void Until(Func<bool> condition, string what) =>
         Assert.True(SpinWait.SpinUntil(condition, Patience), $"waited {Patience.TotalSeconds} s for {what}");
 
-    private static WaveOutSpeaker Speaker(FakeWaveDevice device, SpeakerLog log, TimeSpan? idle = null, TimeSpan? retry = null) =>
-        new(() => device, idle ?? Never, retry ?? Never, log.Write);
+    /// <summary>A speaker on the fake; its stall time is the shipped one unless a test gives its own, so every test here also holds that a device that answers is never taken for a stalled one.</summary>
+    private static WaveOutSpeaker Speaker(FakeWaveDevice device, SpeakerLog log, TimeSpan? idle = null, TimeSpan? retry = null, TimeSpan? stall = null) =>
+        new(() => device, idle ?? Never, retry ?? Never, log.Write, stall);
 
     private static short[] Constant(short value, int length) => Enumerable.Repeat(value, length).ToArray();
 
@@ -362,6 +363,78 @@ public sealed class WaveOutSpeakerTests
         Assert.Equal(new[] { "write", "close" }, device.Calls.TakeLast(2)); // the failed write, then the close, and nothing more
         speaker.Play(Constant(10_000, 441), 1f); // within the retry time: dropped
         Assert.Equal(1, device.Opens);
+    }
+
+    /// <summary>
+    /// A device that stops handing buffers back (N18, A91: a driver that holds them, a
+    /// headset gone) is a failure like a refused write once the stall time has passed:
+    /// the stream closes after a look that found none free, the thread ends, what was
+    /// queued meanwhile is dropped, one Warning says so, and the next try waits the
+    /// retry time; then a device that answers is used again, and says so.
+    /// </summary>
+    [Fact]
+    public void ADeviceThatHandsNoBufferBackIsAFailureLikeARefusedWrite()
+    {
+        var log = new SpeakerLog();
+        var device = new FakeWaveDevice { StallFromWrite = 10 }; // two passes, then every buffer held
+        var stall = TimeSpan.FromMilliseconds(300);
+        var retry = TimeSpan.FromSeconds(1);
+        using var speaker = Speaker(device, log, retry: retry, stall: stall);
+        const string Stalled = "Games sound: the device handed no buffer back in 300 ms";
+
+        var clock = Stopwatch.StartNew();
+        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f); // two seconds: the mix is never idle
+        var thread = speaker.LastThread!;
+        Until(() => device.Writes >= 10, "the device holding every buffer");
+        speaker.Play(Constant(10_000, 441), 1f); // queued during the stall
+        Until(() => device.Closes == 1 && !thread.IsAlive, "the stalled stream ended");
+
+        Assert.True(clock.Elapsed >= stall, "ended before its stall time");
+        Assert.False(speaker.HasThread);
+        Assert.Equal(0, speaker.Queued); // dropped with the voices
+        Assert.Equal(new[] { Stalled }, log.At(LogVerbosity.Warning));
+        Assert.Equal(10, device.Written.Count);
+        Assert.Equal(new[] { "wait", "next", "close" }, device.Calls.TakeLast(3)); // a look that found none free, then the close
+        speaker.Play(Constant(10_000, 441), 1f); // within the retry time: dropped
+        Assert.Same(thread, speaker.LastThread);
+        Assert.Equal(1, device.Opens);
+
+        device.StallFromWrite = 0;
+        Thread.Sleep(retry + TimeSpan.FromMilliseconds(400));
+        var mark = device.Written.Count;
+        speaker.Play(Constant(10_000, 441), 1f); // after it: a new stream, on a device that answers
+        Until(() => log.At(LogVerbosity.Log).Contains("Games sound: the device works again"), "the device working again");
+        Assert.Equal(2, device.Opens);
+        Assert.Single(log.At(LogVerbosity.Warning));
+        Assert.All(device.WrittenFrom(mark)[..441], s => Assert.Equal(10_000, s));
+    }
+
+    /// <summary>
+    /// The stall is judged only after a look that found no buffer back (N18, A91): a
+    /// thread kept from looking for longer than the stall time (a busy PC, a PC
+    /// asleep), whose device hands every buffer back meanwhile, goes on as before.
+    /// </summary>
+    [Fact]
+    public void AThreadKeptFromLookingIsNoStallWhenTheBuffersComeBack()
+    {
+        var log = new SpeakerLog();
+        var device = new FakeWaveDevice();
+        var stall = TimeSpan.FromMilliseconds(100);
+        using var speaker = Speaker(device, log, stall: stall);
+        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f);
+        Until(() => device.Writes >= 8, "the sound under way");
+
+        device.Hold();
+        Until(() => device.Waiting, "the thread held inside a wait");
+        Thread.Sleep(stall * 3);
+        var mark = device.Writes;
+        device.Release(); // every buffer handed back at once
+        Until(() => device.Writes >= mark + WaveOutSpeaker.Buffers, "the stream going on");
+
+        Assert.True(speaker.HasThread);
+        Assert.Equal(1, device.Opens);
+        Assert.Equal(0, device.Closes);
+        Assert.Empty(log.At(LogVerbosity.Warning));
     }
 
     [Theory]

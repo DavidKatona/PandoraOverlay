@@ -8,8 +8,9 @@ namespace PandoraOverlay.Tests;
 /// device's pace instead of spinning), and each buffer written is copied
 /// into <see cref="Written"/> in order, so a test reads exactly the stream the
 /// device would have played. It can be told to refuse its open or a write
-/// with a code, to throw, to take long in its open or its close, or to hold
-/// the thread inside a wait until the test lets it go. One fake can serve
+/// with a code, to throw, to take long in its open or its close, to hold
+/// the thread inside a wait until the test lets it go, or to stop handing
+/// buffers back from a given write on (a stalled driver). One fake can serve
 /// every stream of a speaker: an open starts its buffers from nothing, and
 /// what it recorded stays.
 /// </summary>
@@ -56,6 +57,9 @@ internal sealed class FakeWaveDevice : IWaveDevice
 
     /// <summary>A wait's own sleep before it hands the buffers back: a device's pace, coarser than the real 10 ms a buffer.</summary>
     public int WaitSleep { get; set; } = 2;
+
+    /// <summary>The write, counted from 1 over the fake's life, from which on a wait hands no buffer back: a driver that stalled holding them all (N18, A91); 0, never.</summary>
+    public int StallFromWrite { get; set; }
 
     public int Opens => Volatile.Read(ref _opens);
 
@@ -148,7 +152,8 @@ internal sealed class FakeWaveDevice : IWaveDevice
                 _released.Wait(TimeSpan.FromSeconds(30)); // a test that forgets to let go fails, it doesn't hang
                 _waiting = false;
             }
-            lock (_gate) Array.Clear(_withDevice);
+            var stalled = StallFromWrite > 0 && Writes >= StallFromWrite;
+            if (!stalled) lock (_gate) Array.Clear(_withDevice);
         }
         finally
         {

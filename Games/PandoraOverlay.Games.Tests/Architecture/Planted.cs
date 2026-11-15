@@ -269,4 +269,27 @@ internal static class Planted
 
     /// <summary>An XML document read or fetched from what a Uri names (the type XmlDataProvider, A74).</summary>
     internal static object AnXmlProvidersSource() => new System.Windows.Data.XmlDataProvider { Source = new Uri("planted", UriKind.Relative) };
+
+    // ---- A94: an assembly's embedded files -----------------------------------------------
+    // The constraint review r4's N21, as it would be written: the host's own assembly,
+    // reached from the host a game is given, asked for one of its embedded files. Never
+    // called; "planted" names no file.
+
+    /// <summary>The app's embedded files through the host's assembly (the member Assembly::GetManifestResourceStream outside the engine, A94).</summary>
+    internal static Stream? TheAppsEmbeddedFile(IGameHost host) => host.GetType().Assembly.GetManifestResourceStream("planted");
+
+    // ---- A95: reflection by name through IReflect, and .NET 8's invokers ------------------
+    // The F10 verdict's probe, as it would be written: N21's very file asked by its name
+    // through the interface every Type implements, which System.Type's entries never see.
+    // Never called; "planted" names no file.
+
+    /// <summary>A member called by its name through IReflect (the type System.Reflection.IReflect, A95).</summary>
+    internal static object? AMemberByNameThroughIReflect(IGameHost host) =>
+        ((IReflect)typeof(Assembly)).InvokeMember("GetManifestResourceStream", BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Instance, null, host.GetType().Assembly, new object[] { "planted" }, null, null, null);
+
+    /// <summary>A method called through its invoker (the type System.Reflection.MethodInvoker, A95).</summary>
+    internal static object? AMethodByItsInvoker(MethodBase method) => MethodInvoker.Create(method).Invoke(null);
+
+    /// <summary>A constructor called through its invoker (the type System.Reflection.ConstructorInvoker, A95).</summary>
+    internal static object? AConstructorByItsInvoker(ConstructorInfo constructor) => ConstructorInvoker.Create(constructor).Invoke();
 }
