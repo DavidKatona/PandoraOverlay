@@ -409,8 +409,8 @@ all) — say so when it matters:
   fractional display scales (the arithmetic is tested, the placement is not); the
   six themes (renders: the window and every Hatchling screen fit in each, and no
   theme's `Fit` moved); the health warning (a pure rule; up to 15 s late after a
-  spawn, since opening Games nudges no poll, which constraint 2 leaves to the
-  owner); saves across an update, Exit and a Windows shutdown (temp folders only,
+  spawn (60 s after ten minutes not in game), since opening Games nudges no poll,
+  which constraint 2 leaves to the owner); saves across an update, Exit and a Windows shutdown (temp folders only,
   the real data folder never written by a test); growth seen against a storage
   swap (the rule, not the server's real growth); nothing seen moving (the walk,
   a bite, a turn's pace); Hatchling's balance, which is a bot's: nobody has

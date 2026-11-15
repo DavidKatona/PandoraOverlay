@@ -37,11 +37,13 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   `GameLoop` (the one `DispatcherTimer`). The host is not bound by the list: it is
   where the clock and the files are. The list is never edited to make a test pass.
 - **A new game** is a project under `Games/` (`Games/Directory.Build.props` gives it
-  its settings, warnings as errors included, A30), a `ProjectReference` in THREE
-  project files (the app's `PandoraOverlay.csproj`, `PandoraOverlay.Tests` and
-  `PandoraOverlay.Games.Tests`), its entry in the solution, and ONE line in
-  `GameCatalog.All`, at the end (G1: a game keeps its cell). Its `Id` is its save
-  folder's name and never changes (`GameIds.IsValid`, A37).
+  its settings, warnings as errors included, A30), a `ProjectReference` in the
+  app's `PandoraOverlay.csproj` and in `PandoraOverlay.Games.Tests`
+  (`ProjectRulesTests` holds the second), and a third in `PandoraOverlay.Tests` when
+  the app's tests name the game's own types, as Hatchling's do (A23), its entry in the
+  solution, and ONE line in `GameCatalog.All`, at the end (G1: a game keeps its
+  cell). Its `Id` is its save folder's name and never changes (`GameIds.IsValid`,
+  A37).
 - **Nothing enters the Engine until a game needs it** (G8), and then only what a
   second game would use unchanged and that touches WPF or guards a rule every game
   keeps (A21). The Engine's source names nothing of any game (a scan). Nothing enters
@@ -73,8 +75,10 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   0.5% can be swapped for a trickle of growth.)
 - **The playfield is our own pixels** (A17): a `PixelSurface`, one logical pixel per
   WPF unit, presented by the Engine at the device's resolution; WPF never scales it.
-  No `Effect`, no WPF animation; all motion is the loop's, 30 ticks a second, and a
-  timer exists only while something moves (A19, A55, A56). No word is drawn on it (A18).
+  No `Effect`, no WPF animation; all motion is the loop's, 30 ticks a second, and the
+  loop holds a timer only while its rate is not Off: a playback, or a quiet cue at 4
+  looks a second; a paused loop keeps its timer and does nothing (A19, A55, A56). No
+  word is drawn on it (A18).
 - **Words are the theme's** (A18, A25): a game's screens are WPF in its `Views/`,
   reading the app's tokens and `Controls.xaml` styles by `DynamicResource` only, body
   sizes as `Theme.Size.N`, no literal colour, corner, font or text (scans), a theme key
@@ -151,7 +155,9 @@ and `WORKER-RULES.md` barred starting it); say so when it matters.
 - Hatchling's balance: a bot's, which plays worse than a person; nobody has played
   these rules by hand (PLAN-HATCHLING.md, section 10: the apex's 15 turns, the middle of the
   climb, danger 5, what server play pays per hour to a small species).
-- Hatchling's tile on the real grid (the window's renders use stand-in games).
+- Hatchling's tile on the real grid: laid out in every theme and rendered once by the
+  A14 review's probe, not by a permanent test (the window's renders use stand-in
+  games); in Isle its pitch ends in an ellipsis.
 - The golden renders: only Settings › Hotkeys differs, in every theme (the new row);
   the baselines are the owner's to record after his look.
 - CI's SDK 8.0.x: every build here was SDK 9 compiling `net8.0-windows`.
