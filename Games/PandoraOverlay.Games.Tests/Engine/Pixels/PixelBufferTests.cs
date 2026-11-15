@@ -516,7 +516,13 @@ public class PixelBufferTests
 
     #endregion
 
-    /// <summary>The draws allocate nothing: 30 frames a second of a board must not feed the collector.</summary>
+    /// <summary>
+    /// The draws allocate nothing: 30 frames a second of a board must not feed the collector.
+    /// Bound as the feed's cost test is, fewer bytes than rounds, not an exact zero: the
+    /// runtime's tiering can allocate a few KB once on the test's own thread while the whole
+    /// suite runs (seen: 7,912 bytes, the final read's D5), and a real allocation in a draw
+    /// costs at least 24 bytes on every one of the six draws of every round.
+    /// </summary>
     [Fact]
     public void DrawingAllocatesNothing()
     {
@@ -534,11 +540,12 @@ public class PixelBufferTests
         }
         for (int i = 0; i < 100; i++) DrawAll(i); // warmed up
 
+        const int Rounds = 20_000;
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 1000; i++) DrawAll(i);
+        for (int i = 0; i < Rounds; i++) DrawAll(i);
         long after = GC.GetAllocatedBytesForCurrentThread();
 
-        Assert.Equal(0, after - before);
+        Assert.True(after - before < Rounds, $"{after - before} bytes over {Rounds} rounds of six draws");
     }
 
     /// <summary>The 3 x 3 source of the clipping tests, P1 .. P9 row by row.</summary>
