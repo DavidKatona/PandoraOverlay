@@ -820,9 +820,16 @@ public class HatchlingGameTests
         Assert.Same(book, ArtOf(game));
     });
 
+    /// <summary>The view is task H14's (it replaced H08's placeholder, which threw): the game's own, over its host, in the view's area. Its behaviour is HatchlingViewTests'.</summary>
     [Fact]
-    public void TheViewIsNotBuiltYet() =>
-        Assert.Throws<NotSupportedException>(() => Attached().Game.CreateView());
+    public void TheViewIsTheGamesOwn() => Sta.Run(() =>
+    {
+        var game = Attached().Game;
+        using var view = game.CreateView();
+        Assert.IsType<HatchlingView>(view);
+        Assert.Equal(GameFrame.ViewWidth, view.Root.Width);
+        Assert.Equal(GameFrame.ViewHeight, view.Root.Height);
+    });
 
     // ===== The log (constraint 4) ================================================================
 

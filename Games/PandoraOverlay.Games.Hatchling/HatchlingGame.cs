@@ -181,11 +181,18 @@ public sealed class HatchlingGame : IGame
     public FrameworkElement CreateTileArt() => TileArt.Create(Art(), State.Selected);
 
     /// <summary>
-    /// The view is task H14's to build: until it is, this throws. Nothing calls it
-    /// yet: the game is not in the window's catalog until task H16.
+    /// The game on screen (task H14's <see cref="HatchlingView"/>): the bar and the
+    /// pages, over the host this game was attached to, with the game's one art book
+    /// (loaded once, shared with the tile). The view reads <see cref="State"/> and
+    /// changes it only through this class's actions (A20): closing it at any moment
+    /// loses nothing. Throws before Attach, or after an Attach that could not read its
+    /// save: the host shows no view then.
     /// </summary>
-    public IGameView CreateView() =>
-        throw new NotSupportedException("Hatchling's view is task H14's: the game is not listed until task H16.");
+    public IGameView CreateView()
+    {
+        _ = State;   // no state, no view: the same refusal as State's
+        return new HatchlingView(this, Host, Art());
+    }
 
     /// <summary>
     /// The window's armed second click (or "Start fresh" on a held save, after the
