@@ -58,6 +58,7 @@ internal static class Samples
         "journal-busy" => JournalBusy(),
         "records-fresh" => RecordsFresh(),
         "records-full" => RecordsFull(),
+        _ when HatchlingText.Guide.Any(s => HatchlingView.GuidePrefix + s.Id == state) => Guide(),
         _ => throw new ArgumentException($"No sample for '{state}'.", nameof(state)),
     };
 
@@ -207,6 +208,18 @@ internal static class Samples
     {
         var state = GameState.Fresh(Moment);
         state.Selected = Species;
+        return new Sample(state);
+    }
+
+    /// <summary>
+    /// The Guide's sections (H94): its words are the same for every save, so the sample
+    /// only gives the game's bar its widest: no run (the first tab reads Camp, the longer
+    /// word) and the wallet in seven figures beside the five tabs.
+    /// </summary>
+    private static Sample Guide()
+    {
+        var state = GameState.Fresh(Moment);
+        state.Wallet = new Wallet(Balance, Balance);
         return new Sample(state);
     }
 

@@ -2,7 +2,9 @@
      (34, its 1-unit separator inside it) over the page (476). The tabs are
      NavButton ToggleButtons in a row, each with its own alignment and margin
      so the nav row's bar reads as the chosen tab's mark; the wallet at the
-     right. The body font is set here, at the root: laid out alone, a view
+     right. The fifth tab, Guide (H94), sits at the end of the row: the five
+     and the widest wallet fit the bar in every theme. The body font is set
+     here, at the root: laid out alone, a view
      inherits nothing. No control of the game takes the keyboard focus
      (Focusable False, here and on the Run page): a focused button would take
      Space and Enter, and the keyboard is the window's (A33: J and Esc). -->
@@ -26,8 +28,10 @@
                           Content="{x:Static h:HatchlingText.TabLineage}"/>
             <ToggleButton x:Name="JournalTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
                           Content="{x:Static h:HatchlingText.TabJournal}"/>
-            <ToggleButton x:Name="RecordsTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0"
+            <ToggleButton x:Name="RecordsTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
                           Content="{x:Static h:HatchlingText.TabRecords}"/>
+            <ToggleButton x:Name="GuideTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0"
+                          Content="{x:Static h:HatchlingText.TabGuide}"/>
         </StackPanel>
         <TextBlock x:Name="Wallet" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0"
                    Foreground="{DynamicResource Theme.Text.Highlight}"

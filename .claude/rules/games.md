@@ -104,6 +104,13 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   give the text room or an ellipsis. Never edit a theme file for a game. A game that
   must scroll asks the architecture first (`DarkScrollBar` can't be reached from its
   XAML).
+- **Every game has a Guide page** (A76, the owner's ask of Nov 15 2026: he did not know
+  Walk from Sneak): its goal, its rules and its terms, in plain short words, reachable
+  from every page, during a run included, changing nothing in the game. Every number in
+  it is built from the game's own constants and tables, never written as a figure, and
+  a test holds its key sentences to them. Each of its sections is a `LayoutState`, laid
+  out in every theme like any screen, and fits whole: no ellipsis cuts a sentence
+  (fewer words, never cut words). Hatchling's: the Guide tab (H94, `Views/GuidePage`).
 - **A game that throws is closed, not the overlay** (A10): every call into a game
   goes through `GameGuard`; a view's handlers go through `GameViewBase.Guard`; `App`
   contains what slips past (`GameFaults`). Never call a game or its view directly from

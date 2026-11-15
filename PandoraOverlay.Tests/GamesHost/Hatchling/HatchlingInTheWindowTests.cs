@@ -161,14 +161,14 @@ public sealed class HatchlingInTheWindowTests
     // ---- The layout states (A26) ----------------------------------------------------------------
 
     [Fact]
-    public void ItHasSeventeenLayoutStatesAndAnUnknownNameThrows() => Run(() =>
+    public void ItHasTwentySevenLayoutStatesAndAnUnknownNameThrows() => Run(() =>
     {
         using var bench = new GamesBench(GameCatalog.All);
         var window = bench.Window();
         window.ShowGame(bench.Host.Games[0]);
         var view = window.ViewOnScreen ?? throw new InvalidOperationException("no view");
 
-        Assert.Equal(17, view.LayoutStates.Count);
+        Assert.Equal(27, view.LayoutStates.Count);   // the plan's seventeen and one for each of the Guide's ten sections (H94)
         Assert.Equal(view.LayoutStates.Count, view.LayoutStates.Distinct().Count());
         Assert.Equal(HatchlingView.AllStates, view.LayoutStates);
         Assert.Throws<ArgumentException>(() => view.ShowLayoutState("no-such-state"));
@@ -353,6 +353,110 @@ public sealed class HatchlingInTheWindowTests
             MaxTextWidth = text.ActualWidth,
         };
         return formatted.Height;
+    }
+
+    // ---- The Guide (H94), held in every theme ------------------------------------------------------
+
+    /// <summary>
+    /// Every section of the Guide fits its card whole in every theme at its fit factor: no
+    /// line on the page trimmed (the walk passes an ellipsis; a guide that cuts a word is a
+    /// guide that lies by leaving out), no sentence wanting more height than the card gives
+    /// (the sentences wrap freely and are never held to a height, so the card's room is
+    /// what holds them), and the list of sections inside its column. The sections were cut
+    /// to fit: fewer words, never cut words.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Themes))]
+    public void EveryGuideSectionFitsItsCardWholeInEveryTheme(string id) => GamesLayoutTests.OnScreen(id, () =>
+    {
+        using var bench = new GamesBench(GameCatalog.All);
+        var window = bench.Window();
+        window.ShowGame(bench.Host.Games[0]);
+        var view = Assert.IsType<HatchlingView>(window.ViewOnScreen);
+        var problems = new List<string>();
+        var seen = 0;
+
+        foreach (var section in HatchlingText.Guide)
+        {
+            view.ShowLayoutState(HatchlingView.GuidePrefix + section.Id);
+            GamesLayoutTests.LaidOut(window);
+            var page = view.GuidePage;
+            seen++;
+            foreach (var line in FitProbe.LongLines(page))
+                problems.Add(FormattableString.Invariant($"{section.Id}: \"{line.Text}\" is {line.Natural:0.0} wide in {line.Room:0.0}"));
+            var card = page.SectionCard;
+            var room = card.ActualHeight - card.Padding.Top - card.Padding.Bottom - card.BorderThickness.Top - card.BorderThickness.Bottom;
+            var body = page.SectionBody;
+            body.Measure(new Size(card.ActualWidth - card.Padding.Left - card.Padding.Right - card.BorderThickness.Left - card.BorderThickness.Right, double.PositiveInfinity));
+            if (body.DesiredSize.Height > room + FitProbe.Slack)
+                problems.Add(FormattableString.Invariant($"{section.Id}: the section is {body.DesiredSize.Height:0.0} high in a card of {room:0.0}"));
+            var list = page.SectionList;
+            list.Measure(new Size(list.ActualWidth, double.PositiveInfinity));
+            if (list.DesiredSize.Height > card.ActualHeight)
+                problems.Add(FormattableString.Invariant($"{section.Id}: the list is {list.DesiredSize.Height:0.0} high beside a card of {card.ActualHeight:0.0}"));
+            foreach (var text in WrappingTexts(page.SectionBody))
+                if (WrappedHeight(text) > text.ActualHeight + FitProbe.Slack)
+                    problems.Add(FormattableString.Invariant($"{section.Id}: \"{text.Text}\" needs {WrappedHeight(text):0.0} in {text.ActualHeight:0.0}"));
+        }
+
+        Assert.Equal(HatchlingText.Guide.Count, seen);
+        Assert.True(problems.Count == 0, string.Join("; ", problems));
+    });
+
+    /// <summary>
+    /// The game's bar holds its five tabs and the widest wallet side by side, whole, in every
+    /// theme (H94: the Guide tab at the end of the row). The tabs and the wallet share one
+    /// cell, so neither the walk nor the clip check would see them overlap: this measures it.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Themes))]
+    public void TheFiveTabsAndTheWidestWalletFitTheBarInEveryTheme(string id) => GamesLayoutTests.OnScreen(id, () =>
+    {
+        using var bench = new GamesBench(GameCatalog.All);
+        var window = bench.Window();
+        window.ShowGame(bench.Host.Games[0]);
+        var view = Assert.IsType<HatchlingView>(window.ViewOnScreen);
+        view.ShowLayoutState(HatchlingView.GuidePrefix + HatchlingText.Guide[0].Id);
+        GamesLayoutTests.LaidOut(window);
+
+        var root = (HatchlingViewRoot)view.Root;
+        Assert.Equal(HatchlingText.Money(Samples.Balance), root.Wallet.Text);
+        Assert.Equal(HatchlingText.TabCamp, (string)root.FirstTab.Content);   // the longer of Camp and Run
+        Assert.Empty(FitProbe.LongLines(root.GameBar));
+        // The row's panel stretches across the bar; its last tab is where the words end.
+        var last = root.GuideTab;
+        Assert.Same(last, ((Panel)last.Parent).Children[^1]);
+        var tabsEnd = last.TranslatePoint(new Point(last.ActualWidth, 0), root.GameBar).X;
+        var walletStart = root.Wallet.TranslatePoint(new Point(0, 0), root.GameBar).X;
+        Assert.True(tabsEnd + 12 <= walletStart, FormattableString.Invariant($"the tabs end at {tabsEnd:0.0} and the wallet starts at {walletStart:0.0}"));
+    });
+
+    /// <summary>The hint that points at the Guide is whole in every theme, as the first minute's (H94, H86).</summary>
+    [Theory]
+    [MemberData(nameof(Themes))]
+    public void TheGuidesHintIsWholeInEveryTheme(string id) => GamesLayoutTests.OnScreen(id, () =>
+    {
+        using var bench = new GamesBench(GameCatalog.All);
+        var window = bench.Window();
+        window.ShowGame(bench.Host.Games[0]);
+        var view = Assert.IsType<HatchlingView>(window.ViewOnScreen);
+        view.ShowLayoutState("run-first");
+        var context = view.RunPage.Context;
+        context.Text = HatchlingText.HintGuide;   // the turn bar at rest, as on turn 1: "Your turn" beside it
+        GamesLayoutTests.LaidOut(window);
+
+        Assert.True(WrappedHeight(context) <= context.ActualHeight + 0.5,
+            $"the hint needs {WrappedHeight(context):0.0} in {context.ActualHeight:0.0} (width {context.ActualWidth:0.0})");
+    });
+
+    private static IEnumerable<TextBlock> WrappingTexts(DependencyObject root)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is TextBlock { TextWrapping: TextWrapping.Wrap } text) yield return text;
+            foreach (var deeper in WrappingTexts(child)) yield return deeper;
+        }
     }
 
     // ---- The resource keys the game reads --------------------------------------------------------

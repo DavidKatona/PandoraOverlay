@@ -88,15 +88,18 @@ public class HintsTests
     }
 
     [Fact]
-    public void TheFirstTurnThenGrowing()
+    public void TheFirstTurnThenTheGuideThenGrowing()
     {
         var run = Fed();
         run.Turn = 0;
         Assert.Equal(HintCode.First, For(run));
         run.Turn = 1;
+        Assert.Equal(HintCode.Guide, For(run));   // once a run, the turn after the first move (H94)
+        run.Turn = 2;
         Assert.Equal(HintCode.Grow, For(run));
         Assert.Equal("Click a lit hex to move. Predators hear noise: Sneak is quiet, Sprint is loud.", Hints.Text(HintCode.First));
         Assert.Equal("Fed and watered, you grow every turn.", Hints.Text(HintCode.Grow));
+        Assert.Equal("The Guide tab explains every rule and every term.", Hints.Text(HintCode.Guide));
     }
 
     [Fact]

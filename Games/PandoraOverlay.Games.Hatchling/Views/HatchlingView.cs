@@ -5,8 +5,8 @@ using PandoraOverlay.Games.Engine;
 
 namespace PandoraOverlay.Games.Hatchling;
 
-/// <summary>The game's pages (H27: four, and no scrolling anywhere): Camp or Run by whether a run exists, then the Lineage, the Journal and Records.</summary>
-internal enum PageKind { Camp, Run, Lineage, Journal, Records }
+/// <summary>The game's pages (H27: no scrolling anywhere): Camp or Run by whether a run exists, then the Lineage, the Journal, Records and the Guide (H94).</summary>
+internal enum PageKind { Camp, Run, Lineage, Journal, Records, Guide }
 
 /// <summary>
 /// One page of the view. <see cref="Show"/> when it becomes the page shown,
@@ -47,7 +47,14 @@ internal sealed class HatchlingView : GameViewBase
     /// <summary>The game's bar's height (G13): the page is the rest.</summary>
     public const double BarHeight = 34;
 
-    /// <summary>Every layout state of the game, in A26's list: the Run page's seven and the ten of the pages between runs, each named by its page.</summary>
+    /// <summary>The prefix of the Guide's layout states: "guide-" and a section's id (H94).</summary>
+    internal const string GuidePrefix = "guide-";
+
+    /// <summary>
+    /// Every layout state of the game, in A26's list: the Run page's seven, the ten of
+    /// the pages between runs, and one for each section of the Guide (H94), each named
+    /// by its page.
+    /// </summary>
     internal static readonly IReadOnlyList<string> AllStates = new[]
     {
         "camp-first", "camp-locked", "camp-everything",
@@ -55,7 +62,7 @@ internal sealed class HatchlingView : GameViewBase
         "lineage-fresh", "lineage-mid", "lineage-full",
         "journal-fresh", "journal-busy",
         "records-fresh", "records-full",
-    };
+    }.Concat(HatchlingText.Guide.Select(s => GuidePrefix + s.Id)).ToArray();
 
     private readonly HatchlingGame _game;
     private readonly HatchlingViewRoot _root;
@@ -82,12 +89,14 @@ internal sealed class HatchlingView : GameViewBase
             [PageKind.Lineage] = new LineagePage(this, game),
             [PageKind.Journal] = new JournalPage(this, game),
             [PageKind.Records] = new RecordsPage(this),
+            [PageKind.Guide] = new GuidePage(this),
         };
 
         _root.FirstTab.Click += (_, _) => TabClicked(State.Run is null ? PageKind.Camp : PageKind.Run);
         _root.LineageTab.Click += (_, _) => TabClicked(PageKind.Lineage);
         _root.JournalTab.Click += (_, _) => TabClicked(PageKind.Journal);
         _root.RecordsTab.Click += (_, _) => TabClicked(PageKind.Records);
+        _root.GuideTab.Click += (_, _) => TabClicked(PageKind.Guide);
 
         Playback.Drained += () => Guard(OnDrained);
         _onChanged = () => Guard(OnGameChanged);
@@ -126,7 +135,11 @@ internal sealed class HatchlingView : GameViewBase
         ((string)_root.FirstTab.Content, _root.LineageTab.IsChecked == true ? PageKind.Lineage
             : _root.JournalTab.IsChecked == true ? PageKind.Journal
             : _root.RecordsTab.IsChecked == true ? PageKind.Records
+            : _root.GuideTab.IsChecked == true ? PageKind.Guide
             : State.Run is null ? PageKind.Camp : PageKind.Run);
+
+    /// <summary>The Guide page, for the tests that read and click it.</summary>
+    internal GuidePage GuidePage => (GuidePage)_pages[PageKind.Guide];
 
     /// <summary>The first tab's page: the run while one exists (ended or not), else Camp (G13, G14).</summary>
     private PageKind FirstPage => State.Run is null ? PageKind.Camp : PageKind.Run;
@@ -181,6 +194,7 @@ internal sealed class HatchlingView : GameViewBase
         _root.LineageTab.IsChecked = _shown == PageKind.Lineage;
         _root.JournalTab.IsChecked = _shown == PageKind.Journal;
         _root.RecordsTab.IsChecked = _shown == PageKind.Records;
+        _root.GuideTab.IsChecked = _shown == PageKind.Guide;
     }
 
     /// <summary>The wallet (G13): "1,240" and the currency's word, at once whenever the balance changes, on any page.</summary>
@@ -246,8 +260,9 @@ internal sealed class HatchlingView : GameViewBase
     /// <summary>
     /// Shows a layout state with its sample (A11): any number of times, in any order,
     /// on a view never shown; no storage read or written; nothing enqueued; the loop
-    /// off. The seventeen are the Run page's seven and the ten of the pages between
-    /// runs (Camp, the Lineage, the Journal, Records), each named by its page. A name
+    /// off. They are the Run page's seven, the ten of the pages between runs (Camp,
+    /// the Lineage, the Journal, Records) and one for each of the Guide's sections
+    /// (H94), each named by its page. A name
     /// not in <see cref="LayoutStates"/> throws <see cref="ArgumentException"/>.
     /// </summary>
     public override void ShowLayoutState(string state)
@@ -271,6 +286,7 @@ internal sealed class HatchlingView : GameViewBase
             // The Journal's last line reads the real dino's reading: a sample's own,
             // never the game's (A26: the same picture on every machine).
             ((JournalPage)_pages[PageKind.Journal]).SampleReading = sample.Reading;
+            if (kind == PageKind.Guide) GuidePage.Choose(state[GuidePrefix.Length..]);
             ShowPage(kind);
             if (sample.Armed && kind == PageKind.Camp) ((CampPage)_pages[PageKind.Camp]).Arm();
         }
@@ -286,6 +302,7 @@ internal sealed class HatchlingView : GameViewBase
         : state.StartsWith("lineage-", StringComparison.Ordinal) ? PageKind.Lineage
         : state.StartsWith("journal-", StringComparison.Ordinal) ? PageKind.Journal
         : state.StartsWith("records-", StringComparison.Ordinal) ? PageKind.Records
+        : state.StartsWith(GuidePrefix, StringComparison.Ordinal) ? PageKind.Guide
         : throw new ArgumentException($"Hatchling has no page for the layout state '{state}'.", nameof(state));
 
     // ===== Handlers =====================================================================================

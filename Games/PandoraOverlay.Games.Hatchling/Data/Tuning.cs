@@ -409,6 +409,8 @@ internal static class Tuning
 
     /// <summary>The context line gives hints until this many runs have been finished (H23).</summary>
     public const int HintRuns = 3;
+    /// <summary>The turn whose hint points at the Guide tab (H94): the one after the first move, once a run, when no other hint applies.</summary>
+    public const int HintGuideTurn = 1;
     /// <summary>A hint suggests resting below this share of health.</summary>
     public const double HintHurt = 0.5;
     /// <summary>A hint about hunger below this much food.</summary>

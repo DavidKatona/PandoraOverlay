@@ -175,6 +175,7 @@ public static class HatchlingText
     public const string TabLineage = "Lineage";
     public const string TabJournal = "Journal";
     public const string TabRecords = "Records";
+    public const string TabGuide = "Guide";
 
     // ===== The perks: Camp's chosen species ==============================================
 
@@ -712,6 +713,7 @@ public static class HatchlingText
     public const string HintHungerMeat = "Hungry: Eat at a carcass, or catch small game.";
     public const string HintFirst = "Click a lit hex to move. Predators hear noise: Sneak is quiet, Sprint is loud.";
     public const string HintGrow = "Fed and watered, you grow every turn.";
+    public const string HintGuide = "The Guide tab explains every rule and every term.";
 
     /// <summary>"Walk here · noise 3 · ", the move's prefix to what the cell holds.</summary>
     internal static string MoveWalk(int noise) => $"Walk here · {Noise(noise)} · ";
@@ -874,4 +876,204 @@ public static class HatchlingText
             if (string.Equals(words.Id, id, StringComparison.Ordinal)) return words;
         throw new ArgumentOutOfRangeException(nameof(id), id, "no achievement has this id");
     }
+
+    // ===== The Guide (H94) =================================================================
+    //
+    // The owner's ask (Nov 15 2026): a page that explains the game's goal, its rules and
+    // its terms. Every number in it is built from the game's own constants and tables,
+    // as every other sentence here is, so the Guide can never say one thing while the
+    // rules do another; GuideTests holds the key sentences to their constants. Short,
+    // plain words; nothing to buy, no come-back nudge (games.md's last bullet). Each
+    // section fits its card whole in every theme, with no ellipsis (a test measures it).
+
+    // A multiplier as its table writes it: "×1", "×1.5", "×1.25".
+    private static string Factor(double x) => "×" + x.ToString("0.##", Inv);
+
+    // A number as its table writes it, with no trailing zero: "1.6", "2", "0.5".
+    private static string Plain(double x) => x.ToString("0.##", Inv);
+
+    // "2 or 3", or "2" when both ends are one.
+    private static string OrRange(int least, int most) => least == most ? Count(least) : $"{Count(least)} or {Count(most)}";
+
+    // "×1.5 to ×2.5", or "×2" when both ends are one.
+    private static string FactorRange(double least, double most) => least == most ? Factor(least) : $"{Factor(least)} to {Factor(most)}";
+
+    // "a, b and c".
+    private static string AndList(IReadOnlyList<string> words) =>
+        words.Count <= 1 ? string.Join("", words) : string.Join(", ", words.Take(words.Count - 1)) + " and " + words[^1];
+
+    // A stage line as a whole percent: 25 is "25%".
+    private static string LineAt(int stage) => $"{Count((long)Tuning.StageLines[stage - 1])}%";
+
+    private static readonly DangerInfo FirstDanger = Dangers.Of(Dangers.Lowest);
+    private static readonly string ApexName = Predators.NameOf(Tuning.Apex);
+
+    public const string GuideHexes = "Hexes";
+    public const string GuideNoise = "Noise";
+    public const string GuideCost = "Food and water";
+    public const string GuideGrowth = "Growth";
+    public const string GuideSize = "Health, attack";
+
+    // Every species' own numbers as a fresh lineage starts it, perks included (Tireless and
+    // Fleet change the sprint): the rules' Stats, so the table spans what a player can meet.
+    private static IEnumerable<Stats> EverySpecies =>
+        SpeciesTable.All.Select(s => Stats.Of(s, new Dictionary<Trait, int>(), 0, Array.Empty<Instinct>(), Tuning.GrowthMost));
+
+    /// <summary>The sprint's hexes in the Moving table: "up to 2 or 3", the species' least and most range before traits and instincts.</summary>
+    internal static string GuideSprintHexes =>
+        "up to " + OrRange(EverySpecies.Min(s => s.SprintRange), EverySpecies.Max(s => s.SprintRange));
+
+    /// <summary>The sprint's cost in the Moving table: "×1 to ×2.5", the species' least and most drain (Tireless's ×1 the least).</summary>
+    internal static string GuideSprintCost => FactorRange(EverySpecies.Min(s => s.SprintDrain), EverySpecies.Max(s => s.SprintDrain));
+
+    /// <summary>The Moving section's first line (the owner's question, Nov 15: what is the difference between Walk and Sneak?).</summary>
+    internal static readonly string GuideWalkOrSneak =
+        $"Both move one hex. Sneak is quieter, noise {Count(Tuning.SneakNoise)} not {Count(Tuning.WalkNoise)}, but takes {Factor(Tuning.SneakDrain)} the food and water.";
+
+    /// <summary>The drains, every turn.</summary>
+    internal static readonly string GuideDrains =
+        $"Food falls by {Plain(Tuning.FoodPerTurn)} and water by {Plain(Tuning.WaterPerTurn)}, out of {Count((long)Tuning.FoodMost)}, times your move's cost. An {BuildName(Build.Apex)}'s food falls {Plain(Builds.Of(Build.Apex).Hunger)} times as fast.";
+
+    /// <summary>The apex's wait at the lowest danger.</summary>
+    internal static readonly string GuideApex =
+        $"At {Stage(Stages.Elder)} {A(ApexName)} {ApexName} arrives and always knows where you are. Outlast it for {Turns(FirstDanger.Outlast)} at danger {Count(FirstDanger.Level)}, or defeat it: either is a win.";
+
+    /// <summary>Every noise a move makes, from the move's own constant.</summary>
+    internal static readonly string GuideNoises =
+        $"Walk {Count(Tuning.WalkNoise)}, sneak {Count(Tuning.SneakNoise)}, sprint {Count(Tuning.SprintNoise)}, attack {Count(Tuning.AttackNoise)}, eat or drink {Count(Tuning.EatNoise)}, eat fish {Count(Tuning.FishNoise)}, rest {Count(Tuning.RestNoise)}, before your build's. A predator within that many hexes hears you, even out of sight.";
+
+    /// <summary>
+    /// The Guide's sections, in the list's order (H94): each the page's one card, its
+    /// id the layout state's name after "guide-". Ten, each short enough to fit its
+    /// card whole in every theme.
+    /// </summary>
+    internal static IReadOnlyList<GuideSection> Guide { get; } = new[]
+    {
+        new GuideSection("goal", "Goal", null, null, new GuideEntry[]
+        {
+            new("A run", "Each run starts from a hatchling on a new island. Stay fed and watered, keep away from predators, and you grow."),
+            new("Stages", $"{Stage(Stages.Juvenile)} at {LineAt(Stages.Juvenile)}, {Stage(Stages.Subadult)} at {LineAt(Stages.Subadult)}, {Stage(Stages.Adult)} at {LineAt(Stages.Adult)} and {Stage(Stages.Elder)} at {LineAt(Stages.Elder)}."),
+            new("The apex", GuideApex),
+            new("The end", "A run also ends when a predator catches you, when hunger or thirst takes your last health, or when you leave it."),
+            new("What it pays", $"Every run pays {Currency}, won or not: {Plain(Tuning.GrowthPay)} for each percent grown, {AndList(Tuning.StagePay.Select(p => Count(p)).ToList())} for reaching {AndList(Enumerable.Range(Stages.Juvenile, Tuning.StagePay.Count).Select(Stage).ToList())} in the run, {Count(Tuning.KillPay)} for each predator defeated and {Count(Tuning.WinPay)} for a win. A higher danger pays more."),
+            new("Between runs", $"{CurrencyCapital} stays. The Lineage turns it into traits that last."),
+        }),
+        new GuideSection("turn", "Your turn", null, null, new GuideEntry[]
+        {
+            new("One move", "Each turn you make one move: Walk, Sneak or Sprint to a lit hex, Eat, Drink, Rest, or click a creature to attack it."),
+            new("Then the world", "Each predator acts in the order it arrived, then small game, then what is out of sight. Then time passes: food and water fall, and you grow."),
+            new("The banner", "Above the board, it says whose turn it is and what is happening."),
+            new("Turn order", $"The list at the right shows everyone in this turn's order and what each did. {RowMarker} marks the one acting."),
+            new("Skip", "A click on the board skips to the end of the turn. While a turn plays, a click on a button or a tab only skips."),
+            new(Fast, $"Tick {Fast}, above the board, and every turn plays quicker."),
+            new("Saved", "Each turn is saved before it is shown: close the window at any moment and nothing is lost."),
+        }),
+        new GuideSection("moving", "Moving",
+            $"Choose a pace under {YourMove}, then click a lit hex. The pace stays until you change it.",
+            new GuideTable(new[] { "", Walk, Sneak, Sprint }, new[]
+            {
+                new[] { GuideHexes, Count(1), Count(1), GuideSprintHexes },
+                new[] { GuideNoise, Count(Tuning.WalkNoise), Count(Tuning.SneakNoise), Count(Tuning.SprintNoise) },
+                new[] { GuideCost, Factor(Tuning.PlainDrain), Factor(Tuning.SneakDrain), GuideSprintCost },
+            }),
+            new GuideEntry[]
+            {
+                new("Walk or Sneak", GuideWalkOrSneak),
+                new(Sprint, $"Loud and tiring, but it covers ground. Most builds sprint on land only; {A(BuildName(Build.Swimmer))} {BuildName(Build.Swimmer)} only in water, {A(BuildName(Build.Flyer))} {BuildName(Build.Flyer)} anywhere."),
+                new("Your dino", $"Quiet builds make {Count(-Builds.All.Min(b => b.Noise))} less noise and the loudest {Count(Builds.All.Max(b => b.Noise))} more. The Run page shows your own numbers."),
+                new("Terrain", $"Grass is open. Forest hides most builds. Rock stops all but {A(BuildName(Build.Flyer))} {BuildName(Build.Flyer)}. Drink on water or beside it."),
+                new("Wading", $"Walking into water when you neither swim nor fly: {Count(Tuning.WadeNoise)} more noise, and the food and water {Factor(Tuning.WadeDrain)} again."),
+                new("Hiding", $"Hidden, you are seen only from beside you, and can still be heard. Forest hides most builds; water hides {A(BuildName(Build.Swimmer))} {BuildName(Build.Swimmer)}."),
+            }),
+        new GuideSection("food", "Food and water", null, null, new GuideEntry[]
+        {
+            new("Each turn", GuideDrains),
+            new("Fed", $"Food and water both above {Count((long)Tuning.GrowAbove)}: you grow. Both above {Count((long)Tuning.RegainAbove)}: you also heal {Percent(Tuning.Regain)}% a turn."),
+            new(Eat, $"Stand on food and Eat: plants +{Count((long)Tuning.PlantFood)}, meat +{Count((long)Tuning.MeatFood)}, fish +{Count((long)Tuning.FishFood)}. A carcass holds meals; small game you catch leaves {Meals(Tuning.SmallGameMeat)}. Fish is the water itself, for those that fish."),
+            new("Diet", "Each species eats plants, meat or both, and some fish too. Its card at Camp says which."),
+            new(Drink, $"On water or beside it: +{Count((long)Tuning.DrinkWater)} water."),
+            new(Rest, $"Heals {Percent(Tuning.RestHeal)}% of your health, and is the quietest move."),
+            new("Starving", $"At 0 food you lose {Percent(Tuning.Starve)}% health a turn, and at 0 water {Percent(Tuning.Starve)}% more. At 0 health the run ends."),
+            new("Plants", $"{Count(Tuning.PlantsAtATime)} new plants grow every {Turns(Tuning.PlantsEvery)}, out of your sight."),
+        }),
+        new GuideSection("predators", "Predators", null, null, new GuideEntry[]
+        {
+            new(GuideNoise, GuideNoises),
+            new("Alert", $"One that heard you searches where you were for up to {Turns(Tuning.AlertHeard)}, then loses your trail. One that sees you hunts you."),
+            new("Spotting", $"A predator sees {OrRange(Enum.GetValues<PredatorType>().Min(t => Predators.Of(t).Sight), Enum.GetValues<PredatorType>().Max(t => Predators.Of(t).Sight))} hexes, but a hidden dino only from beside it."),
+            new("Hunting", $"It comes for you. {AndList(Enum.GetValues<PredatorType>().Where(t => Predators.Of(t).Fast).Select(t => Predators.NameOf(t)).ToList())} are fast: {Hexes(Tuning.FastSteps)} a turn."),
+            new("Bites", "A predator that ends its move beside you bites. Defense softens a bite, and some dinos dodge."),
+            new("Fighting", "Click a creature beside you to attack it. A defeated predator leaves meat, and small game is a meal."),
+            new("Numbers", "A new predator comes every few turns, up to a most at once. The danger sets both, and bigger dinos meet bigger hunters."),
+            new("The apex", $"At {Stage(Stages.Elder)} the {ApexName} comes and always knows where you are. Outlast it {Turns(FirstDanger.Outlast)} at danger {Count(FirstDanger.Level)}, more at a higher one; the count shows under your dino."),
+            new(RowUnseen, $"The list's {RowUnseen} row says whether anything you cannot see heard you."),
+        }),
+        new GuideSection("growing", "Growing",
+            $"You grow {Plain(Tuning.GrowthPerTurn)}% each turn that food and water are both above {Count((long)Tuning.GrowAbove)}.",
+            new GuideTable(new[] { "", Stage(Stages.Hatchling), Stage(Stages.Juvenile), Stage(Stages.Subadult), Stage(Stages.Adult), Stage(Stages.Elder) }, new[]
+            {
+                new[] { GuideGrowth, "0%", LineAt(Stages.Juvenile), LineAt(Stages.Subadult), LineAt(Stages.Adult), LineAt(Stages.Elder) },
+                new[] { GuideSize, ScaleAt(0), ScaleAt(Tuning.StageLines[0]), ScaleAt(Tuning.StageLines[1]), ScaleAt(Tuning.StageLines[2]), ScaleAt(Tuning.StageLines[3]) },
+            }),
+            new GuideEntry[]
+            {
+                new("Size", "Health and attack as a share of the adult's. A species' stars add more."),
+                new("Instincts", $"At {Stage(Stages.Juvenile)}, {Stage(Stages.Subadult)} and {Stage(Stages.Adult)} you choose one of {Count(Tuning.OfferSize)} instincts. It lasts for that run."),
+                new("Redraw", $"Shows other instincts, for {Money(Tuning.RedrawPrice)}, then twice that each time in the run."),
+                new(Stage(Stages.Elder), "At 100% the apex comes. Outlast it or defeat it to win."),
+            }),
+        new GuideSection("danger", "Danger",
+            "Choose it at Camp. A win at a danger unlocks the next, for every species.",
+            new GuideTable(new[] { "Danger", "Strength", "Arrivals", "At once", "Outlast", "Pays" },
+                Dangers.All.Select(d => (IReadOnlyList<string>)new[]
+                {
+                    Count(d.Level), Factor(d.Threat), $"every {Turns(d.Every)}", $"{Count(d.Most(Stages.Hatchling))} to {Count(d.Most(Stages.Elder))}", Turns(d.Outlast), Factor(d.Pay),
+                }).ToList()),
+            new GuideEntry[]
+            {
+                new("Strength", "The predators' health and attack."),
+                new("Arrivals", "A new predator comes on every turn that is a multiple of this, while there are fewer than the most."),
+                new("At once", "The most predators besides the apex. It rises with your stage."),
+                new("Outlast", $"The turns to outlast the apex. {TraitName(Trait.EldersPatience)} takes {Count(Tuning.EldersPatienceTurns)} off."),
+                new("Pays", $"A run's {Currency} is multiplied by this."),
+            }),
+        new GuideSection("lineage", "Lineage and " + Currency, null, null, new GuideEntry[]
+        {
+            new(CurrencyCapital, $"Comes from runs, from achievements and from growing your real dino on the server. It is used in Hatchling only."),
+            new("Traits", $"The Lineage holds {Count(Lineage.All.Count)} traits in {Count(Lineage.Branches)} branches. A trait has ranks, and each rank takes more {Currency} than the last."),
+            new("Order", "A trait needs the one above it first. Traits are permanent; one taken during a run counts from the next."),
+            new("Unlocking", $"A species unlocks when you grow one to Adult on the server with the overlay running, or for {Money(Tuning.UnlockPrice)}, {Count(Tuning.UnlockStep)} more each time, up to {Count(Tuning.UnlockMost)}."),
+            new("Stars", StarsNote),
+            new("Achievements", "Each pays a little or nothing. Records lists them all."),
+        }),
+        new GuideSection("server", "The server", null, null, new GuideEntry[]
+        {
+            new("Seen growth", "While the overlay runs, it sees your real dino grow. Only growth it sees counts: nothing is made up for time it was closed."),
+            new("What it pays", $"{Count((long)Tuning.ServerRate)} {Currency} for each percent grown, times the species' freshness."),
+            new("Freshness", PaysNote),
+            new("Unlocks", $"Grow a species to {Stage(Stages.Adult)} on the server and it unlocks here."),
+            new("The journal", $"{Count(Tuning.JournalEntries)} entries ask you to grow a species: by {Count((long)Tuning.JournalTarget)}% for {Money(Tuning.JournalReward)}, a big one by {Count((long)Tuning.JournalBigTarget)}% for {Count(Tuning.JournalBigReward)}. A swap draws another, for {Money(Tuning.SwapPrice)}."),
+            new("Nothing else", "Hatchling learns four things about your real dino: in game or not, its species, its gender and its growth. The gender only tells one life from the next."),
+            new("The Isle", "Nothing here changes anything in The Isle, and nothing is sent anywhere."),
+        }),
+        new GuideSection("terms", "Terms", null, null, new GuideEntry[]
+        {
+            new(GuideNoise, "How far away a move can be heard, in hexes."),
+            new("Alert", "A predator that heard or saw you: searching, or hunting you."),
+            new("Apex", $"The {ApexName} that comes at {Stage(Stages.Elder)}. Outlast it or defeat it to win."),
+            new("Danger", $"How hard the island is, {Count(Dangers.Lowest)} to {Count(Dangers.Highest)}, chosen at Camp."),
+            new(CurrencyCapital, "The game's own currency, from runs and from server growth."),
+            new("Lineage", "What lasts between runs: your traits."),
+            new("Trait", "A lasting gain in the Lineage, with ranks."),
+            new("Instinct", "A gain chosen at a stage, for one run."),
+            new("Perk", "The one rule a species has of its own, shown at Camp."),
+            new("Build", $"A body plan, such as {BuildName(Build.Runner)} or {BuildName(Build.Tank)}: it sets health, diet, noise and hiding."),
+            new("Star", $"Earned by growing a species on the server: {Percent(Tuning.StarBonus)}% more health and attack in its runs."),
+            new("Freshness", $"The multiplier on a species' server pay, ×{OneDecimal(Tuning.FreshFloor)} to ×{OneDecimal(Tuning.FreshMax)}."),
+            new("Seen growth", "Growth the overlay saw on your real dino: the only growth that pays."),
+        }),
+    };
+
+    // Health and attack at a growth, as a whole percent of the adult's: the rules' own scale.
+    private static string ScaleAt(double growth) => $"{Percent(Stats.Scale(growth))}%";
 }
