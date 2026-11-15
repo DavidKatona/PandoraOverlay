@@ -35,6 +35,41 @@ public class ForbiddenApiTests
         Assert.True(findings.Count == 0, "The forbidden list (A29) is broken:\n" + string.Join("\n", findings));
     }
 
+    /// <summary>The class WPF's markup compiler adds to an assembly whose XAML places an element of an internal type of its own.</summary>
+    private const string WpfsHelper = "GeneratedInternalTypeHelper";
+
+    /// <summary>
+    /// A game's XAML places only public types of its own (A67). An element of an
+    /// internal type makes WPF's markup compiler add its GeneratedInternalTypeHelper,
+    /// which reads and calls members by name: the forbidden list would then refuse
+    /// the game for code it never wrote, whichever members a given WPF version's
+    /// helper names. This fact names the cause and the fix instead. Read from each
+    /// assembly's type definitions, in any namespace, with System.Reflection.Metadata
+    /// (nothing loaded or run, as <see cref="MetadataScan"/>).
+    /// </summary>
+    [Fact]
+    public void NoGameCompilesWpfsInternalTypeHelper()
+    {
+        var helpers = new List<string>();
+        foreach (var file in AssembliesUnderTheRule())
+        {
+            using var stream = File.OpenRead(file);
+            using var pe = new System.Reflection.PortableExecutable.PEReader(stream);
+            var md = System.Reflection.Metadata.PEReaderExtensions.GetMetadataReader(pe);
+            foreach (var handle in md.TypeDefinitions)
+            {
+                var type = md.GetTypeDefinition(handle);
+                if (md.GetString(type.Name) != WpfsHelper) continue;
+                var ns = md.GetString(type.Namespace);
+                helpers.Add($"{Path.GetFileName(file)}: {(ns.Length == 0 ? WpfsHelper : ns + "." + WpfsHelper)}");
+            }
+        }
+
+        Assert.True(helpers.Count == 0,
+            "A game's XAML places only public types of its own (A67): WPF compiled its GeneratedInternalTypeHelper into the assemblies below, because their XAML places an element of an internal type of their own, and that helper reads and calls members by name (PropertyInfo.GetValue and SetValue, Type.InvokeMember, EventInfo.AddEventHandler), which the forbidden list refuses for code the game never wrote. Make that element's type public:\n"
+            + string.Join("\n", helpers));
+    }
+
     /// <summary>A scan that found nothing to check would pass for ever: the Contract and the Engine are always there, and the tests' own assembly never is.</summary>
     [Fact]
     public void TheScanChecksAtLeastTheContractAndTheEngine()
@@ -115,6 +150,10 @@ public class ForbiddenApiTests
         AssertFound(findings, ForbiddenKind.Member, "System.Reflection.TypeInfo", "the member System.Reflection.TypeInfo::get_DeclaredFields");
         AssertFound(findings, ForbiddenKind.Type, "System.Reflection.RuntimeReflectionExtensions", "the type System.Reflection.RuntimeReflectionExtensions");
         AssertFound(findings, ForbiddenKind.Member, "System.Reflection.Assembly", "the member System.Reflection.Assembly::GetEntryAssembly");
+
+        // A68: Activator's overloads that make an object from an assembly and a type
+        // given as text, found by the ObjectHandle they answer.
+        AssertFound(findings, ForbiddenKind.Type, "System.Runtime.Remoting.ObjectHandle", "the type System.Runtime.Remoting.ObjectHandle");
 
         // A60, a picture by address.
         AssertFound(findings, ForbiddenKind.Type, "System.Windows.Media.Imaging.BitmapImage", "the type System.Windows.Media.Imaging.BitmapImage");
@@ -255,7 +294,7 @@ public class ForbiddenApiTests
 
         foreach (var type in new[]
                  {
-                     T("System.Reflection", "RuntimeReflectionExtensions"),
+                     T("System.Reflection", "RuntimeReflectionExtensions"), T("System.Runtime.Remoting", "ObjectHandle"),
                      T("System.Linq.Expressions", "Expression"), T("System.Linq.Expressions", "MemberExpression"), T("System.Linq.Expressions", "Expression`1"),
                  })
             Assert.True(ForbiddenList.Check(Made(AGame, types: new[] { type })).Count == 1, type.FullName + " should give exactly one finding");

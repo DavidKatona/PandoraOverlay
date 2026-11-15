@@ -97,6 +97,15 @@ internal static class Planted
     /// <summary>The app's own assembly, the entry one (Assembly::GetEntryAssembly).</summary>
     internal static Assembly? TheEntryAssembly() => Assembly.GetEntryAssembly();
 
+    // ---- A68: an object from an assembly and a type given as text ------------------------
+    // Both answer an ObjectHandle, whose type the scan refuses (Activator itself stays, A43).
+
+    /// <summary>An object of a type named in text, its assembly loaded by name (Activator.CreateInstance(assemblyName, typeName)).</summary>
+    internal static object? AnObjectByName() => Activator.CreateInstance("planted", "planted");
+
+    /// <summary>An object of a type named in text, its assembly loaded from a file (Activator.CreateInstanceFrom).</summary>
+    internal static object? AnObjectFromAFile() => Activator.CreateInstanceFrom("planted", "planted");
+
     // ---- A60: a picture by address -----------------------------------------------------
 
     /// <summary>A picture WPF would fetch by itself, given a UriSource (the type BitmapImage).</summary>

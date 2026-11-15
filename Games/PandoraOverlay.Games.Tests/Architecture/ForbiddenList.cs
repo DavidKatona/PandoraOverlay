@@ -86,9 +86,11 @@ internal readonly record struct Finding(string Assembly, string Subject, Forbidd
 /// </para>
 /// <para>
 /// What it still can't see, written down so nobody reads more into it (A60):
-/// an address computed at run time that reaches WPF through a binding (a
-/// string property bound to an <c>Image</c>'s <c>Source</c> is turned into a
-/// picture fetched by WPF, with no imaging type in the game's code), or through
+/// an address computed at run time that reaches WPF through a binding or
+/// XAML's own conversion (a string property bound to an <c>Image</c>'s
+/// <c>Source</c>, or a game's string read there by an <c>x:Static</c>, is
+/// turned into a picture fetched by WPF, with no imaging type in the game's
+/// code), or through
 /// a decoder's <c>Uri</c> constructor (<c>PngBitmapDecoder</c> takes a
 /// <c>Uri</c> as well as the stream the engine gives it, and the two are one
 /// name in the metadata); and memory reinterpreted (an object read as another
@@ -251,6 +253,11 @@ internal static class ForbiddenList
         // A43, nothing loaded: another domain, or XAML read at run time.
         Type("System.AppDomain", NothingLoaded),
         Type("System.Windows.Markup.XamlReader", NothingLoaded),
+        // A68: what every Activator overload answers that makes an object from an assembly
+        // and a type given as text (CreateInstance(assemblyName, typeName), CreateInstanceFrom
+        // (assemblyFile, typeName)): the first loads an assembly by its name, the second from
+        // a file. Activator itself stays (A43).
+        Type("System.Runtime.Remoting.ObjectHandle", NothingLoaded),
         // A60, reflection by name: the extension methods that hand out a type's fields,
         // properties, methods and events by name (GetRuntimeField, GetRuntimeMethods ...).
         Type("System.Reflection.RuntimeReflectionExtensions", NoReflection),
@@ -265,10 +272,9 @@ internal static class ForbiddenList
         // - System.Activator: `new T()` on a type parameter compiles to
         //   Activator.CreateInstance<T>(), and WPF's markup compiler writes it into the
         //   GeneratedInternalTypeHelper (see "Watch" below). It makes a new object and
-        //   reads nothing of one that exists. Kept whole (A43): with it stay its
-        //   overloads that make an object from a type's name
-        //   (CreateInstance(assemblyName, typeName), the same name in the metadata as
-        //   CreateInstance<T>) and from an assembly's file (CreateInstanceFrom).
+        //   reads nothing of one that exists. Kept (A43); its overloads that make an
+        //   object from an assembly and a type given as text answer an ObjectHandle,
+        //   refused above (A68).
         // - System.Uri and its constructor: a view's generated InitializeComponent makes
         //   a relative Uri ("/<assembly>;component/views/x.xaml") for LoadComponent.
         //   Its scheme names are refused below, and an address in the source by the
@@ -289,7 +295,9 @@ internal static class ForbiddenList
         // compiled in, and that helper calls PropertyInfo.GetValue and SetValue,
         // Type.InvokeMember and EventInfo.AddEventHandler, which A60 refuses below: the
         // scan then fails the game for code it never wrote (seen on a probe library,
-        // Nov 15 2026). Make that element's type public. An x:Static of an internal
+        // Nov 15 2026). Make that element's type public:
+        // ForbiddenApiTests.NoGameCompilesWpfsInternalTypeHelper says so by name (A67).
+        // An x:Static of an internal
         // class and a view's own x:ClassModifier="internal" bring no helper (the same
         // probe; Hatchling has both and none).
 
