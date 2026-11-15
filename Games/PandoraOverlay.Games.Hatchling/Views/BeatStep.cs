@@ -167,16 +167,51 @@ internal sealed class BeatStep : IStep
     // The painter's own names (ArtNames) stop at "stand": these are asked only here.
     internal const string Walk = "walk", Strike = "strike", Hurt = "hurt", Eat = "eat";
 
-    /// <summary>A strike's frames, toward its target, before the hurt (the beat table: 3).</summary>
-    internal const int StrikeTicks = 3;
+    /// <summary>
+    /// A strike's wind-up (<c>strike/0</c>, task H12's art): the ticks of a strike
+    /// before its blow lands. The hit's hurt and its number begin on this tick, never
+    /// during the wind-up (H75; the beat table's "(3)").
+    /// </summary>
+    internal const int WindUpTicks = 3;
 
-    /// <summary>How far a strike with no art leans toward its target, tick by tick: 4 pixels and back (H30).</summary>
+    /// <summary>
+    /// A whole strike as the art draws it (H75): the wind-up's 3 and the blow's 6
+    /// (<c>strike/1</c>). The art does not loop it and would hold the blow for ever,
+    /// so the view puts the striker back on <c>stand</c> once these are over, also
+    /// where the beat goes on ("It bites", 10). A dodge (8) ends inside it.
+    /// </summary>
+    internal const int StrikeTicks = 9;
+
+    /// <summary>A hurt as the art draws it (H75): one frame for 4 ticks; then the view puts it back on <c>stand</c>.</summary>
+    internal const int HurtTicks = 4;
+
+    /// <summary>
+    /// How far the blow moves the striker toward its target's feet while
+    /// <c>strike/1</c> shows (H75): 3 pixels along its own row; for a target in the
+    /// row below or above, this many down or up and <see cref="BlowAcross"/> across.
+    /// The art cannot lunge by itself (its frames never leave their feet), so this
+    /// is what makes the blow land. The knob the plan's section 10 names if a bite
+    /// reads as a flicker in the owner's hand.
+    /// </summary>
+    internal const int BlowReach = 3;
+
+    /// <summary>The blow's across part toward a target in another row (H75): the slant of a hex neighbour, 2 across for <see cref="BlowReach"/>'s 3 down or up. Turn both together.</summary>
+    internal const int BlowAcross = 2;
+
+    /// <summary>
+    /// A creature the player no longer knows fades out, whole, over this many last
+    /// ticks of its own last beat of the turn (H77; the whole beat if it is shorter),
+    /// so it is seen leaving and nothing stays on the board that the rest will not draw.
+    /// </summary>
+    internal const int LeaveTicks = 3;
+
+    /// <summary>How far a strike with no art leans toward its target, tick by tick over the wind-up: 4 pixels and back (H30).</summary>
     private static readonly int[] StrikeLean = { 2, 4, 2 };
 
     /// <summary>A hurt with no art: opacity 120 on these ticks of the hurt, twice for 2 ticks each (H30).</summary>
     internal const byte HurtBlink = 120;
 
-    /// <summary>A dodge: your dino hops this far aside and back, tick by tick, after the strike's frames.</summary>
+    /// <summary>A dodge: your dino hops this far away from the biter and back, tick by tick, from the blow's first tick.</summary>
     private static readonly int[] DodgeHop = { 1, 2, 2, 1, 0 };
 
     /// <summary>Second wind: your ring flashes white on these ticks, three times (the beat's 12).</summary>
@@ -206,8 +241,11 @@ internal sealed class BeatStep : IStep
 
     private SceneSprite? _actor;          // who moves or strikes
     private SceneSprite? _other;          // who is struck, bitten or hurt (null when unknown)
-    private int _actorX;                  // the actor's feet when the beat begins (x: a strike leans from it)
+    private (int X, int Y) _actorFeet;    // the actor's feet when the beat begins: a strike leans or blows from them, and ends on them
+    private (int X, int Y) _targetFeet;   // the feet of what it strikes or bites: the blow moves toward them
     private int _otherX;                  // the one struck or bitten (x: a dodge hops from it)
+    private SceneSprite[] _leaving = Array.Empty<SceneSprite>();   // this beat is their last, and the rest will not draw them: they fade out (H77)
+    private SceneSprite[] _leftBehind = Array.Empty<SceneSprite>(); // known before your move, not after, with no beat of their own: gone at this beat's end (H77)
     private int[] _cells = Array.Empty<int>();   // a walk's cells, the first its start
     private bool _flipFrom, _flipEnd;     // the actor's facing when the beat begins, and at its end
     private (SceneSprite Sprite, int[] Cells, bool FlipFrom, bool FlipEnd, byte OpacityFrom)[] _group = Array.Empty<(SceneSprite, int[], bool, bool, byte)>();
@@ -311,6 +349,8 @@ internal sealed class BeatStep : IStep
         Show(_beat.Ticks);
         if (_number is not null) _play.Scene.Numbers.Remove(_number);
         foreach (var sprite in _reveals) sprite.Opacity = 255;
+        // What your move left behind goes with the fog, where the quiet ones appear (H77).
+        foreach (var sprite in _leftBehind) sprite.Opacity = 0;
         if (_lastOfRow && _beat.RowIndex >= 0 && _beat.RowIndex < _play.RowTexts.Length)
             _play.RowTexts[_beat.RowIndex] = HatchlingText.RowText(_play.Script.Rows[_beat.RowIndex]);
     }
@@ -438,16 +478,36 @@ internal sealed class BeatStep : IStep
 
         if (end && _setYouMarks && _play.Scene.Sprites.Find(s => s.Kind == SpriteKind.You) is { } you)
             you.Marks = _youMarksEnd;
+
+        // Leaving what the player knows (H77): over the beat's last LeaveTicks, whole
+        // (its ring, marks and number follow its opacity), to 0 at the beat's end. On
+        // top of whatever the beat itself does with it (a walk out, small game's step);
+        // never above the beat's own opacity.
+        if (_leaving.Length > 0)
+        {
+            var from = Math.Max(0, _beat.Ticks - LeaveTicks);
+            if (k >= from)
+            {
+                var leave = Fade(255, 0, k - from, _beat.Ticks - from);
+                foreach (var sprite in _leaving) sprite.Opacity = Math.Min(sprite.Opacity, leave);
+            }
+        }
     }
 
-    /// <summary>Your hit (or Thagomizer's sweep): your strike frames toward it, then its hurt frame and the number; a defeat fades it out and its meat appears.</summary>
+    /// <summary>
+    /// Your hit (or Thagomizer's sweep): your <c>strike</c> toward it on ticks 0 to 8,
+    /// the blow moving you toward it from tick 3 (H75); its <c>hurt</c> on the 4 ticks
+    /// from the one the blow lands (3; a swept one's from 0) and its number from that
+    /// tick; a defeat fades it out (after its hurt's 6 for your main hit, in its last
+    /// third for a swept one) and its meat appears.
+    /// </summary>
     private void ShowStrike(int k, bool end, bool strikes)
     {
-        var hurtFrom = strikes ? StrikeTicks : 0;
-        if (_actor is not null && strikes) StrikeToward(_actor, _actorX, _flipEnd, k, end);
+        var hurtFrom = strikes ? WindUpTicks : 0;
+        if (_actor is not null && strikes) StrikeToward(_actor, k, end);
         if (_other is not null)
         {
-            var hurtLength = strikes ? (_fadesOut ? BeatTicks.Strike - StrikeTicks : _beat.Ticks - StrikeTicks) : _beat.Ticks;
+            var hurtLength = strikes ? (_fadesOut ? BeatTicks.Strike - WindUpTicks : _beat.Ticks - WindUpTicks) : _beat.Ticks;
             if (end)
             {
                 HurtAt(_other, hurtLength, hurtLength, end: true, _fadesOut);
@@ -479,33 +539,43 @@ internal sealed class BeatStep : IStep
         if (end) ShowFoodChanges();
     }
 
-    /// <summary>A predator's bite on you, or the miss you dodged: its strike frames, then your hurt and the number, or your hop aside.</summary>
+    /// <summary>
+    /// A predator's bite on you, or the miss you dodged (H75): its <c>strike</c> toward
+    /// you on ticks 0 to 8 (to the beat's end in a dodge), the blow moving it toward
+    /// you from tick 3; then your <c>hurt</c> on ticks 3 to 6, the number and the
+    /// health bar from tick 3; or, dodged, your hop away from it on the blow's ticks.
+    /// </summary>
     private void ShowBite(int k, bool end, bool dodged)
     {
         if (_actor is not null)
         {
-            StrikeToward(_actor, _actorX, _flipEnd, k, end);
+            StrikeToward(_actor, k, end);
             _actor.Ring = end ? _ringEnd : _ringDuring;
         }
         if (_other is not null)
         {
-            var after = k - StrikeTicks;
+            var after = k - WindUpTicks;
             if (dodged)
             {
                 var hop = !end && after >= 0 && after < DodgeHop.Length ? DodgeHop[after] : 0;
-                _other.X = _otherX + (_actorX <= _otherX ? hop : -hop);
+                _other.X = _otherX + (_actorFeet.X <= _otherX ? hop : -hop);
             }
             else
             {
-                var length = _beat.Ticks - StrikeTicks;
+                var length = _beat.Ticks - WindUpTicks;
                 if (end) HurtAt(_other, length, length, end: true, fadesOut: false);
                 else if (after >= 0) HurtAt(_other, after, length, end: false, fadesOut: false);
+                else
+                {
+                    _other.Action = ArtNames.Stand;
+                    _other.Tick = 0;
+                }
             }
         }
         if (!dodged)
         {
-            var span = Math.Max(1, _beat.Ticks - StrikeTicks);
-            Slide(Math.Max(0, k - StrikeTicks), span, end);
+            var span = Math.Max(1, _beat.Ticks - WindUpTicks);
+            Slide(Math.Max(0, k - WindUpTicks), span, end);
             Rise(k);
         }
     }
@@ -570,32 +640,62 @@ internal sealed class BeatStep : IStep
         return flip;
     }
 
-    /// <summary>A strike's 3 ticks: the art's <c>strike</c> frames, or the standing frame leaning 4 pixels toward the target and back (H30); then it stands, facing its target.</summary>
-    private void StrikeToward(SceneSprite sprite, int baseX, bool flip, int k, bool end)
+    /// <summary>
+    /// The striker at tick <paramref name="k"/> of its beat, facing its target from
+    /// tick 0 (H75). With the art: <c>strike</c> with the tick since it began, for
+    /// <see cref="StrikeTicks"/> or to the beat's end if that comes first (a dodge);
+    /// while the blow shows (from <see cref="WindUpTicks"/>) it stands
+    /// <see cref="Blow"/> away from its feet toward its target, its ring, marks and
+    /// ordinal with it (the painter draws them from <c>X</c>, <c>Y</c>). Without it, the
+    /// stand-in (H30): the standing frame leaning 4 pixels toward the target and back
+    /// over the wind-up. Before and after, and at the beat's end: standing on its feet.
+    /// </summary>
+    private void StrikeToward(SceneSprite sprite, int k, bool end)
     {
-        sprite.Flip = flip;
-        if (end || k >= StrikeTicks)
-        {
-            sprite.Action = ArtNames.Stand;
-            sprite.Tick = 0;
-            sprite.X = baseX;
-            return;
-        }
+        sprite.Flip = _flipEnd;
+        (sprite.X, sprite.Y) = _actorFeet;
+        sprite.Action = ArtNames.Stand;
+        sprite.Tick = 0;
+        if (end) return;
         if (Drawn(sprite.Subject, Strike))
         {
+            if (k >= Math.Min(StrikeTicks, _beat.Ticks)) return;
             sprite.Action = Strike;
             sprite.Tick = k;
-            sprite.X = baseX;
+            if (k >= WindUpTicks)
+            {
+                var (dx, dy) = Blow(_actorFeet, _targetFeet, _flipEnd);
+                sprite.X += dx;
+                sprite.Y += dy;
+            }
         }
-        else
+        else if (k < WindUpTicks)
         {
-            sprite.Action = ArtNames.Stand;
-            sprite.Tick = 0;
-            sprite.X = baseX + (flip ? -StrikeLean[k] : StrikeLean[k]);
+            sprite.X += _flipEnd ? -StrikeLean[k] : StrikeLean[k];
         }
     }
 
-    /// <summary>A hurt over <paramref name="length"/> ticks: the art's <c>hurt</c> frame, or two blinks at opacity 120 (H30); a defeat fades out over its last third.</summary>
+    /// <summary>
+    /// Where the blow puts a striker standing on <paramref name="feet"/>, from them
+    /// (H75): <see cref="BlowReach"/> toward a target in its own row, (±3, 0); for one
+    /// in the row below or above, <see cref="BlowAcross"/> across and
+    /// <see cref="BlowReach"/> down or up, (±2, ±3). Across is toward the target, or,
+    /// straight above or below it, the way it faces.
+    /// </summary>
+    internal static (int Dx, int Dy) Blow((int X, int Y) feet, (int X, int Y) target, bool flip)
+    {
+        var across = target.X > feet.X ? 1 : target.X < feet.X ? -1 : flip ? -1 : 1;
+        if (target.Y == feet.Y) return (across * BlowReach, 0);
+        return (across * BlowAcross, (target.Y > feet.Y ? 1 : -1) * BlowReach);
+    }
+
+    /// <summary>
+    /// A hurt at tick <paramref name="k"/> of the <paramref name="length"/> ticks it is
+    /// given: the art's <c>hurt</c> frame on its first <see cref="HurtTicks"/>, then
+    /// standing (H75: the art holds its frame for ever, so the view ends it); or, with
+    /// no <c>hurt</c> frame, two blinks at opacity 120 (H30). A defeat fades out over
+    /// the length's last third.
+    /// </summary>
     private void HurtAt(SceneSprite sprite, int k, int length, bool end, bool fadesOut)
     {
         if (end)
@@ -606,8 +706,9 @@ internal sealed class BeatStep : IStep
             return;
         }
         var drawn = Drawn(sprite.Subject, Hurt);
-        sprite.Action = drawn ? Hurt : ArtNames.Stand;
-        sprite.Tick = drawn ? k : 0;
+        var hurts = drawn && k < HurtTicks;
+        sprite.Action = hurts ? Hurt : ArtNames.Stand;
+        sprite.Tick = hurts ? k : 0;
         byte opacity = 255;
         if (!drawn && (k is 0 or 1 || k == 4 || k == 5)) opacity = HurtBlink;
         if (fadesOut)
@@ -765,7 +866,42 @@ internal sealed class BeatStep : IStep
                 if (at is null) continue;
                 at._reveals = at._reveals.Append(sprite).ToArray();
             }
+            PlanLeaving(steps);
             return steps;
+        }
+
+        /// <summary>
+        /// The board never keeps a creature the player no longer knows (H77): a sprite
+        /// the rest after the turn will not draw (its creature not known in the turn's
+        /// result, or not there), that no defeat has already faded, leaves in its own
+        /// last beat of the turn (a predator that walks out of what you know, small game
+        /// in the small game beat), fading out over that beat's last
+        /// <see cref="LeaveTicks"/>; one with no beat of its own (your walk left it
+        /// behind) is gone at the end of the turn's first beat, yours, with the fog. So
+        /// after the last beat nothing is on the board that the rest will not draw, and
+        /// a skip at any tick leaves the same (each beat's end sets it).
+        /// </summary>
+        private void PlanLeaving(BeatStep[] steps)
+        {
+            if (steps.Length == 0) return;
+            var lastOwn = new Dictionary<int, int>();
+            for (var i = 0; i < steps.Length; i++)
+            {
+                var beat = steps[i]._beat;
+                if (beat.Actor == BeatActor.Creature && beat.Creature > 0) lastOwn[beat.Creature] = i;
+                if (beat.Kind == BeatKind.SmallGame)
+                    foreach (var stepped in beat.Events.OfType<Stepped>()) lastOwn[stepped.Creature] = i;
+            }
+            foreach (var sprite in _play.Scene.Sprites)
+            {
+                if (sprite.Kind == SpriteKind.You || _opacity.GetValueOrDefault(sprite.Creature) == 0) continue;
+                if (_after.Creatures.Find(c => c.Id == sprite.Creature) is { } left && Sight.Knows(_after, _statsAfter, left)) continue;
+                if (lastOwn.TryGetValue(sprite.Creature, out var at))
+                    steps[at]._leaving = steps[at]._leaving.Append(sprite).ToArray();
+                else
+                    steps[0]._leftBehind = steps[0]._leftBehind.Append(sprite).ToArray();
+                _opacity[sprite.Creature] = 0;
+            }
         }
 
         private readonly List<(SceneSprite Sprite, bool ByYourWalk)> _quiet = new();
@@ -971,13 +1107,15 @@ internal sealed class BeatStep : IStep
             if (beat.Events.OfType<Struck>().FirstOrDefault() is not { } struck) return;
             var strikes = beat.Kind == BeatKind.YouStrike;
             step._actor = _you;
-            step._actorX = BoardLayout.Feet(_cell[0]).X;
+            step._actorFeet = BoardLayout.Feet(_cell[0]);
+            step._targetFeet = step._actorFeet;
             if (_sprites.TryGetValue(struck.Creature, out var target))
             {
                 step._other = target;
-                var targetX = BoardLayout.Feet(_cell.GetValueOrDefault(struck.Creature, struck.At)).X;
+                step._targetFeet = BoardLayout.Feet(_cell.GetValueOrDefault(struck.Creature, struck.At));
+                var targetX = step._targetFeet.X;
                 // You face what you strike; facing straight up or down keeps the last.
-                step._flipEnd = targetX < step._actorX || (targetX == step._actorX && _flip[0]);
+                step._flipEnd = targetX < step._actorFeet.X || (targetX == step._actorFeet.X && _flip[0]);
                 if (strikes) _flip[0] = step._flipEnd;
                 step._marksFrom = _marks[struck.Creature];
                 var marks = step._marksFrom;
@@ -988,7 +1126,7 @@ internal sealed class BeatStep : IStep
                 step._fadesOut = struck.Defeated;
                 if (struck.Defeated) _opacity[struck.Creature] = 0;
                 Number(step, target, struck.Damage, good: false,
-                    from: strikes ? StrikeTicks : 0, length: strikes ? BeatTicks.Strike - StrikeTicks : beat.Ticks);
+                    from: strikes ? WindUpTicks : 0, length: strikes ? BeatTicks.Strike - WindUpTicks : beat.Ticks);
             }
             else
             {
@@ -1021,7 +1159,8 @@ internal sealed class BeatStep : IStep
             step._marksFrom = _marks[id];
             step._marksTo = _marks[id];
             var cell = _cell.GetValueOrDefault(id);
-            step._actorX = BoardLayout.Feet(cell).X;
+            step._actorFeet = BoardLayout.Feet(cell);
+            step._targetFeet = step._actorFeet;
             step._flipFrom = _flip.GetValueOrDefault(id);
             step._flipEnd = step._flipFrom;
 
@@ -1065,14 +1204,15 @@ internal sealed class BeatStep : IStep
                 case BeatKind.Dodged:
                     if (beat.Events.OfType<Bit>().FirstOrDefault() is not { } bit) break;
                     step._other = _you;
-                    var youX = BoardLayout.Feet(_cell[0]).X;
+                    step._targetFeet = BoardLayout.Feet(_cell[0]);
+                    var youX = step._targetFeet.X;
                     step._otherX = youX;
-                    step._flipEnd = youX < step._actorX || (youX == step._actorX && step._flipFrom);
+                    step._flipEnd = youX < step._actorFeet.X || (youX == step._actorFeet.X && step._flipFrom);
                     _flip[id] = step._flipEnd;
                     if (!bit.Dodged)
                     {
                         step._panelTo = _panel with { Health = Math.Max(0, _panel.Health - (double)bit.Damage / _statsBefore.MaxHealth) };
-                        Number(step, _you, bit.Damage, good: false, from: StrikeTicks, length: beat.Ticks - StrikeTicks);
+                        Number(step, _you, bit.Damage, good: false, from: WindUpTicks, length: beat.Ticks - WindUpTicks);
                     }
                     break;
 

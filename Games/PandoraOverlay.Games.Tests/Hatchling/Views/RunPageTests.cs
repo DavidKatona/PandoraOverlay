@@ -176,7 +176,9 @@ public class RunPageTests
         var anywhere = Island.Grid.Neighbours(run.You.At).First(c => run.Tiles[c] != Terrain.Rock && Island.CreatureAt(run, c) is null);
         page.BoardPressed(ViewHarness.On(anywhere));
         page.RestClicked();
-        page.LeaveClicked();
+        page.LeaveClicked();   // Leave is still there with an offer open (the plan's 1.9): it arms
+        Assert.True(page.LeaveArmed);
+        page.LeaveLeft();
         Assert.Equal(writes, Writes(host));
         Assert.False(page.LeaveArmed);
 
@@ -332,5 +334,187 @@ public class RunPageTests
         Assert.Equal(HatchlingText.Count((long)Tuning.Round(run.You.Water)), page.PanelShown.Water);
         Assert.Equal(HatchlingText.StageLine(Stages.Of(run.You.Growth), (int)Math.Floor(run.You.Growth + RunPay.GrowthSlack)), page.PanelShown.Stage);
         Assert.Equal(HatchlingText.TurnNumber(1), HatchlingText.TurnNumber(run.Turn));
+    });
+
+    // ===== Settled in the review of round 1 (H77 to H80) ==========================================
+
+    /// <summary>A run a hair under Juvenile, so a Rest grows it there and the turn opens an offer of instincts.</summary>
+    private static GameState GrowsToJuvenile()
+    {
+        var saved = ViewHarness.Running();
+        saved.Run!.You.Growth = Tuning.StageLines[0] - 0.001;   // the line Juvenile is past
+        return saved;
+    }
+
+    [Fact]
+    public void AReleaseThatDidNotBeginOnACardPicksNothing() => Sta.Run(() =>
+    {
+        var (game, host) = ViewHarness.Attached(GrowsToJuvenile());
+        using var view = ViewHarness.ViewOf(game);
+        var page = view.RunPage;
+        page.RestClicked();
+        Assert.True(page.Playing);
+        // The press that skips the playback; the offer opens under the pointer.
+        page.BoardPressed(new PixelPointer(254, 216, PointerButton.Left));
+        Assert.False(page.Playing);
+        Assert.True(page.OfferShown.Open, "the Rest did not open an offer");
+        var offer = game.State.Run!.Offer!;
+        var instincts = game.State.Run.Instincts.Count;
+        var writes = Writes(host);
+
+        // That press's release, on whichever card: nothing.
+        for (var i = 0; i < offer.Count; i++) page.CardReleased(i);
+        // A press on one card released on another: nothing.
+        page.CardPressed(0);
+        page.CardReleased(1);
+        Assert.Equal(writes, Writes(host));
+        Assert.Equal(instincts, game.State.Run!.Instincts.Count);
+        Assert.True(page.OfferShown.Open);
+        // A press that left its card is forgotten.
+        page.CardPressed(1);
+        page.CardLeft(1);
+        page.CardReleased(1);
+        Assert.Equal(writes, Writes(host));
+
+        // A press and a release on the same card: picked.
+        var second = offer[1];
+        page.CardPressed(1);
+        page.CardReleased(1);
+        Assert.Equal(writes + 1, Writes(host));
+        Assert.Contains(second, game.State.Run!.Instincts);
+        Assert.False(page.OfferShown.Open);
+    });
+
+    [Fact]
+    public void TheWalletWaitsForThePlayback() => Sta.Run(() =>
+    {
+        foreach (var skip in new[] { false, true })
+        {
+            // A Rest with empty bars and a sliver of health: hunger and thirst end the
+            // run, and the growth behind it pays.
+            var saved = ViewHarness.Running();
+            saved.Wallet = new Wallet(1240, 1240);
+            saved.Run!.You.Food = 0;
+            saved.Run.You.Water = 0;
+            saved.Run.You.Health = 0.01;
+            saved.Run.You.Growth = 30;
+            saved.Run.You.Best = 30;
+            var (game, host) = ViewHarness.Attached(saved);
+            using var view = ViewHarness.ViewOf(game);
+            var page = view.RunPage;
+            var old = view.WalletShown;
+            page.RestClicked();
+            Assert.NotNull(game.State.Run!.Over);
+            Assert.True(game.State.Wallet.Balance > 1240, "the run paid nothing");
+            Assert.True(page.Playing);
+            Assert.Equal(old, view.WalletShown);   // the pay waits for the beat that ended the run
+            ViewHarness.Tick(view, host);
+            Assert.Equal(old, view.WalletShown);
+            if (skip) page.BoardPressed(new PixelPointer(1, 1, PointerButton.Left));
+            else ViewHarness.PlayOut(view, host);
+            Assert.False(page.Playing);
+            Assert.Equal(HatchlingText.Money(game.State.Wallet.Balance), view.WalletShown);
+        }
+    });
+
+    [Fact]
+    public void LeaveWorksWithAnOfferOpen() => Sta.Run(() =>
+    {
+        var saved = ViewHarness.Running();
+        saved.Run!.Offer = new List<Instinct> { Instinct.Eyes, Instinct.Feet, Instinct.Quick };
+        saved.Run.PicksOwed = 1;
+        var (game, host) = ViewHarness.Attached(saved);
+        using var view = ViewHarness.ViewOf(game);
+        var page = view.RunPage;
+        Assert.True(page.OfferShown.Open);
+        var writes = Writes(host);
+        page.LeaveClicked();
+        Assert.True(page.LeaveArmed);
+        Assert.Equal(writes, Writes(host));
+        page.LeaveLeft();
+        Assert.False(page.LeaveArmed);
+
+        page.LeaveClicked();
+        page.LeaveClicked();
+        var over = game.State.Run!.Over;
+        Assert.NotNull(over);
+        Assert.Equal(EndReason.Left, over!.Reason);
+        Assert.True(page.SummaryShown.Open);
+        Assert.False(page.OfferShown.Open);
+        Assert.Equal(HatchlingText.OverTitle(over), page.BannerShown);
+        // Over, Leave takes nothing more: "Back to camp" is the way out.
+        writes = Writes(host);
+        page.LeaveClicked();
+        Assert.False(page.LeaveArmed);
+        Assert.Equal(writes, Writes(host));
+    });
+
+    [Fact]
+    public void AnEndedRunHasNoStatusAndAnOfferNoHint() => Sta.Run(() =>
+    {
+        // An offer in a first run: no hint over a board that takes no click, nor a cell's words.
+        var saved = ViewHarness.Running(runs: 0);
+        saved.Run!.Offer = new List<Instinct> { Instinct.Eyes, Instinct.Feet, Instinct.Quick };
+        saved.Run.PicksOwed = 1;
+        var (game, _) = ViewHarness.Attached(saved);
+        using var view = ViewHarness.ViewOf(game);
+        var page = view.RunPage;
+        var run = game.State.Run!;
+        Assert.True(page.OfferShown.Open);
+        Assert.Equal("", page.ContextShown);
+        page.BoardMoved(ViewHarness.On(Island.Grid.Neighbours(run.You.At).First(), PointerButton.None));
+        Assert.Equal("", page.ContextShown);
+        Assert.NotEqual("", page.StatusShown);   // the run is not over: its status stands
+
+        // The run ended: no status line, no hint.
+        page.LeaveClicked();
+        page.LeaveClicked();
+        Assert.NotNull(game.State.Run!.Over);
+        Assert.Equal("", page.StatusShown);
+        Assert.Equal("", RunPage.Status(game.State.Run).Text);
+        Assert.Equal("", page.ContextShown);
+        page.BoardMoved(ViewHarness.On(Island.Grid.Neighbours(run.You.At).First(), PointerButton.None));
+        Assert.Equal("", page.ContextShown);
+
+        // A won run with the apex out: no "Outlast the apex" under "You defeated the apex".
+        view.ShowLayoutState("run-won");
+        Assert.Equal("", page.StatusShown);
+        Assert.Equal("", page.ContextShown);
+    });
+
+    [Fact]
+    public void TheStageIsTheRulesOwn() => Sta.Run(() =>
+    {
+        var saved = ViewHarness.Running();
+        saved.Run!.You.Growth = 25 - 1e-10;
+        var (game, _) = ViewHarness.Attached(saved);
+        using var view = ViewHarness.ViewOf(game);
+        Assert.Equal(Stages.Hatchling, Stages.Of(game.State.Run!.You.Growth));
+        Assert.Equal("Hatchling · 25%", view.RunPage.PanelShown.Stage);
+        Assert.Equal(HatchlingText.StageLine(Stages.Hatchling, 25), view.RunPage.PanelShown.Stage);
+    });
+
+    [Fact]
+    public void TheContextLinesNoiseIsTheMovesOwn() => Sta.Run(() =>
+    {
+        // A quiet build with Soft feet, sneaking into water it would wade.
+        var saved = ViewHarness.Running();
+        var run = saved.Run!;
+        run.Ranks[Trait.LightStep] = Lineage.All.Single(t => t.Trait == Trait.LightStep).MaxRank;
+        run.Instincts.Add(Instinct.Feet);
+        run.Pace = Pace.Sneak;
+        var stats = Stats.Of(run);
+        Assert.True(stats.NoiseMod <= -2, $"NoiseMod {stats.NoiseMod}");
+        var water = Island.Grid.Neighbours(run.You.At).First(c => Island.CreatureAt(run, c) is null && run.Tiles[c] != Terrain.Rock);
+        run.Tiles[water] = Terrain.Water;
+        Assert.True(Sight.WouldWade(run, stats, water));
+        Assert.Contains(water, Moves.Targets(run, stats));
+
+        var facts = RunPage.Facts(run, stats, water);
+        var moved = HatchlingGame.Advance(saved, new PlayerAction.Move(water))!.Value;
+        var walked = moved.Result.Events.OfType<Walked>().Single();
+        Assert.True(walked.Waded);
+        Assert.Equal(walked.Noise, facts.Noise);
+        Assert.Equal(0, facts.Noise);
     });
 }

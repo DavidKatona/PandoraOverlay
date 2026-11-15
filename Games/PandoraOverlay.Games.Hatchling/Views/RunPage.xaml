@@ -13,7 +13,10 @@
       xmlns:h="clr-namespace:PandoraOverlay.Games.Hatchling"
       Width="798" Height="476" Background="Transparent">
 
-    <!-- The turn bar, 12, 40, 508 x 30: the banner, the context line, Fast. -->
+    <!-- The turn bar, 12, 40, 508 x 30: the banner, the context line, Fast. The
+         banner may take 430 (H80): its longest sentence, a spikes hurt that
+         defeats, is 399 in the widest font; the context line takes what is left,
+         which during a playback is only the line that a click skips. -->
     <Grid x:Name="TurnBar" Margin="12,6,0,0" Width="508" Height="30"
           HorizontalAlignment="Left" VerticalAlignment="Top">
         <Grid.ColumnDefinitions>
@@ -21,7 +24,7 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-        <TextBlock x:Name="Banner" Grid.Column="0" MaxWidth="230" VerticalAlignment="Center"
+        <TextBlock x:Name="Banner" Grid.Column="0" MaxWidth="430" VerticalAlignment="Center"
                    TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource Theme.Text.Bright}"
                    FontSize="{DynamicResource Theme.Size.14}"

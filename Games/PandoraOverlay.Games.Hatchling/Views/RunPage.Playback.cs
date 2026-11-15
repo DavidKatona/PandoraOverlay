@@ -66,6 +66,7 @@ internal sealed partial class RunPage
         ShowYourDino(before, play.Panel);
         ShowMoves(before, stats, open: true);
         OfferCover.Visibility = System.Windows.Visibility.Collapsed;
+        _pressedCard = NoCard;   // the cards are gone while a turn plays (H79)
         SummaryCover.Visibility = System.Windows.Visibility.Collapsed;
         Context.Text = HatchlingText.Skip;
         return play;

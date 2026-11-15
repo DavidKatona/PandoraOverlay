@@ -142,8 +142,10 @@ internal sealed partial class RunPage : Grid, IHatchlingPage
         _scene.AmbientFrame = 0;
         _ambientLooks = 0;
 
-        Banner.Text = run.Offer is not null ? HatchlingText.ChooseInstinct
-            : run.Over is { } over ? HatchlingText.OverTitle(over)
+        // The run's end first: a run left with an offer open (1.9) keeps that offer in
+        // its state, and the summary, not the offer, is what shows over the board.
+        Banner.Text = run.Over is { } over ? HatchlingText.OverTitle(over)
+            : run.Offer is not null ? HatchlingText.ChooseInstinct
             : HatchlingText.YourTurn;
         ShowRows(run.LastTurn, texts: null, marker: run.Over is null ? 0 : -1, playing: false);
         TurnNumber.Text = HatchlingText.TurnNumber(run.Turn);

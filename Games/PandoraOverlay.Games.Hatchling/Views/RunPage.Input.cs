@@ -19,6 +19,9 @@ internal sealed partial class RunPage
     /// <summary>The input the page takes now: no playback, no layout state, a run that awaits your move (H5: none while a turn plays, the offer's own cards and the summary's button aside).</summary>
     internal bool TakesInput => _sample is null && _play is null && State.Run is { } run && AwaitsMove(run);
 
+    /// <summary>Leave is taken: no playback, no layout state, and a run not over, with an offer open too (the plan's 1.9: a run can always be left).</summary>
+    internal bool TakesLeave => _sample is null && _play is null && State.Run is { Over: null };
+
     private void Wire()
     {
         _board.PointerPressed += p => _view.Guarded(() => BoardPressed(p));
@@ -141,7 +144,7 @@ internal sealed partial class RunPage
     internal void LeaveClicked()
     {
         if (_play is not null) { Disarm(); Skip(); return; }
-        if (!TakesInput) { Disarm(); return; }
+        if (!TakesLeave) { Disarm(); return; }
         if (!LeaveArmed)
         {
             LeaveArmed = true;
@@ -176,7 +179,35 @@ internal sealed partial class RunPage
 
     // ---- the offer and the summary -------------------------------------------------------------
 
-    /// <summary>A click on an offer's card: that instinct is picked (one click, H27).</summary>
+    /// <summary>No card of the offer is pressed.</summary>
+    private const int NoCard = -1;
+
+    /// <summary>The card of the offer the left button went down on and has not left, or <see cref="NoCard"/>.</summary>
+    private int _pressedCard = NoCard;
+
+    /// <summary>
+    /// The left button went down on card <paramref name="index"/> (H79): the first half
+    /// of a pick. The offer opens under the pointer when a press skips the playback of
+    /// the turn that owed it, and that press's release then lands on a card: a pick
+    /// needs a press that began on the card, so the release of a skip picks nothing.
+    /// </summary>
+    internal void CardPressed(int index) => _pressedCard = index;
+
+    /// <summary>The left button came up on card <paramref name="index"/>: a pick when the press began on that same card (H79); anything else picks nothing and forgets the press.</summary>
+    internal void CardReleased(int index)
+    {
+        var pressed = _pressedCard;
+        _pressedCard = NoCard;
+        if (pressed == index) PickClicked(index);
+    }
+
+    /// <summary>The mouse left card <paramref name="index"/>: a press begun on it is forgotten (H79).</summary>
+    internal void CardLeft(int index)
+    {
+        if (_pressedCard == index) _pressedCard = NoCard;
+    }
+
+    /// <summary>An offer's card is picked (H27; by a press and a release on it, H79).</summary>
     internal void PickClicked(int index)
     {
         Disarm();
@@ -207,16 +238,19 @@ internal sealed partial class RunPage
     /// <summary>
     /// The game acts (A20): it commits and saves before it returns; null is a refusal
     /// with nothing written. A turn is then played back from the result; anything else
-    /// rests the page on the state. The wallet is told either way (a redraw spends, a
-    /// run's end banks its pay).
+    /// rests the page on the state. The wallet follows what is shown (H79): an action
+    /// that plays nothing (a pick, a redraw, a pace, leaving) shows its balance at
+    /// once; a turn that plays beats shows it once its playback has drained or was
+    /// skipped (the view's drain shows it), so a run's pay never appears before the
+    /// beat that ended the run.
     /// </summary>
     private void Act(PlayerAction action)
     {
         BeforeAct?.Invoke();
         var result = _game.Act(action);
-        _view.ShowWallet();
         if (result is null) Rest();
         else Play(result);
+        if (!Playing) _view.ShowWallet();
     }
 
     /// <summary>The pace radios and the Fast box as the state has them.</summary>

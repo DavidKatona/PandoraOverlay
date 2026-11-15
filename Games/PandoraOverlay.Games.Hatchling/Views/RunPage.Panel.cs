@@ -13,8 +13,13 @@ internal sealed partial class RunPage
     /// <summary>The width a bar's fill can take: its column (the panel's 234 inside, less the label's 46 and the value's 48) less the track's margins.</summary>
     internal const double BarWidth = 132;
 
-    /// <summary>A turn list row's height, its marker's and its name's widths (H28).</summary>
-    internal const double RowHeight = 16, MarkerWidth = 10, NameWidth = 104;
+    /// <summary>
+    /// A turn list row's height, its marker's and its name's widths (H28, H80): the
+    /// widest name, "Herrerasaurus 11", is 88.5 in the widest font, so the name takes
+    /// 90 and what the row did the rest (134), which holds "spotted you · bit you: 12"
+    /// in every theme.
+    /// </summary>
+    internal const double RowHeight = 16, MarkerWidth = 10, NameWidth = 90;
 
     /// <summary>A card of the offer (H27): 112 x 132, 8 apart.</summary>
     internal const double OfferCardWidth = 112, OfferCardHeight = 132, OfferCardGap = 8;
@@ -117,8 +122,11 @@ internal sealed partial class RunPage
     /// </summary>
     private void ShowYourDino(RunState run, PanelValues values)
     {
-        var growth = (int)Math.Floor(values.Growth + RunPay.GrowthSlack);   // H58
-        var stage = Stages.Of(values.Growth + RunPay.GrowthSlack);
+        // The whole percent shown takes H58's slack (growth sits a hair under a whole
+        // number now and then); the stage is the rules' own, with none: a stage never
+        // means two things, and a hair under 25 the board draws a hatchling.
+        var growth = (int)Math.Floor(values.Growth + RunPay.GrowthSlack);
+        var stage = Stages.Of(values.Growth);
         SpeciesText.Text = run.Species;
         StageText.Text = HatchlingText.StageLine(stage, growth);
         var segments = new[] { Segment0, Segment1, Segment2, Segment3, Segment4 };
@@ -150,9 +158,14 @@ internal sealed partial class RunPage
         fill.SetResourceReference(Border.BackgroundProperty, key);
     }
 
-    /// <summary>The status line (H27): the apex's count once it has come; else hidden, wading, or in the open.</summary>
+    /// <summary>
+    /// The status line (H27): the apex's count once it has come; else hidden, wading,
+    /// or in the open; empty once the run is over (H78: an ended run has no state to
+    /// tell; the row keeps its height).
+    /// </summary>
     internal static (string Text, string Key) Status(RunState run)
     {
+        if (run.Over is not null) return ("", "Theme.Text.Text2");
         var stats = Stats.Of(run);
         if (run.ApexAt != Tuning.ApexNotYet && run.Creatures.Any(c => c.Kind == CreatureKind.Predator && c.Type == Tuning.Apex))
             return (HatchlingText.StatusApex(Math.Max(0, World.OutlastTurns(run) - (run.Turn - run.ApexAt))), "Theme.Text.Danger");
@@ -167,6 +180,9 @@ internal sealed partial class RunPage
     internal (string Health, string Food, string Water, string Stage) PanelShown =>
         (HealthValue.Text, FoodValue.Text, WaterValue.Text, StageText.Text);
 
+    /// <summary>The status line as shown.</summary>
+    internal string StatusShown => StatusText.Text;
+
     // ---- your move ---------------------------------------------------------------------------
 
     /// <summary>
@@ -174,15 +190,17 @@ internal sealed partial class RunPage
     /// traits, never under 0; the sprint's range), and Eat, Drink and Rest with what
     /// the move would add NOW (H49: the same functions the move's event takes its
     /// number from); Eat and Drink disabled where the rules would refuse them, and
-    /// every move, the paces and Leave while the run takes none (<paramref name="open"/>
+    /// every move and the paces while the run takes none (<paramref name="open"/>
     /// false: an offer is open or the run is over, H5). During a playback they keep
-    /// their look (H5): a press on them then only skips.
+    /// their look (H5): a press on them then only skips. Leave stays enabled with an
+    /// offer open (the plan's 1.9: a run can always be left) and goes only once the
+    /// run is over, whose way out is "Back to camp".
     /// </summary>
     private void ShowMoves(RunState run, Stats stats, bool open)
     {
         WalkPace.IsEnabled = SneakPace.IsEnabled = SprintPace.IsEnabled = open;
         RestButton.IsEnabled = open;
-        LeaveButton.IsEnabled = open;
+        LeaveButton.IsEnabled = run.Over is null;
         WalkLine.Text = HatchlingText.Noise(Moves.NoiseOf(stats, Tuning.WalkNoise));
         SneakLine.Text = HatchlingText.Noise(Moves.NoiseOf(stats, Tuning.SneakNoise));
         SprintLine.Text = HatchlingText.SprintLine(stats.SprintRange, Moves.NoiseOf(stats, Tuning.SprintNoise));
@@ -213,6 +231,7 @@ internal sealed partial class RunPage
     /// </summary>
     private void ShowOffer(GameState state)
     {
+        _pressedCard = NoCard;   // the cards are rebuilt or gone: no press began on any of them (H79)
         var run = state.Run;
         if (run is not { Over: null, Offer: { } offer })
         {
@@ -265,8 +284,15 @@ internal sealed partial class RunPage
         card.SetResourceReference(Border.BorderBrushProperty, "Theme.Card.Line");
         card.SetResourceReference(Border.CornerRadiusProperty, "Theme.Corner.Card");
         card.MouseEnter += (_, _) => _view.Guarded(() => card.SetResourceReference(Border.BorderBrushProperty, "Theme.Card.HoverLine"));
-        card.MouseLeave += (_, _) => _view.Guarded(() => card.SetResourceReference(Border.BorderBrushProperty, "Theme.Card.Line"));
-        card.MouseLeftButtonUp += (_, _) => _view.Guarded(() => PickClicked(index));
+        card.MouseLeave += (_, _) => _view.Guarded(() =>
+        {
+            card.SetResourceReference(Border.BorderBrushProperty, "Theme.Card.Line");
+            CardLeft(index);
+        });
+        // A pick is a press AND a release on this card (H79): the release of the press
+        // that skipped the playback, when the offer opened under the pointer, is not one.
+        card.MouseLeftButtonDown += (_, _) => _view.Guarded(() => CardPressed(index));
+        card.MouseLeftButtonUp += (_, _) => _view.Guarded(() => CardReleased(index));
         return card;
     }
 
@@ -343,16 +369,17 @@ internal sealed partial class RunPage
 
     /// <summary>
     /// The context line, by the first rule that applies: during a playback, that a
-    /// click skips; the mouse over a cell of a board that takes moves, what is there
-    /// (<see cref="Describe.Cell"/>); fewer than three runs finished, a hint
-    /// (<see cref="Hints.For"/>); otherwise nothing.
+    /// click skips; while no move is awaited (an offer open, the run over), nothing
+    /// (H78: no hint and no cell's words over a board that takes no click); the mouse
+    /// over a cell, what is there (<see cref="Describe.Cell"/>); fewer than three runs
+    /// finished, a hint (<see cref="Hints.For"/>); otherwise nothing.
     /// </summary>
     private string ContextLine(GameState state)
     {
         if (_play is not null) return HatchlingText.Skip;
-        if (state.Run is not { } run) return "";
+        if (state.Run is not { } run || !AwaitsMove(run)) return "";
         var stats = Stats.Of(run);
-        if (_hover >= 0 && AwaitsMove(run)) return Describe.Cell(run, _hover, Facts(run, stats, _hover));
+        if (_hover >= 0) return Describe.Cell(run, _hover, Facts(run, stats, _hover));
         if (state.Totals.Runs >= Tuning.HintRuns) return "";
         var percent = (int)Tuning.Round(run.You.Health * 100);
         return Hints.Text(Hints.For(run, stats.Hides, stats.Eats.HasFlag(Diet.Plants), percent, SightKnows));
@@ -361,7 +388,9 @@ internal sealed partial class RunPage
     /// <summary>
     /// What the line for <paramref name="cell"/> needs that the run alone does not say,
     /// from the very answers the board and the moves give (H23, H39): a move there at
-    /// the run's pace and its noise (with the wading's +1, as the move's event has it);
+    /// the run's pace and its noise, the move's own (the wading's +1 added to the
+    /// pace's noise BEFORE the build's floor at 0, as the rules add it, so a quiet dino
+    /// sneaking into water is told the 0 its move makes);
     /// the creature only if the player may know it; whether a click attacks it; the
     /// build's facts; a meal's worth of each food; the food the board shows.
     /// </summary>
@@ -369,7 +398,8 @@ internal sealed partial class RunPage
     {
         var paceNoise = run.Pace switch { Pace.Sneak => Tuning.SneakNoise, Pace.Sprint => Tuning.SprintNoise, _ => Tuning.WalkNoise };
         var wades = Sight.WouldWade(run, stats, cell);
-        var noise = Moves.NoiseOf(stats, paceNoise) + (run.Pace != Pace.Sprint && wades ? Tuning.WadeNoise : 0);
+        // A sprint never wades (the rules': it enters water only as a swimmer or a flyer).
+        var noise = Moves.NoiseOf(stats, paceNoise + (run.Pace != Pace.Sprint && wades ? Tuning.WadeNoise : 0));
         var creature = Island.CreatureAt(run, cell) is { } c && Sight.Knows(run, stats, c) ? c : null;
         var canAttack = creature is not null && Moves.Attackable(run, stats).Any(a => a.Id == creature.Id);
         return new CellFacts(Moves.Targets(run, stats).Contains(cell), noise, creature, canAttack,

@@ -172,9 +172,9 @@ public class TurnPlaybackTests
     /// <summary>
     /// The picture the beats left agrees with the state saved: every creature the rest
     /// draws stands where the beats left it, standing, whole, with the same size, ring
-    /// and marks (the "your turn" mark aside, H52); anything else the beats left on the
-    /// board is gone (faded to 0) or a creature the player no longer knows, which the
-    /// rest takes away.
+    /// and marks (the "your turn" mark aside, H52); and nothing else the beats left on
+    /// the board is still to be seen (H77: no sprite above opacity 0 that the rest
+    /// does not draw, a creature the player no longer knows included).
     /// </summary>
     private static void AgreesWithTheState(BoardScene played, RunState after, string what)
     {
@@ -187,11 +187,7 @@ public class TurnPlaybackTests
                 $"{what}: the beats left {ViewHarness.SpriteKey(mine!, false, false)} where the rest draws {ViewHarness.SpriteKey(sprite, false, false)}");
         }
         foreach (var extra in played.Sprites.Where(s => s.Opacity > 0 && !rest.Sprites.Any(r => r.Creature == s.Creature && r.Kind == s.Kind)))
-        {
-            var creature = after.Creatures.FirstOrDefault(c => c.Id == extra.Creature);
-            Assert.True(creature is null || !Sight.Knows(after, Stats.Of(after), creature),
-                $"{what}: the beats left creature {extra.Creature} on the board, known, and the rest does not draw it");
-        }
+            Assert.Fail($"{what}: the beats left creature {extra.Creature} on the board at opacity {extra.Opacity}, and the rest does not draw it");
         Assert.Empty(played.Numbers);
     }
 
@@ -210,10 +206,12 @@ public class TurnPlaybackTests
     // ===== One at a time (G9, H4) ===================================================================
 
     /// <summary>
-    /// A turn with three hunters: you walk; each of three predators steps twice and
-    /// bites; small game moves; time passes. Recorded tick by tick, which creatures
-    /// changed place: never two on one tick, small game aside; and between two hunters,
-    /// at least 3 ticks with nothing moving.
+    /// A turn with three hunters: you walk; each of three predators steps and bites,
+    /// the last bite dodged; small game moves; time passes. Recorded tick by tick,
+    /// which creatures changed place: never two on one tick, small game aside, and a
+    /// dodged bite aside (H75: the biter's blow and your hop are one event, the one
+    /// case of two creatures moving on the same ticks); and between two hunters, at
+    /// least 3 ticks with nothing moving.
     /// </summary>
     [Fact]
     public void OneCreatureMovesAtATimeWithAGapBetweenTwoHunters() => Sta.Run(() =>
@@ -221,9 +219,10 @@ public class TurnPlaybackTests
         var (game, host) = ViewHarness.Attached(ViewHarness.Running());
         using var view = ViewHarness.ViewOf(game);
         var page = view.RunPage;
-        var turn = ThreeHunters();
+        var turn = ThreeHunters(lastDodged: true);
         page.Play(turn);
         var movers = new List<HashSet<int>>();
+        var dodging = new List<bool>();
         var last = Places(page.CurrentScene);
         while (page.Playing)
         {
@@ -231,10 +230,18 @@ public class TurnPlaybackTests
             if (!page.Playing) break;
             var now = Places(page.CurrentScene);
             movers.Add(now.Where(p => !last.TryGetValue(p.Key, out var was) || was != p.Value).Select(p => p.Key).ToHashSet());
+            dodging.Add(page.BannerShown == TurnScripts.Build(turn, RunPage.SightKnows).Beats.Single(b => b.Kind == BeatKind.Dodged).Banner);
             last = now;
         }
         var game3 = SmallGameIds(turn);
-        Assert.All(movers, m => Assert.True(m.Count(id => !game3.Contains(id)) <= 1, "two creatures moved on one tick: " + string.Join(",", m)));
+        var dodger = new HashSet<int> { 0, 3 };   // you and the hunter whose bite you dodged
+        for (var t = 0; t < movers.Count; t++)
+        {
+            var m = movers[t];
+            if (dodging[t] && m.IsSubsetOf(dodger)) continue;
+            Assert.True(m.Count(id => !game3.Contains(id)) <= 1, $"two creatures moved on tick {t}: " + string.Join(",", m));
+        }
+        Assert.Contains(movers.Select((m, t) => (m, t)), x => dodging[x.t] && x.m.SetEquals(dodger));   // the dodge's exception happened
 
         var hunters = new[] { 1, 2, 3 };
         var lastHunter = -1;
@@ -257,8 +264,8 @@ public class TurnPlaybackTests
     private static HashSet<int> SmallGameIds(TurnResult turn) =>
         turn.Before.Creatures.Concat(turn.After.Creatures).Where(c => c.Kind == CreatureKind.SmallGame).Select(c => c.Id).ToHashSet();
 
-    /// <summary>You at column 5 of row 5; three predators two cells off (all in sight), each walking up and biting; small game fleeing; time.</summary>
-    private static TurnResult ThreeHunters()
+    /// <summary>You at column 5 of row 5; three predators two cells off (all in sight), each walking up and biting (the third's bite dodged when <paramref name="lastDodged"/>); small game fleeing; time.</summary>
+    private static TurnResult ThreeHunters(bool lastDodged = false)
     {
         var you = Grid.Index(5, 5);
         var to = Grid.Index(5, 6);
@@ -277,10 +284,299 @@ public class TurnPlaybackTests
             Walk(you, to),
             Step(1, Gait.Hunt, Grid.Index(3, 6), Grid.Index(4, 6), Grid.Index(4, 7)), new Bit(1, 6, false, false),
             Step(2, Gait.Hunt, Grid.Index(7, 6), Grid.Index(7, 7), Grid.Index(6, 7)), new Bit(2, 9, false, false),
-            Step(3, Gait.Hunt, Grid.Index(5, 8), Grid.Index(5, 7)), new Bit(3, 9, false, false),
+            Step(3, Gait.Hunt, Grid.Index(5, 8), Grid.Index(5, 7)), new Bit(3, 9, lastDodged, false),
             Step(4, Gait.Flee, Grid.Index(6, 4), Grid.Index(7, 4)),
             new TimePassed(0, 0, 0), new Grew(10, 11.4));
     }
+
+    // ===== A bite, a strike and a hurt as task H12 drew them (H75) ===================================
+
+    /// <summary>The game's own art book, as the painter's tests load it: every species has its strike and hurt frames.</summary>
+    private static readonly ArtBook GameArt = ArtBook.Load(typeof(Island).Assembly);
+
+    /// <summary>One sprite at one tick, as the board would draw it.</summary>
+    private readonly record struct Snap(int X, int Y, string Action, int Tick, byte Opacity);
+
+    /// <summary>
+    /// The picture at each tick of the first beat of <paramref name="kind"/>: tick k is
+    /// the step after its <c>Begin</c> and k <c>Advance</c>s, 0 when it begins and the
+    /// beat's <c>Ticks</c> at its end (the last a step's end, as a skip leaves it). The
+    /// beats before it finished, as the playback finishes them. Your sprite, creature
+    /// <paramref name="creature"/>'s, and how many numbers the board shows.
+    /// </summary>
+    private static List<(Snap You, Snap It, int Numbers)> Frames(TurnResult turn, BeatKind kind, int creature)
+    {
+        var script = TurnScripts.Build(turn, RunPage.SightKnows);
+        var steps = StepsOf(turn, script, out var scene);
+        var index = script.Beats.ToList().FindIndex(b => b.Kind == kind);
+        Assert.True(index >= 0, $"the turn has no {kind} beat");
+        for (var i = 0; i < index; i++) steps[i].Finish();
+        var frames = new List<(Snap, Snap, int)>();
+        void Record() => frames.Add((Of(scene.Sprites.Single(s => s.Kind == SpriteKind.You)),
+            Of(scene.Sprites.Single(s => s.Creature == creature && s.Kind != SpriteKind.You)), scene.Numbers.Count));
+        steps[index].Begin();
+        Record();
+        for (var k = 1; k <= script.Beats[index].Ticks; k++)
+        {
+            steps[index].Advance();
+            Record();
+        }
+        return frames;
+    }
+
+    /// <summary>The steps of a turn, made as the page makes them, over the scene at the turn's start (not your turn), with the game's own art.</summary>
+    private static IReadOnlyList<BeatStep> StepsOf(TurnResult turn, TurnScript script, out BoardScene scene)
+    {
+        var before = turn.Before;
+        scene = BoardScene.Of(before, Stats.Of(before), yourTurn: false, hoverCell: -1);
+        scene.ShowYourMark = false;
+        return BeatStep.Make(new TurnPlay(turn, script, scene, GameArt));
+    }
+
+    private static Snap Of(SceneSprite s) => new(s.X, s.Y, s.Action, s.Tick, s.Opacity);
+
+    /// <summary>You at column 5 of row 5, at rest; a Carnotaurus on <paramref name="at"/>, hunting, bites you (dodged when <paramref name="dodged"/>); time passes.</summary>
+    private static TurnResult ABite(int at, bool dodged = false)
+    {
+        var you = Row5(5);
+        var before = Run(you, Predator(1, PredatorType.Carnotaurus, at, ordinal: 2, alert: 4));
+        var after = before.Clone();
+        after.Turn = before.Turn + 1;
+        return Turn(before, after, Rest(), new Bit(1, 9, dodged, false), Time());
+    }
+
+    /// <summary>The cell beside <paramref name="cell"/> in the row above it, to its left.</summary>
+    private static int AboveLeft(int cell) => Island.Grid.Neighbours(cell)
+        .Single(c => Island.Grid.Row(c) == Island.Grid.Row(cell) - 1 && BoardLayout.Feet(c).X < BoardLayout.Feet(cell).X);
+
+    [Fact]
+    public void ABiteShowsItsBlowAndMovesTheBiterThreePixels()
+    {
+        var at = Row5(4);   // in your row, to your left
+        var feet = BoardLayout.Feet(at);
+        var yours = BoardLayout.Feet(Row5(5));
+        var frames = Frames(ABite(at), BeatKind.Bites, 1);
+        Assert.Equal(BeatTicks.Bite + 1, frames.Count);
+        for (var k = 0; k < frames.Count; k++)
+        {
+            var (you, it, numbers) = frames[k];
+            var blow = k >= BeatStep.WindUpTicks && k < BeatStep.StrikeTicks;
+            Assert.True(it.X == feet.X + (blow ? BeatStep.BlowReach : 0), $"tick {k}: the biter's X is {it.X}");
+            Assert.True(it.Y == feet.Y, $"tick {k}: the biter's Y is {it.Y}");
+            Assert.True((k < BeatStep.StrikeTicks ? BeatStep.Strike : ArtNames.Stand) == it.Action, $"tick {k}: the biter's action is {it.Action}");
+            if (k < BeatStep.StrikeTicks) Assert.Equal(k, it.Tick);
+            var hurts = k >= BeatStep.WindUpTicks && k < BeatStep.WindUpTicks + BeatStep.HurtTicks;
+            Assert.True((hurts ? BeatStep.Hurt : ArtNames.Stand) == you.Action, $"tick {k}: your action is {you.Action}");
+            if (hurts) Assert.Equal(k - BeatStep.WindUpTicks, you.Tick);
+            Assert.Equal(yours, (you.X, you.Y));
+            if (k < frames.Count - 1)
+                Assert.True((k >= BeatStep.WindUpTicks ? 1 : 0) == numbers, $"tick {k}: {numbers} numbers on the board");
+        }
+        Assert.Equal(0, frames[^1].Numbers);   // the beat's end: gone, as a skip leaves it
+    }
+
+    [Fact]
+    public void ABiteFromTheRowAboveDipsTowardYou()
+    {
+        var you = Row5(5);
+        var at = AboveLeft(you);
+        var feet = BoardLayout.Feet(at);
+        var frames = Frames(ABite(at), BeatKind.Bites, 1);
+        for (var k = 0; k < frames.Count; k++)
+        {
+            var blow = k >= BeatStep.WindUpTicks && k < BeatStep.StrikeTicks;
+            var it = frames[k].It;
+            Assert.True((feet.X + (blow ? BeatStep.BlowAcross : 0), feet.Y + (blow ? BeatStep.BlowReach : 0)) == (it.X, it.Y),
+                $"tick {k}: the biter stands at {it.X},{it.Y}, its feet are {feet}");
+        }
+        Assert.Equal((2, 3), (BeatStep.BlowAcross, BeatStep.BlowReach));   // the plan's (+2, +3) for a target down and to the right
+    }
+
+    [Fact]
+    public void YourStrikeMovesYouAndItsHurtLastsFourTicks()
+    {
+        var you = Row5(5);
+        var at = Row5(6);   // to your right
+        var before = Run(you, Predator(1, PredatorType.Troodon, at, alert: 4));
+        var after = before.Clone();
+        after.Turn = before.Turn + 1;
+        var turn = Turn(before, after, new Struck(1, at, 7, false, false, false, false, Tuning.AttackNoise), Time());
+        var feet = BoardLayout.Feet(you);
+        var its = BoardLayout.Feet(at);
+        var frames = Frames(turn, BeatKind.YouStrike, 1);
+        Assert.Equal(BeatTicks.Strike + 1, frames.Count);
+        for (var k = 0; k < frames.Count; k++)
+        {
+            var (mine, it, numbers) = frames[k];
+            var blow = k >= BeatStep.WindUpTicks && k < BeatStep.StrikeTicks;
+            Assert.True((feet.X + (blow ? BeatStep.BlowReach : 0), feet.Y) == (mine.X, mine.Y), $"tick {k}: you stand at {mine.X},{mine.Y}");
+            Assert.True((k < BeatStep.StrikeTicks ? BeatStep.Strike : ArtNames.Stand) == mine.Action, $"tick {k}: your action is {mine.Action}");
+            var hurts = k >= BeatStep.WindUpTicks && k < BeatStep.WindUpTicks + BeatStep.HurtTicks;
+            Assert.True((hurts ? BeatStep.Hurt : ArtNames.Stand) == it.Action, $"tick {k}: its action is {it.Action}");
+            Assert.Equal(its, (it.X, it.Y));
+            if (k < frames.Count - 1)
+                Assert.True((k >= BeatStep.WindUpTicks ? 1 : 0) == numbers, $"tick {k}: {numbers} numbers on the board");
+        }
+    }
+
+    [Fact]
+    public void ADodgedBiteKeepsItsStrikeToTheEnd()
+    {
+        var at = Row5(4);
+        var feet = BoardLayout.Feet(at);
+        var yours = BoardLayout.Feet(Row5(5));
+        var frames = Frames(ABite(at, dodged: true), BeatKind.Dodged, 1);
+        Assert.Equal(BeatTicks.Dodge + 1, frames.Count);
+        var hopped = false;
+        for (var k = 0; k < frames.Count - 1; k++)
+        {
+            var (you, it, _) = frames[k];
+            Assert.True(BeatStep.Strike == it.Action, $"tick {k}: the biter's action is {it.Action}");
+            Assert.True(it.X == feet.X + (k >= BeatStep.WindUpTicks ? BeatStep.BlowReach : 0), $"tick {k}: the biter's X is {it.X}");
+            Assert.Equal(feet.Y, it.Y);
+            if (k < BeatStep.WindUpTicks) Assert.Equal(yours.X, you.X);
+            hopped |= you.X > yours.X;   // away from the biter, who is on your left
+        }
+        Assert.True(hopped, "your dino never hopped");
+        var end = frames[^1];
+        Assert.Equal((feet.X, feet.Y, ArtNames.Stand), (end.It.X, end.It.Y, end.It.Action));
+        Assert.Equal((yours.X, yours.Y, ArtNames.Stand), (end.You.X, end.You.Y, end.You.Action));
+    }
+
+    [Fact]
+    public void AfterABiteSkippedAtAnyTickBothStandOnTheirFeet() => Sta.Run(() =>
+    {
+        foreach (var at in new[] { Row5(4), AboveLeft(Row5(5)) })
+            foreach (var dodged in new[] { false, true })
+            {
+                var turn = ABite(at, dodged);
+                var script = TurnScripts.Build(turn, RunPage.SightKnows);
+                var index = script.Beats.ToList().FindIndex(b => b.Kind is BeatKind.Bites or BeatKind.Dodged);
+                var feet = BoardLayout.Feet(at);
+                var yours = BoardLayout.Feet(Row5(5));
+                void Stands(BoardScene scene, string what)
+                {
+                    var it = scene.Sprites.Single(s => s.Creature == 1 && s.Kind != SpriteKind.You);
+                    var you = scene.Sprites.Single(s => s.Kind == SpriteKind.You);
+                    Assert.True((feet.X, feet.Y, ArtNames.Stand) == (it.X, it.Y, it.Action), $"{what}: the biter at {it.X},{it.Y} in {it.Action}");
+                    Assert.True((yours.X, yours.Y, ArtNames.Stand) == (you.X, you.Y, you.Action), $"{what}: you at {you.X},{you.Y} in {you.Action}");
+                }
+
+                // The step itself, finished at each tick 0 to 9 of the bite.
+                for (var k = 0; k < script.Beats[index].Ticks; k++)
+                {
+                    var steps = StepsOf(turn, script, out var scene);
+                    for (var i = 0; i < index; i++) steps[i].Finish();
+                    steps[index].Begin();
+                    for (var a = 0; a < k; a++) steps[index].Advance();
+                    steps[index].Finish();
+                    Stands(scene, $"finished at tick {k}{(dodged ? ", dodged" : "")}");
+                }
+
+                // And the page's skip, a press on the board at each tick of the bite.
+                var (game, host) = ViewHarness.Attached(ViewHarness.Running());
+                using var view = ViewHarness.ViewOf(game);
+                var page = view.RunPage;
+                var start = script.Beats.Take(index).Sum(b => b.Ticks);
+                for (var k = 0; k < script.Beats[index].Ticks; k++)
+                {
+                    page.Play(turn);
+                    for (var a = 0; a < start + k; a++) view.ThePlayback.Advance();
+                    page.BoardPressed(new PixelPointer(1, 1, PointerButton.Left));
+                    Assert.False(page.Playing);
+                    Stands(page.PlayedScene!, $"skipped at tick {k}{(dodged ? ", dodged" : "")}");
+                }
+            }
+    });
+
+    // ===== Leaving what the player knows (H77) ========================================================
+
+    [Fact]
+    public void ACreatureThePlayerNoLongerKnowsLeavesTheBoard() => Sta.Run(() =>
+    {
+        // (1) A predator that walks out of what you know fades over its own last beat.
+        var sight = Stats.Of(Run(Row5(1))).Sight;
+        Assert.InRange(1 + sight + 1, 0, Island.Grid.Columns - 1);
+        var you = Row5(1);
+        var before = Run(you, Predator(1, PredatorType.Troodon, Row5(1 + sight), alert: 0));
+        var after = With(before, 1, Row5(2 + sight));
+        after.Turn = before.Turn + 1;
+        Assert.True(Sight.Knows(before, Stats.Of(before), before.Creatures[0]));
+        Assert.False(Sight.Knows(after, Stats.Of(after), after.Creatures[0]));
+        var walksOut = Turn(before, after, Rest(), Step(1, Gait.Wander, Row5(1 + sight), Row5(2 + sight)), Time());
+        var script = TurnScripts.Build(walksOut, RunPage.SightKnows);
+        var last = script.Beats.ToList().FindLastIndex(b => b.Actor == BeatActor.Creature && b.Creature == 1);
+        Assert.Equal(BeatKind.Steps, script.Beats[last].Kind);
+        var ticks = script.Beats[last].Ticks;
+        var fadeFrom = Math.Max(0, ticks - BeatStep.LeaveTicks);
+        {
+            var steps = StepsOf(walksOut, script, out var scene);
+            var it = scene.Sprites.Single(s => s.Creature == 1);
+            for (var i = 0; i < last; i++)
+            {
+                steps[i].Finish();
+                Assert.True(it.Opacity == 255, $"it faded before its last beat, at beat {i}");
+            }
+            steps[last].Begin();
+            var opacities = new List<byte> { it.Opacity };
+            for (var k = 1; k <= ticks; k++)
+            {
+                steps[last].Advance();
+                opacities.Add(it.Opacity);
+            }
+            for (var k = 0; k <= fadeFrom; k++) Assert.True(opacities[k] == 255, $"tick {k} of its last beat: {opacities[k]}");
+            for (var k = fadeFrom + 1; k <= ticks; k++) Assert.True(opacities[k] < opacities[k - 1], $"tick {k} of its last beat: {opacities[k]} after {opacities[k - 1]}");
+            Assert.Equal(0, opacities[^1]);
+            for (var i = last + 1; i < steps.Count; i++) steps[i].Finish();
+            Assert.Equal(0, it.Opacity);
+        }
+
+        // (2) One your walk left behind, with no beat of its own, goes at the end of your walk.
+        var from = Row5(4);
+        var to = Row5(3);
+        var stays = Row5(4 + sight);
+        Assert.InRange(4 + sight, 0, Island.Grid.Columns - 1);
+        var left = Run(from, Predator(1, PredatorType.Troodon, stays, alert: 0));
+        var afterWalk = YouAt(left, to);
+        afterWalk.Turn = left.Turn + 1;
+        Assert.True(Sight.Knows(left, Stats.Of(left), left.Creatures[0]));
+        Assert.False(Sight.Knows(afterWalk, Stats.Of(afterWalk), afterWalk.Creatures[0]));
+        var walksAway = Turn(left, afterWalk, Walk(from, to), new Stayed(1, Idle.Waits), Time());
+        var away = TurnScripts.Build(walksAway, RunPage.SightKnows);
+        Assert.DoesNotContain(away.Beats, b => b.Creature == 1);
+        Assert.Equal(BeatKind.YouWalk, away.Beats[0].Kind);
+        {
+            var steps = StepsOf(walksAway, away, out var scene);
+            var it = scene.Sprites.Single(s => s.Creature == 1);
+            steps[0].Begin();
+            for (var k = 1; k < away.Beats[0].Ticks; k++)
+            {
+                steps[0].Advance();
+                Assert.True(it.Opacity == 255, $"tick {k} of your walk: {it.Opacity}");
+            }
+            steps[0].Advance();
+            Assert.Equal(0, it.Opacity);   // with the fog, at your walk's end
+            for (var i = 1; i < steps.Count; i++)
+            {
+                steps[i].Finish();
+                Assert.Equal(0, it.Opacity);
+            }
+        }
+
+        // Both: a skip at any tick leaves nothing of them on the board.
+        var (game, host) = ViewHarness.Attached(ViewHarness.Running());
+        using var view = ViewHarness.ViewOf(game);
+        var page = view.RunPage;
+        foreach (var (turn, total) in new[] { (walksOut, script.TotalTicks), (walksAway, away.TotalTicks) })
+            for (var k = 0; k < total; k++)
+            {
+                page.Play(turn);
+                for (var a = 0; a < k; a++) view.ThePlayback.Advance();
+                if (page.Playing) page.BoardPressed(new PixelPointer(1, 1, PointerButton.Left));
+                Assert.False(page.Playing);
+                Assert.True(page.PlayedScene!.Sprites.Single(s => s.Creature == 1).Opacity == 0, $"skipped at tick {k}: it is still on the board");
+            }
+    });
 
     // ===== No beat is cut short (A35) ===============================================================
 
@@ -463,7 +759,8 @@ public class TurnPlaybackTests
     /// A27), the board of one turn at five moments (your beat, a hunter's focus, its
     /// step, its bite, time passing), saved with <c>FrameGolden.Save</c>, and the Run
     /// page's layout states drawn unthemed (the app's theme is not in these tests: task
-    /// H16 draws them in every theme). Compared with nothing; without the variable it
+    /// H16 draws them in every theme); then the blow's five pictures (round 2,
+    /// <see cref="RenderTheBlow"/>). Compared with nothing; without the variable it
     /// returns at once.
     /// </summary>
     [Fact]
@@ -514,5 +811,75 @@ public class TurnPlaybackTests
             FrameGolden.Save(page.Board.Buffer, Path.Combine(folder, $"board-{state}.png"));
         }
         _out.WriteLine("renders in " + folder);
+
+        // Round 2's pictures of the blow (H75), in a folder of their own.
+        RenderTheBlow(Path.Combine(Path.GetDirectoryName(folder)!, "hatchling-run-r2"));
     });
+
+    /// <summary>
+    /// The blow as task H12 drew it (H75), for the reviewer, into
+    /// <paramref name="folder"/>: the board of the <c>run-playback</c> sample's turn (a
+    /// Subadult, big enough to see), each frozen by the page as the layout state
+    /// freezes it: the bite at its tick 1 (the wind-up), 5 (the blow, the flash and the
+    /// number) and 9 (the biter back on its feet); the same bite from the row above on
+    /// your other side, at tick 5; and your own strike on it, at tick 5.
+    /// </summary>
+    private void RenderTheBlow(string folder)
+    {
+        Directory.CreateDirectory(folder);
+        var (game, _) = ViewHarness.Attached(ViewHarness.Running());
+        using var view = ViewHarness.ViewOf(game);
+        var page = view.RunPage;
+        var sample = Samples.For("run-playback");
+        var turn = sample.Turn!;
+        var carno = turn.Before.Creatures.Single(c => c.Type == PredatorType.Carnotaurus);
+        var you = turn.Before.You.At;
+
+        void Save(TurnResult played, BeatKind kind, int tick, string name)
+        {
+            var script = TurnScripts.Build(played, RunPage.SightKnows);
+            var beat = script.Beats.ToList().FindIndex(b => b.Kind == kind);
+            Assert.True(beat >= 0, name);
+            page.ShowFrozen(sample.State, played, beat, tick);
+            FrameGolden.Save(page.Board.Buffer, Path.Combine(folder, name + ".png"));
+            var it = page.CurrentScene.Sprites.Single(s => s.Creature == carno.Id && s.Kind != SpriteKind.You);
+            var me = page.CurrentScene.Sprites.Single(s => s.Kind == SpriteKind.You);
+            _out.WriteLine($"{name}: banner '{page.BannerShown}'; the Carnotaurus {it.Action}/{it.Tick} at {it.X},{it.Y}" +
+                $" (feet {BoardLayout.Feet(carno.At)}); you {me.Action}/{me.Tick} at {me.X},{me.Y} (feet {BoardLayout.Feet(you)}); numbers {page.CurrentScene.Numbers.Count}");
+        }
+
+        Save(turn, BeatKind.Bites, 1, "bite-1-windup");
+        Save(turn, BeatKind.Bites, BeatStep.WindUpTicks + 2, "bite-2-blow");
+        Save(turn, BeatKind.Bites, BeatStep.StrikeTicks, "bite-3-after");
+
+        // The sample's Carnotaurus 2 already bites from the row above, to your left: the
+        // same turn with it on the other cell of that row beside you, to your right, so
+        // this picture shows the blow's other slant, (-2, +3).
+        var above = Island.Grid.Neighbours(you)
+            .Where(c => Island.Grid.Row(c) == Island.Grid.Row(you) - 1 && Island.IsLand(turn.Before, c)
+                && c != carno.At && Island.CreatureAt(turn.Before, c) is null)
+            .OrderByDescending(c => BoardLayout.Feet(c).X)
+            .First();
+        RunState Moved(RunState run)
+        {
+            var copy = run.Clone();
+            copy.Creatures.Single(c => c.Id == carno.Id).At = above;
+            return copy;
+        }
+        var fromAbove = new TurnResult(Moved(turn.Before), Moved(turn.After), turn.Events);
+        carno = fromAbove.Before.Creatures.Single(c => c.Id == carno.Id);
+        Save(fromAbove, BeatKind.Bites, BeatStep.WindUpTicks + 2, "bite-above-blow");
+
+        // Your own strike on it, where it stands beside you in the sample.
+        carno = turn.Before.Creatures.Single(c => c.Id == carno.Id);
+        var after = turn.Before.Clone();
+        after.Turn++;
+        var strike = new TurnResult(turn.Before, after, new TurnEvent[]
+        {
+            new Struck(carno.Id, carno.At, 7, false, false, false, false, Tuning.AttackNoise),
+            new TimePassed(0, 0, 0),
+        });
+        Save(strike, BeatKind.YouStrike, BeatStep.WindUpTicks + 2, "strike-blow");
+        _out.WriteLine("renders in " + folder);
+    }
 }
