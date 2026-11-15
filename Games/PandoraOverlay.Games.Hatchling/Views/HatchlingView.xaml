@@ -3,7 +3,9 @@
      NavButton ToggleButtons in a row, each with its own alignment and margin
      so the nav row's bar reads as the chosen tab's mark; the wallet at the
      right. The body font is set here, at the root: laid out alone, a view
-     inherits nothing. -->
+     inherits nothing. No control of the game takes the keyboard focus
+     (Focusable False, here and on the Run page): a focused button would take
+     Space and Enter, and the keyboard is the window's (A33: J and Esc). -->
 <Grid x:Class="PandoraOverlay.Games.Hatchling.HatchlingViewRoot"
       x:ClassModifier="internal"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -18,13 +20,13 @@
 
     <Grid x:Name="GameBar" Grid.Row="0">
         <StackPanel Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
-            <ToggleButton x:Name="FirstTab" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
+            <ToggleButton x:Name="FirstTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
                           Content="{x:Static h:HatchlingText.TabCamp}"/>
-            <ToggleButton x:Name="LineageTab" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
+            <ToggleButton x:Name="LineageTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
                           Content="{x:Static h:HatchlingText.TabLineage}"/>
-            <ToggleButton x:Name="JournalTab" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
+            <ToggleButton x:Name="JournalTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
                           Content="{x:Static h:HatchlingText.TabJournal}"/>
-            <ToggleButton x:Name="RecordsTab" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0"
+            <ToggleButton x:Name="RecordsTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0"
                           Content="{x:Static h:HatchlingText.TabRecords}"/>
         </StackPanel>
         <TextBlock x:Name="Wallet" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0"

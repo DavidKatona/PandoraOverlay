@@ -349,6 +349,24 @@ public class HatchlingViewTests
         Assert.Empty(host.Faults);
     });
 
+    /// <summary>No control of the game can take the keyboard focus (A33): a focused button would take Space and Enter, and the keyboard is the window's.</summary>
+    [Fact]
+    public void NoControlTakesTheKeyboardFocus() => Sta.Run(() =>
+    {
+        var (game, _) = ViewHarness.Attached(ViewHarness.Running());
+        using var view = ViewHarness.ViewOf(game);
+        view.ShowLayoutState("run-offer");
+        var controls = new List<System.Windows.Controls.Primitives.ButtonBase>();
+        void Walk(DependencyObject node)
+        {
+            if (node is System.Windows.Controls.Primitives.ButtonBase b) controls.Add(b);
+            foreach (var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>()) Walk(child);
+        }
+        Walk(view.Root);
+        Assert.True(controls.Count >= 13, $"{controls.Count} controls found");
+        Assert.All(controls, c => Assert.False(c.Focusable, c.Name));
+    });
+
     [Fact]
     public void QuartersAreTheAppsLines()
     {

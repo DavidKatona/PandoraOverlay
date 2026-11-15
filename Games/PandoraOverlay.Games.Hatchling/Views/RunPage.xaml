@@ -30,7 +30,7 @@
                    TextTrimming="CharacterEllipsis"
                    Foreground="{DynamicResource Theme.Text.Dim}"
                    FontSize="{DynamicResource Theme.Size.11}"/>
-        <CheckBox x:Name="FastBox" Grid.Column="2" VerticalAlignment="Center"
+        <CheckBox x:Name="FastBox" Focusable="False" Grid.Column="2" VerticalAlignment="Center"
                   Style="{DynamicResource Check}"
                   Content="{x:Static h:HatchlingText.Fast}"/>
     </Grid>
@@ -51,7 +51,7 @@
                            Foreground="{DynamicResource Theme.Text.Dim}"
                            FontSize="{DynamicResource Theme.Size.12}"/>
                 <StackPanel x:Name="OfferCards" Orientation="Horizontal" HorizontalAlignment="Center"/>
-                <Button x:Name="RedrawButton" Margin="0,10,0,0" Width="150" Height="28"
+                <Button x:Name="RedrawButton" Focusable="False" Margin="0,10,0,0" Width="150" Height="28"
                         HorizontalAlignment="Right"
                         Style="{DynamicResource NeutralButtonStyle}"/>
             </StackPanel>
@@ -88,7 +88,7 @@
                     <TextBlock x:Name="DangerLine" Height="18" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource Theme.Text.Good}"
                                FontSize="{DynamicResource Theme.Size.12}"/>
-                    <Button x:Name="BackButton" Margin="0,8,0,0" Height="34"
+                    <Button x:Name="BackButton" Focusable="False" Margin="0,8,0,0" Height="34"
                             Style="{DynamicResource SaveButtonStyle}"
                             Content="{x:Static h:HatchlingText.BackToCamp}"/>
                 </StackPanel>
@@ -220,7 +220,7 @@
                     <ColumnDefinition Width="68"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <RadioButton x:Name="WalkPace" Grid.Column="0" Style="{DynamicResource Radio}">
+                <RadioButton x:Name="WalkPace" Focusable="False" Grid.Column="0" Style="{DynamicResource Radio}">
                     <StackPanel>
                         <TextBlock TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Walk}"
                                    FontSize="{DynamicResource Theme.Size.12}"/>
@@ -228,7 +228,7 @@
                                    Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10.5}"/>
                     </StackPanel>
                 </RadioButton>
-                <RadioButton x:Name="SneakPace" Grid.Column="1" Style="{DynamicResource Radio}">
+                <RadioButton x:Name="SneakPace" Focusable="False" Grid.Column="1" Style="{DynamicResource Radio}">
                     <StackPanel>
                         <TextBlock TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Sneak}"
                                    FontSize="{DynamicResource Theme.Size.12}"/>
@@ -236,7 +236,7 @@
                                    Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10.5}"/>
                     </StackPanel>
                 </RadioButton>
-                <RadioButton x:Name="SprintPace" Grid.Column="2" Style="{DynamicResource Radio}">
+                <RadioButton x:Name="SprintPace" Focusable="False" Grid.Column="2" Style="{DynamicResource Radio}">
                     <StackPanel>
                         <TextBlock TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Sprint}"
                                    FontSize="{DynamicResource Theme.Size.12}"/>
@@ -253,21 +253,21 @@
                     <ColumnDefinition Width="5"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Button x:Name="EatButton" Grid.Column="0" Padding="4,2" Style="{DynamicResource NeutralButtonStyle}">
+                <Button x:Name="EatButton" Focusable="False" Grid.Column="0" Padding="4,2" Style="{DynamicResource NeutralButtonStyle}">
                     <StackPanel>
                         <TextBlock HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Eat}"/>
                         <TextBlock x:Name="EatLine" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
                                    FontSize="{DynamicResource Theme.Size.10.5}"/>
                     </StackPanel>
                 </Button>
-                <Button x:Name="DrinkButton" Grid.Column="2" Padding="4,2" Style="{DynamicResource NeutralButtonStyle}">
+                <Button x:Name="DrinkButton" Focusable="False" Grid.Column="2" Padding="4,2" Style="{DynamicResource NeutralButtonStyle}">
                     <StackPanel>
                         <TextBlock HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Drink}"/>
                         <TextBlock x:Name="DrinkLine" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
                                    FontSize="{DynamicResource Theme.Size.10.5}"/>
                     </StackPanel>
                 </Button>
-                <Button x:Name="RestButton" Grid.Column="4" Padding="4,2" Style="{DynamicResource NeutralButtonStyle}">
+                <Button x:Name="RestButton" Focusable="False" Grid.Column="4" Padding="4,2" Style="{DynamicResource NeutralButtonStyle}">
                     <StackPanel>
                         <TextBlock HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Rest}"/>
                         <TextBlock x:Name="RestLine" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
@@ -294,7 +294,7 @@
             </StackPanel>
         </Border>
 
-        <Button x:Name="LeaveButton" Grid.Row="6" Height="26" Padding="6,2"
+        <Button x:Name="LeaveButton" Focusable="False" Grid.Row="6" Height="26" Padding="6,2"
                 Style="{DynamicResource NeutralButtonStyle}"
                 Content="{x:Static h:HatchlingText.Leave}"/>
     </Grid>
