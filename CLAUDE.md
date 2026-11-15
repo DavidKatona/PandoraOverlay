@@ -353,6 +353,13 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   (one `name:value` line, from a hidden prompt or the release secret) into the
   scrambled, git-ignored `Assets/overlay-access.bin`; it never prints the line
   (see constraint 4 and Stack & build).
+- `tools/app-icon/` — `make-icon.ps1` draws the app icon (`Assets/app.ico`: the
+  tray, the windows, the update card, the installer) with WPF's vector drawing at
+  every size from 16 to 256, each a PNG entry; never run by a build. The design is
+  "Pandora frame" (the owner's pick, Nov 15 2026, from the icon canvas
+  https://claude.ai/artifact/Qw7EGhw7RELx18uCMN374s): the minimap's arrow in the
+  Pandora theme's orange on a near-black square with a lit top edge. It replaced
+  the amber arrow of Sep 12 2026, which stopped at 64 px.
 - `tools/games-art/` — the games' art generator (plain Node, no dependencies,
   never run by a build): sprites are drawn from shapes by one engine and written
   as atlases into each game's `Art/` folder, which is checked in and embedded.
