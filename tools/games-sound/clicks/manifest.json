@@ -2,8 +2,8 @@
   "sources": {
     "tools/games-sound/board.js": "9e29013279838e3596d7b96b827b57db4971a09d5a92a86fa4feb9ed957c4d04",
     "tools/games-sound/clicks/board.js": "37be264334a15b23613a47d03412e978117f190ecde9a61f1ed10dcc6ddd3f82",
-    "tools/games-sound/clicks/build.js": "6b398cdeb1f6c56ce1452f9fc44bdf4a2f79f7614af07b58d00d67b859f00625",
-    "tools/games-sound/clicks/cues.js": "3d7d45dab9c1c727f0538dcaa70f534fcf33b7cd4e3136c1406fd30ddf20992f",
+    "tools/games-sound/clicks/build.js": "9fdd436103e7cb6cd07d3c7db60d47a02e94e32209bfe78eb5b8dee8abca3b45",
+    "tools/games-sound/clicks/cues.js": "51f31229bb4695f2521c2aa85b3dc523d93aa25eadaba4d1003d1901f56f68a4",
     "tools/games-sound/manifest.js": "3ef7419b0fdd753b708c314e44ebbcd5c2e6f17976eed1371dbeb7d1490aa48b",
     "tools/games-sound/synth.js": "8ed389eb1538971e89627ad6f213c5c8e2bff55b546193255a956bd5a9d86ac7",
     "tools/games-sound/wav.js": "3c910f499b553f8011dda457f3424cd1a4afb342b38b114c5c59aa8ce1b6b0d4"

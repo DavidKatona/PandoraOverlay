@@ -28,7 +28,7 @@ stale (PLAN-SOUND 5.1).
 | `wav.js` | WAV out (RIFF/WAVE, PCM, mono, 44,100 Hz, 16 bits, no other chunk) and in, for the board |
 | `manifest.js` | writes a game's manifest |
 | `board.js` | the sound board: every take from the WAVs that ship, the picks' match figures (under a pick that misses a bar, the figures of a corrected render and a line saying why, R6), the window's five volume steps and a mute, the demo turns |
-| `<game>/` | one folder per game: its `cues.js`, its `build.js` and its `manifest.json` |
+| `<game>/` | one folder per game: its `cues.js`, its `build.js` and its `manifest.json`; and `clicks/`, the click sounds, a set that is not a game (below) |
 
 ## The recipe
 
@@ -100,17 +100,17 @@ plays them and the host plays a game's clicks from the same files), never to a g
   byte, a cue named twice, a bad name, a level or a take outside those bounds, other
   than three takes, an attack under 1 ms, a layer ending after its take and a square;
   and it renders every take and refuses one the test would refuse (a peak more than
-  0.5 dB off its level, a first sample or last 2 ms not silent, no samples, more than
-  3,528) before it writes any file.
+  0.5 dB off its level, a first sample or last 2 ms not silent, fewer than 662
+  samples or more than 3,528 (15 to 80 ms, R11)) before it writes any file.
 - **Held as a game is**, by `SoundInStepTests`, but for its place and bounds: its
   outputs under `Assets/Clicks/` only, and every file there one of them; every cue a
   WAV and every WAV a cue; every WAV in the format, 662 to 3,528 samples (15 to 80 ms),
   its peak within 0.5 dB of its cue's level, that level within −24 to −14 dBFS, silent
   ends, no sample at full scale. The bounds are the test's own constants, never read
   from the manifest. Its sources are the shared `.js` files and its own, like a game's.
-- **Nothing is picked yet.** A ships until the owner picks on the third board; a pick
-  other than A, or a note, is a recipe change in `clicks/cues.js`, a new R line and a
-  rebuild, in a task of its own (R9, R5's way).
+- **Take A of each is the owner's** (G29). B and C stay in `clicks/cues.js` as the takes
+  he heard beside it, with no `pick` mark (R11); a change to a take is a recipe change, a
+  new R line and a rebuild, in a task of its own (R9, R5's way).
 - **The third board** (`clicks/board.js`, R10) is the second board's page (its first
   `<style>` block, its PCM reader, its measure and waveform copied, not imported, so
   the second board stays byte for byte): two five-step volumes (Overlay, Games window)

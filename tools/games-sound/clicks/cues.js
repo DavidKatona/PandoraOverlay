@@ -21,11 +21,13 @@
 //   forward, falling for off and back. build.js refuses a cue outside them.
 // - R9 (the takes): A in the direction PLAN-CLICKS 3.2's table gives, B and C the
 //   real alternatives it gives, each with its short name. Every take of a cue
-//   lasts the cue's Length in that table; its layers are the table's.
+//   lasts the cue's Length in that table; its layers are the table's (R11).
 //
-// No take is the owner's yet (nothing is marked `pick`): A ships until he picks on
-// the third board. A pick other than A, or a note, is a recipe change here, a new
-// R line and a rebuild, in a task of its own (R9, R5's way).
+// Take A of each is the owner's (G29, Nov 15 2026: "A is fine", on the third
+// board). B and C stay as the takes he heard beside it, so the board rebuilds as he
+// judged it, and no cue is marked `pick`: the hatchling set's `pick` is a first-board
+// recipe copied whole with one take (R11). A change to a take is a recipe change here,
+// a new R line and a rebuild, in a task of its own (R9, R5's way).
 //
 // The notes are COPIED, not imported: each set's sources are its own (a game's
 // cues.js is that game's). `N` is the first board's table
@@ -82,7 +84,7 @@ const CUES = [
     { name: "Sweep up", dur: 0.05, layers: [
       tone("triangle", N.C6, N.G6, 0, 0.035, 0.6) ] },
     // The Tap's noise UNDER a triangle G6: here the tone leads at full gain and the
-    // tick sits at a third, so it is not press's Tap again at another level.
+    // tick sits at a third, so it is not press's Tap again at another level (R11).
     { name: "Tap high", dur: 0.05, layers: [
       tapNoise(3000, 0.6 / 3),
       tone("triangle", N.G6, N.G6, 0, 0.03, 0.6) ] } ] },

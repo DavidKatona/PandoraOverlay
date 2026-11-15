@@ -35,9 +35,10 @@ const OUT = path.join(TOOL, "out");
 const MIN_SECONDS = 0.015, MAX_SECONDS = 0.08;   // R8: never longer than ClickSound.MinGap, 80 ms
 const MIN_ATTACK = 0.001;                         // R8: a millisecond or more
 const MIN_LEVEL = -24, MAX_LEVEL = -14;           // R8
-const TAKES = 3;                                  // R9: A ships, B and C for the owner to pick from
+const TAKES = 3;                                  // R9: A ships (the owner's, G29), B and C kept as he heard them beside it (R11)
 const WAVES = ["triangle", "sine"];               // R8: no square, a click is never a warning or a fanfare
 const MAX_SAMPLES = Math.round(MAX_SECONDS * RATE); // 3,528: 80 ms
+const MIN_SAMPLES = Math.ceil(MIN_SECONDS * RATE); // 662: 15 ms, the test's floor (R11)
 const EDGE = Math.floor(0.002 * RATE);            // the last 2 ms (88 samples), silent (A87)
 const SILENT = Math.pow(10, -60 / 20) * 32767;    // -60 dBFS in 16-bit steps
 
@@ -58,7 +59,7 @@ function check(cue) {
 
 function checkRendered(cue, take, samples) {
   const fail = (why) => { throw new Error(`cue '${cue.id}', take '${take.name}': ${why}`); };
-  if (samples.length < 1 || samples.length > MAX_SAMPLES) fail(`${samples.length} samples: 1 to ${MAX_SAMPLES} (80 ms)`);
+  if (samples.length < MIN_SAMPLES || samples.length > MAX_SAMPLES) fail(`${samples.length} samples: ${MIN_SAMPLES} to ${MAX_SAMPLES} (15 to 80 ms, R8)`);
   // The first sample and the last 2 ms under -60 dBFS (A87: the rise between is
   // R8's attack, which check() refuses to break).
   if (Math.abs(samples[0]) >= SILENT) fail("the first sample is not silent");
