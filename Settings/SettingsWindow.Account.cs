@@ -203,6 +203,7 @@ public partial class SettingsWindow
         if (!_signOutArmed)
         {
             _signOutArmed = true;
+            UiClicks.Armed(SignOutButton); // A104
             SignOutButton.Content = "Really sign out?";
             return;
         }

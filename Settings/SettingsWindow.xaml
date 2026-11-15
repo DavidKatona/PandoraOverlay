@@ -34,7 +34,7 @@
             <!-- Title bar (draggable): the theme's title glyph (none in Default), the title. -->
             <DockPanel DockPanel.Dock="Top" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
                        Margin="0,0,0,8" Background="Transparent">
-                <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Close_Click"
+                <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Close_Click" local:UiClicks.Cue="Back"
                         Style="{StaticResource DangerButtonStyle}"
                         Width="22" Height="22" Padding="0" FontSize="{DynamicResource Theme.Size.10}"/>
                 <local:ThemeShape DockPanel.Dock="Left" Slot="TitleGlyph" Kind="{DynamicResource Theme.Shapes.TitleGlyph}"
@@ -52,7 +52,7 @@
                  every change applies at once now, and the line says so once
                  for every page. -->
             <DockPanel DockPanel.Dock="Bottom" Margin="0,14,0,0">
-                <Button DockPanel.Dock="Right" Content="Close" Click="Close_Click"
+                <Button DockPanel.Dock="Right" Content="Close" Click="Close_Click" local:UiClicks.Cue="Back"
                         Style="{StaticResource NeutralButtonStyle}"/>
                 <TextBlock Text="Changes apply as you make them. A click on the game closes this window."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -159,7 +159,7 @@
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
                             <Button x:Name="SignInAgainButton" Content="Sign in again" Click="SignIn_Click"
                                     Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                            <Button x:Name="SignOutButton" Content="Sign out" Click="SignOut_Click"
+                            <Button x:Name="SignOutButton" Content="Sign out" Click="SignOut_Click" local:UiClicks.Cue="Arm"
                                     Style="{StaticResource DangerButtonStyle}"/>
                         </StackPanel>
                         <!-- The initial is the fallback: the avatar (SettingsWindow.Account.cs)
@@ -235,7 +235,7 @@
             </DockPanel>
             <!-- Positions only: sizes are readability preferences with a slider each. -->
             <DockPanel Margin="0,12,0,0">
-                <Button x:Name="ResetPositionsButton" DockPanel.Dock="Left" Content="Reset positions" Click="ResetPositions_Click"
+                <Button x:Name="ResetPositionsButton" DockPanel.Dock="Left" Content="Reset positions" Click="ResetPositions_Click" local:UiClicks.Cue="Arm"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="Puts every panel back in the default layout: Prime tracker and Activity feed top-left, minimap and stats panel top-right, control panel bottom-centre. Sizes stay as they are."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
@@ -377,7 +377,7 @@
                  this moves them to the layout a fresh install gets. Two clicks:
                  it changes every key at once. -->
             <DockPanel Margin="0,14,0,0">
-                <Button x:Name="DefaultKeysButton" DockPanel.Dock="Left" Content="Use the default keys" Click="DefaultKeys_Click"
+                <Button x:Name="DefaultKeysButton" DockPanel.Dock="Left" Content="Use the default keys" Click="DefaultKeys_Click" local:UiClicks.Cue="Arm"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="F1–F4 the overlay, F5–F8 the widgets in the control panel's order, F9 the website, M the map, J the games. Updating the overlay keeps the keys you have."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
@@ -598,7 +598,7 @@
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
                     <Button x:Name="ExportButton" Content="Export…" Click="Export_Click"
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                    <Button x:Name="DeleteAllButton" Content="Delete all" Click="DeleteAll_Click"
+                    <Button x:Name="DeleteAllButton" Content="Delete all" Click="DeleteAll_Click" local:UiClicks.Cue="Arm"
                             Style="{StaticResource DangerButtonStyle}"/>
                 </StackPanel>
                 <TextBlock Text="Right-click the map in edit mode to add one; click a dot to recolour."
@@ -692,9 +692,9 @@
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
                     <Button x:Name="RouteCopyButton" Content="Copy" Click="RouteCopy_Click"
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                    <Button x:Name="RoutePasteButton" Content="Paste" Click="RoutePaste_Click"
+                    <Button x:Name="RoutePasteButton" Content="Paste" Click="RoutePaste_Click" local:UiClicks.Cue="Arm"
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                    <Button x:Name="RouteClearButton" Content="Clear" Click="RouteClear_Click"
+                    <Button x:Name="RouteClearButton" Content="Clear" Click="RouteClear_Click" local:UiClicks.Cue="Arm"
                             Style="{StaticResource DangerButtonStyle}"/>
                 </StackPanel>
                 <!-- A paused route's way back takes the hint's place. -->

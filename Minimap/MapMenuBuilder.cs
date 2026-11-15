@@ -133,12 +133,14 @@ public sealed class MapMenuBuilder
         var content = new StackPanel { Orientation = Orientation.Horizontal };
         content.Children.Add(label);
         var button = new Button { Content = content, Style = _button };
+        UiClicks.SetCue(button, ClickMark.Arm); // A104: the first click asks, the second acts
         var armed = false;
         button.Click += (_, _) =>
         {
             if (!armed)
             {
                 armed = true;
+                UiClicks.Armed(button);
                 label.Text = armedText;
                 return;
             }

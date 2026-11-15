@@ -70,7 +70,9 @@ public partial class SettingsWindow
         };
         var really = SmallButton("Delete", "DangerButtonStyle");
         really.ToolTip = $"Delete {d.DisplayName} from your storage on the website";
+        UiClicks.SetCue(delete, ClickMark.Arm); // A104: every click of it arms (it shows Delete and Keep)
         var keep = SmallButton("Keep", "NeutralButtonStyle");
+        UiClicks.SetCue(keep, ClickMark.Back); // it backs out of the question
         var armed = Pair(really, keep);
         armed.Visibility = Visibility.Collapsed;
         block.Children.Add(warning);
@@ -84,6 +86,7 @@ public partial class SettingsWindow
         }
         delete.Click += (_, _) =>
         {
+            UiClicks.Armed(delete);
             plain.Visibility = Visibility.Collapsed;
             warning.Visibility = armed.Visibility = Visibility.Visible;
             card.Disarm = Disarm;

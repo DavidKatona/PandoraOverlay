@@ -27,7 +27,7 @@
         <StackPanel>
             <!-- Header: icon, what this card is, ✕ (= Later). Draggable. -->
             <DockPanel MouseLeftButtonDown="Header_MouseLeftButtonDown" Background="Transparent">
-                <Button x:Name="CloseButton" DockPanel.Dock="Right" Content="&#x2715;" Click="Close_Click"
+                <Button x:Name="CloseButton" DockPanel.Dock="Right" Content="&#x2715;" Click="Close_Click" local:UiClicks.Cue="Back"
                         Style="{StaticResource DangerButtonStyle}" Width="22" Height="22" Padding="0" FontSize="{DynamicResource Theme.Size.10}" VerticalAlignment="Center"/>
                 <Image DockPanel.Dock="Left" Source="pack://application:,,,/PandoraOverlay;component/Assets/app.ico" Width="26" Height="26" VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
@@ -55,7 +55,7 @@
             <Grid Margin="0,16,0,0">
                 <DockPanel x:Name="ButtonRow">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button x:Name="LaterButton" Content="Later" Click="Close_Click" Style="{StaticResource NeutralButtonStyle}" Margin="0,0,8,0"/>
+                        <Button x:Name="LaterButton" Content="Later" Click="Close_Click" local:UiClicks.Cue="Back" Style="{StaticResource NeutralButtonStyle}" Margin="0,0,8,0"/>
                         <Button x:Name="PrimaryButton" Click="Primary_Click" Style="{StaticResource SaveButtonStyle}"/>
                     </StackPanel>
                     <TextBlock x:Name="HintText" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,12,0"/>

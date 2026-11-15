@@ -39,7 +39,7 @@
 
             <!-- Title bar: the chrome's caption area; only the close button takes clicks. -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Cancel_Click"
+                <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Cancel_Click" local:UiClicks.Cue="Back"
                         Style="{StaticResource DangerButtonStyle}" Width="22" Height="22" Padding="0" FontSize="{DynamicResource Theme.Size.10}"
                         WindowChrome.IsHitTestVisibleInChrome="True"/>
                 <TextBlock Text="Sign in to islapandora.eu" Foreground="{DynamicResource Theme.Text.Title}" FontSize="14" VerticalAlignment="Center"
@@ -57,7 +57,7 @@
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,8,0" Visibility="Collapsed"/>
                     <Button x:Name="DoneButton" Content="Done" Click="Done_Click"
                             Style="{StaticResource SaveButtonStyle}" Margin="0,0,8,0" Visibility="Collapsed"/>
-                    <Button x:Name="CancelButton" Content="Cancel" Click="Cancel_Click"
+                    <Button x:Name="CancelButton" Content="Cancel" Click="Cancel_Click" local:UiClicks.Cue="Back"
                             Style="{StaticResource NeutralButtonStyle}"/>
                 </StackPanel>
                 <TextBlock x:Name="FooterNote" Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap"
