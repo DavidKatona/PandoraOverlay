@@ -1,0 +1,98 @@
+<!-- The Journal (H27, in the page's own space: the plan's y less 34): at
+     the left the field journal's three entries (made in code,
+     JournalPage.xaml.cs) and what server growth pays; at the right what server
+     play paid lately, the stars, and the real dino's last reading. Nothing here
+     counts down, names a day or asks the player to come back (G4, H18): only
+     what a species pays now. Every colour, size and font is the theme's (A25),
+     every word HatchlingText's (A24). -->
+<Grid x:Class="PandoraOverlay.Games.Hatchling.JournalPage"
+      x:ClassModifier="internal"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:h="clr-namespace:PandoraOverlay.Games.Hatchling"
+      Width="798" Height="476" Background="Transparent"
+      TextElement.FontFamily="{DynamicResource Theme.Font.Family}">
+
+    <!-- The left column, 12, 46, 400 x 452: the title (24), the intro (two
+         lines, 30), the three entries (70 each, 6 apart), and the card of what
+         server growth pays in what is left. -->
+    <Grid Margin="12,12,0,0" Width="400" Height="452" HorizontalAlignment="Left" VerticalAlignment="Top">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="24"/>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="6"/>
+            <RowDefinition Height="70"/>
+            <RowDefinition Height="6"/>
+            <RowDefinition Height="70"/>
+            <RowDefinition Height="6"/>
+            <RowDefinition Height="70"/>
+            <RowDefinition Height="6"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   Text="{x:Static h:HatchlingText.JournalTitle}"
+                   FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontSize="14"
+                   Foreground="{DynamicResource Theme.Text.Title}"/>
+        <TextBlock Grid.Row="1" MaxHeight="30" VerticalAlignment="Top"
+                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                   Text="{x:Static h:HatchlingText.JournalIntro}"
+                   Foreground="{DynamicResource Theme.Text.Dim}"
+                   FontSize="{DynamicResource Theme.Size.11}"/>
+        <Grid x:Name="Entry0" Grid.Row="3"/>
+        <Grid x:Name="Entry1" Grid.Row="5"/>
+        <Grid x:Name="Entry2" Grid.Row="7"/>
+
+        <Border Grid.Row="9" Padding="10,6" BorderThickness="1"
+                Background="{DynamicResource Theme.InfoCard.Surface}"
+                BorderBrush="{DynamicResource Theme.InfoCard.Line}"
+                CornerRadius="{DynamicResource Theme.Corner.Card}">
+            <StackPanel>
+                <TextBlock Margin="0,0,0,2" TextTrimming="CharacterEllipsis"
+                           Style="{DynamicResource SectionCaption}"
+                           Text="{x:Static h:HatchlingText.PaysCaption}"/>
+                <Grid x:Name="PaysRows" Height="85"/>
+                <TextBlock Margin="0,4,0,0" MaxHeight="45"
+                           TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                           Text="{x:Static h:HatchlingText.PaysNote}"
+                           Foreground="{DynamicResource Theme.Text.Dim}"
+                           FontSize="{DynamicResource Theme.Size.11}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+
+    <!-- The right column, 422, 46, 364 x 452: what server play paid lately (six
+         lines at most), the stars, and at the foot the real dino's line. -->
+    <Grid Margin="422,12,0,0" Width="364" Height="452" HorizontalAlignment="Left" VerticalAlignment="Top">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="108"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="17"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Margin="0,6,0,4" TextTrimming="CharacterEllipsis"
+                   Style="{DynamicResource SectionCaption}"
+                   Text="{x:Static h:HatchlingText.LatelyCaption}"/>
+        <Grid x:Name="LatelyRows" Grid.Row="1"/>
+        <TextBlock x:Name="LatelyNone" Grid.Row="1" VerticalAlignment="Top" Height="18" TextTrimming="CharacterEllipsis"
+                   Text="{x:Static h:HatchlingText.LatelyNone}"
+                   Foreground="{DynamicResource Theme.Text.Dim}"
+                   FontSize="{DynamicResource Theme.Size.11}"/>
+        <TextBlock Grid.Row="2" Margin="0,16,0,4" TextTrimming="CharacterEllipsis"
+                   Style="{DynamicResource SectionCaption}"
+                   Text="{x:Static h:HatchlingText.StarsCaption}"/>
+        <TextBlock Grid.Row="3" MaxHeight="45"
+                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                   Text="{x:Static h:HatchlingText.StarsNote}"
+                   Foreground="{DynamicResource Theme.Text.Dim}"
+                   FontSize="{DynamicResource Theme.Size.11}"/>
+        <TextBlock x:Name="StarsCount" Grid.Row="4" Margin="0,6,0,0" TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource Theme.Text.Highlight}"
+                   FontSize="{DynamicResource Theme.Size.12}"/>
+        <TextBlock x:Name="RealDino" Grid.Row="6" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource Theme.Text.Dim}"
+                   FontSize="{DynamicResource Theme.Size.11}"/>
+    </Grid>
+</Grid>

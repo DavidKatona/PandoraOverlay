@@ -10,7 +10,9 @@ namespace PandoraOverlay.Games.Hatchling;
 /// <param name="Turn">A turn played back and frozen, or null for a still state at rest.</param>
 /// <param name="Beat">The beat of <paramref name="Turn"/> it stands in.</param>
 /// <param name="Tick">The tick of that beat.</param>
-internal sealed record Sample(GameState State, TurnResult? Turn = null, int Beat = 0, int Tick = 0);
+/// <param name="Reading">The real dino's last reading the Journal shows (H71), the sample's own: null is "no reading yet".</param>
+/// <param name="Armed">Camp's unlock is shown armed (its first click's look), as <c>camp-locked</c> has it.</param>
+internal sealed record Sample(GameState State, TurnResult? Turn = null, int Beat = 0, int Tick = 0, DinoReading? Reading = null, bool Armed = false);
 
 /// <summary>
 /// The layout states' samples, built in code and never read from a save
@@ -36,9 +38,12 @@ internal static class Samples
     /// <summary>The wallet of every sample but the first run's: seven figures (A26).</summary>
     internal const long Balance = 1_234_567;
 
-    /// <summary>The sample of a Run page's layout state; anything else throws (Camp's and the other pages' are task H15's).</summary>
+    /// <summary>The sample of a layout state; a name that is not one throws.</summary>
     public static Sample For(string state) => state switch
     {
+        "camp-first" => CampFirst(),
+        "camp-locked" => CampLocked(),
+        "camp-everything" => CampEverything(),
         "run-first" => First(),
         "run-mid" => new Sample(Mid().State),
         "run-playback" => Playback(),
@@ -46,8 +51,185 @@ internal static class Samples
         "run-offer" => Offer(),
         "run-lost" => Lost(),
         "run-won" => Won(),
+        "lineage-fresh" => LineageFresh(),
+        "lineage-mid" => LineageMid(),
+        "lineage-full" => LineageFull(),
+        "journal-fresh" => JournalFresh(),
+        "journal-busy" => JournalBusy(),
+        "records-fresh" => RecordsFresh(),
+        "records-full" => RecordsFull(),
         _ => throw new ArgumentException($"No sample for '{state}'.", nameof(state)),
     };
+
+    // ---- the pages between runs: Camp, the Lineage, the Journal, Records --------------------------
+
+    /// <summary>The species the samples' lists add beside <see cref="Species"/>: long names, in the table's order.</summary>
+    private static readonly string[] Others = { "Hypsilophodon", "Tenontosaurus", "Diabloceratops", "Herrerasaurus", "Dilophosaurus" };
+
+    /// <summary>A seen growth with every star (300% and over), its whole percent three digits wide.</summary>
+    private const double AllStarsGrown = 345.6;
+
+    /// <summary>A fresh save, as a player first meets it (H25): two unlocked, Dryosaurus chosen, no run finished, so the first minute's note.</summary>
+    private static Sample CampFirst() => new(GameState.Fresh(Moment));
+
+    /// <summary>
+    /// The sample species chosen and locked, the wallet enough for the unlock at its
+    /// highest price (1,500, after eleven bought), the unlock armed; thirteen species
+    /// unlocked with stars, wins and freshness of every kind on their cards; danger 4
+    /// of 4 chosen, so the fifth radio is disabled and the danger's pay has two decimals.
+    /// </summary>
+    private static Sample CampLocked()
+    {
+        var state = GameState.Fresh(Moment);
+        state.Wallet = new Wallet(Balance, Balance);
+        state.Bought = 11;
+        var locked = new HashSet<string>(StringComparer.Ordinal)
+            { Species, "Stegosaurus", "Pteranodon", "Carnotaurus", "Deinosuchus", "Tyrannosaurus", "Beipiaosaurus", "Gallimimus" };
+        state.Unlocked = SpeciesTable.All.Select(s => s.Name).Where(n => !locked.Contains(n)).ToList();
+        var i = 0;
+        foreach (var name in state.Unlocked)
+        {
+            var record = state.RecordToChange(name);
+            record.Grown = i % 4 * 100 + 12.5;          // 12%, 112%, 212%, 312%: no star to three
+            record.Fresh = Tuning.FreshFloor + i % 5 * 0.5;   // x1.0 to x3.0
+            record.WonAt = i % 6;                       // no win to danger 5
+            record.Runs = 10 + i;
+            i++;
+        }
+        state.Selected = Species;
+        state.MaxDanger = Dangers.Highest - 1;
+        state.Danger = Dangers.Highest - 1;
+        state.Totals.Runs = 1234;
+        return new Sample(state, Armed: true);
+    }
+
+    /// <summary>All 21 unlocked, each with three stars and won at danger 5, the wallet in seven figures, danger 5 chosen.</summary>
+    private static Sample CampEverything()
+    {
+        var state = Game(runs: 12_345, balance: Balance);
+        var i = 0;
+        foreach (var species in SpeciesTable.All)
+        {
+            var record = state.RecordToChange(species.Name);
+            record.Grown = AllStarsGrown;
+            record.Fresh = Tuning.FreshFloor + i % 5 * 0.5;
+            record.WonAt = Dangers.Highest;
+            record.Runs = 100 + i;
+            record.BestGrowth = Tuning.GrowthMost;
+            i++;
+        }
+        state.MaxDanger = Dangers.Highest;
+        state.Danger = Dangers.Highest;
+        return new Sample(state);
+    }
+
+    /// <summary>Nothing bought, the wallet empty: every first tier priced in Off, every other one needing the one above.</summary>
+    private static Sample LineageFresh() => new(GameState.Fresh(Moment));
+
+    /// <summary>
+    /// Some bought (Keen nose, Fast metabolism and Sharp instincts complete), some the
+    /// wallet can pay (Deep stomach, Thick hide, Quick reflexes, Strong start), some it
+    /// can't (Dry spells, Legacy, Second thoughts), and some needing the one above.
+    /// </summary>
+    private static Sample LineageMid()
+    {
+        var state = GameState.Fresh(Moment);
+        state.Wallet = new Wallet(750, 9_870);
+        state.Ranks[Trait.DeepStomach] = 3;
+        state.Ranks[Trait.ThickHide] = 1;
+        state.Ranks[Trait.KeenNose] = Lineage.Of(Trait.KeenNose).MaxRank;
+        state.Ranks[Trait.FastMetabolism] = Lineage.Of(Trait.FastMetabolism).MaxRank;
+        state.Ranks[Trait.StrongStart] = 1;
+        state.Ranks[Trait.SharpInstincts] = Lineage.Of(Trait.SharpInstincts).MaxRank;
+        state.Totals.RanksBought = state.Ranks.Values.Sum();
+        return new Sample(state);
+    }
+
+    /// <summary>Every trait complete, the wallet in seven figures.</summary>
+    private static Sample LineageFull()
+    {
+        var state = Game(runs: 12_345, balance: Balance);
+        foreach (var trait in Lineage.All) state.Ranks[trait.Trait] = trait.MaxRank;
+        state.Totals.RanksBought = Lineage.All.Sum(t => t.MaxRank);
+        return new Sample(state);
+    }
+
+    /// <summary>The journal's three entries at 0, at their widest words; nothing lately; no reading yet; the wallet empty, so no Swap.</summary>
+    private static Sample JournalFresh()
+    {
+        var state = GameState.Fresh(Moment);
+        state.Journal.Open = Entries();
+        return new Sample(state);
+    }
+
+    /// <summary>
+    /// The entries in progress, the first for the species the real dino is (in game,
+    /// fully grown: "100%"); five species grown, so five rows of pay with the real
+    /// dino's first; six lines lately, one of each kind and the widest of each.
+    /// </summary>
+    private static Sample JournalBusy()
+    {
+        var state = Game(runs: 12_345, balance: Balance);
+        state.Journal.Open = Entries();
+        state.Journal.Open[0].Seen = 32.4;
+        state.Journal.Open[1].Seen = 74.9;
+        state.Journal.Open[2].Seen = 0.6;
+        state.Journal.Done = 1_234;
+        var grown = new[] { AllStarsGrown, 299.9, 150.0, 123.4, 88.8, 50.0 };
+        var fresh = new[] { Tuning.FreshFloor, 1.2, 2.4, 2.95, Tuning.FreshMax, Tuning.FreshMax };
+        var names = new[] { Species }.Concat(Others).ToArray();
+        for (var i = 0; i < names.Length; i++)
+        {
+            var record = state.RecordToChange(names[i]);
+            record.Grown = grown[i];
+            record.Fresh = fresh[i];
+        }
+        state.Lately = new List<LatelyLine>
+        {
+            new(LatelyKind.Grew, Species, 13.2, 2.4, 127, 0),
+            new(LatelyKind.Journal, Species, 0, 0, Tuning.JournalReward, (int)Tuning.JournalTarget),
+            new(LatelyKind.Star, Species, 0, 0, 0, 0),
+            new(LatelyKind.Unlocked, Species, 0, 0, 0, 0),
+            new(LatelyKind.Grew, Others[2], 99.9, Tuning.FreshMax, 1_199, 0),
+            new(LatelyKind.Star, Others[0], 0, 0, 0, 0),
+        };
+        return new Sample(state, Reading: new DinoReading(true, Species, null, 1.0));
+    }
+
+    /// <summary>Nothing earned, nothing played, the sample species chosen (locked).</summary>
+    private static Sample RecordsFresh()
+    {
+        var state = GameState.Fresh(Moment);
+        state.Selected = Species;
+        return new Sample(state);
+    }
+
+    /// <summary>All 24 earned and every total large: 21 of 21 unlocked, 63 of 63 stars, danger 5 won, the chosen species' line at its longest.</summary>
+    private static Sample RecordsFull()
+    {
+        var state = Game(runs: 12_345, balance: Balance);
+        state.Wallet = new Wallet(Balance, 12_345_678);
+        state.Achievements = new Achievements(AchievementList.All, AchievementList.All.Select(a => a.Id));
+        state.Totals.Wins = 9_876;
+        state.Totals.Kills = 123_456;
+        state.Journal.Done = 1_234;
+        foreach (var species in SpeciesTable.All)
+        {
+            var record = state.RecordToChange(species.Name);
+            record.Grown = AllStarsGrown;
+            record.WonAt = Dangers.Highest;
+            record.BestGrowth = Tuning.GrowthMost;
+            record.Runs = 100;
+        }
+        state.RecordToChange(Species).Runs = 1_234;
+        return new Sample(state);
+    }
+
+    /// <summary>The journal's entries at their widest: the sample species first, then two more long names, none a big build's (75%, 400).</summary>
+    private static List<JournalEntry> Entries() =>
+        new[] { Species, Others[2], Others[0] }
+            .Select(n => SpeciesTable.TryGet(n, out var info) ? Journal.EntryFor(info) : throw new InvalidOperationException("a sample's species is the table's"))
+            .ToList();
 
     // ---- the states ------------------------------------------------------------------------
 

@@ -1,0 +1,52 @@
+<!-- Records (H27, in the page's own space: the plan's y less 34): at the
+     left the 24 achievements in two columns of twelve (cells of 255 x 34, made
+     in code, RecordsPage.xaml.cs), at the right the lineage's totals and the
+     chosen species' line. Shown in the Games window only (G22). Every colour,
+     size and font is the theme's (A25), every word HatchlingText's (A24). -->
+<Grid x:Class="PandoraOverlay.Games.Hatchling.RecordsPage"
+      x:ClassModifier="internal"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:h="clr-namespace:PandoraOverlay.Games.Hatchling"
+      Width="798" Height="476" Background="Transparent"
+      TextElement.FontFamily="{DynamicResource Theme.Font.Family}">
+
+    <!-- The achievements, 12, 46, 520 wide: the title with the count, then
+         two columns of twelve cells, 255 x 34, 10 apart. -->
+    <Grid Margin="12,12,0,0" Width="520" Height="452" HorizontalAlignment="Left" VerticalAlignment="Top">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="28"/>
+            <RowDefinition Height="6"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       Text="{x:Static h:HatchlingText.AchievementsTitle}"
+                       FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontSize="14"
+                       Foreground="{DynamicResource Theme.Text.Title}"/>
+            <TextBlock x:Name="EarnedCount" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource Theme.Text.Text2}"
+                       FontSize="{DynamicResource Theme.Size.12}"/>
+        </Grid>
+        <Grid x:Name="Cells" Grid.Row="2"/>
+    </Grid>
+
+    <!-- The lineage's totals and the chosen species, 542, 46, 244 wide. -->
+    <StackPanel Margin="542,12,0,0" Width="244" HorizontalAlignment="Left" VerticalAlignment="Top">
+        <TextBlock Margin="0,8,0,4" TextTrimming="CharacterEllipsis"
+                   Style="{DynamicResource SectionCaption}"
+                   Text="{x:Static h:HatchlingText.LineageCaption}"/>
+        <Grid x:Name="TotalRows"/>
+        <TextBlock Margin="0,16,0,4" TextTrimming="CharacterEllipsis"
+                   Style="{DynamicResource SectionCaption}"
+                   Text="{x:Static h:HatchlingText.ChosenCaption}"/>
+        <TextBlock x:Name="ChosenLine" MaxHeight="30"
+                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource Theme.Text.Text}"
+                   FontSize="{DynamicResource Theme.Size.11}"/>
+    </StackPanel>
+</Grid>
