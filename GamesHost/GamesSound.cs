@@ -30,7 +30,8 @@ namespace PandoraOverlay;
 /// instance is heard, calls the speaker's <c>StopAll</c> (faded out in 5 ms,
 /// never cut with a click); a mute does too. Only a stage that keeps the same
 /// instance heard leaves its sounds playing. A stop with nothing playing costs
-/// nothing (the speaker has nothing to fade).
+/// nothing (the speaker has nothing to fade), and never fades a later sound: a
+/// <c>Play</c> after it is heard whole (A88, written on <c>ISpeaker.StopAll</c>).
 /// </para>
 /// <para>
 /// <b>Valid (A78).</b> 1 to <see cref="GameSound.MaxSamples"/> samples, checked

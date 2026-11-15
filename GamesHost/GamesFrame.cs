@@ -127,6 +127,9 @@ public static class GamesFrame
     /// <summary>How much taller each pip is than the one before.</summary>
     public const double SoundPipRise = 2;
 
+    /// <summary>A pip's corner at most this, whatever the theme's <c>Corner.Progress</c>, so the meter reads as rising bars in every theme (A89).</summary>
+    public const double SoundPipMaxCorner = SoundPipWidth / 4;
+
     /// <summary>The pips' box: as tall as the tallest pip, the pips bottom-aligned in it, the box centred in the header.</summary>
     public const double SoundPipsHeight = SoundPipShortest + (SoundPips - 1) * SoundPipRise;
 

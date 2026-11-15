@@ -19,7 +19,11 @@ internal interface ISpeaker : IDisposable
     /// the speaker reads it on its own thread.</summary>
     void Play(short[] samples, float gain);
 
-    /// <summary>Every sound playing faded to silence within 5 ms, and dropped.</summary>
+    /// <summary>Every sound playing faded to silence within 5 ms, and dropped. It acts on
+    /// what plays at the call only: with nothing playing it does nothing (no thread, no
+    /// device, nothing kept for later), and a <see cref="Play"/> after it is heard whole,
+    /// since the gate calls it at every stage at which nobody, or another instance, is
+    /// heard (A88).</summary>
     void StopAll();
 }
 

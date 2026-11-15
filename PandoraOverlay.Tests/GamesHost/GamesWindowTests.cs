@@ -667,14 +667,28 @@ public class GamesWindowTests
 
     // ---- The sound group (A82) --------------------------------------------------------------
 
-    /// <summary>The pips lit (the growth bar's fill) up to the step and unlit (its track) above it, every one unlit while muted.</summary>
+    /// <summary>The pips lit (the growth bar's fill) up to the step and unlit (the slots meter's track, A89) above it, every one unlit while muted.</summary>
     private static void AssertPips(GamesWindow window, int lit)
     {
         var pips = window.SoundPips.Children.Cast<Border>().ToList();
         Assert.Equal(GamesFrame.SoundPips, pips.Count);
         for (var i = 0; i < pips.Count; i++)
-            Assert.Same(Resource(window, i < lit ? "Theme.Storage.Growth" : "Theme.Storage.BarTrack"), pips[i].Background);
+            Assert.Same(Resource(window, i < lit ? "Theme.Storage.Growth" : "Theme.Storage.SlotsTrack"), pips[i].Background);
     }
+
+    /// <summary>In every theme, each pip's corner is the theme's progress corner held to the frame's <see cref="GamesFrame.SoundPipMaxCorner"/>, on all four corners: rising bars, never dots (A89).</summary>
+    [Theory]
+    [MemberData(nameof(GamesLayoutTests.Themes), MemberType = typeof(GamesLayoutTests))]
+    public void EveryPipsCornerIsTheThemesHeldToTheFramesMost(string id) => GamesLayoutTests.OnScreen(id, () =>
+    {
+        using var bench = new GamesBench(Fakes(1));
+        var window = bench.Window();
+        var most = Math.Min(Theme.Current.Corner.Progress.Value, GamesFrame.SoundPipMaxCorner);
+
+        var pips = window.SoundPips.Children.Cast<Border>().ToList();
+        Assert.Equal(GamesFrame.SoundPips, pips.Count);
+        Assert.All(pips, p => Assert.Equal(new CornerRadius(most), p.CornerRadius));
+    });
 
     /// <summary>A fresh config: sound on at step 3, the speaker's glyph, both steps enabled, three pips lit; the pips' shapes are the frame's.</summary>
     [Fact]

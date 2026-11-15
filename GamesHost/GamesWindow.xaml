@@ -46,11 +46,13 @@
                              body size 13: the speaker is 17.3 to 17.9 wide and 15.8 to
                              17.3 high in every bundled body font at its fit factor
                              (measured Nov 15 2026), inside the 22 x 22 with room to
-                             spare; the planner's glyph render was at 13 too. -->
+                             spare; the planner's glyph render was at 13 too. The speaker's
+                             glyphs at Normal in every theme, since a SemiBold body made WPF
+                             embolden the fallback symbol font (A89). -->
                         <StackPanel x:Name="SoundGroup" Orientation="Horizontal" VerticalAlignment="Center" Margin="{x:Static local:GamesFrame.SoundGroupMargin}">
                             <Button x:Name="SoundToggle" Click="SoundToggle_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
                                     Width="{x:Static local:GamesFrame.SoundButtonSize}" Height="{x:Static local:GamesFrame.SoundButtonSize}" Padding="0"
-                                    FontSize="{DynamicResource Theme.Size.13}" VerticalAlignment="Center"/>
+                                    FontSize="{DynamicResource Theme.Size.13}" FontWeight="Normal" VerticalAlignment="Center"/>
                             <Button x:Name="SoundDown" Click="SoundDown_Click" Focusable="False" Style="{StaticResource NeutralButtonStyle}"
                                     Content="{x:Static local:GamesText.SoundDown}" Margin="{x:Static local:GamesFrame.SoundGapBefore}"
                                     Width="{x:Static local:GamesFrame.SoundButtonSize}" Height="{x:Static local:GamesFrame.SoundButtonSize}" Padding="0"

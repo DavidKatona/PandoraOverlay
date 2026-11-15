@@ -314,12 +314,20 @@ internal partial class GamesWindow : Window
     // The games' mute and volume, on the grid and in a game alike (a player can set
     // the level before playing). The rules are the gate's (GamesSound): the window
     // only clicks and shows. Every colour and corner a theme token (no new token,
-    // A32): a lit pip is the growth bar's fill, an unlit one its track.
+    // A32): a lit pip is the growth bar's fill, an unlit one the slots meter's
+    // track, visible on the window's glass in every theme (A89).
 
     /// <summary>The level pips, from the quietest; built once (the theme can't change while the window is open: Settings closes it).</summary>
     private readonly List<Border> _pips = new();
 
-    /// <summary>Five pips, 4 wide and 2 apart, 4 to 12 high, bottom-aligned in their 12-high box (GamesFrame's constants).</summary>
+    /// <summary>
+    /// Five pips, 4 wide and 2 apart, 4 to 12 high, bottom-aligned in their 12-high box
+    /// (GamesFrame's constants). Each pip's corner is the theme's <c>Corner.Progress</c>
+    /// held to <see cref="GamesFrame.SoundPipMaxCorner"/>, so the meter reads as rising
+    /// bars, never dots, in every theme (A89; the Pack holds its bars' corner the same
+    /// way). Read once, here: the window lives inside one theme, since Settings, where
+    /// the theme changes, closes it (A13).
+    /// </summary>
     private void BuildPips()
     {
         for (var i = 0; i < GamesFrame.SoundPips; i++)
@@ -331,7 +339,7 @@ internal partial class GamesWindow : Window
                 VerticalAlignment = VerticalAlignment.Bottom,
                 Margin = i == 0 ? default : GamesFrame.SoundPipGapBefore,
             };
-            pip.SetResourceReference(Border.CornerRadiusProperty, "Theme.Corner.Progress");
+            pip.CornerRadius = new CornerRadius(Math.Min(Theme.Current.Corner.Progress.Value, GamesFrame.SoundPipMaxCorner));
             _pips.Add(pip);
             SoundPips.Children.Add(pip);
         }
@@ -340,7 +348,9 @@ internal partial class GamesWindow : Window
     /// <summary>
     /// The group as the gate stands: the speaker's glyph (on or muted), `−`
     /// disabled at step 1 and `+` at the top, the first step's worth of pips lit
-    /// and the rest unlit, every pip unlit while muted.
+    /// and the rest unlit, every pip unlit while muted. An unlit pip is the slots
+    /// meter's track (<c>Theme.Storage.SlotsTrack</c>), visible on the window's
+    /// glass in every theme (A89).
     /// </summary>
     private void ShowSound()
     {
@@ -350,7 +360,7 @@ internal partial class GamesWindow : Window
         SoundDown.IsEnabled = step > 1;
         SoundUp.IsEnabled = step < GamesSound.Steps;
         for (var i = 0; i < _pips.Count; i++)
-            _pips[i].SetResourceReference(Border.BackgroundProperty, !muted && i < step ? "Theme.Storage.Growth" : "Theme.Storage.BarTrack");
+            _pips[i].SetResourceReference(Border.BackgroundProperty, !muted && i < step ? "Theme.Storage.Growth" : "Theme.Storage.SlotsTrack");
     }
 
     /// <summary>The speaker: mutes (every sound stops) or unmutes (the preview at the step).</summary>

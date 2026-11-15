@@ -59,6 +59,7 @@ public class GamesFrameTests
         Assert.Equal(GamesSound.Steps, GamesFrame.SoundPips); // one pip per step
         Assert.Equal(new double[] { 4, 6, 8, 10, 12 }, Enumerable.Range(0, GamesFrame.SoundPips).Select(GamesFrame.SoundPipHeight));
         Assert.Equal(GamesFrame.SoundPipsHeight, GamesFrame.SoundPipHeight(GamesFrame.SoundPips - 1));
+        Assert.Equal(GamesFrame.SoundPipWidth / 4, GamesFrame.SoundPipMaxCorner); // rising bars in every theme (A89)
         Assert.Equal(GamesFrame.SoundPips * GamesFrame.SoundPipWidth + (GamesFrame.SoundPips - 1) * GamesFrame.SoundPipGap, GamesFrame.SoundPipsWidth);
         Assert.Equal(28, GamesFrame.SoundPipsWidth);
         Assert.Equal(3 * GamesFrame.SoundButtonSize + GamesFrame.SoundPipsWidth + 3 * GamesFrame.SoundGroupGap, GamesFrame.SoundGroupWidth);
