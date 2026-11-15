@@ -90,13 +90,13 @@ public sealed class WaveOutSpeakerTests
         using var speaker = Speaker(device, log);
         var samples = Saw(1000);
 
-        speaker.Play(samples, 0.5f);
+        speaker.Play(samples, 0.5f, SpeakerChannel.Games);
         Until(() => device.Writes >= 8, "the sound and the silence after it written");
 
         var thread = speaker.LastThread!;
         Assert.True(thread.IsBackground);
         Assert.Equal(ThreadPriority.AboveNormal, thread.Priority);
-        Assert.Equal("Games sound", thread.Name);
+        Assert.Equal("Overlay sound", thread.Name);
         Assert.Equal(new[] { WaveOutSpeaker.ThreadName }, device.ThreadNames); // the device is the speaker's thread's alone
         Assert.Equal(1, device.Opens);
         Assert.Equal((WaveOutSpeaker.Buffers, WaveOutSpeaker.BufferSamples), device.OpenedWith);
@@ -116,8 +116,8 @@ public sealed class WaveOutSpeakerTests
         var a = Saw(1000);
         var b = Constant(3001, 600);
 
-        speaker.Play(a, 1f);
-        speaker.Play(b, 0.5f);
+        speaker.Play(a, 1f, SpeakerChannel.Games);
+        speaker.Play(b, 0.5f, SpeakerChannel.Games);
         device.OpenRelease.Set();
         Until(() => device.Writes >= 8, "both sounds written");
 
@@ -134,9 +134,9 @@ public sealed class WaveOutSpeakerTests
         using var speaker = Speaker(device, new SpeakerLog());
 
         var clock = Stopwatch.StartNew();
-        speaker.Play(Constant(1000, 441), 1f);
-        speaker.StopAll();
-        speaker.Play(Constant(1000, 441), 1f);
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Games);
+        speaker.StopAll(SpeakerChannel.Games);
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Games);
         var took = clock.Elapsed;
 
         Assert.Equal(0, device.OpensEnded); // the open is still under way: the calls did not wait for it
@@ -157,7 +157,7 @@ public sealed class WaveOutSpeakerTests
         using var speaker = Speaker(device, log, idle);
 
         var clock = Stopwatch.StartNew();
-        speaker.Play(Constant(1000, 441), 1f);
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Games);
         var first = speaker.LastThread!;
         Until(() => device.Closes == 1, "the idle device closed");
         Assert.True(clock.Elapsed >= idle, "closed before its idle time");
@@ -167,12 +167,12 @@ public sealed class WaveOutSpeakerTests
         Assert.Equal("close", device.Calls[^1]); // nothing touched the device after its close
 
         var mark = device.Written.Count;
-        speaker.Play(Constant(2000, 441), 1f);
+        speaker.Play(Constant(2000, 441), 1f, SpeakerChannel.Games);
         Until(() => device.Opens == 2 && device.Written.Count >= mark + WaveOutSpeaker.Buffers, "the second stream");
 
         Assert.NotSame(first, speaker.LastThread);
         Assert.All(device.WrittenFrom(mark)[..441], s => Assert.Equal(2000, s));
-        Assert.Single(log.At(LogVerbosity.Log), l => l.StartsWith("Games sound: the device opened in ", StringComparison.Ordinal)); // the launch's first open only
+        Assert.Single(log.At(LogVerbosity.Log), l => l.StartsWith("Sound: the device opened in ", StringComparison.Ordinal)); // the launch's first open only
         Assert.Empty(log.At(LogVerbosity.Warning));
         Until(() => device.Closes == 2, "the second stream closed too");
     }
@@ -185,9 +185,9 @@ public sealed class WaveOutSpeakerTests
         var device = new FakeWaveDevice();
         using var speaker = Speaker(device, new SpeakerLog());
 
-        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f);
+        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f, SpeakerChannel.Games);
         Until(() => device.Writes >= 8, "the sound under way");
-        speaker.StopAll();
+        speaker.StopAll(SpeakerChannel.Games);
         var stoppedAt = device.Writes;
         Until(() => device.Writes >= stoppedAt + 6, "the fade written");
 
@@ -210,8 +210,8 @@ public sealed class WaveOutSpeakerTests
         var device = new FakeWaveDevice();
         using var speaker = new WaveOutSpeaker(() => { made++; return device; }, Never, Never, new SpeakerLog().Write);
 
-        speaker.StopAll();
-        speaker.StopAll();
+        speaker.StopAll(SpeakerChannel.Games);
+        speaker.StopAll(SpeakerChannel.Games);
 
         Assert.Equal(0, made);
         Assert.Empty(device.Calls);
@@ -219,7 +219,7 @@ public sealed class WaveOutSpeakerTests
         Assert.Null(speaker.LastThread);
         Assert.Equal(0, speaker.Queued); // nothing kept for later
 
-        speaker.Play(Constant(10_000, 600), 1f);
+        speaker.Play(Constant(10_000, 600), 1f, SpeakerChannel.Games);
         Until(() => device.Writes >= WaveOutSpeaker.Buffers, "the sound written");
         var stream = device.WrittenFrom(0);
         Assert.All(stream[..600], s => Assert.Equal(10_000, s));
@@ -231,12 +231,12 @@ public sealed class WaveOutSpeakerTests
     {
         var device = new FakeWaveDevice();
         using var speaker = Speaker(device, new SpeakerLog(), idle: TimeSpan.FromMilliseconds(100));
-        speaker.Play(Constant(1000, 441), 1f);
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Games);
         var first = speaker.LastThread!;
         Until(() => device.Closes == 1 && !first.IsAlive, "the first stream ended");
         var calls = device.Calls.Count;
 
-        speaker.StopAll();
+        speaker.StopAll(SpeakerChannel.Games);
 
         Assert.Equal(calls, device.Calls.Count);
         Assert.Same(first, speaker.LastThread); // no thread started
@@ -244,7 +244,7 @@ public sealed class WaveOutSpeakerTests
         Assert.Equal(0, speaker.Queued);
 
         var mark = device.Written.Count;
-        speaker.Play(Constant(10_000, 600), 1f);
+        speaker.Play(Constant(10_000, 600), 1f, SpeakerChannel.Games);
         Until(() => device.Written.Count >= mark + WaveOutSpeaker.Buffers, "the second sound written");
         Assert.All(device.WrittenFrom(mark)[..600], s => Assert.Equal(10_000, s));
     }
@@ -254,14 +254,14 @@ public sealed class WaveOutSpeakerTests
     {
         var device = new FakeWaveDevice();
         using var speaker = Speaker(device, new SpeakerLog());
-        speaker.Play(new short[1], 1f); // a thread running: one silent sample
+        speaker.Play(new short[1], 1f, SpeakerChannel.Games); // a thread running: one silent sample
         Until(() => device.Writes >= WaveOutSpeaker.Buffers, "the stream under way");
 
         device.Hold();
         Until(() => device.Waiting, "the thread held inside a wait");
         var mark = device.Written.Count;
-        speaker.Play(Constant(10_000, 1000), 1f);
-        speaker.StopAll();
+        speaker.Play(Constant(10_000, 1000), 1f, SpeakerChannel.Games);
+        speaker.StopAll(SpeakerChannel.Games);
         device.Release();
         Until(() => device.Written.Count >= mark + WaveOutSpeaker.Buffers, "the next buffers written");
 
@@ -273,14 +273,14 @@ public sealed class WaveOutSpeakerTests
     {
         var device = new FakeWaveDevice();
         using var speaker = Speaker(device, new SpeakerLog());
-        speaker.Play(new short[1], 1f);
+        speaker.Play(new short[1], 1f, SpeakerChannel.Games);
         Until(() => device.Writes >= WaveOutSpeaker.Buffers, "the stream under way");
 
         device.Hold();
         Until(() => device.Waiting, "the thread held inside a wait");
         var mark = device.Written.Count;
-        speaker.StopAll();
-        speaker.Play(Constant(10_000, 1000), 1f);
+        speaker.StopAll(SpeakerChannel.Games);
+        speaker.Play(Constant(10_000, 1000), 1f, SpeakerChannel.Games);
         device.Release();
         Until(() => device.Written.Count >= mark + WaveOutSpeaker.Buffers, "the next buffers written");
 
@@ -297,11 +297,11 @@ public sealed class WaveOutSpeakerTests
         var device = new FakeWaveDevice { OpenDelay = Patience };
         using var speaker = Speaker(device, new SpeakerLog());
 
-        for (var i = 0; i < WaveOutSpeaker.MaxQueued + 10; i++) speaker.Play(Constant(100, 441), 0.1f);
+        for (var i = 0; i < WaveOutSpeaker.MaxQueued + 10; i++) speaker.Play(Constant(100, 441), 0.1f, SpeakerChannel.Games);
         Assert.Equal(WaveOutSpeaker.MaxQueued, speaker.Queued);
-        speaker.StopAll();
-        speaker.StopAll();
-        speaker.StopAll();
+        speaker.StopAll(SpeakerChannel.Games);
+        speaker.StopAll(SpeakerChannel.Games);
+        speaker.StopAll(SpeakerChannel.Games);
         Assert.Equal(WaveOutSpeaker.MaxQueued + 1, speaker.Queued);
 
         device.OpenRelease.Set();
@@ -317,20 +317,20 @@ public sealed class WaveOutSpeakerTests
         var device = new FakeWaveDevice { OpenCode = 2 }; // MMSYSERR_BADDEVICEID: no device
         var retry = TimeSpan.FromSeconds(1);
         using var speaker = Speaker(device, log, retry: retry);
-        const string Refused = "Games sound: the device could not be opened (code 2)";
+        const string Refused = "Sound: the device could not be opened (code 2)";
 
-        speaker.Play(Constant(1000, 441), 1f); // never throws
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Games); // never throws
         var first = speaker.LastThread!;
         Until(() => !speaker.HasThread && device.Closes == 1 && !first.IsAlive, "the failed stream ended");
         Assert.Equal(new[] { Refused }, log.At(LogVerbosity.Warning));
 
-        speaker.Play(Constant(1000, 441), 1f); // within the retry time: dropped
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Games); // within the retry time: dropped
         Assert.Same(first, speaker.LastThread);
         Assert.False(speaker.HasThread);
         Assert.Equal(1, device.Opens);
 
         Thread.Sleep(retry + TimeSpan.FromMilliseconds(400));
-        speaker.Play(Constant(1000, 441), 1f); // after it: tried again
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Games); // after it: tried again
         Until(() => device.Opens == 2 && device.Closes == 2 && !speaker.LastThread!.IsAlive, "the second try ended");
         Assert.Equal(new[] { Refused }, log.At(LogVerbosity.Warning)); // still one Warning
         Assert.Equal(new[] { Refused }, log.At(LogVerbosity.Verbose)); // the same again, at Verbose
@@ -338,10 +338,10 @@ public sealed class WaveOutSpeakerTests
         device.OpenCode = 0;
         Thread.Sleep(retry + TimeSpan.FromMilliseconds(400));
         var mark = device.Written.Count;
-        speaker.Play(Constant(10_000, 441), 1f);
-        Until(() => log.At(LogVerbosity.Log).Contains("Games sound: the device works again"), "the device working again");
+        speaker.Play(Constant(10_000, 441), 1f, SpeakerChannel.Games);
+        Until(() => log.At(LogVerbosity.Log).Contains("Sound: the device works again"), "the device working again");
         Assert.Equal(3, device.Opens);
-        Assert.Single(log.At(LogVerbosity.Log), l => l.StartsWith("Games sound: the device opened in ", StringComparison.Ordinal));
+        Assert.Single(log.At(LogVerbosity.Log), l => l.StartsWith("Sound: the device opened in ", StringComparison.Ordinal));
         Assert.Single(log.At(LogVerbosity.Warning));
         Assert.All(device.WrittenFrom(mark)[..441], s => Assert.Equal(10_000, s));
     }
@@ -353,15 +353,15 @@ public sealed class WaveOutSpeakerTests
         var device = new FakeWaveDevice { FailWriteNumber = 12, WriteCode = 6 }; // unplugged mid-sound, after the first buffers
         using var speaker = Speaker(device, log);
 
-        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f);
+        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f, SpeakerChannel.Games);
         var thread = speaker.LastThread!;
         Until(() => device.Closes == 1 && !thread.IsAlive, "the failed stream ended");
 
         Assert.False(speaker.HasThread);
-        Assert.Equal(new[] { "Games sound: the device could not be written to (code 6)" }, log.At(LogVerbosity.Warning));
+        Assert.Equal(new[] { "Sound: the device could not be written to (code 6)" }, log.At(LogVerbosity.Warning));
         Assert.Equal(11, device.Written.Count);
         Assert.Equal(new[] { "write", "close" }, device.Calls.TakeLast(2)); // the failed write, then the close, and nothing more
-        speaker.Play(Constant(10_000, 441), 1f); // within the retry time: dropped
+        speaker.Play(Constant(10_000, 441), 1f, SpeakerChannel.Games); // within the retry time: dropped
         Assert.Equal(1, device.Opens);
     }
 
@@ -380,13 +380,13 @@ public sealed class WaveOutSpeakerTests
         var stall = TimeSpan.FromMilliseconds(300);
         var retry = TimeSpan.FromSeconds(1);
         using var speaker = Speaker(device, log, retry: retry, stall: stall);
-        const string Stalled = "Games sound: the device handed no buffer back in 300 ms";
+        const string Stalled = "Sound: the device handed no buffer back in 300 ms";
 
         var clock = Stopwatch.StartNew();
-        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f); // two seconds: the mix is never idle
+        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f, SpeakerChannel.Games); // two seconds: the mix is never idle
         var thread = speaker.LastThread!;
         Until(() => device.Writes >= 10, "the device holding every buffer");
-        speaker.Play(Constant(10_000, 441), 1f); // queued during the stall
+        speaker.Play(Constant(10_000, 441), 1f, SpeakerChannel.Games); // queued during the stall
         Until(() => device.Closes == 1 && !thread.IsAlive, "the stalled stream ended");
 
         Assert.True(clock.Elapsed >= stall, "ended before its stall time");
@@ -395,15 +395,15 @@ public sealed class WaveOutSpeakerTests
         Assert.Equal(new[] { Stalled }, log.At(LogVerbosity.Warning));
         Assert.Equal(10, device.Written.Count);
         Assert.Equal(new[] { "wait", "next", "close" }, device.Calls.TakeLast(3)); // a look that found none free, then the close
-        speaker.Play(Constant(10_000, 441), 1f); // within the retry time: dropped
+        speaker.Play(Constant(10_000, 441), 1f, SpeakerChannel.Games); // within the retry time: dropped
         Assert.Same(thread, speaker.LastThread);
         Assert.Equal(1, device.Opens);
 
         device.StallFromWrite = 0;
         Thread.Sleep(retry + TimeSpan.FromMilliseconds(400));
         var mark = device.Written.Count;
-        speaker.Play(Constant(10_000, 441), 1f); // after it: a new stream, on a device that answers
-        Until(() => log.At(LogVerbosity.Log).Contains("Games sound: the device works again"), "the device working again");
+        speaker.Play(Constant(10_000, 441), 1f, SpeakerChannel.Games); // after it: a new stream, on a device that answers
+        Until(() => log.At(LogVerbosity.Log).Contains("Sound: the device works again"), "the device working again");
         Assert.Equal(2, device.Opens);
         Assert.Single(log.At(LogVerbosity.Warning));
         Assert.All(device.WrittenFrom(mark)[..441], s => Assert.Equal(10_000, s));
@@ -421,7 +421,7 @@ public sealed class WaveOutSpeakerTests
         var device = new FakeWaveDevice();
         var stall = TimeSpan.FromMilliseconds(100);
         using var speaker = Speaker(device, log, stall: stall);
-        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f);
+        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f, SpeakerChannel.Games);
         Until(() => device.Writes >= 8, "the sound under way");
 
         device.Hold();
@@ -452,14 +452,14 @@ public sealed class WaveOutSpeakerTests
             var device = new FakeWaveDevice { ThrowIn = member };
             using var speaker = Speaker(device, log);
 
-            speaker.Play(Constant(10_000, 4410), 1f);
+            speaker.Play(Constant(10_000, 4410), 1f, SpeakerChannel.Games);
             var thread = speaker.LastThread!;
             Until(() => !thread.IsAlive, "the thread ended");
 
             Assert.Equal(1, device.Closes);
             Assert.False(speaker.HasThread);
             var warning = Assert.Single(log.At(LogVerbosity.Warning));
-            Assert.StartsWith("Games sound failed: InvalidOperationException", warning, StringComparison.Ordinal);
+            Assert.StartsWith("Sound failed: InvalidOperationException", warning, StringComparison.Ordinal);
             Assert.DoesNotContain(log.Lines, l => l.Line.Contains(FakeWaveDevice.SecretMessage, StringComparison.Ordinal)); // its type and stack, never its message
             Assert.Empty(unhandled);
         }
@@ -481,19 +481,19 @@ public sealed class WaveOutSpeakerTests
             var device = new FakeWaveDevice { ThrowIn = "close" };
             using var speaker = Speaker(device, log, idle: TimeSpan.FromMilliseconds(100));
 
-            speaker.Play(Constant(10_000, 441), 1f);
+            speaker.Play(Constant(10_000, 441), 1f, SpeakerChannel.Games);
             var first = speaker.LastThread!;
             Until(() => device.Closes == 1 && !first.IsAlive, "the first stream ended");
             Assert.False(speaker.HasThread);
-            Assert.Equal(new[] { "Games sound: InvalidOperationException on the way out" }, log.At(LogVerbosity.Warning));
+            Assert.Equal(new[] { "Sound: InvalidOperationException on the way out" }, log.At(LogVerbosity.Warning));
 
-            speaker.Play(Constant(10_000, 441), 1f); // the stream had ended as it should: no wait for a retry
+            speaker.Play(Constant(10_000, 441), 1f, SpeakerChannel.Games); // the stream had ended as it should: no wait for a retry
             Until(() => device.Opens == 2 && device.Closes == 2 && !speaker.LastThread!.IsAlive, "the second stream ended");
             // The device worked in between (said once), so the second throw is a first
             // failure again, not "the same again".
-            Assert.Equal(new[] { "Games sound: the device works again" }, log.At(LogVerbosity.Log).Where(l => l.Contains("again", StringComparison.Ordinal)));
+            Assert.Equal(new[] { "Sound: the device works again" }, log.At(LogVerbosity.Log).Where(l => l.Contains("again", StringComparison.Ordinal)));
             Assert.Equal(2, log.At(LogVerbosity.Warning).Length);
-            Assert.All(log.At(LogVerbosity.Warning), w => Assert.Equal("Games sound: InvalidOperationException on the way out", w));
+            Assert.All(log.At(LogVerbosity.Warning), w => Assert.Equal("Sound: InvalidOperationException on the way out", w));
             Assert.Empty(unhandled);
         }
         finally
@@ -510,7 +510,7 @@ public sealed class WaveOutSpeakerTests
         var log = new SpeakerLog();
         var device = new FakeWaveDevice();
         var speaker = Speaker(device, log);
-        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f);
+        speaker.Play(Constant(10_000, GameSound.MaxSamples), 1f, SpeakerChannel.Games);
         Until(() => device.Writes >= 6, "the sound under way");
         var thread = speaker.LastThread!;
 
@@ -520,8 +520,8 @@ public sealed class WaveOutSpeakerTests
         Assert.Equal("close", device.Calls[^1]);
 
         speaker.Dispose(); // idempotent, and never throws
-        speaker.Play(Constant(10_000, 441), 1f);
-        speaker.StopAll();
+        speaker.Play(Constant(10_000, 441), 1f, SpeakerChannel.Games);
+        speaker.StopAll(SpeakerChannel.Games);
         Assert.Equal(1, device.Opens);
         Assert.Same(thread, speaker.LastThread);
         Assert.False(speaker.HasThread);
@@ -534,7 +534,7 @@ public sealed class WaveOutSpeakerTests
     {
         var device = new FakeWaveDevice { CloseDelay = TimeSpan.FromSeconds(3) }; // a driver slow to close
         var speaker = Speaker(device, new SpeakerLog());
-        speaker.Play(Constant(10_000, 441), 1f);
+        speaker.Play(Constant(10_000, 441), 1f, SpeakerChannel.Games);
         Until(() => device.Writes >= WaveOutSpeaker.Buffers, "the stream under way");
         var thread = speaker.LastThread!;
 
@@ -569,7 +569,7 @@ public sealed class WaveOutSpeakerTests
         {
             var marker = (short)(k + 1);
             var from = Math.Max(0, device.Written.Count - 1);
-            speaker.Play(new[] { marker }, 1f);
+            speaker.Play(new[] { marker }, 1f, SpeakerChannel.Games);
             Until(() => device.Written.Skip(from).Any(b => Array.IndexOf(b, marker) >= 0), $"sound {marker} reaching the device");
             Thread.Sleep(random.Next(0, 4));
         }
@@ -578,6 +578,233 @@ public sealed class WaveOutSpeakerTests
         Assert.Equal(0, device.Overlaps); // two streams never on the device at once
         Assert.Empty(log.At(LogVerbosity.Warning));
         _output.WriteLine($"150 sounds, {device.Opens} streams");
+    }
+
+    // ---- Two channels (A101) ------------------------------------------------------------------
+    // One speaker, one stream, two channels: a voice carries its channel and a stop is one
+    // channel's, in the queue's order; A88 holds per channel (no thread, no effect; two stops of
+    // one channel in a row are one); a gate's view passes its channel and its Dispose does
+    // nothing; the thread is the overlay's and its lines go to LogSound with "Sound:".
+
+    /// <summary>A sound no test here outlives: ten times a game's longest, 20 s, so a voice under way is still sounding after a hold however late the test's thread runs (the fake hands buffers back faster than a real device).</summary>
+    private const int Long = 10 * GameSound.MaxSamples;
+
+    /// <summary>A long Games voice under way and the thread held inside a wait, so what the test queues next reaches the mix in one drain, at the first buffer after the release.</summary>
+    private static int UnderWayThenHeld(WaveOutSpeaker speaker, FakeWaveDevice device, short gamesValue)
+    {
+        speaker.Play(Constant(gamesValue, Long), 1f, SpeakerChannel.Games);
+        Until(() => device.Writes >= 8, "the game's sound under way");
+        device.Hold();
+        Until(() => device.Waiting, "the thread held inside a wait");
+        return device.Written.Count;
+    }
+
+    [Fact]
+    public void AClicksPlayRightAfterAGamesStopIsHeardWhole()
+    {
+        var device = new FakeWaveDevice();
+        using var speaker = Speaker(device, new SpeakerLog());
+        var mark = UnderWayThenHeld(speaker, device, 10_000);
+
+        speaker.StopAll(SpeakerChannel.Games); // the stage changed: the games' gate stops (A88)
+        speaker.Play(Constant(3000, 600), 1f, SpeakerChannel.Clicks); // and a click right after it
+        device.Release();
+        Until(() => device.Written.Count >= mark + WaveOutSpeaker.Buffers, "the next buffers written");
+
+        var stream = device.WrittenFrom(mark);
+        for (var k = 0; k < SpeakerMix.FadeSamples; k++)
+        {
+            var expected = 10_000 * (SpeakerMix.FadeSamples - 1 - k) / (double)SpeakerMix.FadeSamples + 3000;
+            Assert.InRange(stream[k], expected - 1, expected + 1); // the game's sound faded, the click under it whole
+        }
+        Assert.All(stream[SpeakerMix.FadeSamples..600], s => Assert.Equal(3000, s));
+        Assert.All(stream[600..], s => Assert.Equal(0, s));
+    }
+
+    [Fact]
+    public void AGamesStopQueuedBetweenTwoClicksPlaysFadesNothingOfThem()
+    {
+        var device = new FakeWaveDevice();
+        using var speaker = Speaker(device, new SpeakerLog());
+        var mark = UnderWayThenHeld(speaker, device, 10_000);
+
+        speaker.Play(Constant(1000, 600), 1f, SpeakerChannel.Clicks); // before the stop, in the queue
+        speaker.StopAll(SpeakerChannel.Games);
+        speaker.Play(Constant(2000, 400), 1f, SpeakerChannel.Clicks); // after it
+        device.Release();
+        Until(() => device.Written.Count >= mark + WaveOutSpeaker.Buffers, "the next buffers written");
+
+        var stream = device.WrittenFrom(mark);
+        for (var k = 0; k < SpeakerMix.FadeSamples; k++)
+        {
+            var expected = 10_000 * (SpeakerMix.FadeSamples - 1 - k) / (double)SpeakerMix.FadeSamples + 3000;
+            Assert.InRange(stream[k], expected - 1, expected + 1); // only the game's voice faded
+        }
+        Assert.All(stream[SpeakerMix.FadeSamples..400], s => Assert.Equal(3000, s)); // both clicks whole
+        Assert.All(stream[400..600], s => Assert.Equal(1000, s));
+        Assert.All(stream[600..], s => Assert.Equal(0, s));
+    }
+
+    [Fact]
+    public void AStopOfEitherChannelWithNoThreadCallsNothing()
+    {
+        var made = 0;
+        var device = new FakeWaveDevice();
+        using var speaker = new WaveOutSpeaker(() => { made++; return device; }, Never, Never, new SpeakerLog().Write);
+        var games = speaker.Channel(SpeakerChannel.Games);
+        var clicks = speaker.Channel(SpeakerChannel.Clicks);
+
+        speaker.StopAll(SpeakerChannel.Games);
+        speaker.StopAll(SpeakerChannel.Clicks);
+        games.StopAll();
+        clicks.StopAll();
+
+        Assert.Equal(0, made); // no device made, none opened: nothing at all (A88)
+        Assert.Empty(device.Calls);
+        Assert.False(speaker.HasThread);
+        Assert.Null(speaker.LastThread);
+        Assert.Equal(0, speaker.Queued); // nothing kept for later, on either channel
+
+        clicks.Play(Constant(3000, 600), 1f);
+        Until(() => device.Writes >= WaveOutSpeaker.Buffers, "the click written");
+        var stream = device.WrittenFrom(0);
+        Assert.All(stream[..600], s => Assert.Equal(3000, s)); // a play after the stops is heard whole
+        Assert.All(stream[600..], s => Assert.Equal(0, s));
+    }
+
+    [Fact]
+    public void TwoStopsOfOneChannelInARowAreOneQueuedRequestAndOfTwoChannelsTwo()
+    {
+        var device = new FakeWaveDevice { OpenDelay = Patience }; // held in its open: nothing leaves the queue
+        using var speaker = Speaker(device, new SpeakerLog());
+        speaker.Play(Constant(100, 441), 0.1f, SpeakerChannel.Games); // a thread running
+        Assert.Equal(1, speaker.Queued);
+
+        speaker.StopAll(SpeakerChannel.Games);
+        speaker.StopAll(SpeakerChannel.Games);
+        Assert.Equal(2, speaker.Queued); // two Games stops in a row: one request
+
+        speaker.StopAll(SpeakerChannel.Clicks);
+        Assert.Equal(3, speaker.Queued); // a Games and a Clicks stop: two
+
+        speaker.StopAll(SpeakerChannel.Games);
+        Assert.Equal(4, speaker.Queued); // a Clicks stop between two Games stops: the second is a request of its own
+
+        speaker.StopAll(SpeakerChannel.Clicks);
+        speaker.StopAll(SpeakerChannel.Clicks);
+        Assert.Equal(5, speaker.Queued);
+
+        device.OpenRelease.Set();
+        Until(() => speaker.Queued == 0, "the queue moved into the mix");
+    }
+
+    [Fact]
+    public void AViewPlaysAndStopsOnItsOwnChannel()
+    {
+        var device = new FakeWaveDevice();
+        using var speaker = Speaker(device, new SpeakerLog());
+        var games = speaker.Channel(SpeakerChannel.Games);
+        var clicks = speaker.Channel(SpeakerChannel.Clicks);
+        Assert.Equal(SpeakerChannel.Games, Assert.IsType<SpeakerChannelView>(games).Channel);
+        Assert.Equal(SpeakerChannel.Clicks, Assert.IsType<SpeakerChannelView>(clicks).Channel);
+
+        games.Play(Constant(10_000, Long), 1f);
+        clicks.Play(Constant(2000, Long), 1f);
+        Until(() => device.Writes >= 8, "both under way");
+        device.Hold();
+        Until(() => device.Waiting, "the thread held inside a wait");
+        var mark = device.Written.Count;
+        clicks.StopAll(); // the click view's stop: the clicks' channel alone
+        device.Release();
+        Until(() => device.Written.Count >= mark + WaveOutSpeaker.Buffers, "the next buffers written");
+
+        var stream = device.WrittenFrom(mark);
+        for (var k = 0; k < SpeakerMix.FadeSamples; k++)
+        {
+            var expected = 2000 * (SpeakerMix.FadeSamples - 1 - k) / (double)SpeakerMix.FadeSamples + 10_000;
+            Assert.InRange(stream[k], expected - 1, expected + 1); // the click faded, the game's sound whole
+        }
+        Assert.All(stream[SpeakerMix.FadeSamples..], s => Assert.Equal(10_000, s));
+    }
+
+    [Fact]
+    public void AViewsDisposeLeavesTheSpeakerRunningAndALaterPlayIsHeard()
+    {
+        var device = new FakeWaveDevice();
+        using var speaker = Speaker(device, new SpeakerLog());
+        var games = speaker.Channel(SpeakerChannel.Games);
+        var clicks = speaker.Channel(SpeakerChannel.Clicks);
+        games.Play(new short[1], 1f); // a thread running: one silent sample
+        Until(() => device.Writes >= WaveOutSpeaker.Buffers, "the stream under way");
+        var thread = speaker.LastThread!;
+
+        games.Dispose(); // as the games' gate disposes what it was handed, at the exit
+        clicks.Dispose();
+
+        Assert.True(speaker.HasThread); // the speaker is its owner's: nothing closed, nothing joined
+        Assert.Equal(0, device.Closes);
+        device.Hold();
+        Until(() => device.Waiting, "the thread held inside a wait");
+        var mark = device.Written.Count;
+        clicks.Play(Constant(3000, 600), 1f);
+        games.Play(Constant(1000, 400), 1f);
+        device.Release();
+        Until(() => device.Written.Count >= mark + WaveOutSpeaker.Buffers, "the next buffers written");
+
+        var stream = device.WrittenFrom(mark);
+        Assert.All(stream[..400], s => Assert.Equal(4000, s)); // both heard, through the disposed views
+        Assert.All(stream[400..600], s => Assert.Equal(3000, s));
+        Assert.All(stream[600..], s => Assert.Equal(0, s));
+        Assert.Same(thread, speaker.LastThread);
+        Assert.Equal(1, device.Opens);
+        Assert.Equal(0, device.Closes);
+    }
+
+    [Fact]
+    public void TheThreadIsTheOverlaysWhicheverChannelStartsIt()
+    {
+        Assert.Equal("Overlay sound", WaveOutSpeaker.ThreadName);
+        var device = new FakeWaveDevice();
+        using var speaker = Speaker(device, new SpeakerLog());
+
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Clicks);
+        Until(() => device.Writes >= WaveOutSpeaker.Buffers, "the click written");
+
+        var thread = speaker.LastThread!;
+        Assert.Equal("Overlay sound", thread.Name);
+        Assert.True(thread.IsBackground);
+        Assert.Equal(ThreadPriority.AboveNormal, thread.Priority);
+        Assert.Equal(new[] { WaveOutSpeaker.ThreadName }, device.ThreadNames); // the device is the speaker's thread's alone
+        Assert.All(device.WrittenFrom(0)[..441], s => Assert.Equal(1000, s));
+    }
+
+    [Fact]
+    public void TheLinesGoToLogSoundWithTheSoundPrefixWhicheverChannelPlayed()
+    {
+        using (var real = new WaveOutSpeaker()) // as MainWindow makes it: its lines are LogSound's
+        {
+            Assert.Same(AppLog.Sound, real.Writer.Target);
+            Assert.Equal(nameof(LogCategory.Write), real.Writer.Method.Name);
+        }
+        Assert.Equal("LogSound", AppLog.Sound.Name);
+        Assert.Equal(LogVerbosity.Log, AppLog.Sound.DefaultVerbosity);
+        Assert.Same(AppLog.Sound, AppLog.Categories[^1]); // listed last, so config.json can set it
+        Assert.NotSame(AppLog.Games, AppLog.Sound);
+
+        // A failure says so once, with the prefix, and one retry clock holds both channels.
+        var log = new SpeakerLog();
+        var device = new FakeWaveDevice { OpenCode = 2 };
+        using var speaker = Speaker(device, log);
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Clicks);
+        var first = speaker.LastThread!;
+        Until(() => !speaker.HasThread && device.Closes == 1 && !first.IsAlive, "the failed stream ended");
+
+        speaker.Play(Constant(1000, 441), 1f, SpeakerChannel.Games); // within the retry time: dropped, whichever channel asks
+
+        Assert.Same(first, speaker.LastThread);
+        Assert.Equal(1, device.Opens);
+        Assert.Equal(new[] { "Sound: the device could not be opened (code 2)" }, log.At(LogVerbosity.Warning));
+        Assert.All(log.Lines, l => Assert.StartsWith("Sound: ", l.Line, StringComparison.Ordinal));
     }
 
     // ---- The real device, opt-in --------------------------------------------------------------
@@ -603,7 +830,7 @@ public sealed class WaveOutSpeakerTests
         try
         {
             var played = clock.Elapsed;
-            speaker.Play(new short[GameSound.SampleRate / 2], 1f); // half a second of zeros
+            speaker.Play(new short[GameSound.SampleRate / 2], 1f, SpeakerChannel.Games); // half a second of zeros
             var returned = clock.Elapsed;
             var thread = speaker.LastThread!;
             Until(() => Volatile.Read(ref timing) is { } t && t.Reached(WaveOutSpeaker.BufferSamples) is not null, "the device through its first buffer");
@@ -612,7 +839,7 @@ public sealed class WaveOutSpeakerTests
             var device = Volatile.Read(ref timing)!;
             var writesAtSecond = device.Writes;
             var second = clock.Elapsed;
-            speaker.Play(new short[GameSound.SampleRate / 10], 1f); // a tenth of a second of zeros, while the stream runs
+            speaker.Play(new short[GameSound.SampleRate / 10], 1f, SpeakerChannel.Games); // a tenth of a second of zeros, while the stream runs
 
             Until(() => device.Closed, "the device closed after its idle time");
             Until(() => !thread.IsAlive, "the thread ended");

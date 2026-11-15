@@ -102,12 +102,14 @@ public partial class MainWindow : OverlayWindowBase
         // built and never shown, as the tests and the render harness build
         // theirs, never reads or writes a real save. Handed to the last net at
         // once: App's crash handler asks it before anything else (A10).
-        // Its sound gate (A79) is made here too, over the config (the window's
-        // mute and volume, A82) and the host's one clock, with no device and no
+        // Its sound gate (A79) is made here too, over the app's one speaker's
+        // Games channel, the config (the window's mute and volume, A82) and the
+        // host's one clock (MainWindow.Sound.cs, A101), with no device and no
         // thread yet: the speaker is lazy, and makes both at the first sound (A80).
         var gamesClock = new GameClock();
+        _speaker = new WaveOutSpeaker();
         _games = new GamesHost(new GameSaveStore(DataFolder.GamesFolder, () => DateTime.UtcNow), GameCatalog.All, gamesClock,
-            new GamesSound(new WaveOutSpeaker(), _config, gamesClock));
+            MakeGamesSound(gamesClock));
         GameFaults.Host = _games;
         GameFaults.OnScreen = () => _gamesWindow?.OnScreen;
 
@@ -174,7 +176,8 @@ public partial class MainWindow : OverlayWindowBase
             _bigMap?.Close();
             CloseGamesFor(OverlayEvent.Exiting); // its view handed over what it had, and
             _games.Flush();                      // every pending save is written before the config is
-            _games.Sound.Dispose();              // the games' speaker stopped and closed (A80)
+            _games.Sound.Dispose();              // the games' gate: its channel's stop queued (A80)
+            CloseSound();                        // then the app's one speaker closed, after every gate (A101)
             PersistState();
             _poll.Dispose();
             _minimap?.Close();

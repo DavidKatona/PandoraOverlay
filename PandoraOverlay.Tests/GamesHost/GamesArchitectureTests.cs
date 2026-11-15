@@ -177,6 +177,12 @@ public class GamesArchitectureTests
 
     private const string MainWindowGames = "Shell/MainWindow.Games.cs";
 
+    /// <summary>MainWindow's sound part (A101): the app's one speaker, made and closed, and the gates made over its channels.</summary>
+    private const string MainWindowSound = "Shell/MainWindow.Sound.cs";
+
+    /// <summary>The app's sound (A101): the speaker the games host plays through, moved out of GamesHost/, and the click layer beside it.</summary>
+    private const string SoundFolder = "Sound/";
+
     /// <summary>
     /// What would make a request, a trigger of one, or a reach for the cookie or
     /// a process: the poll's service and its field, the website client, the
@@ -189,16 +195,26 @@ public class GamesArchitectureTests
         "PollService", "PandoraClient", "_poll", "HttpClient", "OverlayAccess", "GetCookie", "CurrentCookie", "Process.", "Nudge(",
     };
 
-    /// <summary>The games host and MainWindow's games part: every file under GamesHost/, and Shell/MainWindow.Games.cs.</summary>
+    /// <summary>
+    /// The files the four scans read (request, volume, native calls, reach): the games
+    /// host and MainWindow's games part, every file under GamesHost/ and
+    /// Shell/MainWindow.Games.cs; and since the speaker became the app's (A101, A102),
+    /// every file under Sound/ (the speaker, its device, its mix, the click layer) and
+    /// MainWindow's sound part, Shell/MainWindow.Sound.cs. More files under the same
+    /// words, never fewer. The name stays the plan's: the set is still "what the games
+    /// host is and plays through".
+    /// </summary>
     internal static bool IsGamesHostFile(string relative) =>
-        (relative.StartsWith("GamesHost/", StringComparison.Ordinal) || relative == MainWindowGames)
+        (relative.StartsWith("GamesHost/", StringComparison.Ordinal) || relative == MainWindowGames
+         || relative.StartsWith(SoundFolder, StringComparison.Ordinal) || relative == MainWindowSound)
         && !relative.Split('/').Any(s => s is "bin" or "obj");
 
     internal static IReadOnlyList<string> RequestWordsIn(string text) =>
         RequestWords.Where(w => text.Contains(w, StringComparison.Ordinal)).ToList();
 
     /// <summary>
-    /// Nothing in GamesHost/ or MainWindow.Games.cs names a request, the
+    /// Nothing in GamesHost/ or MainWindow.Games.cs, nor in Sound/ or
+    /// MainWindow.Sound.cs (A102), names a request, the
     /// cookie or a process (CLAUDE.md constraints 1 to 4; A5, A13). The files
     /// come with the host's tasks: until then the test reads whatever is there,
     /// and its self-test is what proves it.
@@ -241,7 +257,8 @@ public class GamesArchitectureTests
         AppVolumeWords.Where(w => text.Contains(w, StringComparison.OrdinalIgnoreCase)).ToList();
 
     /// <summary>
-    /// Nothing in GamesHost/ or MainWindow.Games.cs names the call that sets the
+    /// Nothing in GamesHost/ or MainWindow.Games.cs, nor in Sound/ or
+    /// MainWindow.Sound.cs (A102), names the call that sets the
     /// overlay's own volume in Windows' mixer (A80): the speaker's files come with
     /// a later task and are read as every file there is, comments included.
     /// </summary>
@@ -251,7 +268,8 @@ public class GamesArchitectureTests
         var root = ThemeFileTests.RepoRoot();
         var files = RepoFiles(root).Select(f => Relative(root, f)).Where(IsGamesHostFile).ToList();
         Assert.Contains("GamesHost/GamesSound.cs", files); // the walk reaches the sound's files
-        Assert.Contains("GamesHost/ISpeaker.cs", files);
+        Assert.Contains("Sound/ISpeaker.cs", files); // moved from GamesHost/ (A101)
+        Assert.Contains("Sound/WaveOut.cs", files); // the speaker's device, where its native calls are (A102)
 
         var problems = files
             .SelectMany(f => AppVolumeWordsIn(File.ReadAllText(Path.Combine(root, f))).Select(w => $"{f}: {w}"))
@@ -281,6 +299,10 @@ public class GamesArchitectureTests
         Assert.Equal(new[] { "SetMasterVolume" }, AppVolumeWordsIn("endpoint.SetMasterVolumeLevelScalar(0.2f, Guid.Empty);"));
         Assert.Equal(new[] { "SetChannelVolume" }, AppVolumeWordsIn("channels.SetChannelVolume(0, 0.5f, Guid.Empty);"));
         Assert.Empty(AppVolumeWordsIn("public int Step => StepOf(_config.GamesSoundVolume);"));
+
+        // A102: the app's speaker in Sound/ is read too, so a setter planted there is found.
+        Assert.True(IsGamesHostFile("Sound/WaveOut.cs"));
+        Assert.Equal(new[] { "waveOutSetVolume" }, AppVolumeWordsIn("[DllImport(\"winmm.dll\")]\n    public static extern int waveOutSetVolume(IntPtr handle, uint volume);"));
     }
 
     // ---- The host's native calls: its own window, its own event, the default device (A92) ----
@@ -289,7 +311,8 @@ public class GamesArchitectureTests
     /// Every native entry point the games host declares (constraint 1; A80, A86; A92,
     /// after the constraint review r4's N19), as (library in lower case, entry point):
     /// the Games window's own style and corners (GamesWindow, as BigMapWindow's), and
-    /// the speaker's wave-out stream and the event it sleeps on (WaveOut.cs, A80). None
+    /// the speaker's wave-out stream and the event it sleeps on (Sound/WaveOut.cs since
+    /// the speaker became the app's, A80, A101, A102: ten of the thirteen). None
     /// finds, lists or opens another window, process or device. A new one is the
     /// architecture's call first, then a line here.
     /// </summary>
@@ -371,7 +394,8 @@ public class GamesArchitectureTests
 
     /// <summary>
     /// The games host makes only its own native calls (constraint 1; A80, A86, A92):
-    /// every DllImport or LibraryImport under GamesHost/ and in MainWindow.Games.cs is
+    /// every DllImport or LibraryImport under GamesHost/ and in MainWindow.Games.cs, and
+    /// under Sound/ and in MainWindow.Sound.cs (A102), is
     /// one of the thirteen above, and each of the thirteen is there; the one device it
     /// opens is Windows' default output (Winmm.WaveMapper), never one picked from a
     /// list; and it names no other way to native code, a process or another window.
@@ -382,7 +406,7 @@ public class GamesArchitectureTests
     {
         var root = ThemeFileTests.RepoRoot();
         var files = RepoFiles(root).Select(f => Relative(root, f)).Where(IsGamesHostFile).ToList();
-        Assert.Contains("GamesHost/WaveOut.cs", files); // the walk reaches the native calls' files
+        Assert.Contains("Sound/WaveOut.cs", files); // the walk reaches the native calls' files (moved from GamesHost/, A101)
         Assert.Contains("GamesHost/GamesWindow.xaml.cs", files);
 
         var problems = new List<string>();
@@ -454,6 +478,11 @@ public class GamesArchitectureTests
         Assert.Empty(HostReachIn("// a click on the game: the process is never asked"));
         Assert.Empty(HostReachIn("var memory = Marshal.AllocHGlobal(bytes); // unmanaged memory"));
         Assert.Empty(HostReachIn("if (_keys.Down(KeyOf(e), Keyboard.Modifiers, isRepeat)) e.Handled = true;"));
+
+        // A102: Sound/ is read too, so a native call and a reach planted there are found.
+        Assert.True(IsGamesHostFile("Sound/WaveOut.cs"));
+        Assert.Equal(new[] { ("winmm.dll", "waveOutGetDevCapsW") }, NativeCallsIn("[DllImport(\"winmm.dll\", EntryPoint = \"waveOutGetDevCapsW\")]\n    public static extern int DeviceCaps(uint device, IntPtr caps, uint size);").Declared);
+        Assert.Equal(new[] { "Process" }, HostReachIn("var game = Process.GetProcessesByName(name);"));
     }
 
     [Fact]
@@ -472,5 +501,11 @@ public class GamesArchitectureTests
         Assert.True(IsGamesHostFile(MainWindowGames));
         Assert.False(IsGamesHostFile("Shell/MainWindow.xaml.cs"));
         Assert.False(IsGamesHostFile("Core/PollService.cs"));
+
+        // A102: the app's sound and MainWindow's sound part are read too, so a request
+        // planted there is found.
+        Assert.True(IsGamesHostFile("Sound/WaveOutSpeaker.cs"));
+        Assert.True(IsGamesHostFile(MainWindowSound));
+        Assert.Equal(new[] { "_poll", "Nudge(" }, RequestWordsIn("private void OnClick() => _poll.Nudge(\"click\");"));
     }
 }
