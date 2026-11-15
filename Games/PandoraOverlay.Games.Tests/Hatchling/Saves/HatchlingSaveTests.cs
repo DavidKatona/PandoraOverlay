@@ -3,6 +3,7 @@ using System.Reflection;
 using PandoraOverlay.Games.Engine;
 using PandoraOverlay.Games.Hatchling;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace PandoraOverlay.Games.Tests;
 
@@ -16,6 +17,10 @@ namespace PandoraOverlay.Games.Tests;
 /// </summary>
 public class HatchlingSaveTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public HatchlingSaveTests(ITestOutputHelper output) => _output = output;
+
     // ===== The shape's two rules (A51) ==========================================================
 
     /// <summary>Every class of the save's shape, from SaveData down.</summary>
@@ -217,6 +222,94 @@ public class HatchlingSaveTests
                 Assert.True(problem is null, $"career {career}, step {step}: the check refuses a state the game made: {problem}");
             }
         }
+    }
+
+    /// <summary>The most actions a bot's run may take before the test calls it stuck (the bot's own limit: four an allowed turn).</summary>
+    private const int BotActionLimit = Bot.TurnLimit * 4;
+
+    /// <summary>
+    /// The bot's runs through the save (H74). A random player never reaches the deep
+    /// game (seven hunters and the apex at danger 5, a turn list of eleven rows), which
+    /// is where a check too strict would stop a player's best run. So task H09's bot
+    /// plays every species, with a fresh lineage at danger 1 and the whole lineage at
+    /// dangers 1, 3 and 5, on three seeds each (<see cref="Sweeps.SeedOf"/> as the
+    /// save's next seed): each run started by <see cref="HatchlingGame.Started"/> and
+    /// played by <see cref="Bot.Choose"/> through <see cref="HatchlingGame.Advance"/>,
+    /// the very step the game commits (the pace first when the choice names one; a
+    /// refused action becomes a Rest), to its end or <see cref="Bot.TurnLimit"/> turns.
+    /// After every action the save of the state passes the game's own check; at each
+    /// run's end, and again after Back to camp, the state saved and loaded through the
+    /// schema is itself, field for field. It prints what it saw and asserts none of
+    /// those counts: they move with the balance.
+    /// </summary>
+    [Fact]
+    public void TheBotsRunsGoThroughTheSave()
+    {
+        int runs = 0, states = 0, wins = 0, timedOut = 0, mostRows = 0, mostCreatures = 0;
+        foreach (var species in SpeciesTable.All)
+            foreach (var (danger, whole) in new[] { (1, false), (1, true), (3, true), (5, true) })
+                for (var k = 0; k < 3; k++)
+                {
+                    var name = $"{species.Name}, danger {danger}, {(whole ? "the whole lineage" : "fresh")}, seed {k}";
+                    var state = HatchlingGame.Started(ReadyFor(species.Name, danger, whole, Sweeps.SeedOf(k)));
+                    Assert.True(state is not null, $"{name}: the run did not start");
+                    runs++;
+                    for (var actions = 0; state.Run is { Over: null } run && run.Turn < Bot.TurnLimit; actions++)
+                    {
+                        Assert.True(actions < BotActionLimit, $"{name}: {actions} actions in {run.Turn} turns, stuck");
+                        var choice = Bot.Choose(run);
+                        if (choice.Pace is { } pace && pace != run.Pace)
+                        {
+                            state = HatchlingGame.Advance(state, new PlayerAction.SetPace(pace))?.State
+                                ?? throw new InvalidOperationException($"{name}: a pace was refused");
+                            Checked(state, name);
+                            states++;
+                        }
+                        var next = HatchlingGame.Advance(state, choice.Action) ?? HatchlingGame.Advance(state, new PlayerAction.Rest());
+                        Assert.True(next is not null, $"{name}, turn {run.Turn}: the bot's action and a Rest were both refused");
+                        state = next.Value.State;
+                        Checked(state, name);
+                        states++;
+                        mostRows = Math.Max(mostRows, state.Run!.LastTurn.Count);
+                        mostCreatures = Math.Max(mostCreatures, state.Run.Creatures.Count);
+                    }
+                    if (state.Run!.Over is null) timedOut++;
+                    else if (state.Run.Over.Won) wins++;
+                    ReadsBack(state, name + ", at its end");
+                    state = Settle.BackToCamp(state);
+                    Checked(state, name + ", back to camp");
+                    ReadsBack(state, name + ", back to camp");
+                }
+        _output.WriteLine($"The bot's runs through the save: {runs} runs, {states} states checked, {wins} won, {timedOut} at the turn limit, " +
+            $"{2 * runs} read back; at most {mostRows} rows in the turn list and {mostCreatures} creatures on the island.");
+    }
+
+    /// <summary>A save holding the lineage given (none, or every trait at its last rank), the species granted and chosen, the danger unlocked and chosen, and <paramref name="seed"/> as the next run's.</summary>
+    private static GameState ReadyFor(string species, int danger, bool whole, uint seed)
+    {
+        var state = GameState.Fresh(SaveSamples.Moment);
+        if (whole)
+            foreach (var trait in Lineage.All) state.Ranks[trait.Trait] = trait.MaxRank;
+        state.MaxDanger = Math.Max(state.MaxDanger, danger);
+        if (!Unlocks.IsUnlocked(state, species)) Unlocks.Grant(state, species);
+        state = Camp.Select(state, species);
+        state = Camp.SetDanger(state, danger) ?? throw new InvalidOperationException("the danger was not unlocked");
+        state.NextSeed = seed;
+        return state;
+    }
+
+    private static void Checked(GameState state, string name)
+    {
+        var problem = HatchlingSave.Problem(HatchlingSave.From(state));
+        Assert.True(problem is null, $"{name}, turn {state.Run?.Turn}: the check refuses a state the game made: {problem}");
+    }
+
+    private static void ReadsBack(GameState state, string name)
+    {
+        var loaded = HatchlingSave.Schema.Load(HatchlingSave.Version, HatchlingSave.Schema.Save(HatchlingSave.From(state)));
+        Assert.True(loaded.Outcome == SaveOutcome.Ok, $"{name}: the save loads as {loaded.Outcome}");
+        var differences = Deep.Differences(state, HatchlingSave.To(loaded.State!));
+        Assert.True(differences.Count == 0, $"{name} does not read back:\n" + Deep.Show(differences));
     }
 
     // ===== The format is pinned ==================================================================
