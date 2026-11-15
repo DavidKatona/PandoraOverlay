@@ -348,17 +348,27 @@ internal sealed partial class CampPage : Grid, IHatchlingPage
         if (Unlocks.IsUnlocked(state, state.Selected))
         {
             Disarm();
-            if (_game.StartRun()) _view.ShowPage(PageKind.Run);
+            var earned = _view.Earned;
+            if (_game.StartRun())
+            {
+                _view.Did(Cue.Hatch, earned);   // H99: a start refused is silent
+                _view.ShowPage(PageKind.Run);
+            }
             return;
         }
         if (!UnlockArmed)
         {
-            Arm();
+            Arm();   // the first click of anything armed is silent (H99)
             return;
         }
         var species = _armedFor!;
         Disarm();
-        if (_game.Unlock(species)) _view.ShowWallet();
+        var before = _view.Earned;
+        if (_game.Unlock(species))
+        {
+            _view.Did(Cue.Unlock, before);   // H99: Reward instead when the unlock earned one (six species, the island)
+            _view.ShowWallet();
+        }
         Draw();
     }
 

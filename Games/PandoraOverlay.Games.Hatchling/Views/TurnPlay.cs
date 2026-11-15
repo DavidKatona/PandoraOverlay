@@ -67,6 +67,17 @@ internal sealed class TurnPlay
     /// </summary>
     public int Ticks { get; set; }
 
+    /// <summary>
+    /// Where the beats' cues go (H96): the view's one door (<c>HatchlingView.Sound</c>)
+    /// when the Run page plays the turn, null by default, so a play nobody hands a sink
+    /// makes no sound. A layout state's frozen turn (<c>RunPage.ShowFrozen</c>) never has
+    /// one: a still picture never replays its turn (H100).
+    /// </summary>
+    public Action<Cue>? Sound { get; set; }
+
+    /// <summary>The index of the last beat begun, -1 before the first: a skip's one cue is looked for after it (H98), among the beats whose cues have not played.</summary>
+    public int LastBegun { get; set; } = -1;
+
     /// <summary>The scene's ambient frame flips every this many playback ticks (H55): a cue, not a beat's frame, so H93's slower table left it as it was.</summary>
     public const int RingPulseTicks = 8;
 }

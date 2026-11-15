@@ -75,6 +75,9 @@ internal sealed partial class BeatStep
             {
                 var step = new BeatStep(_play, i) { _panelFrom = _panel, _panelTo = _panel };
                 Plan(step, beats[i], i);
+                // Its cues, once (H96). The apex is told as the planner tells it, by
+                // its ring (PlaybackSprites.RingOf): the Focus's cue is the apex's.
+                step._sounds = BeatSounds.Of(beats[i], IsApex(beats[i]));
                 _panel = step._panelTo;
                 steps[i] = step;
             }
@@ -584,6 +587,10 @@ internal sealed partial class BeatStep
             step._numberFrom = from;
             step._numberLength = Math.Max(1, length);
         }
+
+        /// <summary>The beat's creature is the apex, by the ring the scene gives it (H22): what <see cref="BeatSounds.Of"/> asks for a Focus (H95).</summary>
+        private bool IsApex(Beat beat) =>
+            beat.Actor == BeatActor.Creature && beat.Creature > 0 && PlaybackSprites.RingOf(CreatureOf(beat.Creature)) == Ring.Apex;
 
         private Creature CreatureOf(int id) =>
             _after.Creatures.Find(c => c.Id == id) ?? _before.Creatures.Find(c => c.Id == id)

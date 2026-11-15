@@ -65,6 +65,7 @@ internal sealed class HatchlingView : GameViewBase
     }.Concat(HatchlingText.Guide.Select(s => GuidePrefix + s.Id)).ToArray();
 
     private readonly HatchlingGame _game;
+    private readonly SoundBook _sounds;
     private readonly HatchlingViewRoot _root;
     private readonly RunPage _run;
     private readonly Dictionary<PageKind, IHatchlingPage> _pages;
@@ -80,6 +81,7 @@ internal sealed class HatchlingView : GameViewBase
         ArgumentNullException.ThrowIfNull(game);
         ArgumentNullException.ThrowIfNull(art);
         _game = game;
+        _sounds = game.Sounds();   // loaded once by the game, as its art (H95, A78)
         _root = new HatchlingViewRoot();
         _run = new RunPage(this, game, art, Playback, Loop);
         _pages = new Dictionary<PageKind, IHatchlingPage>
@@ -304,6 +306,29 @@ internal sealed class HatchlingView : GameViewBase
         : state.StartsWith("records-", StringComparison.Ordinal) ? PageKind.Records
         : state.StartsWith(GuidePrefix, StringComparison.Ordinal) ? PageKind.Guide
         : throw new ArgumentException($"Hatchling has no page for the layout state '{state}'.", nameof(state));
+
+    // ===== Sound (A79, H95 to H100) ===================================================================
+
+    /// <summary>
+    /// The view's one door to the host's speaker: <paramref name="cue"/>'s sound through
+    /// the engine's <c>Play</c>, which does nothing while the view is paused or once it is
+    /// disposed (A79's first layer; the host's gate is the second). Nothing in the game
+    /// hands the host a sound but through here, so that layer holds for every cue. A
+    /// cue is played only for what happens while the view is on screen: a page's click
+    /// that did something (H99) and the playback of a turn (H96); never for a page
+    /// shown, a layout state, a reopened run, the tile or a reading (H100, A85).
+    /// </summary>
+    internal void Sound(Cue cue) => Play(_sounds[cue]);
+
+    /// <summary>How many achievements the game's state has earned (the save's list): a page reads it before its click and after, the one number H99's <see cref="Cue.Reward"/> needs.</summary>
+    internal int Earned => _game.State.Achievements.Unlocked.Count;
+
+    /// <summary>
+    /// A page's click that did something (H99): its own cue, or <see cref="Cue.Reward"/>
+    /// INSTEAD when the click raised the achievements earned above
+    /// <paramref name="earnedBefore"/> (read just before the game's call). One cue a click.
+    /// </summary>
+    internal void Did(Cue own, int earnedBefore) => Sound(Earned > earnedBefore ? Cue.Reward : own);
 
     // ===== Handlers =====================================================================================
 
