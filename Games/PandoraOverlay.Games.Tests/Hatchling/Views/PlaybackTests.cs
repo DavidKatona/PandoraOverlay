@@ -104,6 +104,13 @@ public class TurnPlaybackTests
         string.Join("|", page.RowsShown),
         page.BannerShown);
 
+    /// <summary>
+    /// Skip equals run (A20) for 200 seeded turns of every kind of beat: the beats played
+    /// to their end, skipped at tick 0 and at every tenth tick, and the state alone all
+    /// leave the same picture. Each of the 200 scripts is also held, first, to G9's
+    /// script-level rules, the order and "one at a time" (H91); the tick-by-tick
+    /// check of moving creatures stays on the hand-built turns.
+    /// </summary>
     [Fact]
     public void SkipEqualsRunForTwoHundredSeededTurns() => Sta.Run(() =>
     {
@@ -121,6 +128,12 @@ public class TurnPlaybackTests
             using var view = ViewHarness.ViewOf(game);
             var page = view.RunPage;
             var what = $"turn {turn.Before.Turn} of a {turn.Before.Species} at danger {turn.Before.Danger}";
+
+            // G9's order and "one at a time" on every one of the 200 scripts, not on the
+            // hand-built turns alone (H91): the script is one pure function of the events.
+            TurnScriptTests.AssertNoTwoActorsBackToBack(script, what);
+            TurnScriptTests.AssertTheListIsTheOrder(script, what);
+            TurnScriptTests.AssertPredatorsActInIdOrder(script, what);
 
             // Run to its end: exactly the script's ticks (A35), no overrun. Every tenth
             // turn on the manual clock through the loop (each look steps, then paints
