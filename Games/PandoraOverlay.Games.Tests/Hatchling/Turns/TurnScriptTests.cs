@@ -576,8 +576,8 @@ public class TurnScriptTests
         Assert.Equal("ate meat · +45", You(before, new Ate(Food.Meat, 45, 1)));
         Assert.Equal("drank · +40", You(before, new Drank(40, 1)));
         Assert.Equal("rested · +8%", You(before, Rest()));
-        Assert.Equal("hit the Carnotaurus 2: 7", You(before, new Struck(1, Row5(3), 7, false, false, false, false, 4)));
-        Assert.Equal("defeated the Carnotaurus 2", You(Without(before, 1), new Struck(1, Row5(3), 70, false, false, false, true, 4)));
+        Assert.Equal("hit Carnotaurus 2: 7", You(before, new Struck(1, Row5(3), 7, false, false, false, false, 4)));
+        Assert.Equal("defeated Carnotaurus 2", You(Without(before, 1), new Struck(1, Row5(3), 70, false, false, false, true, 4)));
         Assert.Equal("caught small game", You(Without(before, 5), new Struck(5, Grid.Index(2, 4), 9, false, false, false, true, 4)));
     }
 
@@ -587,7 +587,7 @@ public class TurnScriptTests
         var before = Run(Row5(2), Predator(1, PredatorType.Troodon, Row5(3)));
         var script = Build(before, Without(before, 1), new Struck(1, Row5(3), 30, false, false, false, true, 4), Time());
         Assert.DoesNotContain(script.Rows, r => r.Actor == RowActor.Predator);
-        Assert.Equal("defeated the Troodon", HatchlingText.RowText(script.Rows[0]));
+        Assert.Equal("defeated Troodon", HatchlingText.RowText(script.Rows[0]));
     }
 
     // ---- ends ---------------------------------------------------------------------------
