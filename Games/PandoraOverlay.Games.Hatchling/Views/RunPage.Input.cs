@@ -213,7 +213,7 @@ internal sealed partial class RunPage
         Disarm();
         if (_sample is not null || _play is not null || State.Run is not { Over: null, Offer: { } offer }) return;
         if (index < 0 || index >= offer.Count) return;
-        Act(new PlayerAction.Pick(index));
+        Act(new PlayerAction.Pick(index), Cue.Choose);   // H99
     }
 
     /// <summary>Redraw: a new offer, its price paid from the wallet by the game.</summary>
@@ -221,7 +221,7 @@ internal sealed partial class RunPage
     {
         Disarm();
         if (_sample is not null || _play is not null || State.Run is not { Over: null, Offer: not null }) return;
-        Act(new PlayerAction.Redraw());
+        Act(new PlayerAction.Redraw(), Cue.Shuffle);     // H99: a redraw refused (the wallet short) is silent
     }
 
     /// <summary>"Back to camp": the ended run forgotten (H20), and Camp shown.</summary>
@@ -243,13 +243,25 @@ internal sealed partial class RunPage
     /// once; a turn that plays beats shows it once its playback has drained or was
     /// skipped (the view's drain shows it), so a run's pay never appears before the
     /// beat that ended the run.
+    /// <para><b>Its sound</b> (H99), only when the game answered (a refusal is silent):
+    /// <paramref name="own"/>, the click's cue (a pick's <see cref="Cue.Choose"/>, a
+    /// redraw's <see cref="Cue.Shuffle"/>), or <see cref="Cue.Reward"/> instead when the
+    /// action raised the achievements earned (the count before and after the call).
+    /// A move's own sounds are its beats' (H96), and the summary its playback brings
+    /// plays Reward at the drain when the move earned one; Leave and the paces have no
+    /// cue, and Leave's summary, which shows at once, plays Reward then.</para>
     /// </summary>
-    private void Act(PlayerAction action)
+    private void Act(PlayerAction action, Cue? own = null)
     {
         BeforeAct?.Invoke();
+        var earned = _view.Earned;
         var result = _game.Act(action);
+        var rewarded = result is not null && _view.Earned > earned;
         if (result is null) Rest();
         else Play(result);
+        if (Playing) _rewardAtDrain = rewarded;
+        else if (rewarded) _view.Sound(Cue.Reward);
+        else if (result is not null && own is { } cue) _view.Sound(cue);
         if (!Playing) _view.ShowWallet();
     }
 

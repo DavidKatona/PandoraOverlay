@@ -113,7 +113,9 @@ internal sealed partial class RunPage : Grid, IHatchlingPage
     public void Hide()
     {
         _shown = false;
-        // Leaving the page skips what plays (a playback never runs where nobody sees it).
+        // Leaving the page skips what plays (a playback never runs where nobody sees it),
+        // silently: not the player's skip, and a page not shown sounds nothing (H100).
+        _rewardAtDrain = false;
         if (_play is not null && !_playback.Idle) _playback.SkipAll();
         _loop.Rate = LoopRate.Off;
         Disarm();

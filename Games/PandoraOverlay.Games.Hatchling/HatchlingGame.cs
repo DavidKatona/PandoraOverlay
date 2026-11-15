@@ -53,6 +53,7 @@ public sealed class HatchlingGame : IGame
     private GameState? _state;
     private SeenGrowth? _seen;
     private ArtBook? _art;
+    private SoundBook? _sounds;
     private GameTile? _toldTile;
     private DinoReading _lastReading = DinoReading.NotInGame;
     private bool _hasReading;
@@ -455,6 +456,14 @@ public sealed class HatchlingGame : IGame
 
     /// <summary>The art, loaded once, at the first picture (task H13's book of the game's own atlases, A28).</summary>
     private ArtBook Art() => _art ??= ArtBook.Load(typeof(HatchlingGame).Assembly);
+
+    /// <summary>
+    /// The game's sounds, loaded once, at the first view (H95, A78), as <see cref="Art"/>
+    /// is: the view takes them from the game, so its constructor and every call site
+    /// stay as they were. Never at the tile (the grid has no game sound, H100) nor in the
+    /// constructor (no IO until Attach and the first picture).
+    /// </summary>
+    internal SoundBook Sounds() => _sounds ??= SoundBook.Load(typeof(HatchlingGame).Assembly);
 
     /// <summary>Your move or the world's turn: what makes a new turn list (Pick, Redraw, a pace and leaving keep the last one, H28).</summary>
     private static bool PassesATurn(PlayerAction action) =>

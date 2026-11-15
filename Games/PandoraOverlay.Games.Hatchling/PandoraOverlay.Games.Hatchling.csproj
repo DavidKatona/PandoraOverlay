@@ -26,6 +26,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The game's sounds: the 29 WAVs the sound tool writes into Sound/ (one per
+         cue, H95), embedded under the names the engine's SoundBank.Load(assembly)
+         reads, "Sound/<file>" (A78). The game reads them from its own assembly and
+         never from a file (A29), and hands them to the host to play (A77). -->
+    <EmbeddedResource Include="Sound\*.wav" LogicalName="Sound/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- A game references the Contract and the Engine and nothing else: not
          the app, not another game, not a package (A2). -->
     <ProjectReference Include="..\PandoraOverlay.Games.Contract\PandoraOverlay.Games.Contract.csproj" />

@@ -72,6 +72,22 @@ internal sealed partial class BeatStep : IStep
     internal const int HurtTicks = 4 * BeatTicks.Stretch;
 
     /// <summary>
+    /// The tick of your hit's beat at which the creature it defeats begins to fade, 18:
+    /// after the wind-up and its hurt (<see cref="BeatTicks.Strike"/>), over the table's
+    /// 12 more (<see cref="BeatTicks.StrikeDefeatFade"/>). Named once, here, because the
+    /// fall's sound lands on it too (<c>BeatSounds</c>, H96: a defeat where the fade begins).
+    /// </summary>
+    internal const int StrikeFadeFrom = BeatTicks.Strike;
+
+    /// <summary>
+    /// Where a hurt of <paramref name="length"/> ticks that defeats begins to fade: its
+    /// last third (8 of a swept one's or a hurt's 12). The one home of that number,
+    /// for the picture (<see cref="HurtAt"/>) and the fall's sound (<c>BeatSounds</c>,
+    /// H96), so the two can't drift apart.
+    /// </summary>
+    internal static int FadeFrom(int length) => length - length / 3;
+
+    /// <summary>
     /// How far the blow moves the striker toward its target's feet while
     /// <c>strike/1</c> shows (H75): 3 pixels along its own row; for a target in the
     /// row below or above, this many down or up and <see cref="BlowAcross"/> across.
@@ -123,6 +139,12 @@ internal sealed partial class BeatStep : IStep
     private int _advances;
     private bool _begun;
     private bool _done;
+
+    // The beat's cues (H96), worked out once by the one pass (BeatSounds.Of), in tick
+    // order, and the first not yet played: each plays at most once, on the tick the
+    // playback plays, never from Finish or End.
+    private IReadOnlyList<BeatSound> _sounds = Array.Empty<BeatSound>();
+    private int _nextSound;
 
     // ---- what the one pass worked out: the beat's sprites, their places, the values ----
 
@@ -190,8 +212,11 @@ internal sealed partial class BeatStep : IStep
     {
         if (_begun || _done) return;
         _begun = true;
+        // The skip's rule reads it (H98): the beats after this one have played no cue.
+        _play.LastBegun = Math.Max(_play.LastBegun, _index);
         Announce();
         Show(0);
+        Sound(0);
     }
 
     /// <inheritdoc />
@@ -208,14 +233,31 @@ internal sealed partial class BeatStep : IStep
             return true;
         }
         Show(_advances);
+        Sound(_advances);
         return false;
     }
 
     /// <inheritdoc />
     public void Finish()
     {
+        // No sound: a skip finishes beats, it does not play them (H96, H98).
         if (_done) return;
         End();
+    }
+
+    /// <summary>
+    /// The cues of tick <paramref name="k"/>, now that the playback plays it (H96): each
+    /// at most once, through the play's sink, which only a playback the Run page plays
+    /// has (a frozen picture's is null, H100: a still picture never replays its turn).
+    /// Never called from <see cref="End"/>: every cue's tick is under the beat's ticks.
+    /// </summary>
+    private void Sound(int k)
+    {
+        while (_nextSound < _sounds.Count && _sounds[_nextSound].Tick <= k)
+        {
+            var cue = _sounds[_nextSound++].Cue;
+            _play.Sound?.Invoke(cue);
+        }
     }
 
     // ===== The beat's picture ===========================================================
@@ -394,7 +436,7 @@ internal sealed partial class BeatStep : IStep
         if (_actor is not null && strikes) StrikeToward(_actor, k, end);
         if (_other is not null)
         {
-            var hurtLength = strikes ? (_fadesOut ? BeatTicks.Strike - WindUpTicks : _beat.Ticks - WindUpTicks) : _beat.Ticks;
+            var hurtLength = strikes ? (_fadesOut ? StrikeFadeFrom - WindUpTicks : _beat.Ticks - WindUpTicks) : _beat.Ticks;
             if (end)
             {
                 HurtAt(_other, hurtLength, hurtLength, end: true, _fadesOut);
@@ -602,7 +644,7 @@ internal sealed partial class BeatStep : IStep
         if (!drawn && ArtTick(k) is 0 or 1 or 4 or 5) opacity = HurtBlink;
         if (fadesOut)
         {
-            var fadeFrom = length - length / 3;
+            var fadeFrom = FadeFrom(length);
             if (k >= fadeFrom) opacity = (byte)Math.Min(opacity, Fade(255, 0, k - fadeFrom, length - fadeFrom));
         }
         sprite.Opacity = opacity;

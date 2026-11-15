@@ -161,7 +161,12 @@ internal sealed partial class LineagePage : Grid, IHatchlingPage
     internal void BuyClicked(Trait trait)
     {
         if (!CanBuy(_view.State, trait)) return;
-        if (_game.BuyTrait(trait)) _view.ShowWallet();
+        var earned = _view.Earned;
+        if (_game.BuyTrait(trait))
+        {
+            _view.Did(Cue.Choose, earned);   // H99: a rank taken; Reward instead when it earned "roots" or "blood"
+            _view.ShowWallet();
+        }
         Draw();
     }
 

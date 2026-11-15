@@ -258,7 +258,12 @@ internal sealed partial class JournalPage : Grid, IHatchlingPage
             return;
         }
         Disarm();
-        if (_game.Swap(index)) _view.ShowWallet();
+        var earned = _view.Earned;
+        if (_game.Swap(index))
+        {
+            _view.Did(Cue.Shuffle, earned);   // H99: the armed swap's second click; its first is silent
+            _view.ShowWallet();
+        }
         Draw();
     }
 

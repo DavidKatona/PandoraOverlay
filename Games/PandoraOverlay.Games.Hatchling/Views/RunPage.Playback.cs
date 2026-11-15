@@ -35,6 +35,9 @@ internal sealed partial class RunPage
             return;
         }
         var play = Begin(result, script);
+        // The beats' cues go to the view's one door (H96): only a turn played here has a
+        // sink; ShowFrozen's still picture never does (H100).
+        play.Sound = _view.Sound;
         foreach (var step in BeatStep.Make(play))
             _playback.Enqueue(step);
         _playback.Speed = State.Fast ? 2 : 1;
@@ -60,6 +63,9 @@ internal sealed partial class RunPage
         _scene.AmbientFrame = 0;
         var play = new TurnPlay(result, script, _scene, _art);
         _play = play;
+        // A new turn owes no Reward of the last one, and no skip has cued it (H99).
+        _rewardAtDrain = false;
+        _skipCued = false;
         Disarm();
 
         TurnNumber.Text = HatchlingText.TurnNumber(result.After.Turn);
@@ -97,24 +103,53 @@ internal sealed partial class RunPage
         PlayedBanner = play.Banner;
         foreach (var sprite in play.Scene.Sprites)
             if (sprite.Opacity > 0) _facing[sprite.Creature] = sprite.Flip;
+        // H99: the summary this view's own move brought plays Reward when that move
+        // earned an achievement, unless a skip's cue already played at this click (one
+        // cue a click). Decided at the move (_rewardAtDrain), so a reading that earned
+        // something meanwhile is never taken for the run's (A85).
+        var reward = _rewardAtDrain && !_skipCued && play.Sound is not null && State.Run?.Over is not null;
+        _rewardAtDrain = false;
+        _skipCued = false;
         _play = null;
         Rest();
+        if (reward) _view.Sound(Cue.Reward);
     }
+
+    /// <summary>The move whose turn plays earned an achievement (H99): its summary, once the playback has drained, plays <see cref="Cue.Reward"/>.</summary>
+    private bool _rewardAtDrain;
+
+    /// <summary>The skip that drains the playback played its one cue (H98): the summary it opens adds none (H99).</summary>
+    private bool _skipCued;
 
     /// <summary>A press on a tab during a playback (H5): only a skip.</summary>
     internal void SkipPlayback() => Skip();
 
-    /// <summary>A skip (H5): the playback finished at once; its Drained rests the page. The press that asked for it is spent.</summary>
+    /// <summary>
+    /// A skip (H5): the playback finished at once; its Drained rests the page. The press
+    /// that asked for it is spent. Before it, at most one cue (H98): among the beats not
+    /// yet begun, whose cues have not played, the run's end, else the apex, else a stage
+    /// (<see cref="BeatSounds.OnSkip"/>), through the play's sink; the beats it finishes
+    /// sound nothing (H96), and the summary it opens nothing more (H99).
+    /// </summary>
     private void Skip()
     {
-        if (!_playback.Idle) _playback.SkipAll();
+        if (!_playback.Idle)
+        {
+            if (_play is { Sound: { } sink } play && BeatSounds.OnSkip(play.Script.Beats, play.LastBegun + 1) is { } cue)
+            {
+                _skipCued = true;
+                sink(cue);
+            }
+            _playback.SkipAll();
+        }
         // A play that had no queue left (a layout state's frozen turn) rests here.
         if (_play is not null && _playback.Idle) Drained();
     }
 
-    /// <summary>A view going to a layout state: whatever is queued is dropped, as a closing window drops it (A20: nothing was pending).</summary>
+    /// <summary>A view going to a layout state: whatever is queued is dropped, as a closing window drops it (A20: nothing was pending); no Reward is owed for it (H100).</summary>
     private void DropPlayback()
     {
+        _rewardAtDrain = false;
         if (!_playback.Idle) _playback.Clear();
         _play = null;
     }
