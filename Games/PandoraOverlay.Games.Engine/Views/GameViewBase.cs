@@ -108,6 +108,30 @@ public abstract class GameViewBase : IGameView
         }
     }
 
+    /// <summary>
+    /// One of the game's sounds, handed to the host (A77): nothing once the
+    /// view is disposed or while it is paused, otherwise the host's
+    /// <see cref="IGameHost.Sound"/>, which plays it or drops it.
+    /// <para>
+    /// The first of A79's three layers that keep a game silent off screen:
+    /// the engine's rule that a paused view does nothing (A19, A56) holds for
+    /// its sounds as for its input, so a step or a handler that plays while
+    /// the health warning covers the view, or after the window closed it,
+    /// makes no sound here. The host's gate is the second layer (it plays only
+    /// for the instance on screen, not paused, not muted), and a stop at every
+    /// change of what the window shows the third; the host holds those
+    /// whatever a game does, this one keeps the engine's own word. A paused
+    /// loop advances no playback either, so no beat reaches its cue.
+    /// </para>
+    /// </summary>
+    protected void Play(GameSound sound)
+    {
+        ArgumentNullException.ThrowIfNull(sound);
+        if (_disposed || Loop.Paused)
+            return;
+        Host.Sound.Play(sound);
+    }
+
     /// <summary>The window covered the view (G18): the loop paused, and <see cref="Guard"/> takes no input. Idempotent.</summary>
     public virtual void Pause() => Loop.Paused = true;
 

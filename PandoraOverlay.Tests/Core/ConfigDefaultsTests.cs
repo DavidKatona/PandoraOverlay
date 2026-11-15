@@ -27,6 +27,15 @@ public class ConfigDefaultsTests
         Assert.True(cfg.UpdateCheckEnabled, "the launch update check is on until switched off");
     }
 
+    /// <summary>The games' sound (A82): the third of five steps, sound on (a muted default is a feature nobody hears), never seeded from the overlay's chimes.</summary>
+    [Fact]
+    public void AFreshConfigHasTheGamesSoundOnAtStepThree()
+    {
+        var cfg = new OverlayConfig();
+        Assert.Equal(3, cfg.GamesSoundVolume);
+        Assert.False(cfg.GamesSoundMuted);
+    }
+
     /// <summary>A sign-in leaves the session (encrypted), the browser identity and the name; a sign-out forgets the first and the last and keeps the identity.</summary>
     [Fact]
     public void SignInAndSignOutRoundTrip()

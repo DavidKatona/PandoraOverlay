@@ -40,6 +40,18 @@ public static class GamesFrame
     /// <summary>The header's height, its bottom line inside it.</summary>
     public const double HeaderHeight = 40;
 
+    /// <summary>The header's room at its left, before the back control or the title.</summary>
+    public const double HeaderPaddingLeft = 12;
+
+    /// <summary>The header's room at its right, after ✕.</summary>
+    public const double HeaderPaddingRight = 8;
+
+    /// <summary>The header's padding, as its XAML takes it.</summary>
+    public static readonly Thickness HeaderPadding = new(HeaderPaddingLeft, 0, HeaderPaddingRight, 0);
+
+    /// <summary>What the header lays its parts out in: the outer width less the border's two sides and its padding (778).</summary>
+    public const double HeaderInnerWidth = Width - 2 - HeaderPaddingLeft - HeaderPaddingRight;
+
     /// <summary>A tile's width: three to a row (G1).</summary>
     public const double TileWidth = 244;
 
@@ -90,8 +102,78 @@ public static class GamesFrame
     /// <summary>The tile's button row, at its bottom: fixed, so a font with a taller line box shows as clipped in the layout tests instead of moving the button.</summary>
     public const double TileButtonRowHeight = 24;
 
-    /// <summary>The header's title at most: what is left of the header beside the back control, the subtitle and the right-hand notes; a longer title trims.</summary>
-    public const double TitleMaxWidth = 300;
+    // ---- The header's sound group (A82, A83) --------------------------------------------
+    // On the header's right, before the hint: the speaker (mute), `−`, five level
+    // pips, `+`. Before the hint, so the watch note, which comes and goes, grows to
+    // its LEFT and nothing of the group ever moves (a control that jumps when a note
+    // appears is clicked wrong). The same in every theme: a theme paints the group,
+    // it never sizes it.
+
+    /// <summary>Each of the group's three buttons, square: ✕'s size.</summary>
+    public const double SoundButtonSize = 22;
+
+    /// <summary>How many level pips: one per volume step (GamesSound.Steps, held equal by a test).</summary>
+    public const int SoundPips = 5;
+
+    /// <summary>A level pip's width.</summary>
+    public const double SoundPipWidth = 4;
+
+    /// <summary>Between two pips.</summary>
+    public const double SoundPipGap = 2;
+
+    /// <summary>The first (quietest) pip's height; each next one is <see cref="SoundPipRise"/> taller: 4, 6, 8, 10, 12, a meter like the growth segments.</summary>
+    public const double SoundPipShortest = 4;
+
+    /// <summary>How much taller each pip is than the one before.</summary>
+    public const double SoundPipRise = 2;
+
+    /// <summary>A pip's corner at most this, whatever the theme's <c>Corner.Progress</c>, so the meter reads as rising bars in every theme (A89).</summary>
+    public const double SoundPipMaxCorner = SoundPipWidth / 4;
+
+    /// <summary>The pips' box: as tall as the tallest pip, the pips bottom-aligned in it, the box centred in the header.</summary>
+    public const double SoundPipsHeight = SoundPipShortest + (SoundPips - 1) * SoundPipRise;
+
+    /// <summary>The pips' box's width: the pips and the gaps between them.</summary>
+    public const double SoundPipsWidth = SoundPips * SoundPipWidth + (SoundPips - 1) * SoundPipGap;
+
+    /// <summary>Between each two parts of the group.</summary>
+    public const double SoundGroupGap = 4;
+
+    /// <summary>The group's width: three buttons, the pips and the three gaps between the four (106).</summary>
+    public const double SoundGroupWidth = 3 * SoundButtonSize + SoundPipsWidth + 3 * SoundGroupGap;
+
+    /// <summary>Between the group and the hint at its right: the watch note's own 14 at its left, mirrored.</summary>
+    public const double SoundGroupSpace = 14;
+
+    /// <summary>A pip's height, from the quietest (0) up.</summary>
+    public static double SoundPipHeight(int index) => SoundPipShortest + index * SoundPipRise;
+
+    /// <summary>The space before each part of the group but the first, as its XAML takes it.</summary>
+    public static readonly Thickness SoundGapBefore = new(SoundGroupGap, 0, 0, 0);
+
+    /// <summary>The space before each pip but the first.</summary>
+    public static readonly Thickness SoundPipGapBefore = new(SoundPipGap, 0, 0, 0);
+
+    /// <summary>The group's own margin: the space to the hint.</summary>
+    public static readonly Thickness SoundGroupMargin = new(0, 0, SoundGroupSpace, 0);
+
+    /// <summary>
+    /// The header's title at most: what is left of the header's
+    /// <see cref="HeaderInnerWidth"/> when every optional part is shown at its
+    /// widest, rounded down to a whole 10; a longer title trims (A83).
+    /// <para>
+    /// Measured in every bundled theme at its own fit factor (Nov 15 2026), each
+    /// part with its margin; the widest is Isle's Montserrat: the back control
+    /// 75.45, "Paused" 55.32, the longer watch note ("Disconnected · health not
+    /// watched") 209.54, the sound group 120 (106 and its 14 to the hint), the
+    /// hint 89.12 and ✕ 22, 571.43 in all; 778 less that is 206.57, so 200.
+    /// (Default leaves 259.76, Nunito's themes 257.56, Rajdhani's 280.94; the
+    /// planner's sums had guessed about 170.) Today's "Hatchling" is 70 to 110
+    /// wide by theme. GamesLayoutTests holds the header whole in every theme
+    /// with every part shown and a title longer than this.
+    /// </para>
+    /// </summary>
+    public const double TitleMaxWidth = 200;
 
     /// <summary>The smallest <c>GamesScale</c> (Settings → Widgets): the widgets' own floor.</summary>
     public const double MinScale = 0.75;

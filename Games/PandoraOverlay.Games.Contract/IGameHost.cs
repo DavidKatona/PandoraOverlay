@@ -21,6 +21,21 @@ public interface IGameHost
     /// <summary>The overlay's log, for facts and counts.</summary>
     IGameLog Log { get; }
 
+    /// <summary>
+    /// The window's speaker for this game (G26, A77): the game's own short
+    /// sounds, played only while its view is on screen, not paused, and not
+    /// muted.
+    /// <para>
+    /// The host's, as the storage is: the forbidden list refuses a game every
+    /// audio API of its own (A29), so the only way to make a sound is to hand
+    /// one to the host, which plays it or drops it (A79). A service a game
+    /// can't provide for itself, as every member here is, which is why it
+    /// entered the Contract with one game (A4's "two games" is about data a
+    /// game can keep itself).
+    /// </para>
+    /// </summary>
+    IGameSound Sound { get; }
+
     /// <summary>What <see cref="IGame.Tile"/> returns changed: the grid redraws that tile if it is on screen.</summary>
     void TileChanged();
 

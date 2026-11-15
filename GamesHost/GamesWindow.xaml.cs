@@ -44,6 +44,13 @@ namespace PandoraOverlay;
 /// player: the window is handed states, never a reading.
 /// </para>
 /// <para>
+/// <b>The games' sound</b> (G26, A79, A82): the window tells the host's sound
+/// gate what it shows at every change (<c>TellStage</c>), so a game is heard
+/// only while it is on screen and not covered, and its header carries the
+/// games' mute and volume, the same on the grid and in a game. The rules are
+/// the gate's (<see cref="GamesSound"/>); the window clicks and shows.
+/// </para>
+/// <para>
 /// Not an OverlayWindowBase (it is no click-through widget): a plain opaque
 /// Window like the map, topmost, a tool window (no Alt-Tab entry), centred on
 /// the HUD's monitor at its drawn size, never remembered (G15). The whole
@@ -86,6 +93,9 @@ internal partial class GamesWindow : Window
 
         OverlayFocus.Watch(this); // a click on the game: MainWindow closes the window (A12, G17)
 
+        BuildPips();
+        ShowSound();
+
         _host.TileChanged += OnTileChanged;
         _host.ConditionChanged += OnConditionChanged;
         Closed += (_, _) =>
@@ -93,6 +103,7 @@ internal partial class GamesWindow : Window
             _host.TileChanged -= OnTileChanged;
             _host.ConditionChanged -= OnConditionChanged;
             CloseView(); // GamesView is kept: where you left off (G14)
+            _host.Sound.Stage(null, paused: false); // the window closed: nobody is heard, every sound stops (A79)
             LetGoOfArt(); // a game's kept art element is free for the next window's tile
         };
 
@@ -134,6 +145,7 @@ internal partial class GamesWindow : Window
     internal void ShowGrid()
     {
         CloseView();
+        TellStage(); // the grid: no game is heard (A79); a fault's close comes here too (OnConditionChanged)
         _config.GamesView = "";
         GameHost.Visibility = Visibility.Collapsed;
         GridScroll.Visibility = Visibility.Visible;
@@ -194,9 +206,21 @@ internal partial class GamesWindow : Window
         BackButton.Visibility = Visibility.Visible;
         TitleText.Text = game.Title;
         if (_warningUp) GameGuard.Run(game, "Pause", view.Pause); // opened under a warning: the view starts paused
+        TellStage(); // this game on screen, paused if the warning is up (A79); after a Pause that threw, the grid
         ShowHeaderState();
         return _onScreen == game; // a Pause that threw has already sent the window back to the grid
     }
+
+    /// <summary>
+    /// What the window shows, told to the games' sound gate at every change
+    /// (A79): the game on screen, or none, and whether the warning covers it.
+    /// A game shown (<see cref="TryShowGame"/>), the grid (<see cref="ShowGrid"/>,
+    /// which a fault's close goes through: <see cref="OnConditionChanged"/>), the
+    /// warning up, "Keep playing"; the window's Closed tells it none. The gate
+    /// plays a sound only for the instance it was told is heard, and stops every
+    /// sound when the heard one changes or goes.
+    /// </summary>
+    private void TellStage() => _host.Sound.Stage(_onScreen, _warningUp);
 
     /// <summary>The view on screen, if any, taken off and disposed (guarded): its timers stop, nothing is lost (the state is whole, A20).</summary>
     private void CloseView()
@@ -238,7 +262,7 @@ internal partial class GamesWindow : Window
     {
         if (game == _onScreen)
         {
-            if (game.Condition != GameCondition.Ready) ShowGrid();
+            if (game.Condition != GameCondition.Ready) ShowGrid(); // which tells the sound gate: the stopped game is heard no more (A79)
             return;
         }
         if (_onScreen is null) RebuildTile(game);
@@ -262,6 +286,7 @@ internal partial class GamesWindow : Window
         Disarm(); // the panel covers the grid: nothing stays armed under it
         WarningPanel.Visibility = Visibility.Visible;
         if (_onScreen is { } game && _view is { } view) GameGuard.Run(game, "Pause", view.Pause);
+        TellStage(); // the game paused: unheard, its sounds stopped (A79)
         ShowHeaderState();
     }
 
@@ -272,6 +297,7 @@ internal partial class GamesWindow : Window
         _warningUp = false;
         WarningPanel.Visibility = Visibility.Collapsed;
         if (_onScreen is { } game && _view is { } view) GameGuard.Run(game, "Resume", view.Resume);
+        TellStage(); // "Keep playing": the game heard again (A79)
         ShowHeaderState();
         WarningAcknowledged?.Invoke();
     }
@@ -282,6 +308,80 @@ internal partial class GamesWindow : Window
         var note = GamesText.WatchNote(watch);
         WatchNote.Text = note;
         WatchNote.Visibility = note.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ---- The sound group (A82, A83) ------------------------------------------------------
+    // The games' mute and volume, on the grid and in a game alike (a player can set
+    // the level before playing). The rules are the gate's (GamesSound): the window
+    // only clicks and shows. Every colour and corner a theme token (no new token,
+    // A32): a lit pip is the growth bar's fill, an unlit one the slots meter's
+    // track, visible on the window's glass in every theme (A89).
+
+    /// <summary>The level pips, from the quietest; built once (the theme can't change while the window is open: Settings closes it).</summary>
+    private readonly List<Border> _pips = new();
+
+    /// <summary>
+    /// Five pips, 4 wide and 2 apart, 4 to 12 high, bottom-aligned in their 12-high box
+    /// (GamesFrame's constants). Each pip's corner is the theme's <c>Corner.Progress</c>
+    /// held to <see cref="GamesFrame.SoundPipMaxCorner"/>, so the meter reads as rising
+    /// bars, never dots, in every theme (A89; the Pack holds its bars' corner the same
+    /// way). Read once, here: the window lives inside one theme, since Settings, where
+    /// the theme changes, closes it (A13).
+    /// </summary>
+    private void BuildPips()
+    {
+        for (var i = 0; i < GamesFrame.SoundPips; i++)
+        {
+            var pip = new Border
+            {
+                Width = GamesFrame.SoundPipWidth,
+                Height = GamesFrame.SoundPipHeight(i),
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = i == 0 ? default : GamesFrame.SoundPipGapBefore,
+            };
+            pip.CornerRadius = new CornerRadius(Math.Min(Theme.Current.Corner.Progress.Value, GamesFrame.SoundPipMaxCorner));
+            _pips.Add(pip);
+            SoundPips.Children.Add(pip);
+        }
+    }
+
+    /// <summary>
+    /// The group as the gate stands: the speaker's glyph (on or muted), `−`
+    /// disabled at step 1 and `+` at the top, the first step's worth of pips lit
+    /// and the rest unlit, every pip unlit while muted. An unlit pip is the slots
+    /// meter's track (<c>Theme.Storage.SlotsTrack</c>), visible on the window's
+    /// glass in every theme (A89).
+    /// </summary>
+    private void ShowSound()
+    {
+        var sound = _host.Sound;
+        var (step, muted) = (sound.Step, sound.Muted);
+        SoundToggle.Content = muted ? GamesText.SoundOff : GamesText.SoundOn;
+        SoundDown.IsEnabled = step > 1;
+        SoundUp.IsEnabled = step < GamesSound.Steps;
+        for (var i = 0; i < _pips.Count; i++)
+            _pips[i].SetResourceReference(Border.BackgroundProperty, !muted && i < step ? "Theme.Storage.Growth" : "Theme.Storage.SlotsTrack");
+    }
+
+    /// <summary>The speaker: mutes (every sound stops) or unmutes (the preview at the step).</summary>
+    private void SoundToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _host.Sound.ToggleMute();
+        ShowSound();
+    }
+
+    /// <summary>`−`: a step quieter, sound on, the preview at the new step.</summary>
+    private void SoundDown_Click(object sender, RoutedEventArgs e)
+    {
+        _host.Sound.StepDown();
+        ShowSound();
+    }
+
+    /// <summary>`+`: a step louder, sound on, the preview at the new step.</summary>
+    private void SoundUp_Click(object sender, RoutedEventArgs e)
+    {
+        _host.Sound.StepUp();
+        ShowSound();
     }
 
     // ---- Keys (G12) ---------------------------------------------------------------

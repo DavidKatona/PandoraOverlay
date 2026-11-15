@@ -54,17 +54,20 @@ internal sealed class GamesHost
     private readonly HostedGame[] _games;
     private bool _attached;
 
-    public GamesHost(GameSaveStore store, IReadOnlyList<GameEntry> catalog, IGameClock clock)
-        : this(store, catalog, clock, id => new GameLog(id))
+    /// <param name="sound">The games' sound gate (A79), MainWindow's over its config and this clock; none (the tests, the render harness): one over <see cref="NullSpeaker"/> and a fresh config.</param>
+    public GamesHost(GameSaveStore store, IReadOnlyList<GameEntry> catalog, IGameClock clock, GamesSound? sound = null)
+        : this(store, catalog, clock, id => new GameLog(id), sound)
     {
     }
 
     /// <param name="logFor">Each game's log (a test's collects the lines; the app's writes them to <see cref="AppLog.Games"/>).</param>
-    internal GamesHost(GameSaveStore store, IReadOnlyList<GameEntry> catalog, IGameClock clock, Func<string, IGameLog> logFor)
+    /// <param name="sound">As the public constructor's.</param>
+    internal GamesHost(GameSaveStore store, IReadOnlyList<GameEntry> catalog, IGameClock clock, Func<string, IGameLog> logFor, GamesSound? sound = null)
     {
         _store = store;
         _clock = clock;
         _logFor = logFor;
+        Sound = sound ?? new GamesSound(new NullSpeaker(), new OverlayConfig(), clock);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         _games = new HostedGame[catalog.Count];
         for (var i = 0; i < catalog.Count; i++)
@@ -86,6 +89,13 @@ internal sealed class GamesHost
 
     /// <summary>The listed games, in the catalog's order (G1).</summary>
     public IReadOnlyList<HostedGame> Games { get; }
+
+    /// <summary>
+    /// The games' sound gate (G26, A79): every instance's <see cref="IGameHost.Sound"/>
+    /// asks it, the window tells it what it shows and works its mute and
+    /// volume through it. MainWindow disposes it on the way out.
+    /// </summary>
+    public GamesSound Sound { get; }
 
     // A subscriber of either event is the app's own code (the window,
     // MainWindow): one that throws is the app's own bug, and is not caught here

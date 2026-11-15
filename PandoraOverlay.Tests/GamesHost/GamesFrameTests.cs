@@ -50,6 +50,57 @@ public class GamesFrameTests
         Assert.True(Rows(3) > GamesFrame.ViewHeight);
     }
 
+    // ---- The header's sound group and the title's room (A82, A83) -----------------------
+
+    /// <summary>The group's sizes and their sum: three 22 buttons, five pips 4 wide and 2 apart rising 4 to 12, 4 between each part: 106.</summary>
+    [Fact]
+    public void TheSoundGroupsSizesSum()
+    {
+        Assert.Equal(GamesSound.Steps, GamesFrame.SoundPips); // one pip per step
+        Assert.Equal(new double[] { 4, 6, 8, 10, 12 }, Enumerable.Range(0, GamesFrame.SoundPips).Select(GamesFrame.SoundPipHeight));
+        Assert.Equal(GamesFrame.SoundPipsHeight, GamesFrame.SoundPipHeight(GamesFrame.SoundPips - 1));
+        Assert.Equal(GamesFrame.SoundPipWidth / 4, GamesFrame.SoundPipMaxCorner); // rising bars in every theme (A89)
+        Assert.Equal(GamesFrame.SoundPips * GamesFrame.SoundPipWidth + (GamesFrame.SoundPips - 1) * GamesFrame.SoundPipGap, GamesFrame.SoundPipsWidth);
+        Assert.Equal(28, GamesFrame.SoundPipsWidth);
+        Assert.Equal(3 * GamesFrame.SoundButtonSize + GamesFrame.SoundPipsWidth + 3 * GamesFrame.SoundGroupGap, GamesFrame.SoundGroupWidth);
+        Assert.Equal(106, GamesFrame.SoundGroupWidth);
+        Assert.Equal((22.0, 4.0, 14.0), (GamesFrame.SoundButtonSize, GamesFrame.SoundGroupGap, GamesFrame.SoundGroupSpace));
+
+        // In the header's height: the buttons with its bottom line, the pips' box inside a button's height.
+        Assert.True(GamesFrame.SoundButtonSize < GamesFrame.HeaderHeight - 1);
+        Assert.True(GamesFrame.SoundPipsHeight <= GamesFrame.SoundButtonSize);
+
+        // The XAML's spacing is these numbers.
+        Assert.Equal(new Thickness(GamesFrame.SoundGroupGap, 0, 0, 0), GamesFrame.SoundGapBefore);
+        Assert.Equal(new Thickness(GamesFrame.SoundPipGap, 0, 0, 0), GamesFrame.SoundPipGapBefore);
+        Assert.Equal(new Thickness(0, 0, GamesFrame.SoundGroupSpace, 0), GamesFrame.SoundGroupMargin);
+        Assert.Equal(new Thickness(GamesFrame.HeaderPaddingLeft, 0, GamesFrame.HeaderPaddingRight, 0), GamesFrame.HeaderPadding);
+    }
+
+    /// <summary>
+    /// The title's room and the rest of the header within its 778 (A83): the
+    /// rest as measured at its widest in every bundled theme (Isle's
+    /// Montserrat, 571.43 with every part's margin: GamesFrame.TitleMaxWidth's
+    /// comment), and every part that is no text. The texts themselves are held in
+    /// every theme at its own fit factor by GamesLayoutTests, with a title
+    /// longer than its room.
+    /// </summary>
+    [Fact]
+    public void TheTitlesRoomAndTheRestFitTheHeader()
+    {
+        const double widestRest = 571.43;
+        // What is no text: the back control's 10 after it, the subtitle's 10 before
+        // it, the watch note's 14 after it, the group and its 14, the hint's 10, ✕'s 22.
+        const double fixedParts = 10 + 10 + 14 + GamesFrame.SoundGroupWidth + GamesFrame.SoundGroupSpace + 10 + 22;
+
+        Assert.Equal(778, GamesFrame.HeaderInnerWidth);
+        Assert.Equal(GamesFrame.Width - 2 - GamesFrame.HeaderPaddingLeft - GamesFrame.HeaderPaddingRight, GamesFrame.HeaderInnerWidth);
+        Assert.True(GamesFrame.TitleMaxWidth + widestRest <= GamesFrame.HeaderInnerWidth);
+        Assert.True(GamesFrame.TitleMaxWidth + fixedParts <= GamesFrame.HeaderInnerWidth);
+        Assert.Equal(0, GamesFrame.TitleMaxWidth % 10); // rounded down to a whole 10
+        Assert.True(GamesFrame.HeaderInnerWidth - widestRest - GamesFrame.TitleMaxWidth < 10, "the title's room is what is left, rounded down to a whole 10, not less");
+    }
+
     [Fact]
     public void TheTilesButtonFitsTheTile()
     {
