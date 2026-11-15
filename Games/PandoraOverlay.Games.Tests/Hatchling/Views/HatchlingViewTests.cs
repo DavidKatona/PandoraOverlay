@@ -192,21 +192,29 @@ public class HatchlingViewTests
     }
 
     [Fact]
-    public void TheLayoutStatesAreSeventeenAndTheRunPagesShowStill() => Sta.Run(() =>
+    public void TheLayoutStatesAreSeventeenAndAllShowStill() => Sta.Run(() =>
     {
         var (game, host) = ViewHarness.Attached(ViewHarness.Running());
         using var view = ViewHarness.ViewOf(game);
         Assert.Equal(17, view.LayoutStates.Count);
         Assert.Equal(17, view.LayoutStates.Distinct().Count());
         var writes = host.Memory.Writes.Count;
-        var runStates = view.LayoutStates.Where(s => s.StartsWith("run-", StringComparison.Ordinal)).ToList();
-        Assert.Equal(7, runStates.Count);
+        var all = view.LayoutStates.ToList();
+        Assert.Equal(7, all.Count(s => s.StartsWith("run-", StringComparison.Ordinal)));
 
-        // Any order, any number of times, on a view never shown.
-        foreach (var state in runStates.Concat(Enumerable.Reverse(runStates)).Concat(runStates))
+        // Any order, any number of times, on a view never shown; each on its own page.
+        foreach (var state in all.Concat(Enumerable.Reverse(all)).Concat(all))
         {
             view.ShowLayoutState(state);
-            Assert.Equal(PageKind.Run, view.Shown);
+            var page = state[..state.IndexOf('-')] switch
+            {
+                "camp" => PageKind.Camp,
+                "run" => PageKind.Run,
+                "lineage" => PageKind.Lineage,
+                "journal" => PageKind.Journal,
+                _ => PageKind.Records,
+            };
+            Assert.Equal(page, view.Shown);
             Assert.Equal(LoopRate.Off, view.TheLoop.Rate);
             Assert.True(view.ThePlayback.Idle);
             var root = view.Root;
@@ -218,9 +226,8 @@ public class HatchlingViewTests
         Assert.Equal(0, GameLoop.LiveTimers);
         Assert.Equal(writes, host.Memory.Writes.Count);   // no storage written
 
-        foreach (var other in view.LayoutStates.Except(runStates))
-            Assert.Throws<NotSupportedException>(() => view.ShowLayoutState(other));
         Assert.Throws<ArgumentException>(() => view.ShowLayoutState("run-nowhere"));
+        Assert.Throws<ArgumentException>(() => view.ShowLayoutState("camp-nowhere"));
     });
 
     [Fact]

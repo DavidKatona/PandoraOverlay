@@ -11,8 +11,9 @@ internal enum PageKind { Camp, Run, Lineage, Journal, Records }
 /// <summary>
 /// One page of the view. <see cref="Show"/> when it becomes the page shown,
 /// <see cref="Refresh"/> when the game's state changed while it is shown (a reading
-/// paid something), <see cref="Hide"/> when it is left. Camp, the Lineage, the Journal
-/// and Records are task H15's to fill.
+/// paid something), <see cref="Hide"/> when it is left. The Run page plays the run;
+/// Camp, the Lineage, the Journal and Records are the pages between runs, built from
+/// the state on Show and redrawn in place on Refresh, with nothing ticking on them.
 /// </summary>
 internal interface IHatchlingPage
 {
@@ -20,20 +21,6 @@ internal interface IHatchlingPage
     void Show();
     void Refresh();
     void Hide();
-}
-
-/// <summary>A page task H15 fills: an empty box of the page's size until then.</summary>
-internal sealed class PlaceholderPage : IHatchlingPage
-{
-    private readonly Grid _root = new() { Width = GameFrame.ViewWidth, Height = GameFrame.ViewHeight - HatchlingView.BarHeight };
-
-    public FrameworkElement Root => _root;
-
-    public void Show() { }
-
-    public void Refresh() { }
-
-    public void Hide() { }
 }
 
 /// <summary>
@@ -60,7 +47,7 @@ internal sealed class HatchlingView : GameViewBase
     /// <summary>The game's bar's height (G13): the page is the rest.</summary>
     public const double BarHeight = 34;
 
-    /// <summary>Every layout state of the game, in A26's list: the Run page's seven are this task's, the rest task H15's.</summary>
+    /// <summary>Every layout state of the game, in A26's list: the Run page's seven and the ten of the pages between runs, each named by its page.</summary>
     internal static readonly IReadOnlyList<string> AllStates = new[]
     {
         "camp-first", "camp-locked", "camp-everything",
@@ -88,14 +75,13 @@ internal sealed class HatchlingView : GameViewBase
         _game = game;
         _root = new HatchlingViewRoot();
         _run = new RunPage(this, game, art, Playback, Loop);
-        var camp = new PlaceholderPage();
         _pages = new Dictionary<PageKind, IHatchlingPage>
         {
-            [PageKind.Camp] = camp,
+            [PageKind.Camp] = new CampPage(this, game, art),
             [PageKind.Run] = _run,
-            [PageKind.Lineage] = new PlaceholderPage(),
-            [PageKind.Journal] = new PlaceholderPage(),
-            [PageKind.Records] = new PlaceholderPage(),
+            [PageKind.Lineage] = new LineagePage(this, game),
+            [PageKind.Journal] = new JournalPage(this, game),
+            [PageKind.Records] = new RecordsPage(this),
         };
 
         _root.FirstTab.Click += (_, _) => TabClicked(State.Run is null ? PageKind.Camp : PageKind.Run);
@@ -260,8 +246,8 @@ internal sealed class HatchlingView : GameViewBase
     /// <summary>
     /// Shows a layout state with its sample (A11): any number of times, in any order,
     /// on a view never shown; no storage read or written; nothing enqueued; the loop
-    /// off. The Run page's seven are this task's; Camp's, the Lineage's, the Journal's
-    /// and Records' throw <see cref="NotSupportedException"/> until task H15. A name
+    /// off. The seventeen are the Run page's seven and the ten of the pages between
+    /// runs (Camp, the Lineage, the Journal, Records), each named by its page. A name
     /// not in <see cref="LayoutStates"/> throws <see cref="ArgumentException"/>.
     /// </summary>
     public override void ShowLayoutState(string state)
@@ -269,19 +255,38 @@ internal sealed class HatchlingView : GameViewBase
         ArgumentNullException.ThrowIfNull(state);
         if (!AllStates.Contains(state))
             throw new ArgumentException($"Hatchling has no layout state '{state}'.", nameof(state));
-        if (!state.StartsWith("run-", StringComparison.Ordinal))
-            throw new NotSupportedException($"The layout state '{state}' is task H15's page.");
 
         var sample = Samples.For(state);
         _sample = sample.State;
         _refreshOwed = false;
-        ShowPage(PageKind.Run);
-        if (sample.Turn is { } turn) _run.ShowFrozen(sample.State, turn, sample.Beat, sample.Tick);
-        else _run.ShowSample(sample.State);
+        var kind = PageOf(state);
+        if (kind == PageKind.Run)
+        {
+            ShowPage(PageKind.Run);
+            if (sample.Turn is { } turn) _run.ShowFrozen(sample.State, turn, sample.Beat, sample.Tick);
+            else _run.ShowSample(sample.State);
+        }
+        else
+        {
+            // The Journal's last line reads the real dino's reading: a sample's own,
+            // never the game's (A26: the same picture on every machine).
+            ((JournalPage)_pages[PageKind.Journal]).SampleReading = sample.Reading;
+            ShowPage(kind);
+            if (sample.Armed && kind == PageKind.Camp) ((CampPage)_pages[PageKind.Camp]).Arm();
+        }
         ShowWallet();
         SyncTabs();
         Loop.Rate = LoopRate.Off;
     }
+
+    /// <summary>The page a layout state shows, by the prefix of its name.</summary>
+    private static PageKind PageOf(string state) =>
+        state.StartsWith("run-", StringComparison.Ordinal) ? PageKind.Run
+        : state.StartsWith("camp-", StringComparison.Ordinal) ? PageKind.Camp
+        : state.StartsWith("lineage-", StringComparison.Ordinal) ? PageKind.Lineage
+        : state.StartsWith("journal-", StringComparison.Ordinal) ? PageKind.Journal
+        : state.StartsWith("records-", StringComparison.Ordinal) ? PageKind.Records
+        : throw new ArgumentException($"Hatchling has no page for the layout state '{state}'.", nameof(state));
 
     // ===== Handlers =====================================================================================
 
