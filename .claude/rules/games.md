@@ -283,8 +283,8 @@ and `WORKER-RULES.md` barred starting it); say so when it matters.
     at Fast: by reasoning, not by a test against the gate.
 - The golden renders: only Settings › Hotkeys differs, in every theme (the new row);
   the baselines are the owner's to record after his look. The harness was not run
-  again after the sound work, which changed the window's header and MainWindow's
-  constructor.
+  again after the sound work: it draws no Games window, but it builds MainWindow,
+  which now makes the sound's gate and speaker.
 - CI's SDK 8.0.x: every build here was SDK 9 compiling `net8.0-windows`.
 - Saves belong to the Windows user, not the website account: two accounts on one PC
   share a game's progress (risk 9, left on purpose).

@@ -474,8 +474,8 @@ all) — say so when it matters:
   Settings › Hotkeys in every theme (the new Games row; no baseline
   re-recorded), plus two one-off differences that did not repeat (three pixels
   of About's render once, one render step that failed once), and not run again
-  since the sound work (the window's header group, MainWindow making the
-  speaker); CI's SDK 8 not run (SDK 9 here).
+  since the sound work (it draws no Games window, but builds MainWindow, which
+  now makes the sound's gate and speaker); CI's SDK 8 not run (SDK 9 here).
 - Dino storage's Delete (1.33; the owner kept their dino).
 - The map's own friends rule (tests only), weaker PCs, high DPI (1.34).
 - A PC without the WebView2 Runtime (1.31; the installer's fetch).
@@ -613,12 +613,13 @@ all) — say so when it matters:
 BUILT, NOT RELEASED (Nov 2026, the branch `games`): **games in the overlay**,
 for AFK growing: a Games window (Ctrl+J) with a grid of games, and the first,
 **Hatchling**, a turn-based roguelite that rewards growing every species on the
-server. The owner's decisions (G1 to G22), the plans, every decision made
+server. The owner's decisions (G1 to G26), the plans, every decision made
 without him (A, H, R) and the report: `Desktop\Pandora Overlay Files\pandora-games\`.
 The games now have sounds (G26, Nov 15 2026; `PLAN-SOUND.md` there, decisions A77
 to A90, H95 to H101, R1 to R7): 29 cues for Hatchling, made by code
 (`tools/games-sound/`), played by the host, and a mute and five volume steps on
-the Games window's header (the third the default, sound on). It waits for the owner's review and his check in game; no version, no CHANGELOG
+the Games window's header (the third the default, sound on). It waits for the
+owner's review and his check in game; no version, no CHANGELOG
 entry and no tag exist for it.
 
 SHIPPED in 1.44.0 (Nov 10 2026, after the pre-release 1.44.0-rc.1 on Nov 9; no

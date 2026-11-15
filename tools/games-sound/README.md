@@ -62,12 +62,13 @@ a cue). A lowpass's `q` is in dB, a bandpass's linear, as WebAudio has them.
   gentle or good, square only for a warning or a fanfare, filtered noise for what is
   physical. By R7, a take the plan derives from a pick keeps the pick's pitch
   (`focus-apex` A), an octave overtone over a palette note may sit above C7 (`unlock`
-  A), and a glide is a sweep, not a held note. Before it writes a byte `build.js`
-  refuses a name that is not lower-case words joined by `-`, an unknown group, a
-  level outside −24 to −5 dBFS, a pick with other than one take or a new cue with
-  other than three, a take outside the length bounds, a layer with an attack under
-  1 ms or one that ends after its take, and a render the test would refuse (a peak
-  more than 0.5 dB off its level, a first sample or last 2 ms not silent, more than
-  88,200 samples).
+  A), and a glide is a sweep, not a held note. Before it writes a byte, `build.js`
+  refuses a cue named twice, a name that is not lower-case words joined by `-`, an
+  unknown group, a level outside −24 to −5 dBFS, a pick with other than one take or
+  a new cue with other than three, a take outside the length bounds, and a layer
+  with an attack under 1 ms or one that ends after its take. It refuses a render
+  the test would refuse (a peak more than 0.5 dB off its level, a first sample or
+  last 2 ms not silent, no samples or more than 88,200) before it writes that
+  take's file.
 - **Listen before handing over.** Nobody but the owner can judge a sound; the board
   is how he does (PLAN-SOUND section 10).
