@@ -29,10 +29,11 @@ a file in the folder is touched.
    itself never lists, opens or looks at any process (`Process.Start` appears
    only to hand a URL — or the settings folder, About → Open folder, or the
    log folder, About → Open log folder — to the Windows shell). It activates only its OWN windows (the
-   control panel, the map, dialogs; our hotkey press grants the right); the
-   game window is never found, focused or touched. A click on the game is known
-   only as our own windows losing the focus (`OverlayFocus`, 1.38: Settings
-   closes, edit mode locks); what took the focus is never asked.
+   control panel, the map, the Games window, dialogs; our hotkey press grants
+   the right); the game window is never found, focused or touched. A click on
+   the game is known only as our own windows losing the focus (`OverlayFocus`,
+   1.38: Settings closes, edit mode locks; with the games, the Games window
+   closes); what took the focus is never asked.
 2. **Approved endpoints only**, each with the trigger and pace below. Nothing is
    added, and nothing goes faster, without the owner's explicit okay.
 

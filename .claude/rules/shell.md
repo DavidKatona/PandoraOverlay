@@ -45,8 +45,8 @@ paths:
   key still down and the release lands in the game: The Isle opened its menu after the map
   closed (Oct 2026). And a press left unhandled is handed on to whichever of our windows
   gets the focus next: one Esc closed What's new and Settings under it.
-- The overlay activates only its OWN windows (the control panel, the map, dialogs); the
-  hotkey press grants foreground rights. The game window is never found, focused or touched.
+- The overlay activates only its OWN windows (the control panel, the map, the Games
+  window, dialogs); the hotkey press grants foreground rights. The game window is never found, focused or touched.
 - Every stats-panel status goes through `SetStatus`, so the view name can step aside;
   never trim a status for it.
 - Panels use our own button templates (the glow overlay) and font-glyph icons — no stock
