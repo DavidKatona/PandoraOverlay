@@ -245,8 +245,9 @@ public sealed class OverlayConfig
     // shows where you left off (G14), across a restart and an update too: the
     // window itself keeps nothing between openings (it is made when opened and
     // destroyed when closed), and a game keeps its own state in its own save,
-    // never here. Its size and position are never saved (G15). Both are game
-    // ids, or "" (a value from a hand-edited file that is null reads as "").
+    // never here. Its position is never saved (G15). Both are game ids, or ""
+    // (a value from a hand-edited file that is null reads as ""). Its scale,
+    // GamesScale, is a preference like every widget's, below.
 
     private string _gamesView = "";
     private string _gamesLastPlayed = "";
@@ -268,6 +269,15 @@ public sealed class OverlayConfig
         get => _gamesLastPlayed;
         set => _gamesLastPlayed = value ?? "";
     }
+
+    /// <summary>
+    /// The Games window's own scale, clamped 0.75–2.0 (the owner, Nov 15 2026,
+    /// A75: like every widget's, but up to 200%, since the point is to draw it
+    /// larger). A plain 1.0, never seeded from another, no migration. The
+    /// whole fixed frame is drawn at it, and smaller still on a screen too
+    /// small for it (GamesFrame.FitScale). Settings → Widgets.
+    /// </summary>
+    public double GamesScale { get; set; } = 1.0;
 
     // ---- Minimap (v1.1) ---------------------------------------------------
 

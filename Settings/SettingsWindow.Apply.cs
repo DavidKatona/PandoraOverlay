@@ -171,6 +171,7 @@ public partial class SettingsWindow
         Live(ActivityDamageCheck, on => _config.ActivityDamageLines = on); // read live by MainWindow
         Live(ActivityAreaCheck, on => _config.ActivityAreaLines = on, SettingsChange.Activity); // Activity names the area at once
         Live(ControlPanelScaleSlider, v => _config.ControlPanelScale = v, SettingsChange.Appearance);
+        Live(GamesScaleSlider, v => _config.GamesScale = v, SettingsChange.None); // read when the Games window opens: Settings closes it (A13, A75)
 
         // Maps
         Live(MinimapScaleSlider, v => _config.MinimapScale = v, SettingsChange.Minimap);

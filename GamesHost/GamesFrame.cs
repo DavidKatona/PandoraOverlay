@@ -21,10 +21,12 @@ namespace PandoraOverlay;
 /// <c>GamesFrameTests</c> holds every one of these sums.
 /// </para>
 /// <para>
-/// On a screen smaller than the frame and a margin round it (1366 x 768 at
-/// 150%, for one) the whole window is drawn smaller by ONE layout scale,
-/// <see cref="FitScale"/>, never above 1: smaller, never cut off, never
-/// re-laid out (A11).
+/// The whole window is drawn at ONE layout scale, <see cref="FitScale"/>: the
+/// player's <c>GamesScale</c> (Settings → Widgets, 75% to 200%; the owner,
+/// Nov 15 2026, A75, reversing G15's "no size slider"), and smaller still on
+/// a screen where that size and a margin round it don't fit (1366 x 768 at
+/// 150%, for one): never cut off, never re-laid out (A11). The layout stays
+/// 800 x 552 at every scale; only the transform over it changes.
 /// </para>
 /// </summary>
 public static class GamesFrame
@@ -91,12 +93,24 @@ public static class GamesFrame
     /// <summary>The header's title at most: what is left of the header beside the back control, the subtitle and the right-hand notes; a longer title trims.</summary>
     public const double TitleMaxWidth = 300;
 
+    /// <summary>The smallest <c>GamesScale</c> (Settings → Widgets): the widgets' own floor.</summary>
+    public const double MinScale = 0.75;
+
+    /// <summary>The largest <c>GamesScale</c>: 200%, above the widgets' 150%, since the point of the window's slider is to go bigger (A75).</summary>
+    public const double MaxScale = 2.0;
+
     /// <summary>
     /// The one scale the whole window is drawn at on this screen (its work
-    /// area, in WPF units): 1 where the frame and its margin fit, else the
-    /// largest that fits both ways. Never above 1: a big screen shows the
-    /// frame at its size, never larger (G15: no size slider).
+    /// area, in WPF units): the chosen scale (<c>GamesScale</c>, held to
+    /// <see cref="MinScale"/>..<see cref="MaxScale"/>, a value that is not a
+    /// number read as 1), or less where the frame at that scale and its
+    /// margin don't fit: then the largest that fits both ways. So the window
+    /// is never larger than its monitor's work area less the margin, and at a
+    /// chosen 1 this is the fit it always was (A11, A75).
     /// </summary>
-    public static double FitScale(Size screen) =>
-        Math.Min(1, Math.Min((screen.Width - 2 * ScreenMargin) / Width, (screen.Height - 2 * ScreenMargin) / Height));
+    public static double FitScale(Size screen, double chosen)
+    {
+        var wanted = double.IsFinite(chosen) ? Math.Clamp(chosen, MinScale, MaxScale) : 1;
+        return Math.Min(wanted, Math.Min((screen.Width - 2 * ScreenMargin) / Width, (screen.Height - 2 * ScreenMargin) / Height));
+    }
 }

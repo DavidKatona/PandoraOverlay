@@ -978,7 +978,9 @@ The four-features brainstorm (Nov 2–3 2026)
   `UiScale` (stats panel), `MinimapScale`, `PrimeScale`, `ActivityScale`,
   `PackScale` — a new
   widget ships with one (override `AppearanceScale`). The control panel has its
-  own too, `ControlPanelScale` (1.37; it rode `UiScale` before). All behave
+  own too, `ControlPanelScale` (1.37; it rode `UiScale` before), and so has
+  the Games window, `GamesScale` (Nov 15 2026, the branch `games`: 75% to
+  200%, clamped to the screen, the layout fixed). All behave
   alike (owner, Oct 6 2026): plain numbers defaulting to 1.0, no seeding from
   another widget, no migration. No global multiplier on top.
 - **A widget never changes size.** Every widget is 298 wide on one of two fixed

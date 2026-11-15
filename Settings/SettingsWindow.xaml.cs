@@ -196,6 +196,7 @@ public partial class SettingsWindow : Window
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
         PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
         ControlPanelScaleSlider.Value = Math.Clamp(config.ControlPanelScale, ControlPanelScaleSlider.Minimum, ControlPanelScaleSlider.Maximum);
+        GamesScaleSlider.Value = Math.Clamp(config.GamesScale, GamesScaleSlider.Minimum, GamesScaleSlider.Maximum);
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
         FadeCheck.IsChecked = config.FadeEnabled;
         FadeSlider.Value = Math.Clamp(config.FadeIdleOpacity, FadeSlider.Minimum, FadeSlider.Maximum);
@@ -478,6 +479,11 @@ public partial class SettingsWindow : Window
     private void ControlPanelScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (ControlPanelScaleLabel != null) ControlPanelScaleLabel.Text = $"{e.NewValue:0%}";
+    }
+
+    private void GamesScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (GamesScaleLabel != null) GamesScaleLabel.Text = $"{e.NewValue:0%}";
     }
 
     // ---- General (the look) -------------------------------------------------

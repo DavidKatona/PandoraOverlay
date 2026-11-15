@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using PandoraOverlay.Games;
 using Xunit;
 
@@ -132,6 +133,49 @@ public class GamesWindowTests
         Assert.Same(Resource(window, "Theme.Text.Highlight"), second.Card.BorderBrush);
         GamesBench.Leave(first.Card);
         Assert.Same(Resource(window, "Theme.Card.Line"), first.Card.BorderBrush);
+    });
+
+    // ---- The window's scale (GamesScale, A75) -------------------------------------------------
+
+    /// <summary>
+    /// The whole window is drawn at the player's scale by one transform over
+    /// the fixed layout: the frame stays 800 x 552 and the view area 798 x 510
+    /// inside it (nothing is re-laid out), the window takes the frame times the
+    /// scale, centred on the monitor on whole units, and the view area's
+    /// transform to the window is the scale, which is what the presenter
+    /// multiplies the display scale by (PresenterTests).
+    /// </summary>
+    [Theory]
+    [InlineData(1.0, 2560, 1440, 1.0)]
+    [InlineData(1.5, 2560, 1440, 1.5)]
+    [InlineData(2.0, 3840, 2160, 2.0)]
+    [InlineData(2.0, 1920, 1080, 1032.0 / 552)] // clamped to the screen
+    [InlineData(0.75, 1920, 1080, 0.75)]
+    public void TheWholeWindowIsDrawnAtTheChosenScale(double chosen, double width, double height, double drawn) => Run(() =>
+    {
+        using var bench = new GamesBench(Fakes(1)) { Config = new OverlayConfig { GamesScale = chosen } };
+        var window = bench.Window(new Rect(0, 0, width, height));
+        var root = GamesLayoutTests.LaidOut(window);
+
+        if (drawn == 1) Assert.True(window.RootPanel.LayoutTransform.Value.IsIdentity);
+        else Assert.Equal(new Matrix(drawn, 0, 0, drawn, 0, 0), window.RootPanel.LayoutTransform.Value);
+
+        Assert.Equal((GamesFrame.Width, GamesFrame.Height), (window.RootPanel.ActualWidth, window.RootPanel.ActualHeight));
+        Assert.Equal(GamesFrame.Width * drawn, root.DesiredSize.Width, 6);
+        Assert.Equal(GamesFrame.Height * drawn, root.DesiredSize.Height, 6);
+        Assert.Equal(Math.Round((width - GamesFrame.Width * drawn) / 2), window.Left);
+        Assert.Equal(Math.Round((height - GamesFrame.Height * drawn) / 2), window.Top);
+
+        // Inside the frame nothing is scaled: the view area (where a game's
+        // board sits) and the grid are at 1 to the root panel, so their
+        // transform to the window (what PixelSurface reads, A17; an unshown
+        // window's panel has no visual parent to walk to) is the panel's one
+        // scale above, asserted first.
+        foreach (var inside in new FrameworkElement[] { window.GameHost, window.GridScroll })
+        {
+            var toPanel = ((Transform)inside.TransformToAncestor(window.RootPanel)).Value;
+            Assert.Equal((1.0, 0.0, 0.0, 1.0), (toPanel.M11, toPanel.M12, toPanel.M21, toPanel.M22));
+        }
     });
 
     // ---- A game in the frame (G13, G14, A31) ------------------------------------------------

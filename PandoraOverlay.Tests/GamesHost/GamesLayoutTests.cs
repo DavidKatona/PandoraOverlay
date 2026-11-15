@@ -377,9 +377,12 @@ internal sealed class GamesBench : IDisposable
     public TempGamesRoot Temp => _temp;
 
     /// <summary>A new window over the bench, never shown.</summary>
-    public GamesWindow Window()
+    public GamesWindow Window() => Window(Screen);
+
+    /// <summary>A new window over the bench on this monitor's work area, never shown (the scale's tests, A75).</summary>
+    public GamesWindow Window(Rect monitor)
     {
-        var window = new GamesWindow(Host, Config, Screen);
+        var window = new GamesWindow(Host, Config, monitor);
         _windows.Add(window);
         return window;
     }
