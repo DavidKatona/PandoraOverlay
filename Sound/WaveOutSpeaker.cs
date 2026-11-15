@@ -4,18 +4,31 @@ using System.Globalization;
 namespace PandoraOverlay;
 
 /// <summary>
-/// The Games window's speaker (G26, A80): every sound the gate
-/// (<see cref="GamesSound"/>) passes on, played on the PC's default audio
-/// device through winmm's <c>waveOut</c>, ONE stream, mixed by our own code
-/// (<see cref="SpeakerMix"/>) on a thread of the host's own that exists only
-/// while something plays (<c>PLAN-SOUND.md</c> 2.2). Measured on this PC by
-/// the planner's spike: 40 to 42 ms from a play to the device with five
-/// buffers of 10 ms, with every core at full load too, and never a gap; a
-/// handle per sound would cost 17 ms to open and 24 to close on the calling
-/// thread, a hitch at every sound.
+/// The app's one speaker (G26, A80, A101): every sound a gate passes on (the
+/// games' gate, <see cref="GamesSound"/>, and the click gate, G27), played on
+/// the PC's default audio device through winmm's <c>waveOut</c>, ONE stream,
+/// mixed by our own code (<see cref="SpeakerMix"/>) on a thread of the app's
+/// own that exists only while something plays (<c>PLAN-SOUND.md</c> 2.2).
+/// Measured on this PC by the planner's spike: 40 to 42 ms from a play to the
+/// device with five buffers of 10 ms, with every core at full load too, and
+/// never a gap; a handle per sound would cost 17 ms to open and 24 to close on
+/// the calling thread, a hitch at every sound.
+/// <para>
+/// <b>One speaker, two channels</b> (A101, <c>PLAN-CLICKS.md</c> 4). MainWindow
+/// makes ONE (<c>MainWindow.Sound.cs</c>) and disposes it at the exit, after
+/// every gate. Each gate plays through a view of its own channel
+/// (<see cref="Channel"/>, an <see cref="ISpeaker"/> whose Dispose does
+/// nothing), so a gate never names a channel and the speaker itself takes no
+/// play without one (a play with no channel would be a hidden default). One
+/// stream for the one device: one open, one thread, one idle close, one
+/// failure line and one retry clock, and a click while a turn plays rides the
+/// stream already open, where a second speaker would open a second. A voice
+/// carries its channel and a stop is one channel's (below), so a game's stop
+/// never fades a click and a click never touches a game's sound.
+/// </para>
 /// <para>
 /// <b>The UI thread never waits for the device.</b> <see cref="Play"/> and
-/// <see cref="StopAll"/> (the UI thread's, the gate's) only queue a request
+/// <see cref="StopAll"/> (the UI thread's, the gates') only queue a request
 /// under the lock, and the first <see cref="Play"/> with no thread starts one;
 /// they return at once and never throw. The lock guards the queue, the
 /// "a thread is running" flag and the failure's time, nothing else: the
@@ -28,7 +41,7 @@ namespace PandoraOverlay;
 /// device. The first sound starts the thread, which opens the device itself.
 /// </para>
 /// <para>
-/// <b>The thread</b> (background, AboveNormal, "Games sound"): it joins the
+/// <b>The thread</b> (background, AboveNormal, "Overlay sound"): it joins the
 /// thread before it, if that one is still closing its device (so two streams
 /// never overlap for long), opens the device (<see cref="Buffers"/> buffers of
 /// <see cref="BufferSamples"/>), fills and writes every buffer, then loops:
@@ -45,14 +58,19 @@ namespace PandoraOverlay;
 /// between two turns is used.
 /// </para>
 /// <para>
-/// <b>A stop means what plays at the call</b> (A88). The gate calls
-/// <see cref="StopAll"/> at every stage at which nobody, or another instance,
-/// is heard (the grid, the warning, the window's close, a game shown), so
-/// mostly with nothing playing. With no thread running it does NOTHING:
+/// <b>A stop means what plays on its channel at the call</b> (A88, per
+/// channel since A101). The games' gate calls <see cref="StopAll"/> at every
+/// stage at which nobody, or another instance, is heard (the grid, the
+/// warning, the window's close, a game shown), so mostly with nothing
+/// playing. With no thread running it does NOTHING, whatever the channel:
 /// nothing queued, no thread, no device. With one running, the queue keeps
-/// the calls' order: a stop fades the voices in the mix and those of the
-/// plays queued before it, never one queued after it, so a play right after a
-/// stop is heard whole. A stop kept for later would fade the next sound.
+/// the calls' order: a stop fades its channel's voices in the mix and those
+/// of its channel's plays queued before it, never one queued after it, so a
+/// play right after a stop is heard whole; the other channel's voices and
+/// plays, before it or after it, are never faded by it. A stop kept for later
+/// would fade the next sound. A stop is one with its channel's last queued
+/// request when that is a stop, whatever the other channel queued since: the
+/// earlier stop already fades everything this one would (A108).
 /// </para>
 /// <para>
 /// <b>Fail soft</b> (A80). A device that can't be opened (none, or one in
@@ -62,11 +80,13 @@ namespace PandoraOverlay;
 /// closed, the failure's time kept,
 /// and no new thread within <see cref="RetryAfter"/> (a sound asked for
 /// meanwhile is dropped), so a missing device costs one try every few seconds
-/// while a game plays, not one per sound. The first failure since the launch,
-/// or since the device last worked, is a Warning in the games' log (the step
-/// and winmm's code, or the exception's type and stack, never its message:
-/// constraint 4); the same again at Verbose; a success after a failure one
-/// Log line (A90). An exception never leaves the thread: unhandled on a thread of
+/// while sounds come, not one per sound. The first failure since the launch,
+/// or since the device last worked, is a Warning in the sound's log
+/// (<see cref="AppLog.Sound"/>: the step and winmm's code, or the exception's
+/// type and stack, never its message: constraint 4); the same again at
+/// Verbose; a success after a failure one Log line (A90). One speaker for both
+/// channels, so each failure is said once, whichever gate played. An exception
+/// never leaves the thread: unhandled on a thread of
 /// our own it would end the process (A50 is about the UI thread's handlers;
 /// this one is ours to contain, like a failed request).
 /// </para>
@@ -76,10 +96,10 @@ namespace PandoraOverlay;
 /// thread pool, a process, anything of the game. The device is the Windows
 /// audio engine's default endpoint, which mixes The Isle's sound and ours as
 /// it mixes any app's (constraint 1, A86). The thread's timing is a
-/// <see cref="Stopwatch"/>: the host is not bound by the games' list.
+/// <see cref="Stopwatch"/>: the app is not bound by the games' list.
 /// </para>
 /// </summary>
-internal sealed class WaveOutSpeaker : ISpeaker
+internal sealed class WaveOutSpeaker : IDisposable
 {
     /// <summary>A buffer: 441 samples, 10 ms. The spike's 4 x 441 reached the device in 30 to 34 ms, 3 x 882 in 40 to 53: smaller buffers, steadier latency.</summary>
     public const int BufferSamples = 441;
@@ -90,7 +110,7 @@ internal sealed class WaveOutSpeaker : ISpeaker
     /// <summary>The device closed and the thread gone this long after the last sound: a burst of a turn's cues keeps one stream, an idle window holds none.</summary>
     public static readonly TimeSpan IdleClose = TimeSpan.FromSeconds(3);
 
-    /// <summary>No new try within this of a failure: a missing device is tried once every few seconds while a game plays, not at every sound.</summary>
+    /// <summary>No new try within this of a failure: a missing device is tried once every few seconds while sounds come (a game's, a click's), not at every sound.</summary>
     public static readonly TimeSpan RetryAfter = TimeSpan.FromSeconds(5);
 
     /// <summary>The longest the thread sleeps between two looks: the device's event wakes it at every buffer (10 ms); this bounds a stalled device's, and an exit's, wait.</summary>
@@ -106,8 +126,9 @@ internal sealed class WaveOutSpeaker : ISpeaker
     /// healthy device hands a buffer back every 10 ms, silence included. Long
     /// on purpose: a Bluetooth headset, or a device waking from power saving,
     /// may take a second or more to start pulling a new stream, and a false
-    /// stall there would come back at every retry and silence the games for
-    /// that player, while a late one costs nothing heard (a stalled device
+    /// stall there would come back at every retry and silence the speaker (the
+    /// games' sounds and the clicks) for that player, while a late one costs
+    /// nothing heard (a stalled device
     /// plays nothing either way). So it is the bound A80 puts on an open stream
     /// with nothing to play, <see cref="IdleClose"/>'s 3 s, and 30 times the
     /// slowest start measured (93 ms from a play to the device, S03's probe).
@@ -122,13 +143,14 @@ internal sealed class WaveOutSpeaker : ISpeaker
     /// between two buffers (<see cref="SpeakerMix.MaxVoices"/>). Only a device
     /// that never answers its open lets the queue fill (one that stops handing
     /// buffers back is a failure after <see cref="StallAfter"/>, its queue
-    /// dropped); a play past this is dropped, so it can't grow while a game
-    /// keeps playing.
+    /// dropped); a play past this is dropped, so it can't grow while a gate
+    /// keeps playing. One queue for both channels, in the order asked; stops
+    /// are bounded by A108's rule, one per channel after each of its plays.
     /// </summary>
     public const int MaxQueued = 64;
 
-    /// <summary>The thread's name, as a debugger and a dump show it.</summary>
-    internal const string ThreadName = "Games sound";
+    /// <summary>The thread's name, as a debugger and a dump show it: the overlay's, since the speaker plays for every gate (A101).</summary>
+    internal const string ThreadName = "Overlay sound";
 
     private readonly Func<IWaveDevice> _newDevice;
     private readonly TimeSpan _idleClose;
@@ -161,7 +183,7 @@ internal sealed class WaveOutSpeaker : ISpeaker
     // Set under the lock, read by the thread at each look without it.
     private volatile bool _disposed;
 
-    /// <summary>The real speaker: Windows' default device, the constants above, the games' log.</summary>
+    /// <summary>The real speaker: Windows' default device, the constants above, the sound's log.</summary>
     public WaveOutSpeaker()
         : this(null)
     {
@@ -170,7 +192,7 @@ internal sealed class WaveOutSpeaker : ISpeaker
     /// <param name="newDevice">A device for each stream, made on the speaker's thread: winmm's by default, the tests' fake.</param>
     /// <param name="idleClose">As <see cref="IdleClose"/>; the tests' is short.</param>
     /// <param name="retryAfter">As <see cref="RetryAfter"/>; the tests' is short.</param>
-    /// <param name="write">Where the lines go: the games' log by default (<see cref="AppLog.Games"/>), a list in the tests.</param>
+    /// <param name="write">Where the lines go: the sound's log by default (<see cref="AppLog.Sound"/>, the app's speaker's own category since A101), a list in the tests.</param>
     /// <param name="stallAfter">As <see cref="StallAfter"/>; the tests' is short.</param>
     internal WaveOutSpeaker(Func<IWaveDevice>? newDevice, TimeSpan? idleClose = null, TimeSpan? retryAfter = null, Action<LogVerbosity, string>? write = null, TimeSpan? stallAfter = null)
     {
@@ -178,8 +200,11 @@ internal sealed class WaveOutSpeaker : ISpeaker
         _idleClose = idleClose ?? IdleClose;
         _retryAfter = retryAfter ?? RetryAfter;
         _stallAfter = stallAfter ?? StallAfter;
-        _write = write ?? AppLog.Games.Write;
+        _write = write ?? AppLog.Sound.Write;
     }
+
+    /// <summary>Where the lines go (the tests' look at the default: <see cref="AppLog.Sound"/>'s Write).</summary>
+    internal Action<LogVerbosity, string> Writer => _write;
 
     /// <summary>A thread is running (the tests' look at the flag).</summary>
     internal bool HasThread
@@ -205,12 +230,21 @@ internal sealed class WaveOutSpeaker : ISpeaker
     // ---- The UI thread's side ----------------------------------------------------------------
 
     /// <summary>
-    /// One sound, from now (<see cref="ISpeaker.Play"/>): queued for the
-    /// running thread, or a thread started for it, unless disposed or within
-    /// <see cref="RetryAfter"/> of a failure, when it is dropped. Returns at
-    /// once; never throws.
+    /// A gate's view of one channel (A101): an <see cref="ISpeaker"/> whose
+    /// Play and StopAll are this speaker's on that channel, and whose Dispose
+    /// does nothing, since the speaker is its owner's to dispose, after every
+    /// gate. Holds nothing but this speaker and the channel; makes nothing,
+    /// opens nothing.
     /// </summary>
-    public void Play(short[] samples, float gain)
+    public ISpeaker Channel(SpeakerChannel channel) => new SpeakerChannelView(this, channel);
+
+    /// <summary>
+    /// One sound on this channel, from now (<see cref="ISpeaker.Play"/>, which
+    /// a channel's view passes on): queued for the running thread, or a thread
+    /// started for it, unless disposed or within <see cref="RetryAfter"/> of a
+    /// failure, when it is dropped. Returns at once; never throws.
+    /// </summary>
+    public void Play(short[] samples, float gain, SpeakerChannel channel)
     {
         if (samples is null || samples.Length == 0) return;
         (LogVerbosity Level, string Line)? failure = null;
@@ -221,51 +255,63 @@ internal sealed class WaveOutSpeaker : ISpeaker
                 if (_disposed) return;
                 if (_running is not null)
                 {
-                    if (_queue.Count < MaxQueued) _queue.Add(new Request(samples, gain));
+                    if (_queue.Count < MaxQueued) _queue.Add(new Request(samples, gain, channel));
                     return;
                 }
                 if (_failedAt is { } failed && Stopwatch.GetElapsedTime(failed) < _retryAfter) return;
-                _queue.Add(new Request(samples, gain)); // before the thread exists: its first buffer carries the sound's first sample
+                _queue.Add(new Request(samples, gain, channel)); // before the thread exists: its first buffer carries the sound's first sample
                 failure = StartThread();
             }
         }
         catch (Exception ex)
         {
-            failure = (LogVerbosity.Warning, $"Games sound: a sound could not be queued: {AppLog.Short(ex)}");
+            failure = (LogVerbosity.Warning, $"Sound: a sound could not be queued: {AppLog.Short(ex)}");
         }
         if (failure is { } said) Say(said.Level, said.Line);
     }
 
     /// <summary>
-    /// Every sound playing faded to silence within 5 ms, and dropped; what
-    /// plays at the call only (A88): with no thread running, nothing at all,
-    /// and a play after it is heard whole. Returns at once; never throws.
+    /// Every sound playing on this channel faded to silence within 5 ms, and
+    /// dropped; the other channel's sounds play on (A101). What plays at the call
+    /// only (A88): with no thread running, nothing at all, whatever the
+    /// channel, and a play after it is heard whole. Returns at once; never
+    /// throws.
     /// </summary>
-    public void StopAll()
+    public void StopAll(SpeakerChannel channel)
     {
         try
         {
             lock (_lock)
             {
                 if (_disposed || _running is null) return;
-                // Two stops in a row are one: the second finds every voice fading already.
-                if (_queue.Count > 0 && _queue[^1].IsStop) return;
-                _queue.Add(Request.Stop);
+                // A stop is one with its channel's last queued request when that is a
+                // stop, whatever the other channel queued since: the earlier stop
+                // already fades everything this one would (A108). So the queue holds at
+                // most one stop of a channel after each of its plays.
+                for (var i = _queue.Count - 1; i >= 0; i--)
+                {
+                    if (_queue[i].Channel != channel) continue;
+                    if (_queue[i].IsStop) return;
+                    break;
+                }
+                _queue.Add(Request.Stop(channel));
             }
         }
         catch (Exception ex)
         {
-            Say(LogVerbosity.Warning, $"Games sound: a stop could not be queued: {AppLog.Short(ex)}");
+            Say(LogVerbosity.Warning, $"Sound: a stop could not be queued: {AppLog.Short(ex)}");
         }
     }
 
     /// <summary>
-    /// The overlay exiting: no sound is taken any more, the thread is asked to
+    /// The overlay exiting (MainWindow's <c>CloseSound</c>, after every gate):
+    /// no sound is taken any more, on either channel, the thread is asked to
     /// leave (it closes its device on the way out) and joined for at most
     /// <see cref="JoinMilliseconds"/>, so a stuck driver never holds the exit.
     /// It does not fade (A90): a sound still playing is ended by the device's
-    /// reset; the window's close just before it has only queued its stop.
-    /// Idempotent; never throws.
+    /// reset; the Games window's close and its gate's stop just before it have
+    /// only queued that stop. A channel's view never calls this (its Dispose
+    /// does nothing, A101). Idempotent; never throws.
     /// </summary>
     public void Dispose()
     {
@@ -289,7 +335,7 @@ internal sealed class WaveOutSpeaker : ISpeaker
         }
         catch (Exception ex)
         {
-            Say(LogVerbosity.Warning, $"Games sound: the speaker could not be closed: {AppLog.Short(ex)}");
+            Say(LogVerbosity.Warning, $"Sound: the speaker could not be closed: {AppLog.Short(ex)}");
         }
     }
 
@@ -311,7 +357,7 @@ internal sealed class WaveOutSpeaker : ISpeaker
             _failedAt = Stopwatch.GetTimestamp();
             var first = !_failing;
             _failing = true;
-            return (first ? LogVerbosity.Warning : LogVerbosity.Verbose, $"Games sound: no thread could be started: {AppLog.Short(ex)}");
+            return (first ? LogVerbosity.Warning : LogVerbosity.Verbose, $"Sound: no thread could be started: {AppLog.Short(ex)}");
         }
     }
 
@@ -336,7 +382,7 @@ internal sealed class WaveOutSpeaker : ISpeaker
         catch (Exception ex)
         {
             failed = true;
-            Contain(() => _write(FailureLevel(), $"Games sound failed: {AppLog.Describe(ex)}"));
+            Contain(() => _write(FailureLevel(), $"Sound failed: {AppLog.Describe(ex)}"));
         }
         finally
         {
@@ -425,13 +471,13 @@ internal sealed class WaveOutSpeaker : ISpeaker
         return true;
     }
 
-    /// <summary>Under the lock: the queue moved into the mix in the order it was asked, so a stop fades what came before it and nothing after.</summary>
+    /// <summary>Under the lock: the queue moved into the mix in the order it was asked, so a stop fades what came before it on its channel and nothing after it, nor anything of the other channel.</summary>
     private void Drain(SpeakerMix mix)
     {
         foreach (var request in _queue)
         {
-            if (request.IsStop) mix.StopAll();
-            else mix.Add(request.Samples, request.Gain);
+            if (request.IsStop) mix.StopAll(request.Channel);
+            else mix.Add(request.Samples, request.Gain, request.Channel);
         }
         _queue.Clear();
     }
@@ -490,17 +536,17 @@ internal sealed class WaveOutSpeaker : ISpeaker
             again = _failing;
             _failing = false;
         }
-        if (first) _write(LogVerbosity.Log, $"Games sound: the device opened in {openMs.ToString("0", CultureInfo.InvariantCulture)} ms");
-        if (again) _write(LogVerbosity.Log, "Games sound: the device works again");
+        if (first) _write(LogVerbosity.Log, $"Sound: the device opened in {openMs.ToString("0", CultureInfo.InvariantCulture)} ms");
+        if (again) _write(LogVerbosity.Log, "Sound: the device works again");
     }
 
     /// <summary>A step the device refused, with winmm's code.</summary>
     private void Failure(string step, int code) =>
-        _write(FailureLevel(), $"Games sound: the device could not be {step} (code {code.ToString(CultureInfo.InvariantCulture)})");
+        _write(FailureLevel(), $"Sound: the device could not be {step} (code {code.ToString(CultureInfo.InvariantCulture)})");
 
     /// <summary>A device that handed nothing back for <see cref="StallAfter"/> (N18, A91): no code to give, only the time it was waited for.</summary>
     private void Stalled() =>
-        _write(FailureLevel(), $"Games sound: the device handed no buffer back in {_stallAfter.TotalMilliseconds.ToString("0", CultureInfo.InvariantCulture)} ms");
+        _write(FailureLevel(), $"Sound: the device handed no buffer back in {_stallAfter.TotalMilliseconds.ToString("0", CultureInfo.InvariantCulture)} ms");
 
     /// <summary>The first failure since the launch or since the device last worked is a Warning, the same again Verbose (A90).</summary>
     private LogVerbosity FailureLevel()
@@ -537,7 +583,7 @@ internal sealed class WaveOutSpeaker : ISpeaker
         {
             try
             {
-                _write(FailureLevel(), $"Games sound: {AppLog.Short(ex)} on the way out");
+                _write(FailureLevel(), $"Sound: {AppLog.Short(ex)} on the way out");
             }
             catch (Exception)
             {
@@ -546,10 +592,10 @@ internal sealed class WaveOutSpeaker : ISpeaker
         }
     }
 
-    /// <summary>A play (its samples, the gate's own copy, and its gain) or a stop (no samples).</summary>
-    private readonly record struct Request(short[]? Samples, float Gain)
+    /// <summary>A play (its samples, the gate's own copy, and its gain) or a stop (no samples), each on its channel (A101).</summary>
+    private readonly record struct Request(short[]? Samples, float Gain, SpeakerChannel Channel)
     {
-        public static Request Stop => new(null, 0);
+        public static Request Stop(SpeakerChannel channel) => new(null, 0, channel);
 
         public bool IsStop => Samples is null;
     }

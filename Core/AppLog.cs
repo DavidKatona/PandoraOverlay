@@ -165,9 +165,17 @@ public static class AppLog
     /// </summary>
     public static readonly LogCategory Games = new("LogGames", LogVerbosity.Log);
 
+    /// <summary>
+    /// The app's speaker (WaveOutSpeaker, A101): the device opened, failed
+    /// (the step and winmm's code, a stall, an exception's type, codes and
+    /// stack), works again (A90). Codes and types only, never an exception's
+    /// message, and no line for a sound that plays.
+    /// </summary>
+    public static readonly LogCategory Sound = new("LogSound", LogVerbosity.Log);
+
     /// <summary>Every category, in the order above.</summary>
     public static IReadOnlyList<LogCategory> Categories { get; } =
-        new[] { App, Net, Poll, Prime, Friends, Maps, Skins, Storage, Account, Update, Config, Hotkeys, Games };
+        new[] { App, Net, Poll, Prime, Friends, Maps, Skins, Storage, Account, Update, Config, Hotkeys, Games, Sound };
 
     // ---- Levels ------------------------------------------------------------------
 

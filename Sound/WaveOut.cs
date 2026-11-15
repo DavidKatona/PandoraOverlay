@@ -221,10 +221,12 @@ internal sealed class WinmmDevice : IWaveDevice
 /// <summary>
 /// winmm's wave-out calls and kernel32's event, declared as the planner's
 /// spike declared them and ran them on this PC (x64; <c>PLAN-SOUND.md</c>'s
-/// appendix). The host's only native audio calls (A80): a game can't make
-/// one (the forbidden list refuses native calls), and nothing else in the app
-/// declares them. The call that sets a handle's volume is not declared, on
-/// purpose (A80).
+/// appendix). The app's only native audio calls (A80), its speaker's, which
+/// moved here from the games host when the speaker became the app's (A101)
+/// and are held by the same scan (A92, A102: ten of its thirteen): a game
+/// can't make one (the forbidden list refuses native calls), and nothing else
+/// in the app declares them. The call that sets a handle's volume is not
+/// declared, on purpose (A80).
 /// </summary>
 internal static class Winmm
 {
