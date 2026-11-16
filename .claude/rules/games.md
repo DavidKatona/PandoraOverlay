@@ -81,9 +81,9 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   overwritten (A62). A game's own shape is a `SaveSchema<T>`: an upgrade step when a
   meaning changes, and a fixture of every version that ever shipped, kept in the tests
   for ever (A9), with `AssertRoundTrips` on a fresh, a mid-run and a finished state
-  (A51). Until the owner releases, Hatchling's version stays 1 and a changed shape is
-  handled as `Corrupt` (held); from the first release on, every shape change is a
-  version, a step and a fixture. `Now` for a turn or a purchase, `Soon` for accrual
+  (A51). Hatchling's version 1 shipped in 1.45.0 (its fixture is
+  `Hatchling/Saves/pinned-v1.json`): from now on every shape change is a version, a
+  step and a fixture. `Now` for a turn or a purchase, `Soon` for accrual
   from readings (A8).
 - **Growth counts only when the overlay saw it** (A6, the Engine's `SeenGrowth`): two
   consecutive in-game readings of one launch, same species and gender, not lower, at
@@ -268,8 +268,9 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
 
 ## Checked only by tests and renders
 
-Nobody has run the overlay with the games in it over The Isle (the run was unattended,
-and `WORKER-RULES.md` barred starting it); say so when it matters.
+Released in 1.45.0 (Nov 16 2026). The owner ran the Release build in game before the
+release and reported everything turned out well, without itemising what he tried, so
+nothing below was confirmed one by one; say so when it matters.
 
 - The window over the game: Ctrl+J, the cursor let go, Esc and J closing on their
   release with the game not reacting, a click on the game closing it, reopening where

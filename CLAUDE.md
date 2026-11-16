@@ -2,8 +2,8 @@
 
 Personal in-game overlay for The Isle: Evrima (Isla Pandora EU server): the
 player's own dino stats in always-on-top widgets, plus a minimap, the map, a
-tray icon and a settings dialog. **v1.44.0 is released, working, and endorsed
-by the server team.**
+tray icon and a settings dialog, and since 1.45 a Games window. **v1.45.0 is
+released, working, and endorsed by the server team.**
 
 **Where the detail lives.** This file holds only what applies everywhere, and
 what has no code to sit beside: the constraints, the permissions, the
@@ -466,9 +466,13 @@ The release history is CHANGELOG.md (player-facing; the update card shows it).
 
 **Never tested in a real session** (checked by tests or renders only, or not at
 all) — say so when it matters:
-- From the games (built Nov 2026 on the branch `games` by an unattended run; NOT
-  RELEASED, nothing pushed; the overlay was never started with them): everything
-  in game, by tests and off-screen renders only. The window over The Isle and its
+- From 1.45.0 (no pre-release and no fresh reviewer's read of the last work, the
+  owner's call; the games were built Nov 14 to 16 2026 on the branch `games`, the
+  first part by an unattended run). The owner ran the Release build in game on Nov
+  16 and found that "everything turned out well" and "all the checks seem to pass",
+  without itemising what he tried, so every item below stays listed: none was
+  confirmed one by one. From the games: everything in game was checked before that
+  by tests and off-screen renders only. The window over The Isle and its
   keys (Ctrl+J, the cursor let go, Esc and J on their release with the game not
   reacting); the focus rule and a click on the game closing it, and reopening
   mid-run; the frame rate (the presenter alone was timed: 0.6 ms a frame at 100%
@@ -487,8 +491,8 @@ all) — say so when it matters:
   the table doesn't know pays nothing, logged once each time the game is
   started, without the name); nothing seen moving (the walk,
   a bite, a turn's pace); Hatchling's balance, which is a bot's: nobody has
-  played its rules by hand. From the games' sounds (G26, built Nov 15 2026; the
-  overlay was never started with them, and nobody has heard a sound of the games,
+  played its rules by hand. From the games' sounds (G26, built Nov 15 2026; before
+  the owner's run of Nov 16 nobody had heard a sound of the games in the overlay,
   every check being of what a game hands a fake speaker, a fake device or a
   board): the owner's seven picks and the 22 new cues by ear, the demo turns'
   density at Normal and Fast, and the second board whole (its 2.3 MB page was
@@ -511,8 +515,8 @@ all) — say so when it matters:
   MainWindow making the speaker and disposing it (compiled and tested lazy, never
   run); whether the gate's 40 ms and six-at-once limits ever drop one of
   Hatchling's cues at Fast (reasoning, not a test). From the click sounds (G27,
-  built Nov 15 to 16 2026; the overlay was never started with them, nobody has
-  heard a click in the app, and no real mouse click has been made in a test: a
+  built Nov 15 to 16 2026; before the owner's run of Nov 16 nobody had heard a
+  click in the app, and no real mouse click has been made in a test: a
   window a test builds can't hold a mouse capture, so the tests open the click
   layer's bracket through the real input manager with a MouseUp of their own and
   call the button's own click inside it, A107; the known key paths (Space and
@@ -688,7 +692,8 @@ all) — say so when it matters:
   display scales. The owner ran it in game on Nov 10, in Pandora with nobody on
   their dino: the empty Pack and the new control panel ("seems to work well").
 
-BUILT, NOT RELEASED (Nov 2026, the branch `games`): **games in the overlay**,
+SHIPPED in 1.45.0 (Nov 16 2026, no pre-release, the owner's call; built Nov 14 to
+16 on the branch `games` and merged into `main` at 6e6ba85): **games in the overlay**,
 for AFK growing: a Games window (Ctrl+J) with a grid of games, and the first,
 **Hatchling**, a turn-based roguelite that rewards growing every species on the
 server. The owner's decisions (G1 to G27 and G29), the plans, every decision made
@@ -696,9 +701,7 @@ without him (A, H, R) and the report: `Desktop\Pandora Overlay Files\pandora-gam
 The games now have sounds (G26, Nov 15 2026; `PLAN-SOUND.md` there, decisions A77
 to A90, H95 to H101, R1 to R7): 29 cues for Hatchling, made by code
 (`tools/games-sound/`), played by the host, and a mute and five volume steps on
-the Games window's header (the third the default, sound on). It waits for the
-owner's review and his check in game; no version, no CHANGELOG
-entry and no tag exist for it.
+the Games window's header (the third the default, sound on).
 The overlay and the games have click sounds (G27, built Nov 15 to 16 2026;
 `PLAN-CLICKS.md` there, decisions A98 to A114, H102, H103, R8 to R11, G29): six cues
 in one family (`press`, `select`, `toggle-on`, `toggle-off`, `arm`, `back`, 15 to 80
@@ -709,7 +712,16 @@ tray. Settings › General › Sounds has one row, "Click sounds", a box owning 
 1-to-5 slider, **on by default at step 3** (A103), so an update turns clicks on for
 every player: the release's notes must say so (`PLAN-CLICKS.md` 5.2). In the Games
 window the clicks also obey its mute and its step. The speaker moved to `Sound/` and
-became the whole app's (A101).
+became the whole app's (A101). With them: **the new app icon** ("Pandora frame",
+`tools/app-icon/`), and two hotkey fixes from the run's review (G34): the map
+ignores the bare M repeat of the Ctrl+M that opened it (`BigMap/MapKeys.cs`), and
+the tray's sign-in window suspends the hotkeys as Settings does (`SuspendHotkeys`).
+Guards at the release: 2229 tests in the app's project and 2396 in the games', 0
+failed; the golden renders (rp145, every theme, both modes): the minimap identical
+to its baselines, the windows mode differing only on Settings › General, Hotkeys and
+Widgets (the click row, the Games row, the GAMES scale), and Nightshade's About at 2x
+by the 3 pixels seen once before; every size its Default twin's; no baseline
+re-recorded. No endpoint, cookie or process change in the diff.
 
 SHIPPED in 1.44.0 (Nov 10 2026, after the pre-release 1.44.0-rc.1 on Nov 9; no
 fresh reviewer's read, the owner's call): **the Pack widget**, the stats of your
@@ -1201,7 +1213,7 @@ The four-features brainstorm (Nov 2–3 2026)
 
 ## Releases
 
-- Current: 1.44.0. The csproj `<Version>` is the single source of truth
+- Current: 1.45.0. The csproj `<Version>` is the single source of truth
   (SemVer: features bump minor, fixes patch); each release is an annotated
   `vX.Y.Z` tag, and pushing it runs `.github/workflows/release.yml`.
 - Never bump the version or tag a release without the owner's explicit "do

@@ -5,6 +5,44 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.45.0] - 2026-11-16
+
+### Added
+
+- **Games.** Something to do while your dino grows: Ctrl+J opens a Games
+  window over The Isle, with a grid of games. Esc, J, ✕ or a click on the
+  game closes it, and it opens again where you left off. Its size has its own
+  slider on Settings › Widgets.
+- **Hatchling**, the first game: a turn-based roguelite. Raise a hatchling to
+  Adult on a hex island while predators hunt it, as any of the server's
+  species you have unlocked. Lineage traits to earn between runs, five danger
+  levels, 24 achievements, and a Guide tab that explains every rule and term.
+- **Growing pays.** Growth the overlay sees on your real dino earns amber in
+  Hatchling and unlocks that species there, and a species you haven't grown in
+  a while earns more. Nothing to buy, ever, and nothing counts down.
+- **Games stay out of the way of the real game.** They see only your dino's
+  species, gender and growth from the overlay's usual update: no new request
+  to the website. If your real dino's health drops while Games is open, the
+  game pauses and the window warns you.
+- **Sounds for Hatchling**, made for its turns and pages, with a mute and five
+  volume steps on the Games window's header.
+- **Click sounds.** A soft click when you click the overlay's buttons, checks
+  and tabs, never for keys or hotkeys. They are **on** by default:
+  Settings › General › Sounds turns them down or off. In the Games window they
+  also follow its mute and volume.
+
+### Changed
+
+- **A new app icon**: the map arrow in Pandora orange, sharp at every size,
+  from the tray to the installer.
+
+### Fixed
+
+- Holding Ctrl+M a moment too long, then letting go of Ctrl first, could close
+  the map again right after it opened.
+- The hotkeys no longer work behind the "Sign in again…" window, as they
+  already didn't behind Settings.
+
 ## [1.44.0] - 2026-11-10
 
 ### Added
