@@ -121,13 +121,13 @@ public partial class MainWindow
     };
 
     /// <summary>
-    /// Re-registers all hotkeys after a settings change. Everything is
-    /// unregistered first so swapped combos can't collide with themselves;
-    /// the dialog availability-checked each combo, but another app can still
-    /// grab one in the meantime — then that hotkey falls back to its old,
-    /// still-working combo.
+    /// Unregisters every global hotkey, for as long as a modal dialog of ours is
+    /// up: WM_HOTKEY is system-level, so they would fire behind it. Settings and
+    /// the tray's sign-in window (G34, Nov 16 2026: before, every hotkey stayed
+    /// live under it) each call this before showing, and
+    /// <see cref="ApplyHotkeysFromConfig"/> in a finally after it.
     /// </summary>
-    private void ApplyHotkeysFromConfig()
+    private void SuspendHotkeys()
     {
         var hwnd = new WindowInteropHelper(this).Handle;
         HotkeySpec.Unregister(hwnd, HotkeyId);
@@ -139,6 +139,19 @@ public partial class MainWindow
         HotkeySpec.Unregister(hwnd, BigMapHotkeyId);
         HotkeySpec.Unregister(hwnd, SkinHotkeyId);
         HotkeySpec.Unregister(hwnd, GamesHotkeyId);
+    }
+
+    /// <summary>
+    /// Re-registers all hotkeys after a settings change. Everything is
+    /// unregistered first so swapped combos can't collide with themselves;
+    /// the dialog availability-checked each combo, but another app can still
+    /// grab one in the meantime — then that hotkey falls back to its old,
+    /// still-working combo.
+    /// </summary>
+    private void ApplyHotkeysFromConfig()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        SuspendHotkeys();
 
         _registerFailures.Clear();
         _hotkey = RegisterWithFallback(hwnd, HotkeyId, _config.Hotkey, _hotkey, v => _config.Hotkey = v);

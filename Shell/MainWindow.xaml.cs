@@ -210,16 +210,7 @@ public partial class MainWindow : OverlayWindowBase
         // system-level, so they would fire behind the modal dialog (Ctrl+F4
         // hiding the overlay mid-configuration), and suspension also frees
         // our own combos so the capture boxes can see and reassign them.
-        var hwnd = new WindowInteropHelper(this).Handle;
-        HotkeySpec.Unregister(hwnd, HotkeyId);
-        HotkeySpec.Unregister(hwnd, HideAllHotkeyId);
-        HotkeySpec.Unregister(hwnd, ViewHotkeyId);
-        HotkeySpec.Unregister(hwnd, HeatmapHotkeyId);
-        HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
-        HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
-        HotkeySpec.Unregister(hwnd, BigMapHotkeyId);
-        HotkeySpec.Unregister(hwnd, SkinHotkeyId);
-        HotkeySpec.Unregister(hwnd, GamesHotkeyId);
+        SuspendHotkeys();
         var closedByFocus = false;
         try
         {
@@ -446,7 +437,13 @@ public partial class MainWindow : OverlayWindowBase
     {
         CloseBigMap(); // the sign-in window is topmost too: not under a dimmed screen
         CloseGamesFor(OverlayEvent.SignInOpening); // modal and topmost, like Settings
-        var outcome = SignInWindow.Run(owner: null);
+        // The hotkeys are suspended while it is up, as under Settings (G34, Nov
+        // 16 2026): WM_HOTKEY is system-level, and before this every hotkey
+        // stayed live behind the sign-in window (Ctrl+M opening the map under it).
+        SignInOutcome? outcome;
+        SuspendHotkeys();
+        try { outcome = SignInWindow.Run(owner: null); }
+        finally { ApplyHotkeysFromConfig(); }
         if (outcome is null) return;
         _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow, outcome.Account.Avatar);
         _config.Save();

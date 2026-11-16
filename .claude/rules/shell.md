@@ -31,8 +31,9 @@ paths:
   Ctrl+F3 (held by third-party software in the wild); a letter key only after the owner
   has checked in game that the bare key does nothing; a candidate list through
   `ResolveLateHotkey`, one longer than its takers; registration in `OnSourceInitialized`
-  and `ApplyHotkeysFromConfig`; an Unregister in `OpenSettingsOn`; a WndProc case; a
-  Settings capture box.
+  and `ApplyHotkeysFromConfig`; an Unregister in `SuspendHotkeys` (which Settings and the
+  tray's sign-in window call while they are up, G34); a WndProc case; a Settings capture
+  box.
 - While the map is open no widget shows: anything that would show a widget or a dialog
   closes the map first (`ShowWindows` does nothing meanwhile); hide-all closes it and
   leaves the screen clear.

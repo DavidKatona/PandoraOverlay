@@ -13,8 +13,8 @@ namespace PandoraOverlay;
 /// locks edit mode first (lock and persist, as the map does) and closes the
 /// map. It works while the overlay is hidden and leaves the widgets hidden
 /// (G16), as the map's hotkey does. Under a modal dialog of ours it does
-/// nothing (A57): Settings suspends the hotkeys itself, and the tray's sign-in
-/// window, which leaves them registered, is answered the same way.
+/// nothing (A57): Settings and, since G34, the tray's sign-in window suspend the
+/// hotkeys themselves, and the check below stays as a second lock.
 /// </para>
 /// <para>
 /// <b>What closes it.</b> Its hotkey again, ✕, and Esc or a bare J on their
@@ -79,9 +79,9 @@ public partial class MainWindow
 
     private void OpenGames()
     {
-        // One at a time (A13, A57): a modal dialog of ours is up. Settings suspends
-        // the hotkeys itself; the tray's sign-in window leaves them registered, so
-        // the key arrives here and does nothing, as it does while Settings is open.
+        // One at a time (A13, A57): a modal dialog of ours is up. Settings and the
+        // tray's sign-in window (G34) suspend the hotkeys themselves, so the key
+        // should never arrive here then; should one, it does nothing.
         // WPF's own flag for our own thread: true inside every ShowDialog.
         if (ComponentDispatcher.IsThreadModal)
         {

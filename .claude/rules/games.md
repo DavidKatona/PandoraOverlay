@@ -138,7 +138,8 @@ its `Data/`, `Rules/` and `Progress/` and the tests beside them.
   new `OverlayEvent` is decided in that table, and MainWindow's source is read for it
   (`GamesGateTests`). The widgets stay up (G15), under it: whatever shows a widget while
   Games may be open ends in `RaiseGames()` (A58). Its hotkey does nothing while a modal
-  dialog of ours is up (A57: the tray's sign-in leaves the hotkeys registered). It
+  dialog of ours is up (A57; since G34 the tray's sign-in suspends the hotkeys as
+  Settings does, and the check stays as a second lock). It
   nudges no poll. The health warning is the window's (`HealthWatch`, G18, A15, A59,
   A66: a hit between two polls, or a fall of 2 points within 2 minutes, a fall already
   won back not counted again), never a game's; the header says when health is not
