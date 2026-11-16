@@ -393,7 +393,10 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   (`Sound/`, `Assets/Clicks/`); each loads when a matching file is touched.
   `.claude/skills/release-pass/` — the release procedure (see Releases);
   `.claude/skills/patch-notes/` — the Discord post for a release
-  (a short intro, then New / Changes / Fixes / Removed).
+  (a short intro, then New / Changes / Fixes / Removed);
+  `.claude/skills/orchestrated-build/` — how a big feature is built by a team of
+  sessions: an orchestrator, a planner woken for plans and verdicts, workers in
+  their own worktrees, and the planning folder as the shared board (the games').
 
 ## Architecture
 
