@@ -355,9 +355,8 @@ and `WORKER-RULES.md` barred starting it); say so when it matters.
   - MainWindow making the click gate, attaching the layer and detaching it at the exit:
     compiled, never run.
 - The golden renders: Settings › Hotkeys differs in every theme (the new row), and
-  Settings › Widgets should too (A75's GAMES group, by reading: the harness was not
-  run after the Games window's scale; in Default's one run after the click layer it did,
-  with Hotkeys, at 1x and 2x); Settings › General differs too (the click row and a longer
+  Settings › Widgets does too (A75's GAMES group: seen in Default at 1x and 2x in the
+  one windows-mode run since, C03's; the other themes by reading); Settings › General differs too (the click row and a longer
   hint under SOUNDS: Default at 1x and 2x as run, the other themes by reading); the
   baselines are the owner's to record after his look. The harness draws no Games window
   and makes MainWindow without running its constructor, so no sound's gate or speaker

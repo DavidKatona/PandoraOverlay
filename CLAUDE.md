@@ -390,9 +390,10 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   (`Minimap/`, `BigMap/`, the area tool), `Shell/`, `Core/`, the themes
   (`Themes/`, `Assets/Themes/`, `Assets/Fonts/`), the games (`Games/`,
   `GamesHost/`, `tools/games-art/`, `tools/games-sound/`) and the app's sound
-  (`Sound/`, `Assets/Clicks/`); each loads when a matching file is touched. `.claude/skills/release-pass/` — the release
-  procedure (see Releases); `.claude/skills/patch-notes/` — the Discord post
-  for a release (a short intro, then New / Changes / Fixes / Removed).
+  (`Sound/`, `Assets/Clicks/`); each loads when a matching file is touched.
+  `.claude/skills/release-pass/` — the release procedure (see Releases);
+  `.claude/skills/patch-notes/` — the Discord post for a release
+  (a short intro, then New / Changes / Fixes / Removed).
 
 ## Architecture
 
@@ -514,8 +515,11 @@ all) — say so when it matters:
   heard a click in the app, and no real mouse click has been made in a test: a
   window a test builds can't hold a mouse capture, so the tests open the click
   layer's bracket through the real input manager with a MouseUp of their own and
-  call the button's own click inside it, A107; every key, automation and code
-  path is tested silent): a real left click ticking, and Space, Enter, Esc and
+  call the button's own click inside it, A107; the known key paths (Space and
+  Enter on a focused button, an access key, a key pressed inside a release),
+  automation's Invoke and a click raised in code are tested silent, and any other
+  key raises its click inside its own input item, never inside a left release,
+  A111): a real left click ticking, and Space, Enter, Esc and
   every hotkey not (the mouse path is the owner's hand); each surface (Settings'
   nav, checks, radios, a slider's release, the click volume's own release at the
   new level, the armed buttons, ✕ and Close, the control panel with Exit silent,
@@ -542,16 +546,14 @@ all) — say so when it matters:
   theme, the windows mode differing only on Settings › Hotkeys in every theme
   (the new Games row; no baseline re-recorded), plus two one-off differences that
   did not repeat (three pixels of About's render once, one render step that
-  failed once), and not run since the Games window's scale (A75), whose GAMES
-  group should make Settings › Widgets differ in every theme too (by reading;
-  the harness draws no Games window and makes MainWindow without running its
-  constructor, so no sound's gate or speaker either). Settings › General, whose
-  SOUNDS section gained the click row and a longer hint, differed from the
-  baseline in Default at 1x and 2x in the one windows-mode run after the click
-  layer (C03's, which showed Hotkeys and Widgets differing too, the games
-  branch's own), and should in every theme and scale (by reading; no other
-  theme's windows mode and no minimap mode run since, the minimap being
-  untouched), with no baseline re-recorded; CI's SDK 8 not run (SDK 9 here).
+  failed once), and, since the Games window's scale (A75), run once, in Default
+  only (C03's run, Nov 15 to 16 2026): Settings › Hotkeys and Settings › Widgets
+  (A75's GAMES group) differing at 1x and 2x, and with the click layer Settings ›
+  General too (the click row and a longer hint under SOUNDS); the other themes by
+  reading, and the minimap mode not run since (untouched); the harness draws no
+  Games window and makes MainWindow without running its constructor, so no
+  sound's gate or speaker either, and never attaches the click layer; no baseline
+  re-recorded; CI's SDK 8 not run (SDK 9 here).
 - Dino storage's Delete (1.33; the owner kept their dino).
 - The map's own friends rule (tests only), weaker PCs, high DPI (1.34).
 - A PC without the WebView2 Runtime (1.31; the installer's fetch).

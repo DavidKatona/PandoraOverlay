@@ -4,6 +4,7 @@ paths:
   - "Assets/Clicks/**"
   - "tools/games-sound/clicks/**"
   - "Shell/MainWindow.Sound.cs"
+  - "PandoraOverlay.Tests/Sound/**"
 ---
 
 # Writing code for the app's sound (the speaker and the click sounds)
@@ -200,8 +201,10 @@ cite these numbers; look one up there before changing what it guards. The games'
 
 Nobody has heard a click in the app, and no real mouse click has been made in a test: a
 window a test builds can't hold a mouse capture, so the tests reach the class handler
-through the input manager with a MouseUp of their own (A107), and every key, automation
-and code path is tested silent. Say so when it matters. The owner's own to see: a real
+through the input manager with a MouseUp of their own (A107); the known key paths (Space
+and Enter on a focused button, an access key, a key pressed inside a release),
+automation's Invoke and a click raised in code are tested silent, and any other key
+raises its click inside its own input item, never inside a left release (A111). Say so when it matters. The owner's own to see: a real
 left click ticking, and Space, Enter, Esc and every hotkey not; each surface of the plan's
 appendix; the Games window and Hatchling's table (nothing during a turn, no double with its
 own cues); the default (on, step 3) against The Isle; the six by ear; the first click after
