@@ -51,6 +51,7 @@ public partial class MainWindow : OverlayWindowBase
     private HotkeySpec _hotkeyStatsView;
     private HotkeySpec _hotkeyBigMap;
     private HotkeySpec _hotkeySkin;
+    private HotkeySpec _hotkeyGames;
     private readonly LowStatAlert _lowStat = new();
     private readonly GrowthMilestones _milestones = new();
     private bool _overlayHidden;
@@ -91,8 +92,27 @@ public partial class MainWindow : OverlayWindowBase
             new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap, _hotkeyPrime, _hotkeyStatsView }, v => _config.HotkeyBigMap = v);
         _hotkeySkin = ResolveLateHotkey(_config.HotkeySkin, SkinHotkeyCandidates,
             new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap, _hotkeyPrime, _hotkeyStatsView, _hotkeyBigMap }, v => _config.HotkeySkin = v);
+        _hotkeyGames = ResolveLateHotkey(_config.HotkeyGames, GamesHotkeyCandidates,
+            new[] { _hotkey, _hotkeyHide, _hotkeyView, _hotkeyHeatmap, _hotkeyPrime, _hotkeyStatsView, _hotkeyBigMap, _hotkeySkin }, v => _config.HotkeyGames = v);
         ApplyAppearance(_config);
         ApplyStatsView();
+
+        // The games (MainWindow.Games.cs): the host and its instances, with NO
+        // IO here (the saves are first read on Loaded, AttachAll), so a window
+        // built and never shown, as the tests and the render harness build
+        // theirs, never reads or writes a real save. Handed to the last net at
+        // once: App's crash handler asks it before anything else (A10).
+        // Its sound gate (A79) is made here too, over the app's one speaker's
+        // Games channel, the config (the window's mute and volume, A82) and the
+        // host's one clock (MainWindow.Sound.cs, A101), with no device and no
+        // thread yet: the speaker is lazy, and makes both at the first sound (A80).
+        var gamesClock = new GameClock();
+        _speaker = new WaveOutSpeaker();
+        _clicks = AttachClicks(gamesClock); // the click gate on the Clicks channel, the layer attached, the sink set (G27, A104)
+        _games = new GamesHost(new GameSaveStore(DataFolder.GamesFolder, () => DateTime.UtcNow), GameCatalog.All, gamesClock,
+            MakeGamesSound(gamesClock));
+        GameFaults.Host = _games;
+        GameFaults.OnScreen = () => _gamesWindow?.OnScreen;
 
         _poll = new PollService(_config);
         _poll.SnapshotReceived += OnSnapshot;
@@ -137,6 +157,7 @@ public partial class MainWindow : OverlayWindowBase
             if (_config.PrimeEnabled) ShowPrime();
             if (_config.ActivityEnabled) ShowActivity();
             UpdatePack(); // shown when switched on with someone to show
+            _games.AttachAll(); // the games' saves read: here, never in the constructor, and before the session check, so they are there signed in or not
 
             if (string.IsNullOrWhiteSpace(_config.GetCookie()))
             {
@@ -154,6 +175,11 @@ public partial class MainWindow : OverlayWindowBase
             _tray.Dispose();
             _poll.Stop();
             _bigMap?.Close();
+            CloseGamesFor(OverlayEvent.Exiting); // its view handed over what it had, and
+            _games.Flush();                      // every pending save is written before the config is
+            _games.Sound.Dispose();              // the games' gate: its channel's stop queued (A80)
+            DetachClicks();                      // no click reaches the speaker from here on (A104)
+            CloseSound();                        // then the app's one speaker closed, after every gate (A101)
             PersistState();
             _poll.Dispose();
             _minimap?.Close();
@@ -179,19 +205,12 @@ public partial class MainWindow : OverlayWindowBase
             return;
         }
         CloseBigMap(); // the dialog opens over the widgets, not over the map
+        CloseGamesFor(OverlayEvent.SettingsOpening); // modal, and a theme switch must find Games closed
         // Suspend the global hotkeys while the dialog is open: WM_HOTKEY is
         // system-level, so they would fire behind the modal dialog (Ctrl+F4
         // hiding the overlay mid-configuration), and suspension also frees
         // our own combos so the capture boxes can see and reassign them.
-        var hwnd = new WindowInteropHelper(this).Handle;
-        HotkeySpec.Unregister(hwnd, HotkeyId);
-        HotkeySpec.Unregister(hwnd, HideAllHotkeyId);
-        HotkeySpec.Unregister(hwnd, ViewHotkeyId);
-        HotkeySpec.Unregister(hwnd, HeatmapHotkeyId);
-        HotkeySpec.Unregister(hwnd, PrimeHotkeyId);
-        HotkeySpec.Unregister(hwnd, StatsViewHotkeyId);
-        HotkeySpec.Unregister(hwnd, BigMapHotkeyId);
-        HotkeySpec.Unregister(hwnd, SkinHotkeyId);
+        SuspendHotkeys();
         var closedByFocus = false;
         try
         {
@@ -319,13 +338,15 @@ public partial class MainWindow : OverlayWindowBase
 
     /// <summary>
     /// Focus left every overlay window (OverlayFocus, 1.38): whatever is in
-    /// the way gets out of it. Settings closes, unless one of its own windows
-    /// is up (a file picker, the sign-in window, What's new); with Settings
-    /// gone, or not open, edit mode locks. The map has its own instant rule,
-    /// and the update cards close themselves.
+    /// the way gets out of it. The Games window closes (G17), and that is all:
+    /// edit mode and Settings can't be up beside it (A13). Else Settings
+    /// closes, unless one of its own windows is up (a file picker, the sign-in
+    /// window, What's new); with Settings gone, or not open, edit mode locks.
+    /// The map has its own instant rule, and the update cards close themselves.
     /// </summary>
     private void OnFocusLeftOverlay()
     {
+        if (CloseGamesFor(OverlayEvent.FocusLeft)) return;
         if (_settings is { } settings)
         {
             if (!settings.HoldsOpen) settings.CloseForFocus(); // edit mode follows once the dialog is gone (OpenSettingsOn)
@@ -365,6 +386,7 @@ public partial class MainWindow : OverlayWindowBase
         DinoText.Text = "Not signed in";
         SetStatus("Open Settings from the tray icon to sign in");
         SetAttention(true);
+        SetGamesWatch(GamesWatch.SignedOut); // no session, no health to watch (A16): the first run, a sign-out (ApplySession), Settings closed without one
     }
 
     // ---- The session (v1.31) ---------------------------------------------------
@@ -407,13 +429,21 @@ public partial class MainWindow : OverlayWindowBase
         SetAttention(true);
         _tray.SetStatus("Pandora Overlay — session ended");
         _tray.ShowSignedOut(OpenSignIn);
+        SetGamesWatch(GamesWatch.SignedOut); // Games plays on, and its header says health is not watched (A16)
     }
 
     /// <summary>The tray's "Sign in again…": the sign-in window straight away, no Settings in between.</summary>
     private void OpenSignIn()
     {
         CloseBigMap(); // the sign-in window is topmost too: not under a dimmed screen
-        var outcome = SignInWindow.Run(owner: null);
+        CloseGamesFor(OverlayEvent.SignInOpening); // modal and topmost, like Settings
+        // The hotkeys are suspended while it is up, as under Settings (G34, Nov
+        // 16 2026): WM_HOTKEY is system-level, and before this every hotkey
+        // stayed live behind the sign-in window (Ctrl+M opening the map under it).
+        SignInOutcome? outcome;
+        SuspendHotkeys();
+        try { outcome = SignInWindow.Run(owner: null); }
+        finally { ApplyHotkeysFromConfig(); }
         if (outcome is null) return;
         _config.ApplySignIn(outcome.CookieHeader, outcome.UserAgent, outcome.Account.Username, DateTime.UtcNow, outcome.Account.Avatar);
         _config.Save();
@@ -492,10 +522,12 @@ public partial class MainWindow : OverlayWindowBase
     /// answered Windows, and Windows doesn't wait for it: on Oct 24 the
     /// process was gone before the exit ran, so nothing was saved and the log
     /// just stopped. So the exit's saving is done here, at once: the open
-    /// Settings' last change, the positions, the renewed session, a view or
-    /// layer flipped by hotkey, the friends' last-seen times. If WPF's own
-    /// shutdown still gets to run, it saves the same again, harmlessly, and
-    /// the log ends with "Exit" as usual. The log writes each line through.
+    /// Settings' last change, the games' pending saves (the Games window
+    /// closed first, so its game hands over what it had), the positions, the
+    /// renewed session, a view or layer flipped by hotkey, the friends'
+    /// last-seen times. If WPF's own shutdown still gets to run, it saves the
+    /// same again, harmlessly, and the log ends with "Exit" as usual. The log
+    /// writes each line through.
     /// </summary>
     private void OnSessionEnding(object? sender, SessionEndingCancelEventArgs e)
     {
@@ -504,6 +536,8 @@ public partial class MainWindow : OverlayWindowBase
             : "Windows is shutting down: saving");
         _exiting = true;    // before the dialog closes: its last batch re-applies nothing (a friends surface ticked then fetched a roster)
         _settings?.Close(); // its last batch, and a name still being typed
+        CloseGamesFor(OverlayEvent.Exiting); // what its view had is handed over, and
+        _games.Flush();     // every game's pending save is on disk before the config
         _poll.Stop();       // no request starts on the way out
         PersistState();
         AppLog.App.Log("Saved before Windows ends the overlay");
@@ -555,6 +589,7 @@ public partial class MainWindow : OverlayWindowBase
         SetStatus($"Disconnected · retrying ({ConnectionProblem.Words(ex)})");
         _tray.SetStatus("Pandora Overlay — disconnected");
         SetAttention(true); // a broken connection is worth eyes
+        SetGamesWatch(GamesWatch.Disconnected); // Games plays on, fed nothing (a gap is a gap, A5); its header says health is not watched (A16)
     }
 
     /// <summary>
@@ -606,6 +641,8 @@ public partial class MainWindow : OverlayWindowBase
         {
             Topmost = true;
         }
+
+        FeedGames(result); // last: the games, the watch note and the health warning (MainWindow.Games.cs)
     }
 
     /// <summary>

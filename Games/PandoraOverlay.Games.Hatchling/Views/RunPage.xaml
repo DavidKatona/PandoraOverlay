@@ -1,0 +1,319 @@
+<!-- The Run page (H27, box for box, in the page's own space: the
+     page is the view's 0, 34, 798 x 476): the turn bar, the board with the
+     offer and the summary over it, and the side panel. Every colour, corner,
+     size and font is the theme's by DynamicResource (A25); every word comes
+     from HatchlingText by x:Static or from code (A24); nothing here opens a
+     surface of its own or takes the keyboard (A33, A42). The rows of the turn
+     list, the offer's cards and the summary's lines are made in code
+     (RunPage.Panel.cs), from the same tokens. The engine's mapping is for
+     its click rule's one mark here, "Back to camp" (H102). -->
+<Grid x:Class="PandoraOverlay.Games.Hatchling.RunPage"
+      x:ClassModifier="internal"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:h="clr-namespace:PandoraOverlay.Games.Hatchling"
+      xmlns:engine="clr-namespace:PandoraOverlay.Games.Engine;assembly=PandoraOverlay.Games.Engine"
+      Width="798" Height="476" Background="Transparent">
+
+    <!-- The turn bar, 12, 40, 508 x 30: the banner, the context line, Fast. The
+         banner may take 430 (H80): its longest sentence, a spikes hurt that
+         defeats, is 399 in the widest font; the context line takes what is left,
+         which during a playback is only the line that a click skips. The context
+         line may take a second line inside the bar's 30 (task H16, the first
+         time the page met a theme): the first minute's hint is 399.7 wide in
+         Isle's font in 374.9, and a hint is the lesson it is there for, so, as
+         Camp's note (H82), it is given room and never cut; what the mouse is over
+         is longer still ("Sprint here · noise 5 · Herrerasaurus 11 · hunting you
+         · 3 hexes · click to attack") in every font. Two lines of the tallest body
+         font are 29 units; the bar never changes size. -->
+
+    <Grid x:Name="TurnBar" Margin="12,6,0,0" Width="508" Height="30"
+          HorizontalAlignment="Left" VerticalAlignment="Top">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="Banner" Grid.Column="0" MaxWidth="430" VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource Theme.Text.Bright}"
+                   FontSize="{DynamicResource Theme.Size.14}"
+                   FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
+        <TextBlock x:Name="Context" Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center"
+                   TextWrapping="Wrap" MaxHeight="30" TextTrimming="CharacterEllipsis"
+                   Foreground="{DynamicResource Theme.Text.Dim}"
+                   FontSize="{DynamicResource Theme.Size.11}"/>
+        <CheckBox x:Name="FastBox" Focusable="False" Grid.Column="2" VerticalAlignment="Center"
+                  Style="{DynamicResource Check}"
+                  Content="{x:Static h:HatchlingText.Fast}"/>
+    </Grid>
+
+    <!-- The board, 12, 74, 508 x 432: the surface (added in code, first), then
+         the offer and the summary over it in the same box. -->
+    <Grid x:Name="BoardHost" Margin="12,40,0,0" Width="508" Height="432"
+          HorizontalAlignment="Left" VerticalAlignment="Top">
+
+        <Grid x:Name="OfferCover" Visibility="Collapsed" Background="Transparent">
+            <Border Background="{DynamicResource Theme.Glass.MapWindow}" Opacity="0.86"/>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock x:Name="OfferTitle" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontSize="16"
+                           Foreground="{DynamicResource Theme.Text.Title}"/>
+                <TextBlock Margin="0,4,0,12" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           Text="{x:Static h:HatchlingText.OfferLine}"
+                           Foreground="{DynamicResource Theme.Text.Dim}"
+                           FontSize="{DynamicResource Theme.Size.12}"/>
+                <StackPanel x:Name="OfferCards" Orientation="Horizontal" HorizontalAlignment="Center"/>
+                <Button x:Name="RedrawButton" Focusable="False" Margin="0,10,0,0" Width="150" Height="28"
+                        HorizontalAlignment="Right"
+                        Style="{DynamicResource NeutralButtonStyle}"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid x:Name="SummaryCover" Visibility="Collapsed" Background="Transparent">
+            <Border Background="{DynamicResource Theme.Glass.MapWindow}" Opacity="0.86"/>
+            <Border Width="380" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Padding="14" BorderThickness="1"
+                    Background="{DynamicResource Theme.InfoCard.Surface}"
+                    BorderBrush="{DynamicResource Theme.InfoCard.Line}"
+                    CornerRadius="{DynamicResource Theme.Corner.Card}">
+                <StackPanel>
+                    <TextBlock x:Name="SummaryTitle" TextTrimming="CharacterEllipsis"
+                               FontFamily="{DynamicResource Theme.Font.TitleFamily}" FontSize="18"/>
+                    <TextBlock x:Name="SummaryReason" Margin="0,4,0,6" MaxHeight="34"
+                               TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Theme.Text.Text}"
+                               FontSize="{DynamicResource Theme.Size.12}"/>
+                    <StackPanel x:Name="PayLines"/>
+                    <Border Height="1" Margin="0,4" Background="{DynamicResource Theme.Separator}"/>
+                    <Grid Height="20">
+                        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   Text="{x:Static h:HatchlingText.PayTotal}"
+                                   Foreground="{DynamicResource Theme.Text.Bright}"
+                                   FontSize="{DynamicResource Theme.Size.13}"
+                                   FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
+                        <TextBlock x:Name="PayTotal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Theme.Text.Highlight}"
+                                   FontSize="{DynamicResource Theme.Size.13}"
+                                   FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
+                    </Grid>
+                    <StackPanel x:Name="EarnedLines" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="DangerLine" Height="18" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Theme.Text.Good}"
+                               FontSize="{DynamicResource Theme.Size.12}"/>
+                    <Button x:Name="BackButton" Focusable="False" Margin="0,8,0,0" Height="34"
+                            engine:GameClicks.Cue="Back"
+                            Style="{DynamicResource SaveButtonStyle}"
+                            Content="{x:Static h:HatchlingText.BackToCamp}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+
+    <!-- The side panel, 530, 40, 256 x 464: your dino, your move, the turn
+         list, Leave (122 + 6 + 88 + 6 + 210 + 6 + 26). -->
+    <Grid x:Name="SidePanel" Margin="530,6,0,0" Width="256" Height="464"
+          HorizontalAlignment="Left" VerticalAlignment="Top">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="122"/>
+            <RowDefinition Height="6"/>
+            <RowDefinition Height="88"/>
+            <RowDefinition Height="6"/>
+            <RowDefinition Height="210"/>
+            <RowDefinition Height="6"/>
+            <RowDefinition Height="26"/>
+        </Grid.RowDefinitions>
+
+        <!-- Your dino: an info card. -->
+        <Border Grid.Row="0" Padding="10,7" BorderThickness="1"
+                Background="{DynamicResource Theme.InfoCard.Surface}"
+                BorderBrush="{DynamicResource Theme.InfoCard.Line}"
+                CornerRadius="{DynamicResource Theme.Corner.Card}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="16"/>
+                    <RowDefinition Height="9"/>
+                    <RowDefinition Height="51"/>
+                    <RowDefinition Height="15"/>
+                    <RowDefinition Height="14"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="SpeciesText" Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Theme.Text.Bright}"
+                               FontSize="{DynamicResource Theme.Size.12}"
+                               FontWeight="{DynamicResource Theme.Font.ValueWeight}"/>
+                    <TextBlock x:Name="StageText" Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Theme.Text.Dim}"
+                               FontSize="{DynamicResource Theme.Size.11}"/>
+                </Grid>
+                <Grid x:Name="Segments" Grid.Row="1" Height="5" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="3"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="3"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="3"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="3"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border x:Name="Segment0" Grid.Column="0" CornerRadius="{DynamicResource Theme.Corner.Progress}"/>
+                    <Border x:Name="Segment1" Grid.Column="2" CornerRadius="{DynamicResource Theme.Corner.Progress}"/>
+                    <Border x:Name="Segment2" Grid.Column="4" CornerRadius="{DynamicResource Theme.Corner.Progress}"/>
+                    <Border x:Name="Segment3" Grid.Column="6" CornerRadius="{DynamicResource Theme.Corner.Progress}"/>
+                    <Border x:Name="Segment4" Grid.Column="8" CornerRadius="{DynamicResource Theme.Corner.Progress}"/>
+                </Grid>
+                <Grid Grid.Row="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="17"/>
+                        <RowDefinition Height="17"/>
+                        <RowDefinition Height="17"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="46"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="48"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Text="{x:Static h:HatchlingText.HealthLabel}"
+                               Foreground="{DynamicResource Theme.Text.Text2}" FontSize="{DynamicResource Theme.Size.11}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Text="{x:Static h:HatchlingText.FoodLabel}"
+                               Foreground="{DynamicResource Theme.Text.Text2}" FontSize="{DynamicResource Theme.Size.11}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Text="{x:Static h:HatchlingText.WaterLabel}"
+                               Foreground="{DynamicResource Theme.Text.Text2}" FontSize="{DynamicResource Theme.Size.11}"/>
+                    <Border x:Name="HealthTrack" Grid.Row="0" Grid.Column="1" Height="8" Margin="4,0"
+                            Background="{DynamicResource Theme.Storage.BarTrack}" CornerRadius="{DynamicResource Theme.Corner.Progress}">
+                        <Border x:Name="HealthFill" HorizontalAlignment="Left" CornerRadius="{DynamicResource Theme.Corner.Progress}"/>
+                    </Border>
+                    <Border x:Name="FoodTrack" Grid.Row="1" Grid.Column="1" Height="8" Margin="4,0"
+                            Background="{DynamicResource Theme.Storage.BarTrack}" CornerRadius="{DynamicResource Theme.Corner.Progress}">
+                        <Border x:Name="FoodFill" HorizontalAlignment="Left" CornerRadius="{DynamicResource Theme.Corner.Progress}"/>
+                    </Border>
+                    <Border x:Name="WaterTrack" Grid.Row="2" Grid.Column="1" Height="8" Margin="4,0"
+                            Background="{DynamicResource Theme.Storage.BarTrack}" CornerRadius="{DynamicResource Theme.Corner.Progress}">
+                        <Border x:Name="WaterFill" HorizontalAlignment="Left" CornerRadius="{DynamicResource Theme.Corner.Progress}"/>
+                    </Border>
+                    <TextBlock x:Name="HealthValue" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.11}"/>
+                    <TextBlock x:Name="FoodValue" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.11}"/>
+                    <TextBlock x:Name="WaterValue" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource Theme.Text.Bright}" FontSize="{DynamicResource Theme.Size.11}"/>
+                </Grid>
+                <TextBlock x:Name="StatusText" Grid.Row="3" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           FontSize="{DynamicResource Theme.Size.11}"/>
+                <TextBlock x:Name="InstinctsText" Grid.Row="4" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10.5}"/>
+            </Grid>
+        </Border>
+
+        <!-- Your move: the caption, the three paces, then Eat, Drink and Rest. -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="15"/>
+                <RowDefinition Height="31"/>
+                <RowDefinition Height="4"/>
+                <RowDefinition Height="38"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Margin="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       Style="{DynamicResource SectionCaption}"
+                       Text="{x:Static h:HatchlingText.YourMove}"/>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="68"/>
+                    <ColumnDefinition Width="68"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <RadioButton x:Name="WalkPace" Focusable="False" Grid.Column="0" Style="{DynamicResource Radio}">
+                    <StackPanel>
+                        <TextBlock TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Walk}"
+                                   FontSize="{DynamicResource Theme.Size.12}"/>
+                        <TextBlock x:Name="WalkLine" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10.5}"/>
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="SneakPace" Focusable="False" Grid.Column="1" Style="{DynamicResource Radio}">
+                    <StackPanel>
+                        <TextBlock TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Sneak}"
+                                   FontSize="{DynamicResource Theme.Size.12}"/>
+                        <TextBlock x:Name="SneakLine" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10.5}"/>
+                    </StackPanel>
+                </RadioButton>
+                <RadioButton x:Name="SprintPace" Focusable="False" Grid.Column="2" Style="{DynamicResource Radio}">
+                    <StackPanel>
+                        <TextBlock TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Sprint}"
+                                   FontSize="{DynamicResource Theme.Size.12}"/>
+                        <TextBlock x:Name="SprintLine" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10.5}"/>
+                    </StackPanel>
+                </RadioButton>
+            </Grid>
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="5"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="5"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="EatButton" Focusable="False" Grid.Column="0" Padding="4,2" Style="{DynamicResource NeutralButtonStyle}">
+                    <StackPanel>
+                        <TextBlock HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Eat}"/>
+                        <TextBlock x:Name="EatLine" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   FontSize="{DynamicResource Theme.Size.10.5}"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="DrinkButton" Focusable="False" Grid.Column="2" Padding="4,2" Style="{DynamicResource NeutralButtonStyle}">
+                    <StackPanel>
+                        <TextBlock HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Drink}"/>
+                        <TextBlock x:Name="DrinkLine" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   FontSize="{DynamicResource Theme.Size.10.5}"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="RestButton" Focusable="False" Grid.Column="4" Padding="4,2" Style="{DynamicResource NeutralButtonStyle}">
+                    <StackPanel>
+                        <TextBlock HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{x:Static h:HatchlingText.Rest}"/>
+                        <TextBlock x:Name="RestLine" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   FontSize="{DynamicResource Theme.Size.10.5}"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Grid>
+
+        <!-- The turn list (H2, H28): a card, its caption row, then eleven rows of 16 made in code. -->
+        <!-- The card's padding is 4 at each side and the caption row stands 6 in
+             from it, so "TURN ORDER" and "turn 48" stay 10 from the line as on the
+             other cards; the rows take the card's whole 246 inside: the marker 10,
+             the name 98 (RunPage.NameWidth), what the row did the rest, 138 (H87). -->
+        <Border Grid.Row="4" Padding="4,6" BorderThickness="1"
+                Background="{DynamicResource Theme.Card.Surface}"
+                BorderBrush="{DynamicResource Theme.Card.Line}"
+                CornerRadius="{DynamicResource Theme.Corner.Card}">
+            <StackPanel>
+                <Grid Height="16" Margin="6,0,6,0">
+                    <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0" TextTrimming="CharacterEllipsis"
+                               Style="{DynamicResource SectionCaption}"
+                               Text="{x:Static h:HatchlingText.TurnOrder}"/>
+                    <TextBlock x:Name="TurnNumber" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.10.5}"/>
+                </Grid>
+                <StackPanel x:Name="TurnRows"/>
+            </StackPanel>
+        </Border>
+
+        <Button x:Name="LeaveButton" Focusable="False" Grid.Row="6" Height="26" Padding="6,2"
+                Style="{DynamicResource NeutralButtonStyle}"
+                Content="{x:Static h:HatchlingText.Leave}"/>
+    </Grid>
+</Grid>

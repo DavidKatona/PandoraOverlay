@@ -29,10 +29,14 @@ a file in the folder is touched.
    itself never lists, opens or looks at any process (`Process.Start` appears
    only to hand a URL — or the settings folder, About → Open folder, or the
    log folder, About → Open log folder — to the Windows shell). It activates only its OWN windows (the
-   control panel, the map, dialogs; our hotkey press grants the right); the
-   game window is never found, focused or touched. A click on the game is known
-   only as our own windows losing the focus (`OverlayFocus`, 1.38: Settings
-   closes, edit mode locks); what took the focus is never asked.
+   control panel, the map, the Games window, dialogs; our hotkey press grants
+   the right); the game window is never found, focused or touched. A click on
+   the game is known only as our own windows losing the focus (`OverlayFocus`,
+   1.38: Settings closes, edit mode locks; with the games, the Games window
+   closes); what took the focus is never asked. The overlay's sounds, the games'
+   and the clicks', play on the default audio device through Windows' audio
+   engine, which mixes them with The Isle's as it mixes any program's; the game
+   process is never seen (A80, A86, A101).
 2. **Approved endpoints only**, each with the trigger and pace below. Nothing is
    added, and nothing goes faster, without the owner's explicit okay.
 
@@ -186,6 +190,20 @@ the calibration are in `.claude/rules/core.md`, which loads with `Core/`.
   `PandoraOverlay.sln` also carries **PandoraOverlay.Tests** (xUnit; `dotnet
   test`; CI runs it on every push). The app csproj globs the repo root, so the
   test subtree is `Compile Remove`d from it.
+- `PandoraOverlay.sln` also carries the games' projects, under `Games/`
+  (`PandoraOverlay.Games.Contract`, `.Engine`, one project per game, and
+  `PandoraOverlay.Games.Tests`, which builds and runs without the app). They add
+  no NuGet package. The app's csproj removes `Games\**` from its globs.
+- The app's sound, the games' and the clicks', is one speaker through winmm's
+  `waveOut`, by P/Invoke in `Sound/` (`WaveOut.cs`: seven winmm calls and the
+  three kernel32 calls for the device's event; A80, moved from `GamesHost/` by
+  A101), beside the three window calls (user32, dwmapi) the Games window makes in
+  `GamesHost/` (`GamesWindow.xaml.cs`). No package is added; nothing under
+  `Games/` can reach it. Scans hold `Sound/`, `GamesHost/` and the two MainWindow
+  parts that touch them (`MainWindow.Games.cs`, `MainWindow.Sound.cs`) to those
+  native calls, thirteen in all, and to Windows' default output (A92, A102), and
+  keep out `waveOutSetVolume`, the app's own volume in Windows' mixer, with every
+  other volume setter (A93).
 - The working copy is LF (`.gitattributes` `eol=lf`; the solution file CRLF).
 - The site's access header gets into a build as `Assets/overlay-access.bin`,
   embedded when it exists. Release builds: the workflow runs
@@ -280,9 +298,35 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 - `Waypoints/`, `Friends/`, `Activity/`, `Prime/`, `Rules/`, `Skins/`,
   `Storage/` (Dino storage), `Account/` (the in-app sign-in), `Updates/` (the
   update card), `Settings/` (the paged dialog, one partial per page).
+- `Sound/` — the app's sound (Nov 2026, built on the branch `games`; A101): the
+  one speaker for the whole app (`ISpeaker` with `NullSpeaker`; `WaveOutSpeaker`,
+  its thread and the winmm device in `WaveOut.cs`; `SpeakerMix`, its pure mix),
+  with two channels, `SpeakerChannel.Games` and `.Clicks`, so a game's stop never
+  cuts a click and a click never touches a game's sound; and the click layer
+  (G27): `UiClicks` (the one class handler and its marks), the gate `ClickSound`
+  (the Settings switch, the Games window's mute and step, the 80 ms gap),
+  `ClickBank` (the six files, read by the app's own reader) and `SoundSteps` (the
+  five steps' one home). The speaker's lines go to the log's `LogSound` category.
+  Its MainWindow part is `Shell/MainWindow.Sound.cs`. See `.claude/rules/sound.md`.
+- `GamesHost/` — the app's side of the games (Nov 2026, built on the branch
+  `games`): GamesWindow ("Games" to players, Ctrl+J), GamesFrame, GamesHost and
+  GameCatalog (the listed games), GameSaveStore (their saves, under
+  `%AppData%\PandoraOverlay\games`), GameGuard and GameFaults (a game that throws
+  is closed, not the overlay), HealthWatch (the window's health warning),
+  GamesGate and GamesKeys (the pure rules for what closes the window), and the
+  games' sound gate (`GamesSound`: what may play, the mute and the five volume
+  steps; it plays through the speaker in `Sound/` and hands a heard game's clicks
+  to the click gate). Its MainWindow part is `Shell/MainWindow.Games.cs`.
+- `Games/` — the games themselves, in projects of their own with their own
+  namespaces (`PandoraOverlay.Games…`, the one exception to the flat namespace,
+  G20): the Contract, the shared Engine, and one project per game (Hatchling, the
+  first). They cannot reference the app; see `.claude/rules/games.md`.
 - `Assets/` — `map.png`, `app.ico` (WPF Resources) and the embedded data
   (`rules.json`, `calibration.json`, `areas.png` + `areas.json`, `zones.json`;
-  the CHANGELOG is embedded too, for the update card).
+  the CHANGELOG is embedded too, for the update card), and `Assets/Clicks/`, the
+  six click sounds (`press`, `select`, `toggle-on`, `toggle-off`, `arm`, `back`;
+  WAVs written by `tools/games-sound/clicks/`, checked in, embedded as
+  `Clicks/<file>.wav`; A106).
 - `Assets/Themes/` — one sparse file per theme but Default (`isle.json`,
   `pandora.json`, `nightshade.json`, `herbivore.json`, `carnivore.json`):
   only what differs from Default, by token path, and its fit factor. A new
@@ -324,12 +368,32 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
   (one `name:value` line, from a hidden prompt or the release secret) into the
   scrambled, git-ignored `Assets/overlay-access.bin`; it never prints the line
   (see constraint 4 and Stack & build).
+- `tools/app-icon/` — `make-icon.ps1` draws the app icon (`Assets/app.ico`: the
+  tray, the windows, the update card, the installer) with WPF's vector drawing at
+  every size from 16 to 256, each a PNG entry; never run by a build. The design is
+  "Pandora frame" (the owner's pick, Nov 15 2026, from the icon canvas
+  https://claude.ai/artifact/Qw7EGhw7RELx18uCMN374s): the minimap's arrow in the
+  Pandora theme's orange on a near-black square with a lit top edge. It replaced
+  the amber arrow of Sep 12 2026, which stopped at 64 px.
+- `tools/games-art/` — the games' art generator (plain Node, no dependencies,
+  never run by a build): sprites are drawn from shapes by one engine and written
+  as atlases into each game's `Art/` folder, which is checked in and embedded.
+- `tools/games-sound/` — the games' sound generator, beside the art's and apart
+  from it (plain Node, no dependencies, never run by a build): each cue is
+  rendered from its recipe by WebAudio's own definitions and written as a WAV
+  into the game's `Sound/` folder (checked in and embedded), with a manifest, and
+  `--board` writes the audition board into the git-ignored `out/`. One more set,
+  `clicks/`, is not a game: the six click sounds, written to the app's
+  `Assets/Clicks/` (A106). `SoundInStepTests` fails when a source changed without
+  a rebuild (`node tools/games-sound/<game>/build.js`, or `clicks/build.js`).
 - `.claude/rules/` — conventions for writing new code in `Settings/`, the maps
-  (`Minimap/`, `BigMap/`, the area tool), `Shell/`, `Core/` and the themes
-  (`Themes/`, `Assets/Themes/`, `Assets/Fonts/`); each loads when a matching
-  file is touched. `.claude/skills/release-pass/` — the release
-  procedure (see Releases); `.claude/skills/patch-notes/` — the Discord post
-  for a release (a short intro, then New / Changes / Fixes / Removed).
+  (`Minimap/`, `BigMap/`, the area tool), `Shell/`, `Core/`, the themes
+  (`Themes/`, `Assets/Themes/`, `Assets/Fonts/`), the games (`Games/`,
+  `GamesHost/`, `tools/games-art/`, `tools/games-sound/`) and the app's sound
+  (`Sound/`, `Assets/Clicks/`); each loads when a matching file is touched.
+  `.claude/skills/release-pass/` — the release procedure (see Releases);
+  `.claude/skills/patch-notes/` — the Discord post for a release
+  (a short intro, then New / Changes / Fixes / Removed).
 
 ## Architecture
 
@@ -348,6 +412,34 @@ are in `PandoraClient.cs`, and Prime's and friends' gating in `PollService.cs`.
 - MainWindow owns whatever must outlive a widget being hidden: the config, the
   PollService, the waypoint library, the route, the friend book, the activity log
   and its feeds, the area journal, the trail, the map menu's actions.
+- The games are fed, never asking (Nov 2026): `MainWindow.OnSnapshot` hands
+  every successful poll to `GamesHost.Feed`, which gives each game four values
+  (in game, species, gender, growth; the gender only to tell one life from the
+  next), window open or not. A game → the Engine →
+  the Contract; the app → the Contract and each game; nothing under `Games/` can
+  reference `PollService`, the client, the config or the session (the compiler
+  holds that), and the forbidden list refuses the plain ways round it
+  (networking, reflection by name, a picture fetched by address, another
+  assembly's embedded files: the Engine alone reads a game's own, A94): a guard
+  against an API reached for by accident, not a sandbox. A game's sound is the
+  host's (`IGameHost.Sound`, A77): a game hands over one of its own, only for
+  the player's clicks and their playback, never for a reading (A85), and the
+  host plays it only while that game is on screen, not paused and not muted
+  (A79). The games add no
+  request and no request trigger (constraints 1 to 4 stand as they are).
+- One speaker, MainWindow's (`Shell/MainWindow.Sound.cs`, A101): it makes the
+  `WaveOutSpeaker` in its constructor and disposes it at the exit after both
+  gates, the games' (`GamesSound`, over the speaker's Games channel) and the
+  clicks' (`ClickSound`, over its Clicks channel). A click is the app's and no
+  window asks for it: ONE class handler on every `ButtonBase` (`UiClicks`, A104)
+  plays it for the player's own left click of the mouse, and a game's click is
+  the Engine's rule through the Contract's `IGameSound.Click` (A105), handed to
+  the click gate, only for the instance heard, by the games' gate (which takes the
+  gate's interface, `IClickSink`, A114). Never for a key, automation or
+  code, never on the tray (Windows' own menu); the sink that plays is null on any
+  thread MainWindow did not set it on, so a test, a dialog a test builds and the
+  render harness are silent. The click layer adds no request, no timer and no
+  process (constraints 1 to 4 stand).
 
 ## Runtime expectations
 
@@ -374,6 +466,94 @@ The release history is CHANGELOG.md (player-facing; the update card shows it).
 
 **Never tested in a real session** (checked by tests or renders only, or not at
 all) — say so when it matters:
+- From the games (built Nov 2026 on the branch `games` by an unattended run; NOT
+  RELEASED, nothing pushed; the overlay was never started with them): everything
+  in game, by tests and off-screen renders only. The window over The Isle and its
+  keys (Ctrl+J, the cursor let go, Esc and J on their release with the game not
+  reacting); the focus rule and a click on the game closing it, and reopening
+  mid-run; the frame rate (the presenter alone was timed: 0.6 ms a frame at 100%
+  and 200%, 2.3 ms at 150%, not WPF's own composition over the game); pixel art at
+  fractional display scales (the arithmetic is tested, the placement is not); the
+  six themes (renders: the window and every Hatchling screen fit in each, and no
+  theme's `Fit` moved); the health warning (a pure rule: a hit, or a fall of 2
+  points within 2 minutes, so a drain slower than a point a minute is not
+  caught, and whether anything harmless falls that fast is unknown; up to 15 s
+  late after a spawn (60 s after ten minutes not in game), since opening Games
+  nudges no poll, which constraint 2 leaves to the owner); saves across an
+  update, Exit and a Windows shutdown (temp folders only,
+  the real data folder never written by a test); growth seen against a storage
+  swap (the rule, not the server's real growth); the API's spelling of the 21
+  species against Hatchling's table (only "Deinosuchus" seen in a sample; a name
+  the table doesn't know pays nothing, logged once each time the game is
+  started, without the name); nothing seen moving (the walk,
+  a bite, a turn's pace); Hatchling's balance, which is a bot's: nobody has
+  played its rules by hand. From the games' sounds (G26, built Nov 15 2026; the
+  overlay was never started with them, and nobody has heard a sound of the games,
+  every check being of what a game hands a fake speaker, a fake device or a
+  board): the owner's seven picks and the 22 new cues by ear, the demo turns'
+  density at Normal and Fast, and the second board whole (its 2.3 MB page was
+  opened only in parts, its match figures only in Chromium); the default volume
+  (step 3) against The Isle's own sound, and the bite landing with its blow;
+  crackle, with The Isle running and after an hour with the window open (the real
+  device ran once, silence only, on an idle PC, and the spike's full-load run is
+  the only evidence under load); the first cue after a launch, which waits for the
+  device's first open (about 93 ms from the play to the device on the build PC,
+  silence only); a device unplugged or in exclusive use, none at all, one that
+  stops handing buffers back (closed after 3 s, A91), a changed default device
+  and a Bluetooth headset (the failure paths ran on a fake device only, and
+  whether a real driver stalls is unknown); the overlay's entry in Windows'
+  volume mixer, and the PC's sleep with the window closed; the mute, the `−`
+  and `+`, the preview, and the speaker's glyphs
+  and pips in a real session (renders at 96 DPI only; the glyphs are WPF's font
+  fallback); nothing sounding with the window closed, on the grid, under the
+  health warning or after a click on the game (tests with a fake speaker only);
+  Exit from the tray while a turn plays, whose cue is cut, not faded (A90);
+  MainWindow making the speaker and disposing it (compiled and tested lazy, never
+  run); whether the gate's 40 ms and six-at-once limits ever drop one of
+  Hatchling's cues at Fast (reasoning, not a test). From the click sounds (G27,
+  built Nov 15 to 16 2026; the overlay was never started with them, nobody has
+  heard a click in the app, and no real mouse click has been made in a test: a
+  window a test builds can't hold a mouse capture, so the tests open the click
+  layer's bracket through the real input manager with a MouseUp of their own and
+  call the button's own click inside it, A107; the known key paths (Space and
+  Enter on a focused button, an access key, a key pressed inside a release),
+  automation's Invoke and a click raised in code are tested silent, and any other
+  key raises its click inside its own input item, never inside a left release,
+  A111): a real left click ticking, and Space, Enter, Esc and
+  every hotkey not (the mouse path is the owner's hand); each surface (Settings'
+  nav, checks, radios, a slider's release, the click volume's own release at the
+  new level, the armed buttons, ✕ and Close, the control panel with Exit silent,
+  the maps' menus and their ticks, the update cards, the sign-in window's buttons,
+  the Games window's tiles, "‹ Games", ✕ and the warning's button, its mute
+  silencing its clicks and its step setting their level), and Hatchling's table
+  above all, with nothing during a turn and no double with `hatch`, `choose`,
+  `shuffle`, `unlock` or `reward`; the six by ear in the overlay with The Isle
+  running (whether `select`, the commonest, is soft enough to hear twenty times a
+  minute, whether `arm` is distinct without alarm, whether the 80 ms gap reads as
+  a guard or as lost clicks, whether the clicks sit under the games' cues); the
+  default (on, step 3) against The Isle; the first click after a launch, which
+  waits for the device's first open (about 93 ms on the build PC, silence only),
+  a click after the stream's 3 s idle close, a Bluetooth headset (which may
+  swallow a click whole), the overlay's one entry in Windows' volume mixer for
+  clicks and games together; Sign out's second click, the one armed site no test
+  makes (it writes the real `config.json`), and the map's real popup menu (the
+  builder's buttons were clicked outside a Popup); a touch or pen tap (WPF should
+  promote it to a mouse event; not tried); the known limit that an exception
+  contained in the middle of a release (a game's only) leaves that frame looking
+  live, by reading (A112); MainWindow's constructor and exit with the click layer
+  (compiled, never run). Guards: 2221 tests in the app's project and 2396 in the
+  games' (4617, 0 failed); the golden renders: the minimap's identical in every
+  theme, the windows mode differing only on Settings › Hotkeys in every theme
+  (the new Games row; no baseline re-recorded), plus two one-off differences that
+  did not repeat (three pixels of About's render once, one render step that
+  failed once), and, since the Games window's scale (A75), run once, in Default
+  only (C03's run, Nov 15 to 16 2026): Settings › Hotkeys and Settings › Widgets
+  (A75's GAMES group) differing at 1x and 2x, and with the click layer Settings ›
+  General too (the click row and a longer hint under SOUNDS); the other themes by
+  reading, and the minimap mode not run since (untouched); the harness draws no
+  Games window and makes MainWindow without running its constructor, so no
+  sound's gate or speaker either, and never attaches the click layer; no baseline
+  re-recorded; CI's SDK 8 not run (SDK 9 here).
 - Dino storage's Delete (1.33; the owner kept their dino).
 - The map's own friends rule (tests only), weaker PCs, high DPI (1.34).
 - A PC without the WebView2 Runtime (1.31; the installer's fetch).
@@ -507,6 +687,29 @@ all) — say so when it matters:
   build session's driver, with the real pointer: 28 of 28, Nov 9); other PCs and
   display scales. The owner ran it in game on Nov 10, in Pandora with nobody on
   their dino: the empty Pack and the new control panel ("seems to work well").
+
+BUILT, NOT RELEASED (Nov 2026, the branch `games`): **games in the overlay**,
+for AFK growing: a Games window (Ctrl+J) with a grid of games, and the first,
+**Hatchling**, a turn-based roguelite that rewards growing every species on the
+server. The owner's decisions (G1 to G27 and G29), the plans, every decision made
+without him (A, H, R) and the report: `Desktop\Pandora Overlay Files\pandora-games\`.
+The games now have sounds (G26, Nov 15 2026; `PLAN-SOUND.md` there, decisions A77
+to A90, H95 to H101, R1 to R7): 29 cues for Hatchling, made by code
+(`tools/games-sound/`), played by the host, and a mute and five volume steps on
+the Games window's header (the third the default, sound on). It waits for the
+owner's review and his check in game; no version, no CHANGELOG
+entry and no tag exist for it.
+The overlay and the games have click sounds (G27, built Nov 15 to 16 2026;
+`PLAN-CLICKS.md` there, decisions A98 to A114, H102, H103, R8 to R11, G29): six cues
+in one family (`press`, `select`, `toggle-on`, `toggle-off`, `arm`, `back`, 15 to 80
+ms each; take A of each is the owner's), made by code (`tools/games-sound/clicks/`)
+and played for the player's own left clicks of the mouse in the overlay's windows,
+the Games window and a game, never for a key, automation or code and never on the
+tray. Settings › General › Sounds has one row, "Click sounds", a box owning a
+1-to-5 slider, **on by default at step 3** (A103), so an update turns clicks on for
+every player: the release's notes must say so (`PLAN-CLICKS.md` 5.2). In the Games
+window the clicks also obey its mute and its step. The speaker moved to `Sound/` and
+became the whole app's (A101).
 
 SHIPPED in 1.44.0 (Nov 10 2026, after the pre-release 1.44.0-rc.1 on Nov 9; no
 fresh reviewer's read, the owner's call): **the Pack widget**, the stats of your
@@ -796,6 +999,13 @@ Widgets and the stats panel
 - Hunger/thirst estimates beyond 1 h (3 h read as clutter).
 - Bundled or custom alert sounds: the Windows Exclamation sound; a custom one
   only if players ask.
+- The games' sounds (G26) are the games' own, made by code, on the Games window's
+  own mute and volume: no licence for the overlay's alerts, which stay Windows'
+  "Exclamation" (`PLAN-SOUND.md`, risk 9).
+- The click sounds (G27) are input feedback for the player's own left clicks, never
+  an alert (no click for a reading, a timer, a hotkey, an update, a friend or a
+  route stop, and none on hover, focus or a key), and no licence for the overlay's
+  alerts, which stay Windows' "Exclamation" (`PLAN-CLICKS.md`, risk 10).
 - A two-row control panel (one row, grouped by widget).
 - A global scale multiplier on top of the per-widget sliders (Windows display
   scaling already does it, two multiplying sliders confuse, and scaling
@@ -910,11 +1120,19 @@ The four-features brainstorm (Nov 2–3 2026)
   with the number of widgets: no per-widget show/hide. A mid-game action used
   often earns a **hotkey** instead of a tray line (the heatmap and Check Prime
   did).
+- **A button's click sound** (G27, A104): a new button needs nothing, the class
+  handler gives every `ButtonBase` its click by type. A button that dismisses
+  (✕, Close, Cancel, Later, Keep) is marked `Back` (`UiClicks.Cue`), a two-click
+  one `Arm` with `UiClicks.Armed(button)` in its arming branch, and one with a
+  sound of its own, or that must be silent, `None`. Details:
+  `.claude/rules/sound.md`.
 - Every distinct widget gets its OWN size slider in Settings (owner's rule):
   `UiScale` (stats panel), `MinimapScale`, `PrimeScale`, `ActivityScale`,
   `PackScale` — a new
   widget ships with one (override `AppearanceScale`). The control panel has its
-  own too, `ControlPanelScale` (1.37; it rode `UiScale` before). All behave
+  own too, `ControlPanelScale` (1.37; it rode `UiScale` before), and so has
+  the Games window, `GamesScale` (Nov 15 2026, the branch `games`: 75% to
+  150% like the rest, clamped to the screen, the layout fixed). All behave
   alike (owner, Oct 6 2026): plain numbers defaulting to 1.0, no seeding from
   another widget, no migration. No global multiplier on top.
 - **A widget never changes size.** Every widget is 298 wide on one of two fixed
@@ -960,6 +1178,10 @@ The four-features brainstorm (Nov 2–3 2026)
 - No stock WPF chrome in any of our windows: every control kind has its own
   dark template (one set, `Themes/Controls.xaml`, since 1.39); icons are font
   glyphs (✕ ♂ ♀, text badges), not image files.
+- Game art may be image files (G21, the owner, Nov 2026): sprites and tiles are
+  data art, the same in every theme, like the map's data colours. The overlay's
+  own chrome keeps "icons are font glyphs", and every WORD a game shows is themed
+  text held by the fit factor.
 - User content (`waypoints.json`, `route.json`, `friends.json`) is kept apart from config and
   the cookie vault.
 - Player-facing text states only what the API shows: never "died" (a fresh life

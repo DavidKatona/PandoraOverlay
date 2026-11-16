@@ -167,8 +167,8 @@ public partial class BigMapWindow : Window
 
     // ---- Closing --------------------------------------------------------------
 
-    /// <summary>The closing key pressed here (Esc or M), awaiting its release; null = none.</summary>
-    private Key? _closeKeyDown;
+    /// <summary>The closing keys, Esc and M: remembered on a first press made here, never on a repeat (MapKeys, G34).</summary>
+    private readonly MapKeys _keys = new();
 
     /// <summary>
     /// Esc and M close the map on their RELEASE (1.38). Closed on the press,
@@ -179,29 +179,31 @@ public partial class BigMapWindow : Window
     /// menu. Acted on at the release, the whole keystroke is the map's. Space
     /// stays on the press: it closes nothing. The menus close on Esc in their
     /// own popups, which are not routed through here, so an Esc that closes a
-    /// menu leaves the map open.
+    /// menu leaves the map open. A repeat is never a first press (MapKeys, G34):
+    /// the M of the Ctrl+M that opened the map, repeating bare once Ctrl is let
+    /// go, no longer closes it on its release.
     /// </summary>
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (Keyboard.Modifiers != ModifierKeys.None) return; // the combos are the global hotkeys' business
-        switch (e.Key)
+        if (e.Key == Key.Space)
         {
-            case Key.Escape:
-            case Key.M:
-                _closeKeyDown = e.Key;
-                e.Handled = true;
-                break;
-            case Key.Space:
-                CentreOnMe();
-                e.Handled = true;
-                break;
+            CentreOnMe();
+            e.Handled = true;
+            return;
         }
+        // A repeat by Windows' own flag too, not only WPF's (A53): the M of the
+        // Ctrl+M never reached WPF, so WPF would call its first bare repeat a
+        // first press. The message is our own window's, the one WPF raises this
+        // event for.
+        var m = ComponentDispatcher.CurrentKeyboardMessage;
+        var isRepeat = e.IsRepeat || GamesKeys.HeldBefore(m.message, m.lParam.ToInt64());
+        if (_keys.Down(e.Key, Keyboard.Modifiers, isRepeat)) e.Handled = true;
     }
 
     private void Window_PreviewKeyUp(object sender, KeyEventArgs e)
     {
-        if (_closeKeyDown is not { } down || e.Key != down) return;
-        _closeKeyDown = null;
+        if (!_keys.Up(e.Key)) return;
         e.Handled = true;
         Close();
     }

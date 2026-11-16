@@ -330,7 +330,12 @@ public partial class SettingsWindow
 
         body.Children.Add(summary);
         var card = new StorageCard(d, root, body, chevron);
-        summary.MouseLeftButtonUp += (_, _) => ToggleStorageCard(card);
+        summary.MouseLeftButtonUp += (_, _) =>
+        {
+            ToggleStorageCard(card);
+            // Not a button (A98): opening is a switch on, closing a switch off, read after the toggle.
+            UiClicks.Clicked(summary, card.IsOpen ? ClickCue.ToggleOn : ClickCue.ToggleOff);
+        };
         summary.MouseEnter += (_, _) => root.BorderBrush = CardHoverBorder;
         summary.MouseLeave += (_, _) => root.BorderBrush = CardBorder;
         return card;

@@ -1,0 +1,43 @@
+<!-- Hatchling's frame (G13): exactly 798 x 510, the game's bar
+     (34, its 1-unit separator inside it) over the page (476). The tabs are
+     NavButton ToggleButtons in a row, each with its own alignment and margin
+     so the nav row's bar reads as the chosen tab's mark; the wallet at the
+     right. The fifth tab, Guide (H94), sits at the end of the row: the five
+     and the widest wallet fit the bar in every theme. The body font is set
+     here, at the root: laid out alone, a view
+     inherits nothing. No control of the game takes the keyboard focus
+     (Focusable False, here and on the Run page): a focused button would take
+     Space and Enter, and the keyboard is the window's (A33: J and Esc). -->
+<Grid x:Class="PandoraOverlay.Games.Hatchling.HatchlingViewRoot"
+      x:ClassModifier="internal"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:h="clr-namespace:PandoraOverlay.Games.Hatchling"
+      Width="798" Height="510" ClipToBounds="True"
+      TextElement.FontFamily="{DynamicResource Theme.Font.Family}">
+    <Grid.RowDefinitions>
+        <RowDefinition Height="34"/>
+        <RowDefinition Height="476"/>
+    </Grid.RowDefinitions>
+
+    <Grid x:Name="GameBar" Grid.Row="0">
+        <StackPanel Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+            <ToggleButton x:Name="FirstTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
+                          Content="{x:Static h:HatchlingText.TabCamp}"/>
+            <ToggleButton x:Name="LineageTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
+                          Content="{x:Static h:HatchlingText.TabLineage}"/>
+            <ToggleButton x:Name="JournalTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
+                          Content="{x:Static h:HatchlingText.TabJournal}"/>
+            <ToggleButton x:Name="RecordsTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0,0,4,0"
+                          Content="{x:Static h:HatchlingText.TabRecords}"/>
+            <ToggleButton x:Name="GuideTab" Focusable="False" Style="{DynamicResource NavButton}" HorizontalAlignment="Left" Margin="0"
+                          Content="{x:Static h:HatchlingText.TabGuide}"/>
+        </StackPanel>
+        <TextBlock x:Name="Wallet" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0"
+                   Foreground="{DynamicResource Theme.Text.Highlight}"
+                   FontSize="{DynamicResource Theme.Size.13}"/>
+        <Border Height="1" VerticalAlignment="Bottom" Background="{DynamicResource Theme.Separator}"/>
+    </Grid>
+
+    <Grid x:Name="PageHost" Grid.Row="1"/>
+</Grid>

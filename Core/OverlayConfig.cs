@@ -95,7 +95,8 @@ public sealed class OverlayConfig
     // in its three blocks of four. F1–F4 the overlay itself (edit mode, hide);
     // F5–F8 the widgets, in the control panel's order (stats view, minimap
     // view, heatmap, Check Prime); F9 the website (apply my skin); and M, a
-    // letter to remember, the map. The gaps are other software's: the game's
+    // letter to remember, the map; J the games (G12, Nov 2026, the ninth
+    // key). The gaps are other software's: the game's
     // F2 (recording), F10 (hide HUD) and F11 (windowed / fullscreen), Steam's
     // F12 (screenshot), and Ctrl+F3, held globally by third-party software in
     // the wild. The game sees the bare key even with Ctrl held (raw input), so
@@ -113,6 +114,7 @@ public sealed class OverlayConfig
     public const string DefaultHotkeyPrimeCheck = "Ctrl+F8";
     public const string DefaultHotkeySkin = "Ctrl+F9";
     public const string DefaultHotkeyBigMap = "Ctrl+M";
+    public const string DefaultHotkeyGames = "Ctrl+J";
 
     /// <summary>
     /// Global edit-mode hotkey: modifiers (Ctrl/Alt/Shift/Win) plus one key,
@@ -175,6 +177,18 @@ public sealed class OverlayConfig
     /// </summary>
     public string HotkeySkin { get; set; } = DefaultHotkeySkin;
 
+    /// <summary>
+    /// Open and close the Games window (G12) — same format as Hotkey. Ctrl+J:
+    /// safe because a bare J does nothing in The Isle (the owner checked in
+    /// game, Oct 31 2026), and raw-input games can see the bare key despite
+    /// Ctrl, as with the map's M. A late-added key like the five above: a
+    /// collision with a customized combo is resolved to a free one at
+    /// startup, and every other key stays where the player had it. While the
+    /// window is open, a bare J or Esc closes it too, on the key's release —
+    /// keys in our own focused window, no global hook.
+    /// </summary>
+    public string HotkeyGames { get; set; } = DefaultHotkeyGames;
+
     // ---- The big map ----------------------------------------------------------
     // "Big map" is the internal name only: players see "the map" (owner,
     // Oct 9 2026); the BigMap* keys stay as they are.
@@ -225,6 +239,67 @@ public sealed class OverlayConfig
     public bool BigMapMigrations { get; set; }
     public bool BigMapPatrolZones { get; set; }
     public bool BigMapSanctuaries { get; set; }
+
+    // ---- Games ------------------------------------------------------------------
+    // Where the Games window was when it last closed (A31), so reopening it
+    // shows where you left off (G14), across a restart and an update too: the
+    // window itself keeps nothing between openings (it is made when opened and
+    // destroyed when closed), and a game keeps its own state in its own save,
+    // never here. Its position is never saved (G15). Both are game ids, or ""
+    // (a value from a hand-edited file that is null reads as ""). Its scale,
+    // GamesScale, is a preference like every widget's, below.
+
+    private string _gamesView = "";
+    private string _gamesLastPlayed = "";
+
+    /// <summary>
+    /// The id of the game on screen when the Games window last closed, "" for
+    /// the grid (G14, A31). A game no longer listed, or not ready to play,
+    /// opens the grid instead.
+    /// </summary>
+    public string GamesView
+    {
+        get => _gamesView;
+        set => _gamesView = value ?? "";
+    }
+
+    /// <summary>The id of the game played last, "" for none: its tile on the grid is the one marked (A31).</summary>
+    public string GamesLastPlayed
+    {
+        get => _gamesLastPlayed;
+        set => _gamesLastPlayed = value ?? "";
+    }
+
+    /// <summary>
+    /// The Games window's own scale, clamped 0.75–1.5 like every widget's (the
+    /// owner, Nov 15 2026, A75; A97 brought its ceiling from 2.0 to the others'
+    /// 1.5, and a 2.0 already saved is simply drawn at 1.5). A plain 1.0, never
+    /// seeded from another, no migration. The
+    /// whole fixed frame is drawn at it, and smaller still on a screen too
+    /// small for it (GamesFrame.FitScale). Settings → Widgets.
+    /// </summary>
+    public double GamesScale { get; set; } = 1.0;
+
+    // The games' sound (G26, A82): the mute and the volume on the Games
+    // window's header, and nowhere else (no Settings mirror: one control on
+    // two surfaces is what the Conventions turn down). Plain values, never
+    // seeded from anything and no migration: the games were never released,
+    // so nobody has a value to carry. Set on this object by the window's
+    // controls (through GamesSound) as GamesView is, and saved with it. The
+    // overlay's own chimes (General → Sounds) are other keys, untouched by
+    // these (A85).
+
+    /// <summary>
+    /// The games' volume step, 1 to 5, 6 dB apart (1 = −24 dB up to 5 = 0 dB):
+    /// the third by default, well under The Isle's own sound, which is the
+    /// player's warning (A82). A value out of range (a hand-edited file) is READ
+    /// as the nearest step by the games' sound and never written back by it;
+    /// only the window's `−` and `+` write here.
+    /// </summary>
+    public int GamesSoundVolume { get; set; } = 3;
+
+    /// <summary>The games' sounds muted from the Games window's header (A82): off by default, since a muted default is a feature nobody hears.</summary>
+    public bool GamesSoundMuted { get; set; }
 
     // ---- Minimap (v1.1) ---------------------------------------------------
 
@@ -613,6 +688,27 @@ public sealed class OverlayConfig
     /// those moments regardless. Off by default.
     /// </summary>
     public bool GrowthChimeEnabled { get; set; }
+
+    /// <summary>
+    /// Click sounds (G27, A103): a short, quiet tick when the left mouse button
+    /// is released on a button of the overlay's windows, of the Games window
+    /// and of a game (never for a key, a hover, automation or code). ON by
+    /// default: G27 asks for feedback, and a sound off by default is one
+    /// nobody hears (so the release notes must say an update turned them on).
+    /// One switch for every click, the games' too; the Games window's clicks
+    /// also obey its own mute and step. Settings → General → Sounds; read at
+    /// each click (Sound/ClickSound.cs).
+    /// </summary>
+    public bool ClickSoundEnabled { get; set; } = true;
+
+    /// <summary>
+    /// The overlay's clicks' volume step, 1 to 5, 6 dB apart (the steps of
+    /// Sound/SoundSteps.cs, the Games window's too): the third by default.
+    /// A value out of range (a hand-edited file) is READ as the nearest step
+    /// and never written back by reading; only Settings' slider writes here.
+    /// The Games window's clicks play at its own step (GamesSoundVolume).
+    /// </summary>
+    public int ClickSoundVolume { get; set; } = 3;
 
     /// <summary>
     /// Attention fade: the stats panel and the Prime tracker drop to

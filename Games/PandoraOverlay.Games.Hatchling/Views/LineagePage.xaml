@@ -1,0 +1,24 @@
+<!-- The Lineage (H27, in the page's own space: the plan's y less 34): one
+     line saying when a trait counts (H19), then the four branches in columns
+     186 wide, 10 apart, each its name (20 high) over its four traits' cards
+     (186 x 97, 6 apart), first tier at the top. The columns and the cards are
+     made in code (LineagePage.xaml.cs) from the same tokens. Every colour,
+     size and font is the theme's (A25), every word HatchlingText's (A24). -->
+<Grid x:Class="PandoraOverlay.Games.Hatchling.LineagePage"
+      x:ClassModifier="internal"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:h="clr-namespace:PandoraOverlay.Games.Hatchling"
+      Width="798" Height="476" Background="Transparent"
+      TextElement.FontFamily="{DynamicResource Theme.Font.Family}">
+
+    <TextBlock Margin="12,12,12,0" Height="16" HorizontalAlignment="Left" VerticalAlignment="Top"
+               TextTrimming="CharacterEllipsis"
+               Text="{x:Static h:HatchlingText.LineageIntro}"
+               Foreground="{DynamicResource Theme.Text.Dim}"
+               FontSize="{DynamicResource Theme.Size.12}"/>
+
+    <!-- The branches, 12, 72, 774 x 426: 20 + 4 x 97 + 3 x 6 each. -->
+    <Grid x:Name="Branches" Margin="12,38,0,0" Width="774" Height="426"
+          HorizontalAlignment="Left" VerticalAlignment="Top"/>
+</Grid>

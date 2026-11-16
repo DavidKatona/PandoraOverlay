@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The games' tests: the Contract, the engine, every game and the
+       architecture tests that hold the games to their rules (PLAN-ARCHITECTURE
+       section 13). It never references the app, so it builds and runs while
+       the overlay is running and holds the app's exe:
+       dotnet test Games/PandoraOverlay.Games.Tests. A new game gets a
+       ProjectReference here beside its one in the app. The framework, WPF
+       and the rest come from Games/Directory.Build.props. -->
+  <PropertyGroup>
+    <RootNamespace>PandoraOverlay.Games.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The app's tests' versions, exactly: the only packages under Games/ (A2). -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The engine's test atlas, embedded the way a game embeds its art
+         (A28: Art/<file>), so Atlas.Load(assembly, "test-atlas") is tested as
+         a game calls it. The golden frames under Frames/ are not embedded:
+         FrameGolden reads them from the source folder. -->
+    <EmbeddedResource Include="Fixtures\test-atlas.png;Fixtures\test-atlas.json" LogicalName="Art/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PandoraOverlay.Games.Contract\PandoraOverlay.Games.Contract.csproj" />
+    <ProjectReference Include="..\PandoraOverlay.Games.Engine\PandoraOverlay.Games.Engine.csproj" />
+    <ProjectReference Include="..\PandoraOverlay.Games.Hatchling\PandoraOverlay.Games.Hatchling.csproj" />
+  </ItemGroup>
+
+</Project>

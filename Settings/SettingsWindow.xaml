@@ -34,7 +34,7 @@
             <!-- Title bar (draggable): the theme's title glyph (none in Default), the title. -->
             <DockPanel DockPanel.Dock="Top" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
                        Margin="0,0,0,8" Background="Transparent">
-                <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Close_Click"
+                <Button DockPanel.Dock="Right" Content="&#x2715;" Click="Close_Click" local:UiClicks.Cue="Back"
                         Style="{StaticResource DangerButtonStyle}"
                         Width="22" Height="22" Padding="0" FontSize="{DynamicResource Theme.Size.10}"/>
                 <local:ThemeShape DockPanel.Dock="Left" Slot="TitleGlyph" Kind="{DynamicResource Theme.Shapes.TitleGlyph}"
@@ -52,7 +52,7 @@
                  every change applies at once now, and the line says so once
                  for every page. -->
             <DockPanel DockPanel.Dock="Bottom" Margin="0,14,0,0">
-                <Button DockPanel.Dock="Right" Content="Close" Click="Close_Click"
+                <Button DockPanel.Dock="Right" Content="Close" Click="Close_Click" local:UiClicks.Cue="Back"
                         Style="{StaticResource NeutralButtonStyle}"/>
                 <TextBlock Text="Changes apply as you make them. A click on the game closes this window."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -159,7 +159,7 @@
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
                             <Button x:Name="SignInAgainButton" Content="Sign in again" Click="SignIn_Click"
                                     Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                            <Button x:Name="SignOutButton" Content="Sign out" Click="SignOut_Click"
+                            <Button x:Name="SignOutButton" Content="Sign out" Click="SignOut_Click" local:UiClicks.Cue="Arm"
                                     Style="{StaticResource DangerButtonStyle}"/>
                         </StackPanel>
                         <!-- The initial is the fallback: the avatar (SettingsWindow.Account.cs)
@@ -235,14 +235,32 @@
             </DockPanel>
             <!-- Positions only: sizes are readability preferences with a slider each. -->
             <DockPanel Margin="0,12,0,0">
-                <Button x:Name="ResetPositionsButton" DockPanel.Dock="Left" Content="Reset positions" Click="ResetPositions_Click"
+                <Button x:Name="ResetPositionsButton" DockPanel.Dock="Left" Content="Reset positions" Click="ResetPositions_Click" local:UiClicks.Cue="Arm"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
                 <TextBlock Text="Puts every panel back in the default layout: Prime tracker and Activity feed top-left, minimap and stats panel top-right, control panel bottom-centre. Sizes stay as they are."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
 
             <TextBlock Style="{StaticResource SectionCaption}" Text="SOUNDS"/>
-            <CheckBox x:Name="LowStatChimeCheck" Style="{StaticResource Check}"
+            <!-- Click sounds (G27, A103), first under SOUNDS: the box owns its
+                 1-to-5 slider in the 140 px label slot, as Fade does. The box
+                 writes on Checked/Unchecked (SettingsWindow.Apply.cs), so
+                 ticking it is heard at the step and clearing it is silent; the
+                 slider's release plays press at the new step (its mark), so a
+                 level is never set blind (A82). Measured in every theme by the
+                 planner's probe: General keeps 73.67 px or more, no Fit moves. -->
+            <DockPanel>
+                <CheckBox x:Name="ClickSoundCheck" Style="{StaticResource Check}" Width="140"
+                          Content="Click sounds"/>
+                <TextBlock x:Name="ClickSoundLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right" Text="3 of 5"/>
+                <Slider Style="{DynamicResource Theme.SliderStyle}" x:Name="ClickSoundSlider" Minimum="1" Maximum="5"
+                        SmallChange="1" LargeChange="1" IsSnapToTickEnabled="True" TickFrequency="1" IsMoveToPointEnabled="True" Value="3"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        IsEnabled="{Binding IsChecked, ElementName=ClickSoundCheck}"
+                        local:UiClicks.Cue="Press"
+                        ValueChanged="ClickSoundSlider_ValueChanged"/>
+            </DockPanel>
+            <CheckBox x:Name="LowStatChimeCheck" Style="{StaticResource Check}" Margin="0,8,0,0"
                       Content="Chime when hunger or thirst drops under 20%"/>
             <CheckBox x:Name="GrowthChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Chime at growth milestones (25 / 50 / 75 / 100%)"/>
@@ -250,7 +268,7 @@
                       Content="Chime when a friend spawns in"/>
             <CheckBox x:Name="RouteChimeCheck" Style="{StaticResource Check}" Margin="0,6,0,0"
                       Content="Chime when you reach a route stop"/>
-            <TextBlock Text="Each one plays the Windows &quot;Exclamation&quot; sound."
+            <TextBlock Text="Each chime plays the Windows &quot;Exclamation&quot; sound; clicks in the Games window follow its own volume."
                        Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" Margin="0,8,0,0"/>
             </StackPanel>
 
@@ -273,7 +291,7 @@
             <!-- ============================ Hotkeys ======================== -->
             <!-- In the default layout's order (1.38, OverlayConfig.DefaultHotkey):
                  the overlay itself (F1–F4), the widgets in the control panel's
-                 order (F5–F8), the website (F9), the map (M). Was "Controls"
+                 order (F5–F8), the website (F9), the map (M), the games (J). Was "Controls"
                  until 1.37: the name read like the control panel. -->
             <StackPanel Tag="Hotkeys" Visibility="Collapsed">
             <TextBlock Style="{StaticResource PageTitle}" Text="HOTKEYS"/>
@@ -341,6 +359,16 @@
                          GotKeyboardFocus="HotkeyBox_GotFocus"
                          LostKeyboardFocus="HotkeyBox_LostFocus"/>
             </StackPanel>
+            <!-- The Games window (G12, A14), the ninth key: after the map, as J
+                 comes after M in the layout. The window's one setting: no page of
+                 its own, no tray line, no control-panel button. -->
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Games:" Width="150"/>
+                <TextBox x:Name="GamesHotkeyBox" Style="{StaticResource HotkeyBox}"
+                         PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                         GotKeyboardFocus="HotkeyBox_GotFocus"
+                         LostKeyboardFocus="HotkeyBox_LostFocus"/>
+            </StackPanel>
             <TextBlock x:Name="HotkeyHint"
                        Text="Click a box, then press the combination you want."
                        Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap"
@@ -349,9 +377,9 @@
                  this moves them to the layout a fresh install gets. Two clicks:
                  it changes every key at once. -->
             <DockPanel Margin="0,14,0,0">
-                <Button x:Name="DefaultKeysButton" DockPanel.Dock="Left" Content="Use the default keys" Click="DefaultKeys_Click"
+                <Button x:Name="DefaultKeysButton" DockPanel.Dock="Left" Content="Use the default keys" Click="DefaultKeys_Click" local:UiClicks.Cue="Arm"
                         Style="{StaticResource NeutralButtonStyle}" VerticalAlignment="Center"/>
-                <TextBlock Text="F1–F4 the overlay, F5–F8 the widgets in the control panel's order, F9 the website, M the map. Updating the overlay keeps the keys you have."
+                <TextBlock Text="F1–F4 the overlay, F5–F8 the widgets in the control panel's order, F9 the website, M the map, J the games. Updating the overlay keeps the keys you have."
                            Foreground="{DynamicResource Theme.Text.Dim}" FontSize="{DynamicResource Theme.Size.11}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </DockPanel>
             </StackPanel>
@@ -428,6 +456,20 @@
                         SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
                         VerticalAlignment="Center" Margin="10,0,6,0"
                         ValueChanged="ControlPanelScaleSlider_ValueChanged"/>
+            </DockPanel>
+
+            <!-- The Games window's own Scale (the owner, Nov 15 2026, A75): last,
+                 since it is no control-panel widget; 75% to 150% like every
+                 widget's (A97). The window is closed while Settings is open
+                 (A13), so its next opening uses the value. -->
+            <TextBlock Style="{StaticResource SectionCaption}" Text="GAMES"/>
+            <DockPanel>
+                <TextBlock Style="{StaticResource SliderLabel}" Text="Scale:"/>
+                <TextBlock x:Name="GamesScaleLabel" Style="{StaticResource SliderValue}" DockPanel.Dock="Right"/>
+                <Slider Style="{DynamicResource Theme.SliderStyle}" x:Name="GamesScaleSlider" Minimum="0.75" Maximum="1.5"
+                        SmallChange="0.05" LargeChange="0.25" IsMoveToPointEnabled="True"
+                        VerticalAlignment="Center" Margin="10,0,6,0"
+                        ValueChanged="GamesScaleSlider_ValueChanged"/>
             </DockPanel>
             </StackPanel>
 
@@ -556,7 +598,7 @@
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
                     <Button x:Name="ExportButton" Content="Export…" Click="Export_Click"
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                    <Button x:Name="DeleteAllButton" Content="Delete all" Click="DeleteAll_Click"
+                    <Button x:Name="DeleteAllButton" Content="Delete all" Click="DeleteAll_Click" local:UiClicks.Cue="Arm"
                             Style="{StaticResource DangerButtonStyle}"/>
                 </StackPanel>
                 <TextBlock Text="Right-click the map in edit mode to add one; click a dot to recolour."
@@ -650,9 +692,9 @@
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
                     <Button x:Name="RouteCopyButton" Content="Copy" Click="RouteCopy_Click"
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                    <Button x:Name="RoutePasteButton" Content="Paste" Click="RoutePaste_Click"
+                    <Button x:Name="RoutePasteButton" Content="Paste" Click="RoutePaste_Click" local:UiClicks.Cue="Arm"
                             Style="{StaticResource NeutralButtonStyle}" Margin="0,0,6,0"/>
-                    <Button x:Name="RouteClearButton" Content="Clear" Click="RouteClear_Click"
+                    <Button x:Name="RouteClearButton" Content="Clear" Click="RouteClear_Click" local:UiClicks.Cue="Arm"
                             Style="{StaticResource DangerButtonStyle}"/>
                 </StackPanel>
                 <!-- A paused route's way back takes the hint's place. -->

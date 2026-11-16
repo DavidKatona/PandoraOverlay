@@ -348,6 +348,7 @@ public partial class SettingsWindow
             DisarmRouteButtons();
             RouteStatus.Visibility = Visibility.Hidden; // it was about something else: only the question now
             _routeClearArmed = true;
+            UiClicks.Armed(RouteClearButton); // A104
             RouteClearButton.Content = "Clear all?";
             return;
         }
@@ -388,6 +389,7 @@ public partial class SettingsWindow
             DisarmRouteButtons();
             RouteStatus.Visibility = Visibility.Hidden; // it was about something else: only the question now
             _routePasteArmed = true;
+            UiClicks.Armed(RoutePasteButton); // A104 (a paste with nothing to ask is a plain press)
             RoutePasteButton.Content = "Replace route?";
             return;
         }

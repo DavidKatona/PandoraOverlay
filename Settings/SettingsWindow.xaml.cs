@@ -113,6 +113,7 @@ public partial class SettingsWindow : Window
         if (!_resetPositionsArmed)
         {
             _resetPositionsArmed = true;
+            UiClicks.Armed(ResetPositionsButton); // A104: this click asks (the arm cue)
             ResetPositionsButton.Content = "Really reset?";
             return;
         }
@@ -175,6 +176,7 @@ public partial class SettingsWindow : Window
         _hotkeyEntries[PrimeHotkeyBox] = new HotkeyEntry(config.HotkeyPrimeCheck, OverlayConfig.DefaultHotkeyPrimeCheck, "Check Prime");
         _hotkeyEntries[SkinHotkeyBox] = new HotkeyEntry(config.HotkeySkin, OverlayConfig.DefaultHotkeySkin, "apply my skin");
         _hotkeyEntries[BigMapHotkeyBox] = new HotkeyEntry(config.HotkeyBigMap, OverlayConfig.DefaultHotkeyBigMap, "the map");
+        _hotkeyEntries[GamesHotkeyBox] = new HotkeyEntry(config.HotkeyGames, OverlayConfig.DefaultHotkeyGames, "the Games window");
         foreach (var (box, entry) in _hotkeyEntries)
         {
             box.Text = entry.Chosen.ToString();
@@ -189,12 +191,16 @@ public partial class SettingsWindow : Window
         StatsViewCombat.IsChecked = combatView;
         StatsViewSurvival.IsChecked = !combatView;
         HideNotInGameCheck.IsChecked = config.HideWhenNotInGame;
+        // Click sounds (A103): a hand-edited step out of range shows at the nearest end and is not written back.
+        ClickSoundCheck.IsChecked = config.ClickSoundEnabled;
+        ClickSoundSlider.Value = Math.Clamp(config.ClickSoundVolume, ClickSoundSlider.Minimum, ClickSoundSlider.Maximum);
         LowStatChimeCheck.IsChecked = config.LowStatChimeEnabled;
         GrowthChimeCheck.IsChecked = config.GrowthChimeEnabled;
         RouteChimeCheck.IsChecked = config.RouteChimeEnabled;
         ScaleSlider.Value = Math.Clamp(config.UiScale, ScaleSlider.Minimum, ScaleSlider.Maximum);
         PrimeScaleSlider.Value = Math.Clamp(config.PrimeScale, PrimeScaleSlider.Minimum, PrimeScaleSlider.Maximum);
         ControlPanelScaleSlider.Value = Math.Clamp(config.ControlPanelScale, ControlPanelScaleSlider.Minimum, ControlPanelScaleSlider.Maximum);
+        GamesScaleSlider.Value = Math.Clamp(config.GamesScale, GamesScaleSlider.Minimum, GamesScaleSlider.Maximum);
         OpacitySlider.Value = Math.Clamp(config.BackgroundOpacity, OpacitySlider.Minimum, OpacitySlider.Maximum);
         FadeCheck.IsChecked = config.FadeEnabled;
         FadeSlider.Value = Math.Clamp(config.FadeIdleOpacity, FadeSlider.Minimum, FadeSlider.Maximum);
@@ -402,6 +408,7 @@ public partial class SettingsWindow : Window
         if (!_defaultKeysArmed)
         {
             _defaultKeysArmed = true;
+            UiClicks.Armed(DefaultKeysButton); // A104
             DefaultKeysButton.Content = "Really change them all?";
             return;
         }
@@ -450,6 +457,7 @@ public partial class SettingsWindow : Window
         _config.HotkeyStatsView = _hotkeyEntries[StatsViewHotkeyBox].Chosen.ToString();
         _config.HotkeyBigMap = _hotkeyEntries[BigMapHotkeyBox].Chosen.ToString();
         _config.HotkeySkin = _hotkeyEntries[SkinHotkeyBox].Chosen.ToString();
+        _config.HotkeyGames = _hotkeyEntries[GamesHotkeyBox].Chosen.ToString();
     }
 
     /// <summary>Briefly registers the combo on this window to see whether the OS allows it.</summary>
@@ -478,6 +486,11 @@ public partial class SettingsWindow : Window
         if (ControlPanelScaleLabel != null) ControlPanelScaleLabel.Text = $"{e.NewValue:0%}";
     }
 
+    private void GamesScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (GamesScaleLabel != null) GamesScaleLabel.Text = $"{e.NewValue:0%}";
+    }
+
     // ---- General (the look) -------------------------------------------------
     private void OpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
@@ -488,6 +501,17 @@ public partial class SettingsWindow : Window
     {
         if (FadeLabel != null) FadeLabel.Text = $"{e.NewValue:0%}";
     }
+
+    // ---- General (the sounds) -----------------------------------------------
+    /// <summary>The click volume as its step, "3 of 5" (A103): a whole step, as the slider writes it.</summary>
+    private void ClickSoundSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (ClickSoundLabel != null && ClickSoundSlider != null)
+            ClickSoundLabel.Text = $"{ClickSoundStep(e.NewValue)} of {ClickSoundSlider.Maximum:0}";
+    }
+
+    /// <summary>A slider value as a whole step (a value set in code, between ticks, is rounded: only a drag snaps).</summary>
+    private static int ClickSoundStep(double value) => (int)Math.Round(value, MidpointRounding.AwayFromZero);
 
     // ---- Maps ---------------------------------------------------------------
     private void ZoomSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

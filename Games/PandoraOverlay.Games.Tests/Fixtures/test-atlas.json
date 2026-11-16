@@ -1,0 +1,13 @@
+{
+  "image": "test-atlas.png",
+  "frames": {
+    "block/stand/0": { "x": 0, "y": 0, "w": 36, "h": 25, "px": 18, "py": 24 },
+    "glass/stand/0": { "x": 36, "y": 0, "w": 8, "h": 8, "px": 4, "py": 7 },
+    "mark/walk/0": { "x": 36, "y": 8, "w": 4, "h": 4, "px": 2, "py": 3 },
+    "mark/walk/1": { "x": 40, "y": 8, "w": 4, "h": 4, "px": 2, "py": 3 }
+  },
+  "animations": {
+    "mark/walk": { "frames": ["mark/walk/0", "mark/walk/1"], "ticks": [3, 5], "loops": true },
+    "mark/blink": { "frames": ["mark/walk/1", "mark/walk/0"], "ticks": [2, 2], "loops": false }
+  }
+}

@@ -37,6 +37,28 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The projects under Games/ (the Contract, the engine, each game and
+         their tests) are not the app's source: each builds as its own
+         project, and their bin and obj folders are in there too. All four
+         of the SDK's globs would take them otherwise (A1): the code, the
+         XAML (WPF's Page glob), the resources and everything else. -->
+    <Compile Remove="Games\**" />
+    <Page Remove="Games\**" />
+    <EmbeddedResource Remove="Games\**" />
+    <None Remove="Games\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The app talks to a game only through the Contract (A2). Each game
+         gets a ProjectReference beside this one (and one line in
+         GamesHost/GameCatalog.cs); the engine never does: its DLL reaches
+         the app through the games, and no app source names one of its
+         types. -->
+    <ProjectReference Include="Games\PandoraOverlay.Games.Contract\PandoraOverlay.Games.Contract.csproj" />
+    <ProjectReference Include="Games\PandoraOverlay.Games.Hatchling\PandoraOverlay.Games.Hatchling.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     <!-- One-click updates (v1.30): the same version as the packer the release workflow installs. -->
     <PackageReference Include="Velopack" Version="1.2.161" />
@@ -85,6 +107,12 @@
          file and nothing else. Embedded like the rules, so the tests read
          them without WPF. Default itself is code (Themes/DefaultTheme.cs). -->
     <EmbeddedResource Include="Assets\Themes\*.json" LogicalName="Themes/%(Filename)%(Extension)" />
+    <!-- The click sounds (G27, A106): six WAVs made by tools/games-sound/clicks
+         (take A of each, the owner's: G29), checked in under Assets/Clicks and
+         read by the app's own reader (Sound/ClickBank.cs) at the first click
+         that needs each. The overlay plays them, and the games' clicks too, so
+         they are the app's, not a game's Sound/ folder. -->
+    <EmbeddedResource Include="Assets\Clicks\*.wav" LogicalName="Clicks/%(Filename)%(Extension)" />
     <!-- The bundled fonts (1.39): one folder per family, each with its own
          licence as shipped. The faces are WPF Resources, addressed by the
          ;component pack form (Theme.FontFamilyOf), never installed into

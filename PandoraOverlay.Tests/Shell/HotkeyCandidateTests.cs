@@ -22,12 +22,13 @@ public class HotkeyCandidateTests
         ("stats view", MainWindow.StatsViewHotkeyCandidates, 5),
         ("the map", MainWindow.BigMapHotkeyCandidates, 6),
         ("apply my skin", MainWindow.SkinHotkeyCandidates, 7),
+        ("the Games window", MainWindow.GamesHotkeyCandidates, 8),
     };
 
     private static IEnumerable<HotkeySpec> Defaults()
     {
         var c = new OverlayConfig();
-        return new[] { c.Hotkey, c.HotkeyHideAll, c.HotkeyMinimapView, c.HotkeyHeatmap, c.HotkeyPrimeCheck, c.HotkeyStatsView, c.HotkeyBigMap, c.HotkeySkin }
+        return new[] { c.Hotkey, c.HotkeyHideAll, c.HotkeyMinimapView, c.HotkeyHeatmap, c.HotkeyPrimeCheck, c.HotkeyStatsView, c.HotkeyBigMap, c.HotkeySkin, c.HotkeyGames }
             .Select(s => HotkeySpec.TryParse(s) ?? throw new InvalidOperationException($"default {s} doesn't parse"));
     }
 
@@ -72,9 +73,10 @@ public class HotkeyCandidateTests
         Assert.Equal(HotkeySpec.TryParse(c.HotkeyStatsView), MainWindow.StatsViewHotkeyCandidates[0]);
         Assert.Equal(HotkeySpec.TryParse(c.HotkeyBigMap), MainWindow.BigMapHotkeyCandidates[0]);
         Assert.Equal(HotkeySpec.TryParse(c.HotkeySkin), MainWindow.SkinHotkeyCandidates[0]);
+        Assert.Equal(HotkeySpec.TryParse(c.HotkeyGames), MainWindow.GamesHotkeyCandidates[0]);
     }
 
-    /// <summary>The 1.38 layout (the owner's, Oct 24 2026): the F-row's blocks, the overlay, the widgets in the control panel's order, the website; M the map.</summary>
+    /// <summary>The 1.38 layout (the owner's, Oct 24 2026): the F-row's blocks, the overlay, the widgets in the control panel's order, the website; M the map; J the games (G12).</summary>
     [Fact]
     public void AFreshInstallGetsTheBlockLayout()
     {
@@ -87,6 +89,7 @@ public class HotkeyCandidateTests
         Assert.Equal("Ctrl+F8", c.HotkeyPrimeCheck);
         Assert.Equal("Ctrl+F9", c.HotkeySkin);
         Assert.Equal("Ctrl+M", c.HotkeyBigMap);
+        Assert.Equal("Ctrl+J", c.HotkeyGames);
     }
 
     /// <summary>
@@ -112,5 +115,72 @@ public class HotkeyCandidateTests
 
         Assert.Equal(new HotkeySpec(ModifierKeys.Control, Key.F1), skin);
         Assert.Equal("Ctrl+F1", written); // remembered, so it stays put
+    }
+
+    /// <summary>The eight keys before the Games key, in MainWindow's constructor's order: what may already hold its combo.</summary>
+    private static HotkeySpec[] TakersOfTheGamesKey(OverlayConfig c) =>
+        new[] { c.Hotkey, c.HotkeyHideAll, c.HotkeyMinimapView, c.HotkeyHeatmap, c.HotkeyPrimeCheck, c.HotkeyStatsView, c.HotkeyBigMap, c.HotkeySkin }
+            .Select(s => HotkeySpec.TryParse(s) ?? throw new InvalidOperationException($"{s} doesn't parse")).ToArray();
+
+    /// <summary>
+    /// A player who already gave Ctrl+J to the map: the Games key, arriving
+    /// with its default on the same combo, takes the next candidate,
+    /// Ctrl+Shift+J, and remembers it, so it stays put; the map keeps Ctrl+J.
+    /// </summary>
+    [Fact]
+    public void AMapKeyOnCtrlJPutsTheGamesKeyOnCtrlShiftJ()
+    {
+        var config = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>("""
+            { "Hotkey": "Ctrl+F1", "HotkeyHideAll": "Ctrl+F4", "HotkeyStatsView": "Ctrl+F5", "HotkeyMinimapView": "Ctrl+F6",
+              "HotkeyHeatmap": "Ctrl+F7", "HotkeyPrimeCheck": "Ctrl+F8", "HotkeySkin": "Ctrl+F9", "HotkeyBigMap": "Ctrl+J" }
+            """)!;
+        Assert.Equal("Ctrl+J", config.HotkeyGames); // the new key's default, from a file that never held it
+
+        var games = MainWindow.ResolveLateHotkey(config.HotkeyGames, MainWindow.GamesHotkeyCandidates, TakersOfTheGamesKey(config), v => config.HotkeyGames = v);
+
+        Assert.Equal(new HotkeySpec(ModifierKeys.Control | ModifierKeys.Shift, Key.J), games);
+        Assert.Equal("Ctrl+Shift+J", config.HotkeyGames); // written back, so it stays put
+        Assert.Equal("Ctrl+J", config.HotkeyBigMap);
+    }
+
+    /// <summary>
+    /// An update keeps a player's keys (1.38): a config.json from 1.44 holds
+    /// eight keys and no Games key. Resolved as MainWindow's constructor does,
+    /// every late key in its order, none of the eight moves and nothing is
+    /// written back; the Games key gets its default, Ctrl+J, free in both
+    /// layouts a 1.44 player can have: the 1.38 default one, and the old one
+    /// an update from 1.37 kept (the skin key then on Ctrl+F1).
+    /// </summary>
+    [Theory]
+    [InlineData("""
+        { "Hotkey": "Ctrl+F1", "HotkeyHideAll": "Ctrl+F4", "HotkeyStatsView": "Ctrl+F5", "HotkeyMinimapView": "Ctrl+F6",
+          "HotkeyHeatmap": "Ctrl+F7", "HotkeyPrimeCheck": "Ctrl+F8", "HotkeySkin": "Ctrl+F9", "HotkeyBigMap": "Ctrl+M", "UiScale": 1.1 }
+        """)]
+    [InlineData("""
+        { "Hotkey": "Ctrl+F7", "HotkeyHideAll": "Ctrl+F4", "HotkeyMinimapView": "Ctrl+F5", "HotkeyHeatmap": "Ctrl+F6",
+          "HotkeyPrimeCheck": "Ctrl+F8", "HotkeyStatsView": "Ctrl+F9", "HotkeyBigMap": "Ctrl+M", "HotkeySkin": "Ctrl+F1", "UiScale": 1.1 }
+        """)]
+    public void AConfigFrom144KeepsAllEightOfItsKeys(string json)
+    {
+        var config = System.Text.Json.JsonSerializer.Deserialize<OverlayConfig>(json)!;
+        var before = new[] { config.Hotkey, config.HotkeyHideAll, config.HotkeyMinimapView, config.HotkeyHeatmap, config.HotkeyPrimeCheck, config.HotkeyStatsView, config.HotkeyBigMap, config.HotkeySkin };
+        var written = new List<string>();
+
+        // MainWindow's constructor, in its order: the three first keys parsed, each late key resolved against those before it.
+        var edit = HotkeySpec.ParseOr(config.Hotkey, OverlayConfig.DefaultHotkey);
+        var hide = HotkeySpec.ParseOr(config.HotkeyHideAll, OverlayConfig.DefaultHotkeyHideAll);
+        var view = HotkeySpec.ParseOr(config.HotkeyMinimapView, OverlayConfig.DefaultHotkeyMinimapView);
+        var heatmap = MainWindow.ResolveLateHotkey(config.HotkeyHeatmap, MainWindow.HeatmapHotkeyCandidates, new[] { edit, hide, view }, written.Add);
+        var prime = MainWindow.ResolveLateHotkey(config.HotkeyPrimeCheck, MainWindow.PrimeHotkeyCandidates, new[] { edit, hide, view, heatmap }, written.Add);
+        var stats = MainWindow.ResolveLateHotkey(config.HotkeyStatsView, MainWindow.StatsViewHotkeyCandidates, new[] { edit, hide, view, heatmap, prime }, written.Add);
+        var map = MainWindow.ResolveLateHotkey(config.HotkeyBigMap, MainWindow.BigMapHotkeyCandidates, new[] { edit, hide, view, heatmap, prime, stats }, written.Add);
+        var skin = MainWindow.ResolveLateHotkey(config.HotkeySkin, MainWindow.SkinHotkeyCandidates, new[] { edit, hide, view, heatmap, prime, stats, map }, written.Add);
+        var games = MainWindow.ResolveLateHotkey(config.HotkeyGames, MainWindow.GamesHotkeyCandidates, new[] { edit, hide, view, heatmap, prime, stats, map, skin }, written.Add);
+
+        Assert.Empty(written); // nothing moved, nothing to remember
+        Assert.Equal(before, new[] { edit, hide, view, heatmap, prime, stats, map, skin }.Select(k => k.ToString()));
+        Assert.Equal(before, new[] { config.Hotkey, config.HotkeyHideAll, config.HotkeyMinimapView, config.HotkeyHeatmap, config.HotkeyPrimeCheck, config.HotkeyStatsView, config.HotkeyBigMap, config.HotkeySkin });
+        Assert.Equal(new HotkeySpec(ModifierKeys.Control, Key.J), games);
+        Assert.Equal("Ctrl+J", config.HotkeyGames);
     }
 }

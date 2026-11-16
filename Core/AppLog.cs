@@ -158,9 +158,24 @@ public static class AppLog
     /// <summary>Hotkeys another program holds, and the replacements chosen.</summary>
     public static readonly LogCategory Hotkeys = new("LogHotkeys", LogVerbosity.Log);
 
+    /// <summary>
+    /// The Games window and its games: the saves read, written, held and set
+    /// aside (GameSaveStore), a game stopped after an error. A game's id and
+    /// counts only, never a save's content or a path.
+    /// </summary>
+    public static readonly LogCategory Games = new("LogGames", LogVerbosity.Log);
+
+    /// <summary>
+    /// The app's speaker (WaveOutSpeaker, A101): the device opened, failed
+    /// (the step and winmm's code, a stall, an exception's type, codes and
+    /// stack), works again (A90). Codes and types only, never an exception's
+    /// message, and no line for a sound that plays.
+    /// </summary>
+    public static readonly LogCategory Sound = new("LogSound", LogVerbosity.Log);
+
     /// <summary>Every category, in the order above.</summary>
     public static IReadOnlyList<LogCategory> Categories { get; } =
-        new[] { App, Net, Poll, Prime, Friends, Maps, Skins, Storage, Account, Update, Config, Hotkeys };
+        new[] { App, Net, Poll, Prime, Friends, Maps, Skins, Storage, Account, Update, Config, Hotkeys, Games, Sound };
 
     // ---- Levels ------------------------------------------------------------------
 
@@ -178,7 +193,7 @@ public static class AppLog
     /// <summary>
     /// What isn't at its default, in a few words, or null when nothing is.
     /// Detailed log is named once ("Detailed log (every category at Verbose or
-    /// more)"), not as twelve categories at Verbose. Then come the categories
+    /// more)"), not as every category, one by one, at Verbose. Then come the categories
     /// that config.json's LogLevels moved away from that: "every category at
     /// Warning" when "global" moved them all alike, else each one by name.
     /// </summary>
