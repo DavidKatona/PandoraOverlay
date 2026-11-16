@@ -55,7 +55,20 @@ paths:
   Oct 25 2026): its root, every button's width and height, the caption and hint rows are
   constants, the same in every theme, and a label is centred and trimmed inside its part,
   so no font or label grows the panel. A new button gets its width there, the sum is
-  tested (`ControlPanelWidthTests`), and every theme's text must fit it.
+  tested (`ControlPanelWidthTests`), and every theme's text must fit it. Its buttons click
+  by type (G27, A104), a new one needs nothing, and **Exit is silent**: it is marked
+  `UiClicks.Cue="None"`, since the exit cuts whatever still plays (A90) and a click would
+  be cut with it.
+- **MainWindow's sound part** (`MainWindow.Sound.cs`, A101, A104): MainWindow owns the app's
+  ONE speaker (made in the constructor, lazy, disposed at the exit AFTER both gates), the
+  games' gate over its Games channel and the click gate (`ClickSound`) over its Clicks
+  channel, and is the one place the click layer is attached (`UiClicks.Attach()`) and its
+  thread-static sink set (`UiClicks.Sink`) and cleared (`DetachClicks`, before the speaker
+  closes). The click gate is made BEFORE the games' gate, which is handed it. A new gate is
+  one more field there, made over its own channel. A widget or a window attaches nothing of
+  its own: its buttons click by the class handler, and one that must be silent is marked
+  (`.claude/rules/sound.md`). The part declares no native call and names no request,
+  cookie or process (a scan reads it, A102).
 - **Colours, corners, fonts and glows are theme tokens** (1.39): a widget reads them by
   `DynamicResource Theme.…` or `Theme.Current`, never as a literal, and never asks which
   theme is on — see `.claude/rules/themes.md`.

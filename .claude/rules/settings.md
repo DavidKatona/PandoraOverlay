@@ -83,6 +83,25 @@ paths:
 - Destructive actions are armed in place by a first click (Delete all, Sign out, a stored
   dino's Delete), never a modal box. Nothing may move an armed button between its two clicks:
   a status line that shows and hides above one keeps its room (the Route page's).
+- **Click sounds** (G27, A104; `.claude/rules/sound.md`): a button here needs nothing for
+  its click, the class handler gives it one by type. A new two-click button is marked
+  `local:UiClicks.Cue="Arm"` (or `UiClicks.SetCue(button, ClickMark.Arm)` for a built one)
+  and its ARMING branch calls `UiClicks.Armed(button)`: the first click plays `arm`, the
+  confirming one `press`. A button that closes or dismisses (✕, Close, Cancel, Keep) is
+  marked `Back`, a rename form's Cancel included (A113). A clickable thing that is not a
+  button (a colour well, a card's summary) calls `UiClicks.Clicked` from its own mouse
+  handler. A page names nothing else of the click layer, never plays a sound itself and
+  never marks a text box, link or hotkey box.
+- **The click sounds' row** is on General, first under SOUNDS (A103): "Click sounds", a box in
+  the label slot that owns a 1-to-5 slider (snapped to whole steps, "3 of 5"), on by default
+  at step 3. It is the one box of the dialog that writes its config key (`ClickSoundEnabled`)
+  on `Checked` and `Unchecked`, which WPF raises before the click event, so ticking it plays
+  `toggle-on` at the step and clearing it is silent; the slider writes `ClickSoundVolume`
+  (names no `SettingsChange`: the gate reads the config at each click) and is marked
+  `Press`, so its release plays the click at the new level. The chimes' hint beneath says
+  that clicks in the Games window follow the window's own volume. Measured when it was
+  added (the planner's probe): General kept 73.67 px of its page column in Default, the
+  tightest theme, with the row and the hint.
 - Layout: slider rows use `SliderLabel` (140 px); a checkbox that owns a slider sits in
   the label slot with the slider's IsEnabled bound to it; list pages are a card with a
   caption band and zebra rows on a shared column grid, with a measured header
